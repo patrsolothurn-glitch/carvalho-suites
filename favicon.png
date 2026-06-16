@@ -1,0 +1,46 @@
+# Carvalho Suite 🏠
+
+Sistema privado da família Carvalho — PWA instalável.
+
+## Apps incluídas
+
+| App | Descrição |
+|-----|-----------|
+| ⏱️ HorasPro | Registo de horas e CHF |
+| 📋 Agenda Pro | Gestão de trabalho |
+| 🏠 Família Carvalho | Calendário familiar |
+| 💊 Nutriguima | Loja de suplementos |
+| 📚 Agenda Escolar | Escola SEK P — Lucas & Liam |
+
+## Deploy automático
+
+Cada `git push` para `main` faz deploy automático via **GitHub Pages**.
+
+URL: `https://[username].github.io/carvalho-suite/`
+
+## Instalar como app
+
+1. Abrir o URL no telemóvel
+2. Chrome/Safari → Menu → **"Adicionar ao ecrã inicial"**
+3. A app fica instalada sem App Store
+
+## Ficheiros
+
+```
+carvalho-suite/
+├── index.html          ← App completa
+├── manifest.json       ← Config PWA
+├── sw.js               ← Service Worker (offline)
+├── icons/              ← Ícones da app
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   └── apple-touch-icon.png
+└── .github/
+    └── workflows/
+        └── deploy.yml  ← Auto-deploy GitHub Pages
+```
+
+## Acesso
+
+- **Login:** patr.carvalho@hotmail.com
+- **Password Patricio:** Pc12345
