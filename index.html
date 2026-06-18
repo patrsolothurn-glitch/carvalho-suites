@@ -14531,19 +14531,27 @@ function CarvalhoSuite() {
     }).then(function (res) {
       setAuthLoading(false);
       if (res.error) {
-        setPassErr(res.error.message || 'Não foi possível criar a conta.');
+        var msg = res.error.message || res.error.msg || res.error.error_description || '';
+        if (!msg || msg === '{}') {
+          if (res.error.status === 429) msg = 'Muitas tentativas. Aguarda 1 minuto e tenta de novo.';
+          else if (res.error.status === 422) msg = 'Email ou palavra-passe inválidos.';
+          else if (res.error.status === 400) msg = 'Dados inválidos. Verifica o email e palavra-passe.';
+          else msg = 'Não foi possível criar a conta. Tenta novamente.';
+        }
+        setPassErr(msg);
         return;
       }
-      if (res.data && res.data.session) {
-        if (res.data.session.user) fetchProfile(res.data.session.user.id);
+      if (res.data && (res.data.session || res.data.user)) {
+        var uid = res.data.session ? res.data.session.user.id : res.data.user.id;
+        if (uid) fetchProfile(uid);
         setScreen('hub');
       } else {
-        setPassErr('Conta criada! Verifica o teu email para confirmar, depois entra.');
+        setPassErr('Conta criada! Podes entrar agora.');
         setAuthMode('login');
       }
-    }).catch(function () {
+    }).catch(function (e) {
       setAuthLoading(false);
-      setPassErr('Erro de ligação. Tenta novamente.');
+      setPassErr('Erro de ligação. Verifica a internet e tenta novamente.');
     });
   };
   var _useStateResetMsg = (0, _react.useState)(''),
