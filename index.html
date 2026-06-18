@@ -14428,16 +14428,17 @@ function CarvalhoSuite() {
   };
   var fetchProfile = function fetchProfile(userId) {
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('profiles').select('*').eq('id', userId).single().then(function (res) {
-      if (!res.error && res.data) {
-        setProfile(res.data);
-        setUser(res.data.member_id || 'patricio');
+    window.supabaseClient.from('profiles').select('*').eq('id', userId).limit(1).then(function (res) {
+      var data = res.data && res.data[0];
+      if (!res.error && data) {
+        setProfile(data);
+        setUser(data.member_id || 'patricio');
         setProfileErr('');
       } else if (res.error) {
-        setProfileErr('Erro ao carregar perfil: ' + (res.error.message || JSON.stringify(res.error)));
+        setProfileErr('Erro ao carregar perfil: ' + (res.error.message || ''));
       }
     }).catch(function (e) {
-      setProfileErr('Erro ao carregar perfil (excepção): ' + (e && e.message || String(e)));
+      setProfileErr('Erro: ' + (e && e.message || String(e)));
     });
   };
   (0, _react.useEffect)(function () {
