@@ -6631,14 +6631,26 @@ function FamiliaApp(_ref19) {
   };
   var loadMemberPhotos = function loadMemberPhotos() {
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('members').select('id,photo_url').then(function (res) {
+    window.supabaseClient.from('members').select('id,name,emoji,photo_url').then(function (res) {
       if (res.error || !res.data) return;
       var next = {};
+      var nameEmoji = {};
       res.data.forEach(function (row) {
         if (row.photo_url) next[row.id] = row.photo_url;
+        nameEmoji[row.id] = { name: row.name, emoji: row.emoji };
       });
       setMemberPhotos(function (p) {
         return _objectSpread(_objectSpread({}, p), next);
+      });
+      setMembers(function (p) {
+        return p.map(function (m) {
+          var saved = nameEmoji[m.id];
+          if (!saved) return m;
+          return _objectSpread(_objectSpread({}, m), {}, {
+            name: saved.name || m.name,
+            emoji: saved.emoji || m.emoji
+          });
+        });
       });
     }).catch(function () {});
   };
@@ -7019,13 +7031,18 @@ function FamiliaApp(_ref19) {
       return /*#__PURE__*/React.createElement("button", {
         key: e,
         onClick: function onClick() {
-          return setMembers(function (p) {
+          setMembers(function (p) {
             return p.map(function (x) {
               return x.id === m.id ? _objectSpread(_objectSpread({}, x), {}, {
                 emoji: e
               }) : x;
             });
           });
+          if (window.supabaseClient && m.id !== 'todos') {
+            window.supabaseClient.from('members').update({
+              emoji: e
+            }).eq('id', m.id).then(function () {}).catch(function () {});
+          }
         },
         style: {
           background: m.emoji === e ? "".concat(m.color, "22") : 'transparent',
@@ -7059,13 +7076,20 @@ function FamiliaApp(_ref19) {
       onClick: function onClick() {
         var _document$getElementB;
         var val = (((_document$getElementB = document.getElementById("member-name-".concat(m.id))) === null || _document$getElementB === void 0 ? void 0 : _document$getElementB.value) || '').trim();
-        if (val) setMembers(function (p) {
-          return p.map(function (x) {
-            return x.id === m.id ? _objectSpread(_objectSpread({}, x), {}, {
-              name: val
-            }) : x;
+        if (val) {
+          setMembers(function (p) {
+            return p.map(function (x) {
+              return x.id === m.id ? _objectSpread(_objectSpread({}, x), {}, {
+                name: val
+              }) : x;
+            });
           });
-        });
+          if (window.supabaseClient && m.id !== 'todos') {
+            window.supabaseClient.from('members').update({
+              name: val
+            }).eq('id', m.id).then(function () {}).catch(function () {});
+          }
+        }
         setEditMemberId(null);
       },
       style: {
