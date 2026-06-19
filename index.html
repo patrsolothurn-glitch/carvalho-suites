@@ -126,6 +126,31 @@ var APPS_DATA = [{
   badge: '3',
   color: '#A855F7'
 }];
+var NOTIF_ITEMS = [{
+  id: 'n_agenda_tarefas_1',
+  app: 'Agenda Pro',
+  appId: 'agenda',
+  msg: '2 novas tarefas amanhã',
+  time: 'há 5min',
+  icon: '📋',
+  color: T.orange
+}, {
+  id: 'n_familia_medico_1',
+  app: 'Família',
+  appId: 'familia',
+  msg: 'Evento: médico Quinta',
+  time: 'há 1h',
+  icon: '🏠',
+  color: T.blue
+}, {
+  id: 'n_escolar_lembretes_1',
+  app: 'Agenda Escolar',
+  appId: 'escolar',
+  msg: '3 lembretes pendentes',
+  time: 'há 2h',
+  icon: '📚',
+  color: '#A855F7'
+}];
 var USERS_DEF = [{
   id: 'patricio',
   name: 'Patricio',
@@ -14417,9 +14442,27 @@ function CarvalhoSuite() {
   var visApps = isAdmin ? APPS_DATA : APPS_DATA.filter(function (a) {
     return myAllowedApps.includes(a.id);
   });
-  var totalBadge = visApps.reduce(function (n, a) {
-    return n + (a.badge ? parseInt(a.badge) : 0);
-  }, 0);
+  var myReadNotifs = (profile && profile.read_notifications) || [];
+  var unreadNotifs = NOTIF_ITEMS.filter(function (n) {
+    return myReadNotifs.indexOf(n.id) === -1;
+  });
+  var totalBadge = unreadNotifs.length;
+  var markNotifRead = function markNotifRead(notif) {
+    var alreadyRead = myReadNotifs.indexOf(notif.id) !== -1;
+    if (!alreadyRead && profile) {
+      var nextRead = myReadNotifs.concat([notif.id]);
+      setProfile(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, { read_notifications: nextRead });
+      });
+      if (window.supabaseClient && profile.id) {
+        window.supabaseClient.from('profiles').update({
+          read_notifications: nextRead
+        }).eq('id', profile.id).then(function () {}).catch(function () {});
+      }
+    }
+    setApp(notif.appId);
+    setScreen('app');
+  };
   var loadAllProfiles = function loadAllProfiles() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('*').then(function (res) {
@@ -15111,33 +15154,21 @@ function CarvalhoSuite() {
       flexDirection: 'column',
       gap: 10
     }
-  }, [{
-    app: 'Agenda Pro',
-    msg: '2 novas tarefas amanhã',
-    time: 'há 5min',
-    icon: '📋',
-    color: T.orange
-  }, {
-    app: 'Família',
-    msg: 'Evento: médico Quinta',
-    time: 'há 1h',
-    icon: '🏠',
-    color: T.blue
-  }, {
-    app: 'Agenda Escolar',
-    msg: '3 lembretes pendentes',
-    time: 'há 2h',
-    icon: '📚',
-    color: '#A855F7'
-  }].map(function (n, i) {
+  }, NOTIF_ITEMS.map(function (n) {
+    var isUnread = myReadNotifs.indexOf(n.id) === -1;
     return /*#__PURE__*/React.createElement(Card, {
-      key: i,
+      key: n.id,
+      onClick: function onClick() {
+        return markNotifRead(n);
+      },
       style: {
         padding: '14px 16px',
         borderLeft: "3px solid ".concat(n.color),
         display: 'flex',
         gap: 12,
-        alignItems: 'flex-start'
+        alignItems: 'flex-start',
+        cursor: 'pointer',
+        opacity: isUnread ? 1 : 0.55
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -15147,13 +15178,23 @@ function CarvalhoSuite() {
       style: {
         flex: 1
       }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'center', gap: 6 }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         fontWeight: 700,
         fontSize: 14,
         color: T.text
       }
-    }, n.app), /*#__PURE__*/React.createElement("p", {
+    }, n.app), isUnread && /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: T.red,
+        flexShrink: 0
+      }
+    })), /*#__PURE__*/React.createElement("p", {
       style: {
         color: T.muted,
         fontSize: 13,
@@ -15166,7 +15207,14 @@ function CarvalhoSuite() {
         marginTop: 4,
         fontWeight: 600
       }
-    }, n.time)));
+    }, n.time), /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: T.gold,
+        fontSize: 11,
+        marginTop: 6,
+        fontWeight: 700
+      }
+    }, "Ver na app \u203A")));
   })), /*#__PURE__*/React.createElement(BottomNav, {
     active: "Avisos",
     onNav: nav
