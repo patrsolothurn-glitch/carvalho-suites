@@ -126,6 +126,17 @@ var APPS_DATA = [{
   badge: '3',
   color: '#A855F7'
 }];
+var VAPID_PUBLIC_KEY = 'BIObF5nOKVp99VgqSgGJRUrWEWgP3jXmn8P1Bu3dsBOFzn3W_JCJCy7Kjy7RpDBa0EOV2yLKuoFN3TKSnv5B448';
+var urlBase64ToUint8Array = function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var outputArray = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
 var DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 var formatRelDatePt = function formatRelDatePt(dateStr) {
   if (!dateStr) return '';
@@ -4375,6 +4386,14 @@ function AgendaProApp(_ref13) {
           note: form.nota
         }).then(function () {
           loadJobs();
+          try {
+            window.supabaseClient.functions.invoke('send-push', {
+              body: {
+                title: 'Agenda Pro',
+                body: (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi
+              }
+            }).catch(function () {});
+          } catch (e) {}
         }).catch(function () {});
       }
       sendNotifTo(form.monteur, "\uD83D\uDCCB Nova marca\xE7\xE3o \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
@@ -6744,6 +6763,14 @@ function FamiliaApp(_ref19) {
       });
       window.supabaseClient.from('family_events').insert(rows).then(function () {
         loadFamilyEvents();
+        try {
+          window.supabaseClient.functions.invoke('send-push', {
+            body: {
+              title: 'Família Carvalho',
+              body: ev.t + (ev.hora ? ' · ' + ev.hora : '')
+            }
+          }).catch(function () {});
+        } catch (e) {}
       }).catch(function () {});
     }
     setForm({
@@ -14489,11 +14516,35 @@ function CarvalhoSuite() {
     _useStateNotifBannerDismissed2 = _slicedToArray(_useStateNotifBannerDismissed, 2),
     notifBannerDismissed = _useStateNotifBannerDismissed2[0],
     setNotifBannerDismissed = _useStateNotifBannerDismissed2[1];
+  var subscribeToPush = function subscribeToPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (existing) {
+        if (existing) return existing;
+        return reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      });
+    }).then(function (sub) {
+      if (!sub || !profile || !window.supabaseClient) return;
+      var key = sub.toJSON();
+      window.supabaseClient.from('push_subscriptions').upsert({
+        profile_id: profile.id,
+        endpoint: key.endpoint,
+        p256dh: key.keys.p256dh,
+        auth: key.keys.auth
+      }, { onConflict: 'profile_id,endpoint' }).then(function () {}).catch(function () {});
+    }).catch(function () {});
+  };
   var requestNotifPermission = function requestNotifPermission() {
     if (typeof Notification === 'undefined') return;
     Notification.requestPermission().then(function (perm) {
       setNotifPerm(perm);
-      if (perm === 'granted') loadNotifData();
+      if (perm === 'granted') {
+        loadNotifData();
+        subscribeToPush();
+      }
     });
   };
   var dismissNotifBanner = function dismissNotifBanner() {
@@ -14659,6 +14710,7 @@ function CarvalhoSuite() {
         fetchProfile(s.user.id);
         setScreen('hub');
         loadNotifData();
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') subscribeToPush();
       }
       setCheckingAuth(false);
     });
@@ -14671,6 +14723,7 @@ function CarvalhoSuite() {
       if (s && s.user) {
         fetchProfile(s.user.id);
         loadNotifData();
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') subscribeToPush();
       } else {
         setProfile(null);
       }
