@@ -14407,6 +14407,12 @@ function CarvalhoSuite() {
   var myDisplayName = (profile && (profile.display_name || profile.email)) || user.name;
   var myEmoji = profile && profile.is_admin ? '👑' : '👤';
   var isAdmin = !!(profile && profile.is_admin);
+  var myAvatarEmoji = {
+    patricio: '👨‍💼',
+    esposa: '👩',
+    lucas: '👦',
+    liam: '👦'
+  }[profile && profile.member_id] || (isAdmin ? '👨‍💼' : '👤');
   var myAllowedApps = (profile && profile.allowed_apps) || [];
   var visApps = APPS_DATA.filter(function (a) {
     return myAllowedApps.includes(a.id);
@@ -15679,13 +15685,13 @@ function CarvalhoSuite() {
     style: {
       fontSize: 40
     }
-  }, "\uD83D\uDC68\u200D\uD83D\uDCBC")), /*#__PURE__*/React.createElement("h2", {
+  }, myAvatarEmoji)), /*#__PURE__*/React.createElement("h2", {
     style: {
       fontSize: 22,
       fontWeight: 900,
       color: T.text
     }
-  }, "Patricio Carvalho"), /*#__PURE__*/React.createElement("div", {
+  }, myDisplayName), isAdmin && /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'inline-flex',
       alignItems: 'center',
@@ -15705,7 +15711,7 @@ function CarvalhoSuite() {
   }, "\uD83D\uDC51 Admin"))), [{
     icon: '📧',
     label: 'Email',
-    value: 'patr.carvalho@hotmail.com'
+    value: (profile && profile.email) || (user && user.email) || '—'
   }, {
     icon: '🌍',
     label: 'País',
@@ -15713,16 +15719,16 @@ function CarvalhoSuite() {
   }, {
     icon: '📱',
     label: 'Apps ativas',
-    value: "".concat((perms['patricio'] || []).length, " apps")
-  }, {
+    value: "".concat(myAllowedApps.length, " apps")
+  }].concat(isAdmin ? [{
     icon: '👥',
     label: 'Utilizadores',
     value: "".concat(users.length, " pessoas")
-  }, {
+  }] : []).concat([{
     icon: '⚡',
     label: 'Versão',
     value: 'Carvalho Suite v1.0 · Premium'
-  }].map(function (r) {
+  }]).map(function (r) {
     return /*#__PURE__*/React.createElement(Card, {
       key: r.label,
       style: {
@@ -16017,7 +16023,22 @@ function CarvalhoSuite() {
         borderTop: "1px solid ".concat(T.border),
         padding: '12px 16px'
       }
-    }, /*#__PURE__*/React.createElement("p", {
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 16,
+        marginBottom: 14,
+        flexWrap: 'wrap'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+      style: { color: T.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }
+    }, "Email"), /*#__PURE__*/React.createElement("p", {
+      style: { color: T.text, fontSize: 13, fontWeight: 600, marginTop: 2 }
+    }, u.email || '—')), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+      style: { color: T.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase' }
+    }, "País"), /*#__PURE__*/React.createElement("p", {
+      style: { color: T.text, fontSize: 13, fontWeight: 600, marginTop: 2 }
+    }, "Su\xED\xE7a \uD83C\uDDE8\uD83C\uDDED"))), /*#__PURE__*/React.createElement("p", {
       style: {
         color: T.muted,
         fontSize: 9,
