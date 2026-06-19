@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-v11';
+const CACHE = 'carvalho-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -52,6 +52,36 @@ self.addEventListener('fetch', e => {
       }).catch(() => {
         if (e.request.mode === 'navigate') return caches.match('./index.html');
       });
+    })
+  );
+});
+
+// ── Push notifications (real, mesmo com a app fechada) ──────────────
+self.addEventListener('push', e => {
+  let data = { title: 'Carvalho Suite', body: '' };
+  try {
+    if (e.data) data = e.data.json();
+  } catch (err) {
+    if (e.data) data.body = e.data.text();
+  }
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Carvalho Suite', {
+      body: data.body || '',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'carvalho-push'
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('carvalho-suites') && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./');
     })
   );
 });
