@@ -14510,6 +14510,47 @@ function CarvalhoSuite() {
       setProfileErr('Erro: ' + (e && e.message || String(e)));
     });
   };
+  var resizeProfilePhoto = function resizeProfilePhoto(dataUrl, maxSize) {
+    return new Promise(function (resolve) {
+      try {
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var size = maxSize || 240;
+            var canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            var ctx = canvas.getContext('2d');
+            var scale = Math.max(size / img.width, size / img.height);
+            var w = img.width * scale, h = img.height * scale;
+            var x = (size - w) / 2, y = (size - h) / 2;
+            ctx.drawImage(img, x, y, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          } catch (e) {
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = function () { resolve(dataUrl); };
+        img.src = dataUrl;
+      } catch (e) {
+        resolve(dataUrl);
+      }
+    });
+  };
+  var handleMyPhotoUpload = function handleMyPhotoUpload(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file || !profile) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      resizeProfilePhoto(ev.target.result, 240).then(function (resized) {
+        setProfile(function (p) { return _objectSpread(_objectSpread({}, p), {}, { photo_url: resized }); });
+        if (window.supabaseClient && profile.id) {
+          window.supabaseClient.from('profiles').update({ photo_url: resized }).eq('id', profile.id).then(function () {}).catch(function () {});
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
   (0, _react.useEffect)(function () {
     if (!window.supabaseClient) {
       setCheckingAuth(false);
@@ -15671,21 +15712,55 @@ function CarvalhoSuite() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
+      position: 'relative',
+      width: 84,
+      height: 84,
+      margin: '0 auto 12px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       width: 84,
       height: 84,
       borderRadius: 26,
-      background: "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
+      background: (profile && profile.photo_url) ? '#000' : "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      margin: '0 auto 12px',
+      overflow: 'hidden',
       boxShadow: "0 0 32px rgba(201,168,71,0.3)"
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, (profile && profile.photo_url) ? /*#__PURE__*/React.createElement("img", {
+    src: profile.photo_url,
+    alt: "Foto",
+    style: { width: '100%', height: '100%', objectFit: 'cover' }
+  }) : /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 40
     }
-  }, myAvatarEmoji)), /*#__PURE__*/React.createElement("h2", {
+  }, myAvatarEmoji)), /*#__PURE__*/React.createElement("label", {
+    title: "Adicionar foto",
+    style: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 32,
+      height: 32,
+      borderRadius: '50%',
+      background: T.gold,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 15 }
+  }, "\uD83D\uDCF7"), /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    style: { display: 'none' },
+    onChange: handleMyPhotoUpload
+  }))), /*#__PURE__*/React.createElement("h2", {
     style: {
       fontSize: 22,
       fontWeight: 900,
@@ -15992,9 +16067,14 @@ function CarvalhoSuite() {
         border: "2px solid ".concat(u.is_admin ? T.gold : '#7C3AED', "55"),
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        overflow: 'hidden'
       }
-    }, /*#__PURE__*/React.createElement("span", {
+    }, u.photo_url ? /*#__PURE__*/React.createElement("img", {
+      src: u.photo_url,
+      alt: uName,
+      style: { width: '100%', height: '100%', objectFit: 'cover' }
+    }) : /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 22
       }
