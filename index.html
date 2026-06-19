@@ -14414,7 +14414,7 @@ function CarvalhoSuite() {
     liam: '👦'
   }[profile && profile.member_id] || (isAdmin ? '👨‍💼' : '👤');
   var myAllowedApps = (profile && profile.allowed_apps) || [];
-  var visApps = APPS_DATA.filter(function (a) {
+  var visApps = isAdmin ? APPS_DATA : APPS_DATA.filter(function (a) {
     return myAllowedApps.includes(a.id);
   });
   var totalBadge = visApps.reduce(function (n, a) {
