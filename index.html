@@ -6456,7 +6456,6 @@ function FamiliaApp(_ref19) {
       dataDE: '',
       dataATE: '',
       hora: '',
-      horaFim: '',
       diaTodo: false,
       nota: ''
     }),
@@ -6710,7 +6709,6 @@ function FamiliaApp(_ref19) {
       who: form.who,
       color: (m === null || m === void 0 ? void 0 : m.color) || F.coral,
       hora: form.hora,
-      horaFim: form.horaFim,
       nota: form.nota
     };
     var ate = form.dataATE && form.dataATE >= form.dataDE ? form.dataATE : form.dataDE;
@@ -6738,7 +6736,6 @@ function FamiliaApp(_ref19) {
           description: ev.nota || null,
           event_date: d,
           event_time: ev.hora || null,
-          end_time: ev.horaFim || null,
           emoji: ev.emoji,
           color: ev.color,
           created_by: 'patricio'
@@ -6755,7 +6752,6 @@ function FamiliaApp(_ref19) {
       dataDE: '',
       dataATE: '',
       hora: '',
-      horaFim: '',
       diaTodo: false,
       nota: ''
     });
@@ -8206,7 +8202,7 @@ function FamiliaApp(_ref19) {
             fontWeight: 700,
             color: ev.color
           }
-        }, "\uD83D\uDD50 ", ev.hora, ev.horaFim ? " \u2013 ".concat(ev.horaFim) : '') : /*#__PURE__*/React.createElement("span", {
+        }, "\uD83D\uDD50 ", ev.hora) : /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 10,
             fontWeight: 700,
@@ -8356,71 +8352,12 @@ function FamiliaApp(_ref19) {
     k: 'titulo',
     type: 'text',
     ph: 'Ex: Médico Lucas'
-  }].filter(Boolean).map(function (f) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: f.k,
-      style: {
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: F.muted,
-        fontSize: 10,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        marginBottom: 4
-      }
-    }, f.l), /*#__PURE__*/React.createElement("input", {
-      type: f.type,
-      value: form[f.k],
-      onChange: function onChange(e) {
-        return setForm(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, f.k, e.target.value));
-        });
-      },
-      placeholder: f.ph,
-      style: {
-        width: '100%',
-        background: F.surface2,
-        border: "1px solid ".concat(F.border),
-        borderRadius: 12,
-        padding: '11px 14px',
-        color: F.text,
-        fontSize: 14,
-        outline: 'none',
-        boxSizing: 'border-box'
-      }
-    }));
-  }), !form.diaTodo && /*#__PURE__*/React.createElement("div", {
-    style: { marginBottom: 10 }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }
-  }, "Hora"), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', alignItems: 'center', gap: 8 }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "time",
-    value: form.hora,
-    onChange: function onChange(e) {
-      return setForm(function (p) { return _objectSpread(_objectSpread({}, p), {}, { hora: e.target.value }); });
-    },
-    style: {
-      flex: 1, background: F.surface2, border: "1px solid ".concat(form.hora ? F.coral : F.border),
-      borderRadius: 12, padding: '11px 10px', color: F.text, fontSize: 14, outline: 'none', boxSizing: 'border-box'
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: { color: F.muted, fontSize: 18, fontWeight: 300 }
-  }, "\u2192"), /*#__PURE__*/React.createElement("input", {
-    type: "time",
-    value: form.horaFim,
-    min: form.hora,
-    onChange: function onChange(e) {
-      return setForm(function (p) { return _objectSpread(_objectSpread({}, p), {}, { horaFim: e.target.value }); });
-    },
-    style: {
-      flex: 1, background: F.surface2, border: "1px solid ".concat(form.horaFim ? F.coral : F.border),
-      borderRadius: 12, padding: '11px 10px', color: F.text, fontSize: 14, outline: 'none', boxSizing: 'border-box'
-    }
-  }))), [{
+  }, !form.diaTodo && {
+    l: 'Hora',
+    k: 'hora',
+    type: 'time',
+    ph: ''
+  }, {
     l: 'Nota',
     k: 'nota',
     type: 'text',
