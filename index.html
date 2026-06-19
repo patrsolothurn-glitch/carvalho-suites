@@ -126,31 +126,18 @@ var APPS_DATA = [{
   badge: '3',
   color: '#A855F7'
 }];
-var NOTIF_ITEMS = [{
-  id: 'n_agenda_tarefas_1',
-  app: 'Agenda Pro',
-  appId: 'agenda',
-  msg: '2 novas tarefas amanhã',
-  time: 'há 5min',
-  icon: '📋',
-  color: T.orange
-}, {
-  id: 'n_familia_medico_1',
-  app: 'Família',
-  appId: 'familia',
-  msg: 'Evento: médico Quinta',
-  time: 'há 1h',
-  icon: '🏠',
-  color: T.blue
-}, {
-  id: 'n_escolar_lembretes_1',
-  app: 'Agenda Escolar',
-  appId: 'escolar',
-  msg: '3 lembretes pendentes',
-  time: 'há 2h',
-  icon: '📚',
-  color: '#A855F7'
-}];
+var DIAS_SEMANA_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+var formatRelDatePt = function formatRelDatePt(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr + 'T00:00:00');
+  var now = new Date();
+  var hoje = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var diffDays = Math.round((d - hoje) / 86400000);
+  if (diffDays === 0) return 'Hoje';
+  if (diffDays === 1) return 'Amanhã';
+  if (diffDays > 1 && diffDays < 7) return DIAS_SEMANA_PT[d.getDay()];
+  return d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+};
 var USERS_DEF = [{
   id: 'patricio',
   name: 'Patricio',
@@ -14406,7 +14393,59 @@ function CarvalhoSuite() {
     return myAllowedApps.includes(a.id);
   });
   var myReadNotifs = (profile && profile.read_notifications) || [];
-  var unreadNotifs = NOTIF_ITEMS.filter(function (n) {
+  var _useStateNotifData = (0, _react.useState)([]),
+    _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
+    notifItems = _useStateNotifData2[0],
+    setNotifItems = _useStateNotifData2[1];
+  var loadNotifData = function loadNotifData() {
+    if (!window.supabaseClient) return;
+    var now = new Date();
+    var todayStr = now.toISOString().slice(0, 10);
+    var future = new Date(now);
+    future.setDate(future.getDate() + 3);
+    var futureStr = future.toISOString().slice(0, 10);
+    Promise.all([
+      window.supabaseClient.from('family_events').select('*').gte('event_date', todayStr).lte('event_date', futureStr),
+      window.supabaseClient.from('agenda_pro_jobs').select('*').gte('job_date', todayStr).lte('job_date', futureStr)
+    ]).then(function (resArr) {
+      var famRes = resArr[0],
+        jobRes = resArr[1];
+      var items = [];
+      if (famRes && famRes.data) {
+        famRes.data.forEach(function (row) {
+          items.push({
+            id: 'fam_' + row.id,
+            app: 'Família',
+            appId: 'familia',
+            msg: row.title + (row.event_time ? ' · ' + row.event_time : ''),
+            time: formatRelDatePt(row.event_date),
+            sortDate: row.event_date,
+            icon: row.emoji || '🏠',
+            color: T.blue
+          });
+        });
+      }
+      if (jobRes && jobRes.data) {
+        jobRes.data.forEach(function (row) {
+          items.push({
+            id: 'job_' + row.id,
+            app: 'Agenda Pro',
+            appId: 'agenda',
+            msg: (row.project || 'Marcação') + (row.start_time ? ' · ' + row.start_time : ''),
+            time: formatRelDatePt(row.job_date),
+            sortDate: row.job_date,
+            icon: '📋',
+            color: T.orange
+          });
+        });
+      }
+      items.sort(function (a, b) {
+        return (a.sortDate || '').localeCompare(b.sortDate || '');
+      });
+      setNotifItems(items);
+    }).catch(function () {});
+  };
+  var unreadNotifs = notifItems.filter(function (n) {
     return myReadNotifs.indexOf(n.id) === -1;
   });
   var totalBadge = unreadNotifs.length;
@@ -14568,6 +14607,7 @@ function CarvalhoSuite() {
       if (s && s.user) {
         fetchProfile(s.user.id);
         setScreen('hub');
+        loadNotifData();
       }
       setCheckingAuth(false);
     });
@@ -14579,6 +14619,7 @@ function CarvalhoSuite() {
       }
       if (s && s.user) {
         fetchProfile(s.user.id);
+        loadNotifData();
       } else {
         setProfile(null);
       }
@@ -15117,7 +15158,14 @@ function CarvalhoSuite() {
       flexDirection: 'column',
       gap: 10
     }
-  }, NOTIF_ITEMS.map(function (n) {
+  }, notifItems.length === 0 ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: T.muted,
+      fontSize: 13,
+      textAlign: 'center',
+      marginTop: 24
+    }
+  }, "Sem novidades nos pr\xF3ximos dias \u2728") : notifItems.map(function (n) {
     var isUnread = myReadNotifs.indexOf(n.id) === -1;
     return /*#__PURE__*/React.createElement(Card, {
       key: n.id,
