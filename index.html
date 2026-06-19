@@ -218,8 +218,10 @@ var GoldBtn = function GoldBtn(_ref) {
 var Card = function Card(_ref2) {
   var children = _ref2.children,
     _ref2$style = _ref2.style,
-    style = _ref2$style === void 0 ? {} : _ref2$style;
+    style = _ref2$style === void 0 ? {} : _ref2$style,
+    onClick = _ref2.onClick;
   return /*#__PURE__*/React.createElement("div", {
+    onClick: onClick,
     style: _objectSpread({
       background: T.surface,
       borderRadius: 18,
@@ -15168,14 +15170,7 @@ function CarvalhoSuite() {
         marginTop: 4,
         fontWeight: 600
       }
-    }, n.time), /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: T.gold,
-        fontSize: 11,
-        marginTop: 6,
-        fontWeight: 700
-      }
-    }, "Ver na app \u203A")));
+    }, n.time)));
   })), /*#__PURE__*/React.createElement(BottomNav, {
     active: "Avisos",
     onNav: nav
