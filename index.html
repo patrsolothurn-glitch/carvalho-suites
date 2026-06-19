@@ -14443,12 +14443,63 @@ function CarvalhoSuite() {
         return (a.sortDate || '').localeCompare(b.sortDate || '');
       });
       setNotifItems(items);
+      notifyNewItems(items);
     }).catch(function () {});
+  };
+  var notifyNewItems = function notifyNewItems(items) {
+    try {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      var seenRaw = localStorage.getItem('carvalho_seen_notif_ids');
+      var seen = seenRaw ? JSON.parse(seenRaw) : [];
+      var novos = items.filter(function (it) {
+        return seen.indexOf(it.id) === -1;
+      });
+      novos.forEach(function (it) {
+        try {
+          if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(function (reg) {
+              reg.showNotification(it.app, {
+                body: it.msg + (it.time ? ' · ' + it.time : ''),
+                icon: './icon-192.png',
+                tag: it.id
+              });
+            });
+          } else {
+            new Notification(it.app, {
+              body: it.msg + (it.time ? ' · ' + it.time : '')
+            });
+          }
+        } catch (e) {}
+      });
+      var allIds = items.map(function (it) {
+        return it.id;
+      });
+      localStorage.setItem('carvalho_seen_notif_ids', JSON.stringify(allIds));
+    } catch (e) {}
   };
   var unreadNotifs = notifItems.filter(function (n) {
     return myReadNotifs.indexOf(n.id) === -1;
   });
   var totalBadge = unreadNotifs.length;
+  var _useStateNotifPerm = (0, _react.useState)(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'),
+    _useStateNotifPerm2 = _slicedToArray(_useStateNotifPerm, 2),
+    notifPerm = _useStateNotifPerm2[0],
+    setNotifPerm = _useStateNotifPerm2[1];
+  var _useStateNotifBannerDismissed = (0, _react.useState)(localStorage.getItem('carvalho_notif_banner_dismissed') === '1'),
+    _useStateNotifBannerDismissed2 = _slicedToArray(_useStateNotifBannerDismissed, 2),
+    notifBannerDismissed = _useStateNotifBannerDismissed2[0],
+    setNotifBannerDismissed = _useStateNotifBannerDismissed2[1];
+  var requestNotifPermission = function requestNotifPermission() {
+    if (typeof Notification === 'undefined') return;
+    Notification.requestPermission().then(function (perm) {
+      setNotifPerm(perm);
+      if (perm === 'granted') loadNotifData();
+    });
+  };
+  var dismissNotifBanner = function dismissNotifBanner() {
+    localStorage.setItem('carvalho_notif_banner_dismissed', '1');
+    setNotifBannerDismissed(true);
+  };
   var markNotifRead = function markNotifRead(notif) {
     var alreadyRead = myReadNotifs.indexOf(notif.id) !== -1;
     if (!alreadyRead && profile) {
@@ -16578,7 +16629,50 @@ function CarvalhoSuite() {
         fontWeight: 600
       }
     }, uApps.length, " apps"));
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), notifPerm === 'default' && !notifBannerDismissed && /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: '0 16px 14px',
+      background: 'linear-gradient(135deg, rgba(201,168,71,0.15), rgba(201,168,71,0.06))',
+      border: "1px solid ".concat(T.goldBrd),
+      borderRadius: 16,
+      padding: '14px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 24 }
+  }, "\uD83D\uDD14"), /*#__PURE__*/React.createElement("div", {
+    style: { flex: 1 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: T.text, fontSize: 13, fontWeight: 700 }
+  }, "Ativar notifica\xE7\xF5es"), /*#__PURE__*/React.createElement("p", {
+    style: { color: T.muted, fontSize: 11, marginTop: 2 }
+  }, "Recebe avisos de novos eventos e marca\xE7\xF5es")), /*#__PURE__*/React.createElement("button", {
+    onClick: requestNotifPermission,
+    style: {
+      background: T.gold,
+      color: '#09090E',
+      border: 'none',
+      borderRadius: 10,
+      padding: '8px 14px',
+      fontWeight: 800,
+      fontSize: 12,
+      cursor: 'pointer',
+      flexShrink: 0
+    }
+  }, "Ativar"), /*#__PURE__*/React.createElement("button", {
+    onClick: dismissNotifBanner,
+    style: {
+      background: 'none',
+      border: 'none',
+      color: T.muted,
+      fontSize: 16,
+      cursor: 'pointer',
+      padding: 4,
+      flexShrink: 0
+    }
+  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 16px'
     }
