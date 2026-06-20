@@ -148,6 +148,14 @@ function AgendaProApp(_ref13) {
     _useState68 = _slicedToArray(_useState67, 2),
     showAdd = _useState68[0],
     setShowAdd = _useState68[1];
+  var _useStateSaveErr = (0, _react.useState)(''),
+    _useStateSaveErr2 = _slicedToArray(_useStateSaveErr, 2),
+    saveErr = _useStateSaveErr2[0],
+    setSaveErr = _useStateSaveErr2[1];
+  var _useStateSaving = (0, _react.useState)(false),
+    _useStateSaving2 = _slicedToArray(_useStateSaving, 2),
+    saving = _useStateSaving2[0],
+    setSaving = _useStateSaving2[1];
   var _useState69 = (0, _react.useState)(null),
     _useState70 = _slicedToArray(_useState69, 2),
     editId = _useState70[0],
@@ -474,6 +482,7 @@ function AgendaProApp(_ref13) {
       });
     }
     setShowAdd(true);
+    setSaveErr('');
   };
   var sendNotifTo = function sendNotifTo(monteurName, msg, body) {
     addToast(msg, body, 'notif');
@@ -523,7 +532,16 @@ function AgendaProApp(_ref13) {
     }
   };
   var saveForm = function saveForm() {
+    if (!form.morada || !form.morada.trim()) {
+      setSaveErr('Falta a morada.');
+      return;
+    }
+    setSaveErr('');
+    setSaving(true);
     if (editId) {
+      var prevAppt = appts.find(function (a) {
+        return a.id === editId;
+      });
       setAppts(function (p) {
         return p.map(function (a) {
           return a.id === editId ? _objectSpread(_objectSpread(_objectSpread({}, a), form), {}, {
@@ -531,26 +549,53 @@ function AgendaProApp(_ref13) {
           }) : a;
         });
       });
-      if (window.supabaseClient) {
-        window.supabaseClient.from('agenda_pro_jobs').update({
-          job_date: form.date,
-          start_time: form.hi,
-          end_time: form.hf,
-          project: form.proj,
-          address: form.morada,
-          monteur: form.monteur,
-          chf: Number(form.chf),
-          status: form.status,
-          note: form.nota,
-          categoria: form.categoria,
-          partilhado: !!form.partilhado,
-          partilhado_com: form.partilhadoCom || 'todos'
-        }).eq('id', editId).then(function () {
-          loadJobs();
-          syncToFamilia(editId, form.partilhado, form);
-        }).catch(function () {});
+      if (!window.supabaseClient) {
+        setSaving(false);
+        setSaveErr('Sem ligação ao servidor — não foi guardado.');
+        return;
       }
-      sendNotifTo(form.monteur, "\u270F\uFE0F Marca\xE7\xE3o alterada \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
+      window.supabaseClient.from('agenda_pro_jobs').update({
+        job_date: form.date,
+        start_time: form.hi,
+        end_time: form.hf,
+        project: form.proj,
+        address: form.morada,
+        monteur: form.monteur,
+        chf: Number(form.chf),
+        status: form.status,
+        note: form.nota,
+        categoria: form.categoria,
+        partilhado: !!form.partilhado,
+        partilhado_com: form.partilhadoCom || 'todos'
+      }).eq('id', editId).then(function (res) {
+        setSaving(false);
+        if (res.error) {
+          setSaveErr('Erro ao guardar: ' + res.error.message);
+          if (prevAppt) {
+            setAppts(function (p) {
+              return p.map(function (a) {
+                return a.id === editId ? prevAppt : a;
+              });
+            });
+          }
+          return;
+        }
+        loadJobs();
+        syncToFamilia(editId, form.partilhado, form);
+        sendNotifTo(form.monteur, "\u270F\uFE0F Marca\xE7\xE3o alterada \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
+        setShowAdd(false);
+        setEditId(null);
+      }).catch(function (e) {
+        setSaving(false);
+        setSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        if (prevAppt) {
+          setAppts(function (p) {
+            return p.map(function (a) {
+              return a.id === editId ? prevAppt : a;
+            });
+          });
+        }
+      });
     } else {
       var tempId = Date.now();
       setAppts(function (p) {
@@ -559,35 +604,61 @@ function AgendaProApp(_ref13) {
           chf: Number(form.chf)
         })]);
       });
-      if (window.supabaseClient) {
-        window.supabaseClient.from('agenda_pro_jobs').insert({
-          job_date: form.date,
-          start_time: form.hi,
-          end_time: form.hf,
-          project: form.proj,
-          address: form.morada,
-          monteur: form.monteur,
-          chf: Number(form.chf),
-          status: form.status,
-          note: form.nota,
-          categoria: form.categoria,
-          partilhado: !!form.partilhado,
-          partilhado_com: form.partilhadoCom || 'todos'
-        }).select().then(function (res) {
-          loadJobs();
-          var newJob = res.data && res.data[0];
-          if (form.partilhado && newJob) {
-            syncToFamilia(newJob.id, true, form);
-          }
-          try {
-            sendPushTargeted('Agenda Pro', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
-          } catch (e) {}
-        }).catch(function () {});
+      if (!window.supabaseClient) {
+        setSaving(false);
+        setSaveErr('Sem ligação ao servidor — não foi guardado.');
+        setAppts(function (p) {
+          return p.filter(function (a) {
+            return a.id !== tempId;
+          });
+        });
+        return;
       }
-      sendNotifTo(form.monteur, "\uD83D\uDCCB Nova marca\xE7\xE3o \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
+      window.supabaseClient.from('agenda_pro_jobs').insert({
+        job_date: form.date,
+        start_time: form.hi,
+        end_time: form.hf,
+        project: form.proj,
+        address: form.morada,
+        monteur: form.monteur,
+        chf: Number(form.chf),
+        status: form.status,
+        note: form.nota,
+        categoria: form.categoria,
+        partilhado: !!form.partilhado,
+        partilhado_com: form.partilhadoCom || 'todos'
+      }).select().then(function (res) {
+        setSaving(false);
+        if (res.error) {
+          setSaveErr('Erro ao adicionar: ' + res.error.message);
+          setAppts(function (p) {
+            return p.filter(function (a) {
+              return a.id !== tempId;
+            });
+          });
+          return;
+        }
+        loadJobs();
+        var newJob = res.data && res.data[0];
+        if (form.partilhado && newJob) {
+          syncToFamilia(newJob.id, true, form);
+        }
+        try {
+          sendPushTargeted('Agenda Pro', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
+        } catch (e) {}
+        sendNotifTo(form.monteur, "\uD83D\uDCCB Nova marca\xE7\xE3o \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
+        setShowAdd(false);
+        setEditId(null);
+      }).catch(function (e) {
+        setSaving(false);
+        setSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        setAppts(function (p) {
+          return p.filter(function (a) {
+            return a.id !== tempId;
+          });
+        });
+      });
     }
-    setShowAdd(false);
-    setEditId(null);
   };
   var deleteApptWithNotif = function deleteApptWithNotif(a) {
     deleteAppt(a.id);
@@ -2462,7 +2533,18 @@ function AgendaProApp(_ref13) {
       fontSize: 12,
       fontWeight: 700
     }
-  }, "Aviso ", avisoMin, " min antes (configur\xE1vel no painel)")), /*#__PURE__*/React.createElement("div", {
+  }, "Aviso ", avisoMin, " min antes (configur\xE1vel no painel)")), saveErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#EF4444',
+      fontSize: 12.5,
+      lineHeight: 1.4,
+      marginBottom: 10,
+      padding: '8px 10px',
+      background: 'rgba(239,68,68,0.08)',
+      border: '1px solid rgba(239,68,68,0.25)',
+      borderRadius: 10
+    }
+  }, "\u26A0\uFE0F ", saveErr), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8
@@ -2484,19 +2566,20 @@ function AgendaProApp(_ref13) {
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: saveForm,
+    disabled: saving,
     style: {
       flex: 2,
-      background: "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
+      background: saving ? A.surface2 : "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
       border: 'none',
       borderRadius: 14,
       padding: '13px',
-      color: '#fff',
+      color: saving ? A.muted : '#fff',
       fontSize: 14,
       fontWeight: 800,
-      cursor: 'pointer',
-      boxShadow: '0 4px 14px rgba(249,115,22,0.3)'
+      cursor: saving ? 'default' : 'pointer',
+      boxShadow: saving ? 'none' : '0 4px 14px rgba(249,115,22,0.3)'
     }
-  }, "\u2713 ", editId ? 'Guardar' : 'Adicionar')))), calView === 'graficos' && (function () {
+  }, saving ? 'A guardar…' : "\u2713 " + (editId ? 'Guardar' : 'Adicionar'))))), calView === 'graficos' && (function () {
     var y = curDate.getFullYear();
     var mo2 = curDate.getMonth();
     var prefix = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'));
