@@ -6958,11 +6958,17 @@ function FamiliaApp(_ref19) {
     removeSharedDia = _ref19$removeSharedDi === void 0 ? function () {} : _ref19$removeSharedDi,
     _ref19$currentMemberI = _ref19.currentMemberId,
     currentMemberId = _ref19$currentMemberI === void 0 ? 'patricio' : _ref19$currentMemberI;
-  var _useState95 = (0, _react.useState)(new Date(2026, 5, 1)),
+  var _useState95 = (0, _react.useState)(function () {
+      var d = new Date();
+      d.setDate(1);
+      return d;
+    }),
     _useState96 = _slicedToArray(_useState95, 2),
     curMonth = _useState96[0],
     setCurMonth = _useState96[1];
-  var _useState97 = (0, _react.useState)(15),
+  var _useState97 = (0, _react.useState)(function () {
+      return new Date().getDate();
+    }),
     _useState98 = _slicedToArray(_useState97, 2),
     selDay = _useState98[0],
     setSelDay = _useState98[1];
@@ -7097,8 +7103,11 @@ function FamiliaApp(_ref19) {
     mainView = _useState114[0],
     setMainView = _useState114[1]; // semana | mes
   var _useState115 = (0, _react.useState)(function () {
-      var d = new Date(2026, 5, 15); // 15 Jun 2026
-      d.setDate(d.getDate() - d.getDay() + 1); // Monday
+      var d = new Date();
+      var dow = d.getDay(); // 0=Dom,1=Seg,...
+      var diff = dow === 0 ? -6 : 1 - dow; // recuar até segunda-feira
+      d.setDate(d.getDate() + diff);
+      d.setHours(0, 0, 0, 0);
       return d;
     }),
     _useState116 = _slicedToArray(_useState115, 2),
@@ -7953,7 +7962,9 @@ function FamiliaApp(_ref19) {
   }).map(function (_, di) {
     var date = new Date(weekStart.getTime() + di * 86400000);
     var dStr = "".concat(date.getFullYear(), "-").concat(String(date.getMonth() + 1).padStart(2, '0'), "-").concat(String(date.getDate()).padStart(2, '0'));
-    var isToday = dStr === "2026-06-15";
+    var todayD = new Date();
+    var todayStr = "".concat(todayD.getFullYear(), "-").concat(String(todayD.getMonth() + 1).padStart(2, '0'), "-").concat(String(todayD.getDate()).padStart(2, '0'));
+    var isToday = dStr === todayStr;
     var dayName = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][di];
     var isWeekend = di >= 5;
     var dayEvs = events[dStr] || [];
@@ -8011,8 +8022,19 @@ function FamiliaApp(_ref19) {
         return eventVisibleTo(e, m.id);
       });
       var mShared = dayShared.length > 0 && m.id === 'patricio';
+      var isEmptyCell = mEvs.length === 0 && !mShared;
       return /*#__PURE__*/React.createElement("div", {
         key: m.id,
+        onClick: isEmptyCell ? function () {
+          setForm(function (p) {
+            return _objectSpread(_objectSpread({}, p), {}, {
+              dataDE: dStr,
+              dataATE: dStr,
+              participantes: [m.id]
+            });
+          });
+          setShowAdd(true);
+        } : undefined,
         style: {
           padding: '3px 3px',
           borderLeft: "1px solid ".concat(F.border),
@@ -8021,7 +8043,8 @@ function FamiliaApp(_ref19) {
           flexDirection: 'column',
           gap: 2,
           overflow: 'hidden',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          cursor: isEmptyCell ? 'pointer' : 'default'
         }
       }, mShared && dayShared.map(function (s, si) {
         return /*#__PURE__*/React.createElement("div", {
