@@ -7348,7 +7348,7 @@ function FamiliaApp(_ref19) {
     style: {
       background: F.surface,
       borderBottom: "1px solid ".concat(F.border),
-      padding: '10px 12px',
+      padding: '8px 8px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -7363,12 +7363,12 @@ function FamiliaApp(_ref19) {
       background: 'none',
       border: 'none',
       color: F.coral,
-      fontSize: 34,
+      fontSize: 30,
       cursor: 'pointer',
       padding: '0',
       lineHeight: 1,
-      width: 44,
-      height: 44,
+      width: 32,
+      height: 38,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -7378,24 +7378,28 @@ function FamiliaApp(_ref19) {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 6,
+      gap: 4,
       flex: 1,
+      minWidth: 0,
       justifyContent: 'center'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 18
+      fontSize: 16,
+      flexShrink: 0
     }
   }, "\uD83C\uDFE0"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 900,
-      fontSize: 16,
-      whiteSpace: 'nowrap'
+      fontSize: 14,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
     }
   }, "Fam\xEDlia Carvalho")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
-      gap: 6,
+      gap: 4,
       alignItems: 'center',
       flexShrink: 0
     }
@@ -7403,7 +7407,7 @@ function FamiliaApp(_ref19) {
     style: {
       display: 'flex',
       background: F.surface2,
-      borderRadius: 10,
+      borderRadius: 9,
       border: "1px solid ".concat(F.border),
       overflow: 'hidden'
     }
@@ -7414,9 +7418,9 @@ function FamiliaApp(_ref19) {
     style: {
       background: mainView === 'semana' ? F.coral : 'transparent',
       border: 'none',
-      padding: '6px 9px',
+      padding: '5px 7px',
       color: mainView === 'semana' ? '#fff' : F.muted,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: 700,
       cursor: 'pointer'
     }
@@ -7427,9 +7431,9 @@ function FamiliaApp(_ref19) {
     style: {
       background: mainView === 'mes' ? F.coral : 'transparent',
       border: 'none',
-      padding: '6px 9px',
+      padding: '5px 7px',
       color: mainView === 'mes' ? '#fff' : F.muted,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: 700,
       cursor: 'pointer'
     }
@@ -7440,9 +7444,9 @@ function FamiliaApp(_ref19) {
     style: {
       background: mainView === 'graficos' ? F.coral : 'transparent',
       border: 'none',
-      padding: '6px 9px',
+      padding: '5px 7px',
       color: mainView === 'graficos' ? '#fff' : F.muted,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: 700,
       cursor: 'pointer'
     }
@@ -7453,11 +7457,11 @@ function FamiliaApp(_ref19) {
     style: {
       background: "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
       border: 'none',
-      borderRadius: 12,
-      width: 34,
-      height: 34,
+      borderRadius: 11,
+      width: 30,
+      height: 30,
       color: '#fff',
-      fontSize: 20,
+      fontSize: 18,
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
