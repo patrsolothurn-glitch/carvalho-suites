@@ -9640,6 +9640,42 @@ function NutriguimaApp(_ref29) {
     _useState138 = _slicedToArray(_useState137, 2),
     products = _useState138[0],
     setProducts = _useState138[1];
+  var loadNutriData = function loadNutriData() {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('nutri_products').select('*').then(function (res) {
+      if (res.error) return;
+      if (res.data && res.data.length > 0) {
+        setProducts(res.data.map(function (row) {
+          return {
+            id: row.id,
+            name: row.name,
+            price: Number(row.price),
+            emoji: row.emoji,
+            cat: row.cat
+          };
+        }));
+        var st = {};
+        res.data.forEach(function (row) {
+          st[row.id] = row.stock || 0;
+        });
+        setStock(st);
+      } else {
+        products.forEach(function (p) {
+          window.supabaseClient.from('nutri_products').insert({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            emoji: p.emoji,
+            cat: p.cat,
+            stock: stock[p.id] || 0
+          }).then(function () {}).catch(function () {});
+        });
+      }
+    }).catch(function () {});
+  };
+  (0, _react.useEffect)(function () {
+    loadNutriData();
+  }, []);
   var addProduto = function addProduto() {
     var _novoNomeRef$current, _novoPrecoRef$current;
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
@@ -9658,6 +9694,16 @@ function NutriguimaApp(_ref29) {
     setStock(function (s) {
       return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0));
     });
+    if (window.supabaseClient) {
+      window.supabaseClient.from('nutri_products').insert({
+        id: id,
+        name: name,
+        price: price,
+        emoji: novoEmoji,
+        cat: novoCat,
+        stock: 0
+      }).then(function () {}).catch(function () {});
+    }
     setNovoEmoji('💊');
     setNovoCat('Proteína');
     if (novoNomeRef.current) novoNomeRef.current.value = '';
@@ -9675,6 +9721,9 @@ function NutriguimaApp(_ref29) {
       delete c[id];
       return c;
     });
+    if (window.supabaseClient) {
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () {}).catch(function () {});
+    }
   };
   var filtered = products.filter(function (p) {
     return p.name.toLowerCase().includes(search.toLowerCase());
@@ -10751,7 +10800,13 @@ function NutriguimaApp(_ref29) {
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setStock(function (s) {
-          return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, Math.max(0, (s[p.id] || 0) - 1)));
+          var next = Math.max(0, (s[p.id] || 0) - 1);
+          if (window.supabaseClient) {
+            window.supabaseClient.from('nutri_products').update({
+              stock: next
+            }).eq('id', p.id).then(function () {}).catch(function () {});
+          }
+          return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
       },
       style: {
@@ -10779,7 +10834,13 @@ function NutriguimaApp(_ref29) {
     }, st), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setStock(function (s) {
-          return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, (s[p.id] || 0) + 1));
+          var next = (s[p.id] || 0) + 1;
+          if (window.supabaseClient) {
+            window.supabaseClient.from('nutri_products').update({
+              stock: next
+            }).eq('id', p.id).then(function () {}).catch(function () {});
+          }
+          return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
       },
       style: {
@@ -11657,11 +11718,167 @@ function EscolarApp(_ref31) {
     alunosData = _useState176[0],
     setAlunosData = _useState176[1];
   var aluno = alunosData[alunoKey];
+  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
+    if (!window.supabaseClient) return;
+    var sb = window.supabaseClient;
+    sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function () {
+      var rows = (data.disciplinas || []).map(function (d) {
+        return {
+          id: d.id,
+          aluno: key,
+          abr: d.abr || '',
+          nome: d.nome || '',
+          prof: d.prof || '',
+          tel: d.tel || '',
+          emoji: d.emoji || '',
+          cor: d.cor || ''
+        };
+      });
+      if (rows.length > 0) sb.from('escolar_disciplinas').insert(rows).then(function () {}).catch(function () {});
+    }).catch(function () {});
+    sb.from('escolar_horario').delete().eq('aluno', key).then(function () {
+      var rows = [];
+      Object.keys(data.horario || {}).forEach(function (dia) {
+        (data.horario[dia] || []).forEach(function (slot) {
+          rows.push({
+            aluno: key,
+            dia: Number(dia),
+            disc_id: slot.discId,
+            hi: slot.hi || '',
+            hf: slot.hf || '',
+            sala: slot.sala || '',
+            livre: !!slot.livre
+          });
+        });
+      });
+      if (rows.length > 0) sb.from('escolar_horario').insert(rows).then(function () {}).catch(function () {});
+    }).catch(function () {});
+    sb.from('escolar_notas').delete().eq('aluno', key).then(function () {
+      var rows = [];
+      Object.keys(data.notas || {}).forEach(function (discId) {
+        Object.keys(data.notas[discId] || {}).forEach(function (sem) {
+          (data.notas[discId][sem] || []).forEach(function (valor) {
+            rows.push({
+              aluno: key,
+              disc_id: Number(discId),
+              semestre: Number(sem),
+              valor: valor
+            });
+          });
+        });
+      });
+      if (rows.length > 0) sb.from('escolar_notas').insert(rows).then(function () {}).catch(function () {});
+    }).catch(function () {});
+    sb.from('escolar_tpc').delete().eq('aluno', key).then(function () {
+      var rows = (data.tpc || []).map(function (t) {
+        return {
+          id: t.id,
+          aluno: key,
+          disc_id: t.discId,
+          titulo: t.titulo || '',
+          data: t.data || '',
+          feito: !!t.feito,
+          tipo: t.tipo || 'tpc'
+        };
+      });
+      if (rows.length > 0) sb.from('escolar_tpc').insert(rows).then(function () {}).catch(function () {});
+    }).catch(function () {});
+  };
   var setAluno = function setAluno(fn) {
     return setAlunosData(function (p) {
-      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, fn(p[alunoKey])));
+      var newData = fn(p[alunoKey]);
+      saveAlunoSnapshot(alunoKey, newData);
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, newData));
     });
   };
+  var loadEscolarData = function loadEscolarData() {
+    if (!window.supabaseClient) return;
+    var sb = window.supabaseClient;
+    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*')]).then(function (resArr) {
+      var discRes = resArr[0],
+        horRes = resArr[1],
+        notasRes = resArr[2],
+        tpcRes = resArr[3];
+      var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
+      if (!anyData) {
+        Object.keys(ALUNOS_DEF).forEach(function (key) {
+          saveAlunoSnapshot(key, ALUNOS_DEF[key]);
+        });
+        return;
+      }
+      setAlunosData(function (prev) {
+        var next = _objectSpread({}, prev);
+        Object.keys(next).forEach(function (key) {
+          var discRows = (discRes.data || []).filter(function (r) {
+            return r.aluno === key;
+          });
+          var horRows = (horRes.data || []).filter(function (r) {
+            return r.aluno === key;
+          });
+          var notasRows = (notasRes.data || []).filter(function (r) {
+            return r.aluno === key;
+          });
+          var tpcRows = (tpcRes.data || []).filter(function (r) {
+            return r.aluno === key;
+          });
+          var updated = _objectSpread({}, next[key]);
+          if (discRows.length > 0) {
+            updated.disciplinas = discRows.map(function (r) {
+              return {
+                id: r.id,
+                abr: r.abr || '',
+                nome: r.nome || '',
+                prof: r.prof || '',
+                tel: r.tel || '',
+                emoji: r.emoji || '',
+                cor: r.cor || ''
+              };
+            });
+          }
+          if (horRows.length > 0) {
+            var horario = {};
+            horRows.forEach(function (r) {
+              if (!horario[r.dia]) horario[r.dia] = [];
+              horario[r.dia].push({
+                discId: r.disc_id,
+                hi: r.hi || '',
+                hf: r.hf || '',
+                sala: r.sala || '',
+                livre: !!r.livre
+              });
+            });
+            updated.horario = horario;
+          }
+          if (notasRows.length > 0) {
+            var notas = {};
+            notasRows.forEach(function (r) {
+              if (!notas[r.disc_id]) notas[r.disc_id] = {};
+              if (!notas[r.disc_id][r.semestre]) notas[r.disc_id][r.semestre] = [];
+              notas[r.disc_id][r.semestre].push(Number(r.valor));
+            });
+            updated.notas = notas;
+          }
+          if (tpcRows.length > 0) {
+            updated.tpc = tpcRows.map(function (r) {
+              return {
+                id: r.id,
+                discId: r.disc_id,
+                titulo: r.titulo || '',
+                data: r.data || '',
+                feito: !!r.feito,
+                tipo: r.tipo || 'tpc'
+              };
+            });
+          }
+          next[key] = updated;
+        });
+        return next;
+      });
+    }).catch(function () {});
+  };
+  (0, _react.useEffect)(function () {
+    loadEscolarData();
+  }, []);
   var dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
   var getDia = function getDia(i) {
     var d = new Date(2026, 5, 15);
