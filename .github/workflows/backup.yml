@@ -1,0 +1,40 @@
+name: Backup Supabase Data
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'   # Todos os domingos às 03:00 UTC (04:00/05:00 na Suíça)
+  workflow_dispatch: {}    # Permite correr manualmente em qualquer altura
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Exportar tabelas do Supabase
+        env:
+          SUPABASE_URL: https://qtynznppkxjmihxiquze.supabase.co
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          mkdir -p "backups/$DATE"
+          TABLES="profiles members horas_entries agenda_pro_jobs family_events nutri_products escolar_disciplinas escolar_horario escolar_notas escolar_tpc push_subscriptions"
+          for T in $TABLES; do
+            echo "A exportar $T..."
+            curl -sf "$SUPABASE_URL/rest/v1/$T?select=*" \
+              -H "apikey: $SUPABASE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_KEY" \
+              -o "backups/$DATE/$T.json" || echo "[]" > "backups/$DATE/$T.json"
+          done
+
+      - name: Limpar backups com mais de 90 dias
+        run: |
+          find backups -maxdepth 1 -type d -mtime +90 -exec rm -rf {} \; || true
+
+      - name: Comitar backup
+        run: |
+          git config user.name "Carvalho Backup Bot"
+          git config user.email "backup@carvalho-suite.local"
+          git add backups/
+          git diff --staged --quiet && echo "Nada novo para comitar" || git commit -m "🗄️ Backup automático $(date +%Y-%m-%d)"
+          git push
