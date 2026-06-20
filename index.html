@@ -12268,7 +12268,7 @@ function EscolarApp(_ref31) {
         background: isSel ? "".concat(al.cor, "20") : E.surface,
         border: "2px solid ".concat(isSel ? al.cor : E.border),
         borderRadius: 14,
-        flex: isAdmin ? 1 : 'auto',
+        flex: 1,
         minWidth: 0,
         position: 'relative'
       }
@@ -12311,24 +12311,25 @@ function EscolarApp(_ref31) {
         fontWeight: 800,
         fontSize: 13,
         color: isSel ? al.cor : E.text,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.15
       }
     }, al.nome), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         alignItems: 'center',
         gap: 4,
-        minWidth: 0
+        minWidth: 0,
+        flexWrap: 'wrap'
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 10,
         color: E.muted,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.2
       }
     }, al.klasse || 'SEK P', " \xB7 ", al.cidade || 'Grenchen'), isAdmin && /*#__PURE__*/React.createElement("span", {
       style: {
