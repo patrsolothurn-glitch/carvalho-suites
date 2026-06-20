@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+'use strict';
+/**
+ * deploy.js — automatiza o que antes era feito à mão em cada alteração:
+ *   1. incrementa a versão da cache no sw.js
+ *   2. publica index.html e sw.js no GitHub (via API, com SHA correto)
+ *   3. espera e confirma que o GitHub Pages publicou com sucesso
+ *
+ * Uso:
+ *   GITHUB_TOKEN=ghp_xxx node deploy.js "mensagem do commit"
+ *
+ * Não comitar nunca o token. É lido só da variável de ambiente.
+ */
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+
+const REPO = 'patrsolothurn-glitch/carvalho-suites';
+const TOKEN = process.env.GITHUB_TOKEN;
+const MESSAGE = process.argv[2] || 'Deploy automático';
+
+if (!TOKEN) {
+  console.error('✗ ERRO: define a variável de ambiente GITHUB_TOKEN antes de correr este script.');
+  console.error('  Exemplo: GITHUB_TOKEN=ghp_xxx node deploy.js "mensagem"');
+  process.exit(1);
+}
+
+function apiRequest(method, urlPath, body) {
+  return new Promise((resolve, reject) => {
+    const data = body ? JSON.stringify(body) : null;
+    const req = https.request({
+      hostname: 'api.github.com',
+      path: urlPath,
+      method,
+      headers: Object.assign({
+        'Authorization': `token ${TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'carvalho-suite-deploy-script',
+      }, data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}),
+    }, (res) => {
+      let chunks = '';
+      res.on('data', (c) => { chunks += c; });
+      res.on('end', () => {
+        let parsed;
+        try { parsed = JSON.parse(chunks); } catch (e) { parsed = chunks; }
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(parsed);
+        else reject(new Error(`HTTP ${res.statusCode}: ${chunks}`));
+      });
+    });
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+async function getSha(filePath) {
+  const res = await apiRequest('GET', `/repos/${REPO}/contents/${filePath}`);
+  return res.sha;
+}
+
+async function putFile(filePath, localPath, message) {
+  const sha = await getSha(filePath);
+  const content = fs.readFileSync(localPath).toString('base64');
+  const res = await apiRequest('PUT', `/repos/${REPO}/contents/${filePath}`, { message, content, sha });
+  console.log(`  ${filePath} -> ${res.commit.sha.slice(0, 10)}`);
+}
+
+async function bumpServiceWorkerVersion() {
+  const swPath = path.join(__dirname, 'sw.js');
+  let content = fs.readFileSync(swPath, 'utf8');
+  const m = content.match(/carvalho-v(\d+)/);
+  if (!m) {
+    console.log('  (aviso: não encontrei "carvalho-vNN" em sw.js, a manter como está)');
+    return null;
+  }
+  const next = String(parseInt(m[1], 10) + 1).padStart(2, '0');
+  const oldVersion = m[0];
+  const newVersion = `carvalho-v${next}`;
+  content = content.replace(oldVersion, newVersion);
+  fs.writeFileSync(swPath, content, 'utf8');
+  console.log(`  ${oldVersion} -> ${newVersion}`);
+  return newVersion;
+}
+
+async function waitForPagesDeploy(maxAttempts) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, 15000));
+    const runs = await apiRequest('GET', `/repos/${REPO}/actions/runs?per_page=1`);
+    const run = runs.workflow_runs && runs.workflow_runs[0];
+    if (!run) continue;
+    if (run.status === 'completed') {
+      return run.conclusion;
+    }
+    console.log(`  ainda em progresso (tentativa ${i + 1}/${maxAttempts})...`);
+  }
+  return 'timeout';
+}
+
+async function main() {
+  console.log('1/4 — A incrementar a versão da cache (sw.js)...');
+  await bumpServiceWorkerVersion();
+
+  console.log('2/4 — A validar e publicar index.html e sw.js no GitHub...');
+  await putFile('index.html', path.join(__dirname, 'index.html'), MESSAGE);
+  await putFile('sw.js', path.join(__dirname, 'sw.js'), `${MESSAGE} (sw bump)`);
+
+  console.log('3/4 — A aguardar o GitHub Pages publicar...');
+  const conclusion = await waitForPagesDeploy(6);
+
+  console.log('4/4 — Resultado:', conclusion);
+  if (conclusion !== 'success') {
+    console.error('✗ O deploy do GitHub Pages não terminou com sucesso. Verifica manualmente.');
+    process.exit(1);
+  }
+  console.log('✓ Deploy concluído com sucesso.');
+}
+
+main().catch((err) => {
+  console.error('✗ ERRO NO DEPLOY:', err.message || err);
+  process.exit(1);
+});
