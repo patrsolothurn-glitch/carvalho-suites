@@ -16581,6 +16581,43 @@ function CarvalhoSuite() {
       setPassErr('Erro de ligação. Tenta novamente.');
     });
   };
+  var _useStateChangePwdOpen = (0, _react.useState)(false),
+    _useStateChangePwdOpen2 = _slicedToArray(_useStateChangePwdOpen, 2),
+    changePwdOpen = _useStateChangePwdOpen2[0],
+    setChangePwdOpen = _useStateChangePwdOpen2[1];
+  var _useStateNewPwdVal = (0, _react.useState)(''),
+    _useStateNewPwdVal2 = _slicedToArray(_useStateNewPwdVal, 2),
+    newPwdVal = _useStateNewPwdVal2[0],
+    setNewPwdVal = _useStateNewPwdVal2[1];
+  var _useStateChangePwdMsg = (0, _react.useState)(''),
+    _useStateChangePwdMsg2 = _slicedToArray(_useStateChangePwdMsg, 2),
+    changePwdMsg = _useStateChangePwdMsg2[0],
+    setChangePwdMsg = _useStateChangePwdMsg2[1];
+  var _useStateChangePwdBusy = (0, _react.useState)(false),
+    _useStateChangePwdBusy2 = _slicedToArray(_useStateChangePwdBusy, 2),
+    changePwdBusy = _useStateChangePwdBusy2[0],
+    setChangePwdBusy = _useStateChangePwdBusy2[1];
+  var doChangePassword = function doChangePassword() {
+    if (!window.supabaseClient) return;
+    if (!newPwdVal || newPwdVal.length < 6) {
+      setChangePwdMsg('A password precisa de pelo menos 6 caracteres.');
+      return;
+    }
+    setChangePwdBusy(true);
+    setChangePwdMsg('');
+    window.supabaseClient.auth.updateUser({ password: newPwdVal }).then(function (res) {
+      setChangePwdBusy(false);
+      if (res.error) {
+        setChangePwdMsg('Erro: ' + (res.error.message || 'não foi possível guardar.'));
+        return;
+      }
+      setNewPwdVal('');
+      setChangePwdMsg('✓ Password alterada com sucesso.');
+    }).catch(function () {
+      setChangePwdBusy(false);
+      setChangePwdMsg('Erro de ligação. Tenta novamente.');
+    });
+  };
   var doLogout = function doLogout() {
     if (window.supabaseClient) {
       window.supabaseClient.auth.signOut().catch(function () {});
@@ -17949,7 +17986,40 @@ function CarvalhoSuite() {
       textAlign: 'center',
       marginTop: 4
     }
-  }, "Cada pessoa cria a sua conta no ecr\xE3 de login \xB7 tu controlas o acesso aqui")), /*#__PURE__*/React.createElement("button", {
+  }, "Cada pessoa cria a sua conta no ecr\xE3 de login \xB7 tu controlas o acesso aqui")), React.createElement(Card, {
+    style: { padding: '14px 16px', marginBottom: 14 }
+  },
+    React.createElement("div", {
+      onClick: function () { setChangePwdOpen(function (v) { return !v; }); },
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }
+    },
+      React.createElement("p", { style: { color: T.text, fontWeight: 700, fontSize: 13 } }, "\uD83D\uDD11 Mudar password"),
+      React.createElement("span", { style: { color: T.muted, fontSize: 16 } }, changePwdOpen ? '\u2304' : '\u203A')
+    ),
+    changePwdOpen && React.createElement("div", { style: { marginTop: 12 } },
+      React.createElement("input", {
+        type: 'password',
+        value: newPwdVal,
+        onChange: function (e) { setNewPwdVal(e.target.value); },
+        placeholder: 'Nova password (mín. 6 caracteres)',
+        style: { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '9px 12px', color: T.text, fontSize: 13, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }
+      }),
+      changePwdMsg && React.createElement("p", {
+        style: { color: changePwdMsg.indexOf('\u2713') === 0 ? T.green : '#EF4444', fontSize: 12, marginBottom: 8 }
+      }, changePwdMsg),
+      React.createElement("button", {
+        onClick: doChangePassword,
+        disabled: changePwdBusy,
+        style: {
+          width: '100%',
+          background: changePwdBusy ? T.surface2 : "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
+          border: 'none', borderRadius: 12, padding: '11px',
+          color: changePwdBusy ? T.muted : T.bg, fontSize: 14, fontWeight: 800,
+          cursor: changePwdBusy ? 'default' : 'pointer'
+        }
+      }, changePwdBusy ? 'A guardar…' : '✓ Guardar nova password')
+    )
+  ), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return doLogout();
     },
