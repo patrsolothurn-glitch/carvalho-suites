@@ -4360,7 +4360,9 @@ function AgendaProApp(_ref13) {
   var filtered = appts.filter(function (a) {
     var matchSearch = !search || a.morada.toLowerCase().includes(search.toLowerCase()) || a.proj.toLowerCase().includes(search.toLowerCase()) || a.monteur.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-    if (filtrosAtivos.indexOf(a.categoria || 'trabalho') === -1) return false;
+    var catMatch = filtrosAtivos.indexOf(a.categoria || 'trabalho') !== -1;
+    var familiaMatch = a.partilhado && filtrosAtivos.indexOf('familia') !== -1;
+    if (!catMatch && !familiaMatch) return false;
     if (filter === 'Hoje') return a.date === todayStr;
     if (filter === 'Semana') {
       var d = new Date(a.date + 'T12:00:00');
@@ -4444,7 +4446,8 @@ function AgendaProApp(_ref13) {
           chf: Number(row.chf) || 0,
           status: row.status || 'aberto',
           nota: row.note || '',
-          categoria: row.categoria || (row.source === 'escolar' ? 'escola' : 'trabalho')
+          categoria: row.categoria || (row.source === 'escolar' ? 'escola' : 'trabalho'),
+          partilhado: !!row.partilhado
         };
       }));
     }).catch(function () {});
@@ -4470,19 +4473,8 @@ function AgendaProApp(_ref13) {
     if (appt) {
       setEditId(appt.id);
       setForm(_objectSpread(_objectSpread({}, appt), {}, {
-        partilhado: false
+        partilhado: !!appt.partilhado
       }));
-      if (window.supabaseClient) {
-        window.supabaseClient.from('family_events').select('id').eq('source', 'agenda_pro').eq('source_id', appt.id).then(function (res) {
-          if (res.data && res.data.length > 0) {
-            setForm(function (p) {
-              return _objectSpread(_objectSpread({}, p), {}, {
-                partilhado: true
-              });
-            });
-          }
-        }).catch(function () {});
-      }
     } else {
       setEditId(null);
       setForm({
@@ -4553,7 +4545,8 @@ function AgendaProApp(_ref13) {
           chf: Number(form.chf),
           status: form.status,
           note: form.nota,
-          categoria: form.categoria
+          categoria: form.categoria,
+          partilhado: !!form.partilhado
         }).eq('id', editId).then(function () {
           loadJobs();
           syncToFamilia(editId, form.partilhado, form);
@@ -4579,7 +4572,8 @@ function AgendaProApp(_ref13) {
           chf: Number(form.chf),
           status: form.status,
           note: form.nota,
-          categoria: form.categoria
+          categoria: form.categoria,
+          partilhado: !!form.partilhado
         }).select().then(function (res) {
           loadJobs();
           var newJob = res.data && res.data[0];
