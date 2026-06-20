@@ -4188,7 +4188,8 @@ function AgendaProApp(_ref13) {
       chf: '',
       nota: '',
       status: 'aberto',
-      partilhado: false
+      partilhado: false,
+      categoria: 'trabalho'
     }),
     _useState74 = _slicedToArray(_useState73, 2),
     form = _useState74[0],
@@ -4342,9 +4343,24 @@ function AgendaProApp(_ref13) {
   };
 
   // Filtered list
+  var _useStateFiltrosAP = (0, _react.useState)(Object.keys(CATEGORIAS)),
+    _useStateFiltrosAP2 = _slicedToArray(_useStateFiltrosAP, 2),
+    filtrosAtivos = _useStateFiltrosAP2[0],
+    setFiltrosAtivos = _useStateFiltrosAP2[1];
+  var toggleFiltro = function toggleFiltro(catKey) {
+    setFiltrosAtivos(function (p) {
+      if (p.indexOf(catKey) !== -1) {
+        return p.filter(function (c) {
+          return c !== catKey;
+        });
+      }
+      return [].concat(_toConsumableArray(p), [catKey]);
+    });
+  };
   var filtered = appts.filter(function (a) {
     var matchSearch = !search || a.morada.toLowerCase().includes(search.toLowerCase()) || a.proj.toLowerCase().includes(search.toLowerCase()) || a.monteur.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
+    if (filtrosAtivos.indexOf(a.categoria || 'trabalho') === -1) return false;
     if (filter === 'Hoje') return a.date === todayStr;
     if (filter === 'Semana') {
       var d = new Date(a.date + 'T12:00:00');
@@ -4427,7 +4443,8 @@ function AgendaProApp(_ref13) {
           monteur: row.monteur || 'Patricio',
           chf: Number(row.chf) || 0,
           status: row.status || 'aberto',
-          nota: row.note || ''
+          nota: row.note || '',
+          categoria: row.categoria || (row.source === 'escolar' ? 'escola' : 'trabalho')
         };
       }));
     }).catch(function () {});
@@ -4478,7 +4495,8 @@ function AgendaProApp(_ref13) {
         chf: '',
         nota: '',
         status: 'aberto',
-        partilhado: false
+        partilhado: false,
+        categoria: 'trabalho'
       });
     }
     setShowAdd(true);
@@ -4534,7 +4552,8 @@ function AgendaProApp(_ref13) {
           monteur: form.monteur,
           chf: Number(form.chf),
           status: form.status,
-          note: form.nota
+          note: form.nota,
+          categoria: form.categoria
         }).eq('id', editId).then(function () {
           loadJobs();
           syncToFamilia(editId, form.partilhado, form);
@@ -4559,7 +4578,8 @@ function AgendaProApp(_ref13) {
           monteur: form.monteur,
           chf: Number(form.chf),
           status: form.status,
-          note: form.nota
+          note: form.nota,
+          categoria: form.categoria
         }).select().then(function (res) {
           loadJobs();
           var newJob = res.data && res.data[0];
@@ -4718,6 +4738,22 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer'
     }
   }, calView === 'lista' ? '📅' : '📋'), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setCalView(function (v) {
+        return v === 'graficos' ? 'lista' : 'graficos';
+      });
+    },
+    style: {
+      background: calView === 'graficos' ? A.orange : A.surface2,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
+      padding: '7px 12px',
+      color: calView === 'graficos' ? '#fff' : A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return openForm();
     },
@@ -4897,6 +4933,41 @@ function AgendaProApp(_ref13) {
         flexShrink: 0
       }
     }, f);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '0 16px 10px',
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap'
+    }
+  }, Object.keys(CATEGORIAS).map(function (catKey) {
+    var cat = CATEGORIAS[catKey];
+    var ativo = filtrosAtivos.indexOf(catKey) !== -1;
+    return /*#__PURE__*/React.createElement("button", {
+      key: catKey,
+      onClick: function onClick() {
+        return toggleFiltro(catKey);
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        background: ativo ? "".concat(cat.color, "18") : 'transparent',
+        border: "1px solid ".concat(ativo ? cat.color : A.border),
+        borderRadius: 16,
+        padding: '4px 10px',
+        cursor: 'pointer',
+        opacity: ativo ? 1 : 0.5
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 11 }
+    }, cat.emoji), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: ativo ? cat.color : A.muted
+      }
+    }, cat.label));
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
@@ -6050,7 +6121,53 @@ function AgendaProApp(_ref13) {
       color: A.muted,
       marginTop: 1
     }
-  }, "Aparece tamb\xE9m na app Fam\xEDlia"))), [{
+  }, "Aparece tamb\xE9m na app Fam\xEDlia"))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: A.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      marginBottom: 8
+    }
+  }, "Categoria"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 14,
+      flexWrap: 'wrap'
+    }
+  }, Object.keys(CATEGORIAS).map(function (catKey) {
+    var cat = CATEGORIAS[catKey];
+    var isSel = form.categoria === catKey;
+    return /*#__PURE__*/React.createElement("button", {
+      key: catKey,
+      onClick: function onClick() {
+        return setForm(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, {
+            categoria: catKey
+          });
+        });
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        background: isSel ? "".concat(cat.color, "18") : A.surface2,
+        border: "1px solid ".concat(isSel ? cat.color : A.border),
+        borderRadius: 20,
+        padding: '6px 12px',
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 13 }
+    }, cat.emoji), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: isSel ? cat.color : A.muted
+      }
+    }, cat.label));
+  })), [{
     l: 'Data',
     k: 'date',
     type: 'date'
@@ -6334,7 +6451,102 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer',
       boxShadow: '0 4px 14px rgba(249,115,22,0.3)'
     }
-  }, "\u2713 ", editId ? 'Guardar' : 'Adicionar')))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 ", editId ? 'Guardar' : 'Adicionar')))), calView === 'graficos' && (function () {
+    var y = curDate.getFullYear();
+    var mo2 = curDate.getMonth();
+    var prefix = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'));
+    var doMes = appts.filter(function (a) {
+      return a.date && a.date.indexOf(prefix) === 0;
+    });
+    var porCategoria = {};
+    Object.keys(CATEGORIAS).forEach(function (c) {
+      porCategoria[c] = 0;
+    });
+    doMes.forEach(function (a) {
+      var c = a.categoria || 'trabalho';
+      porCategoria[c] = (porCategoria[c] || 0) + 1;
+    });
+    var horasSemana = [0, 0, 0, 0, 0];
+    var escolaSemana = [0, 0, 0, 0, 0];
+    doMes.forEach(function (a) {
+      var dia = parseInt(a.date.slice(8, 10));
+      var w = Math.min(4, Math.floor((dia - 1) / 7));
+      if ((a.categoria || 'trabalho') === 'trabalho' && a.hi && a.hf) {
+        try {
+          horasSemana[w] += calcHoras(a.hi, a.hf);
+        } catch (e) {}
+      }
+      if ((a.categoria || 'trabalho') === 'escola') escolaSemana[w]++;
+    });
+    var maxCat = Math.max.apply(Math, Object.values(porCategoria).concat([1]));
+    var maxHoras = Math.max.apply(Math, horasSemana.concat([1]));
+    var maxEscola = Math.max.apply(Math, escolaSemana.concat([1]));
+    return /*#__PURE__*/React.createElement("div", {
+      style: { padding: '0 16px 20px' }
+    }, /*#__PURE__*/React.createElement(ACard, {
+      style: { padding: '16px', marginBottom: 12 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
+    }, "\uD83D\uDCCA Marca\xE7\xF5es por categoria"), /*#__PURE__*/React.createElement("p", {
+      style: { color: A.muted, fontSize: 11, marginBottom: 14 }
+    }, curDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }), " \xB7 ", doMes.length, " no total"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 12, height: 100 }
+    }, Object.keys(CATEGORIAS).map(function (catKey) {
+      var cat = CATEGORIAS[catKey];
+      var val = porCategoria[catKey] || 0;
+      var h = Math.max(4, val / maxCat * 80);
+      return /*#__PURE__*/React.createElement("div", {
+        key: catKey,
+        style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: { fontSize: 12, fontWeight: 800, color: cat.color }
+      }, val), /*#__PURE__*/React.createElement("div", {
+        style: { width: '100%', maxWidth: 36, height: h, background: cat.color, borderRadius: '6px 6px 0 0' }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 14 }
+      }, cat.emoji));
+    }))), /*#__PURE__*/React.createElement(ACard, {
+      style: { padding: '16px', marginBottom: 12 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
+    }, "\uD83D\uDCBC Horas de trabalho por semana"), /*#__PURE__*/React.createElement("p", {
+      style: { color: A.muted, fontSize: 11, marginBottom: 14 }
+    }, "Calculado a partir das marca\xE7\xF5es de trabalho"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
+    }, horasSemana.map(function (val, wi) {
+      var h = Math.max(4, val / maxHoras * 70);
+      return /*#__PURE__*/React.createElement("div", {
+        key: wi,
+        style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: { fontSize: 11, fontWeight: 800, color: CATEGORIAS.trabalho.color }
+      }, val.toFixed(1), "h"), /*#__PURE__*/React.createElement("div", {
+        style: { width: '100%', maxWidth: 30, height: h, background: CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 10, color: A.muted, fontWeight: 700 }
+      }, "S", wi + 1));
+    }))), /*#__PURE__*/React.createElement(ACard, {
+      style: { padding: '16px' }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
+    }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
+      style: { color: A.muted, fontSize: 11, marginBottom: 14 }
+    }, "Testes enviados pela Agenda Escolar"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
+    }, escolaSemana.map(function (val, wi) {
+      var h = Math.max(4, val / maxEscola * 70);
+      return /*#__PURE__*/React.createElement("div", {
+        key: wi,
+        style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: { fontSize: 11, fontWeight: 800, color: CATEGORIAS.escola.color }
+      }, val), /*#__PURE__*/React.createElement("div", {
+        style: { width: '100%', maxWidth: 30, height: h, background: CATEGORIAS.escola.color, borderRadius: '6px 6px 0 0' }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 10, color: A.muted, fontWeight: 700 }
+      }, "S", wi + 1));
+    }))));
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
@@ -13931,7 +14143,8 @@ function EscolarApp(_ref31) {
           status: 'aberto',
           note: 'Criado automaticamente pela Agenda Escolar',
           source: 'escolar',
-          source_id: novoId
+          source_id: novoId,
+          categoria: 'escola'
         }).then(function () {}).catch(function () {});
       }
       setNovaTPC({
