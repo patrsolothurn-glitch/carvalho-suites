@@ -89,6 +89,40 @@ var wrap = {
   overflowX: 'hidden'
 };
 
+// ── NOTIFICAÇÕES: filtro por preferências e horário de silêncio ──────
+function isInQuietHours(qs, qe) {
+  if (!qs || !qe) return false;
+  var now = new Date();
+  var cur = now.getHours() * 60 + now.getMinutes();
+  var sParts = qs.split(':');
+  var eParts = qe.split(':');
+  var s = parseInt(sParts[0], 10) * 60 + parseInt(sParts[1], 10);
+  var e = parseInt(eParts[0], 10) * 60 + parseInt(eParts[1], 10);
+  if (isNaN(s) || isNaN(e) || s === e) return false;
+  if (s < e) return cur >= s && cur < e;
+  return cur >= s || cur < e; // intervalo atravessa a meia-noite
+}
+function getEligibleProfileIds(appId, onlyMemberId) {
+  if (!window.supabaseClient) return Promise.resolve([]);
+  var q = window.supabaseClient.from('profiles').select('id, notification_prefs, disabled, member_id');
+  if (onlyMemberId) q = q.eq('member_id', onlyMemberId);
+  return q.then(function (res) {
+    var rows = res.data || [];
+    return rows.filter(function (p) {
+      if (p.disabled) return false;
+      var prefs = p.notification_prefs || {};
+      var disabledApps = prefs.disabledApps || [];
+      if (disabledApps.indexOf(appId) !== -1) return false;
+      if (isInQuietHours(prefs.quietStart, prefs.quietEnd)) return false;
+      return true;
+    }).map(function (p) {
+      return p.id;
+    });
+  }).catch(function () {
+    return [];
+  });
+}
+
 // ── DATA ────────────────────────────────────────────────────────────
 var APPS_DATA = [{
   id: 'horaspr',
@@ -4502,27 +4536,17 @@ function AgendaProApp(_ref13) {
   };
   var sendPushTargeted = function sendPushTargeted(title, body, partilhado, partilhadoCom) {
     if (!window.supabaseClient) return;
-    if (partilhado && partilhadoCom && partilhadoCom !== 'todos') {
-      window.supabaseClient.from('profiles').select('id').eq('member_id', partilhadoCom).then(function (res) {
-        var row = res.data && res.data[0];
-        if (row && row.id) {
-          window.supabaseClient.functions.invoke('send-push', {
-            body: {
-              title: title,
-              body: body,
-              profileIds: [row.id]
-            }
-          }).catch(function () {});
-        }
-      }).catch(function () {});
-    } else {
+    var onlyMember = partilhado && partilhadoCom && partilhadoCom !== 'todos' ? partilhadoCom : null;
+    getEligibleProfileIds('agendapr', onlyMember).then(function (ids) {
+      if (!ids.length) return;
       window.supabaseClient.functions.invoke('send-push', {
         body: {
           title: title,
-          body: body
+          body: body,
+          profileIds: ids
         }
       }).catch(function () {});
-    }
+    });
   };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {
     if (!window.supabaseClient) return;
@@ -7393,12 +7417,16 @@ function FamiliaApp(_ref19) {
       window.supabaseClient.from('family_events').insert(rows).then(function () {
         loadFamilyEvents();
         try {
-          window.supabaseClient.functions.invoke('send-push', {
-            body: {
-              title: 'Família Carvalho',
-              body: ev.t + (ev.hora ? ' · ' + ev.hora : '')
-            }
-          }).catch(function () {});
+          getEligibleProfileIds('familia', null).then(function (ids) {
+            if (!ids.length) return;
+            window.supabaseClient.functions.invoke('send-push', {
+              body: {
+                title: 'Família Carvalho',
+                body: ev.t + (ev.hora ? ' · ' + ev.hora : ''),
+                profileIds: ids
+              }
+            }).catch(function () {});
+          });
         } catch (e) {}
       }).catch(function () {});
     }
@@ -16251,6 +16279,22 @@ function CarvalhoSuite() {
       setMemberMsg('Erro: ' + (e && e.message || String(e)));
     });
   };
+  var updateNotifPrefs = function updateNotifPrefs(patch) {
+    if (!profile || !window.supabaseClient) return;
+    var current = profile.notification_prefs || {};
+    var newPrefs = _objectSpread(_objectSpread({}, current), patch);
+    setProfile(function (p) {
+      return p ? _objectSpread(_objectSpread({}, p), {}, { notification_prefs: newPrefs }) : p;
+    });
+    window.supabaseClient.from('profiles').update({ notification_prefs: newPrefs }).eq('id', profile.id).then(function () {}).catch(function () {});
+  };
+  var toggleNotifApp = function toggleNotifApp(appId) {
+    var disabledApps = (profile && profile.notification_prefs && profile.notification_prefs.disabledApps) || [];
+    var next = disabledApps.indexOf(appId) === -1 ? disabledApps.concat([appId]) : disabledApps.filter(function (x) {
+      return x !== appId;
+    });
+    updateNotifPrefs({ disabledApps: next });
+  };
   var fetchProfile = function fetchProfile(userId) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('*').eq('id', userId).limit(1).then(function (res) {
@@ -17097,6 +17141,71 @@ function CarvalhoSuite() {
   React.createElement("p", {
     style: { color: T.muted, fontSize: 12, lineHeight: 1.5, padding: '0 4px' }
   }, "Se a app parecer desatualizada (faltam funcionalidades novas), usa primeiro \"Verificar atualizações\". Se persistir, usa \"Limpar cache\" — os teus dados continuam guardados no servidor.")
+), React.createElement("div", {
+  style: { padding: '14px 16px' }
+},
+  React.createElement("p", {
+    style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }
+  }, "🔔 Notificações"),
+  React.createElement(Card, {
+    style: { padding: '16px' }
+  },
+    React.createElement("p", {
+      style: { color: T.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "Receber avisos de"),
+    React.createElement("div", {
+      style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
+    }, [{ id: 'agendapr', emoji: '📅', name: 'Agenda Pro' }, { id: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família' }].map(function (app) {
+      var disabledApps = (profile && profile.notification_prefs && profile.notification_prefs.disabledApps) || [];
+      var on = disabledApps.indexOf(app.id) === -1;
+      return React.createElement("div", {
+        key: app.id,
+        style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: T.surface2, borderRadius: 10 }
+      },
+        React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
+        React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } }, app.name),
+        React.createElement("div", {
+          onClick: function () { toggleNotifApp(app.id); },
+          style: { width: 42, height: 24, borderRadius: 12, background: on ? T.gold : '#333', border: '1px solid ' + (on ? T.goldL : '#444'), position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }
+        },
+          React.createElement("div", {
+            style: { position: 'absolute', top: 2, left: on ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }
+          })
+        )
+      );
+    })),
+    React.createElement("div", {
+      style: { borderTop: '1px solid ' + T.border, paddingTop: 12 }
+    },
+      React.createElement("p", {
+        style: { color: T.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+      }, "Não perturbar"),
+      React.createElement("div", {
+        style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }
+      },
+        React.createElement("input", {
+          type: 'time',
+          value: (profile && profile.notification_prefs && profile.notification_prefs.quietStart) || '',
+          onChange: function (e) { updateNotifPrefs({ quietStart: e.target.value }); },
+          style: { flex: 1, background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '8px 10px', color: T.text, fontSize: 13, outline: 'none', colorScheme: 'dark' }
+        }),
+        React.createElement("span", { style: { color: T.muted, fontSize: 12 } }, "até"),
+        React.createElement("input", {
+          type: 'time',
+          value: (profile && profile.notification_prefs && profile.notification_prefs.quietEnd) || '',
+          onChange: function (e) { updateNotifPrefs({ quietEnd: e.target.value }); },
+          style: { flex: 1, background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '8px 10px', color: T.text, fontSize: 13, outline: 'none', colorScheme: 'dark' }
+        })
+      ),
+      (profile && profile.notification_prefs && (profile.notification_prefs.quietStart || profile.notification_prefs.quietEnd)) && React.createElement("button", {
+        onClick: function () { updateNotifPrefs({ quietStart: '', quietEnd: '' }); },
+        style: { background: 'none', border: 'none', color: T.muted, fontSize: 11, textDecoration: 'underline', cursor: 'pointer', padding: 0, marginBottom: 8 }
+      }, "✕ limpar horário"),
+      React.createElement("p", {
+        style: { color: T.muted, fontSize: 11.5, lineHeight: 1.4 }
+      }, "Nesse intervalo não recebes notificações push, seja de que app for.")
+    )
+  )
 ), /*#__PURE__*/React.createElement(BottomNav, {
     active: "Defini\xE7\xF5es",
     onNav: nav
