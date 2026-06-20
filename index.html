@@ -16295,7 +16295,14 @@ function CarvalhoSuite() {
     });
     updateNotifPrefs({ disabledApps: next });
   };
-  var fetchProfile = function fetchProfile(userId) {
+  var setDefaultApp = function setDefaultApp(appId) {
+    if (!profile || !window.supabaseClient) return;
+    setProfile(function (p) {
+      return p ? _objectSpread(_objectSpread({}, p), {}, { default_app: appId }) : p;
+    });
+    window.supabaseClient.from('profiles').update({ default_app: appId }).eq('id', profile.id).then(function () {}).catch(function () {});
+  };
+  var fetchProfile = function fetchProfile(userId, isInitialEntry) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('*').eq('id', userId).limit(1).then(function (res) {
       var data = res.data && res.data[0];
@@ -16311,6 +16318,13 @@ function CarvalhoSuite() {
         setProfile(data);
         setUser(data.member_id || 'patricio');
         setProfileErr('');
+        if (isInitialEntry) {
+          var allowed = data.allowed_apps || [];
+          if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
+            setApp(data.default_app);
+            setScreen('app');
+          }
+        }
       } else if (res.error) {
         setProfileErr('Erro ao carregar perfil: ' + (res.error.message || ''));
       }
@@ -16368,7 +16382,7 @@ function CarvalhoSuite() {
       var s = res.data && res.data.session;
       setSession(s || null);
       if (s && s.user) {
-        fetchProfile(s.user.id);
+        fetchProfile(s.user.id, true);
         setScreen('hub');
         loadNotifData();
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') subscribeToPush();
@@ -16416,7 +16430,7 @@ function CarvalhoSuite() {
         return;
       }
       if (res.data && res.data.session && res.data.session.user) {
-        fetchProfile(res.data.session.user.id);
+        fetchProfile(res.data.session.user.id, true);
       }
       setScreen('hub');
     }).catch(function () {
@@ -17205,6 +17219,45 @@ function CarvalhoSuite() {
         style: { color: T.muted, fontSize: 11.5, lineHeight: 1.4 }
       }, "Nesse intervalo não recebes notificações push, seja de que app for.")
     )
+  )
+), React.createElement("div", {
+  style: { padding: '14px 16px' }
+},
+  React.createElement("p", {
+    style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }
+  }, "🎨 Personalização"),
+  React.createElement(Card, {
+    style: { padding: '16px' }
+  },
+    React.createElement("p", {
+      style: { color: T.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "Ecrã inicial"),
+    React.createElement("div", {
+      style: { display: 'flex', flexDirection: 'column', gap: 6 }
+    }, [{ id: null, emoji: '🏠', name: 'Início (todas as apps)' }].concat(APPS_DATA.filter(function (app) {
+      return !profile || !profile.allowed_apps || profile.allowed_apps.indexOf(app.id) !== -1;
+    }).map(function (app) {
+      return { id: app.id, emoji: app.emoji, name: app.name };
+    })).map(function (opt, oi) {
+      var isSel = (profile && profile.default_app) === opt.id || (!(profile && profile.default_app) && opt.id === null);
+      return React.createElement("div", {
+        key: opt.id || 'hub_' + oi,
+        onClick: function () { setDefaultApp(opt.id); },
+        style: {
+          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+          background: isSel ? T.goldDim : T.surface2,
+          border: '1px solid ' + (isSel ? T.gold : T.goldBrd),
+          borderRadius: 10, cursor: 'pointer'
+        }
+      },
+        React.createElement("span", { style: { fontSize: 16 } }, opt.emoji),
+        React.createElement("span", { style: { flex: 1, fontSize: 13, color: isSel ? T.gold : T.text, fontWeight: isSel ? 700 : 400 } }, opt.name),
+        isSel && React.createElement("span", { style: { color: T.gold, fontSize: 14 } }, "✓")
+      );
+    })),
+    React.createElement("p", {
+      style: { color: T.muted, fontSize: 11.5, lineHeight: 1.4, marginTop: 10 }
+    }, "É o que abre logo a seguir a entrares na app.")
   )
 ), /*#__PURE__*/React.createElement(BottomNav, {
     active: "Defini\xE7\xF5es",
