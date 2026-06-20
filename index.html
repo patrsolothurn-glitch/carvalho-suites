@@ -4189,6 +4189,7 @@ function AgendaProApp(_ref13) {
       nota: '',
       status: 'aberto',
       partilhado: false,
+      partilhadoCom: 'todos',
       categoria: 'trabalho'
     }),
     _useState74 = _slicedToArray(_useState73, 2),
@@ -4447,7 +4448,8 @@ function AgendaProApp(_ref13) {
           status: row.status || 'aberto',
           nota: row.note || '',
           categoria: row.categoria || (row.source === 'escolar' ? 'escola' : 'trabalho'),
-          partilhado: !!row.partilhado
+          partilhado: !!row.partilhado,
+          partilhadoCom: row.partilhado_com || 'todos'
         };
       }));
     }).catch(function () {});
@@ -4473,7 +4475,8 @@ function AgendaProApp(_ref13) {
     if (appt) {
       setEditId(appt.id);
       setForm(_objectSpread(_objectSpread({}, appt), {}, {
-        partilhado: !!appt.partilhado
+        partilhado: !!appt.partilhado,
+        partilhadoCom: appt.partilhadoCom || 'todos'
       }));
     } else {
       setEditId(null);
@@ -4488,6 +4491,7 @@ function AgendaProApp(_ref13) {
         nota: '',
         status: 'aberto',
         partilhado: false,
+        partilhadoCom: 'todos',
         categoria: 'trabalho'
       });
     }
@@ -4496,9 +4500,34 @@ function AgendaProApp(_ref13) {
   var sendNotifTo = function sendNotifTo(monteurName, msg, body) {
     addToast(msg, body, 'notif');
   };
+  var sendPushTargeted = function sendPushTargeted(title, body, partilhado, partilhadoCom) {
+    if (!window.supabaseClient) return;
+    if (partilhado && partilhadoCom && partilhadoCom !== 'todos') {
+      window.supabaseClient.from('profiles').select('id').eq('member_id', partilhadoCom).then(function (res) {
+        var row = res.data && res.data[0];
+        if (row && row.id) {
+          window.supabaseClient.functions.invoke('send-push', {
+            body: {
+              title: title,
+              body: body,
+              profileIds: [row.id]
+            }
+          }).catch(function () {});
+        }
+      }).catch(function () {});
+    } else {
+      window.supabaseClient.functions.invoke('send-push', {
+        body: {
+          title: title,
+          body: body
+        }
+      }).catch(function () {});
+    }
+  };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {
     if (!window.supabaseClient) return;
     if (partilhado) {
+      var alvo = jobData.partilhadoCom && jobData.partilhadoCom !== 'todos' ? [jobData.partilhadoCom] : ['todos'];
       window.supabaseClient.from('family_events').select('id').eq('source', 'agenda_pro').eq('source_id', jobId).then(function (res) {
         var existing = res.data && res.data[0];
         var payload = {
@@ -4509,7 +4538,7 @@ function AgendaProApp(_ref13) {
           description: jobData.morada || null,
           color: '#F59458',
           categoria: 'trabalho',
-          participant_ids: ['todos'],
+          participant_ids: alvo,
           member_id: null,
           source: 'agenda_pro',
           source_id: jobId,
@@ -4546,7 +4575,8 @@ function AgendaProApp(_ref13) {
           status: form.status,
           note: form.nota,
           categoria: form.categoria,
-          partilhado: !!form.partilhado
+          partilhado: !!form.partilhado,
+          partilhado_com: form.partilhadoCom || 'todos'
         }).eq('id', editId).then(function () {
           loadJobs();
           syncToFamilia(editId, form.partilhado, form);
@@ -4573,7 +4603,8 @@ function AgendaProApp(_ref13) {
           status: form.status,
           note: form.nota,
           categoria: form.categoria,
-          partilhado: !!form.partilhado
+          partilhado: !!form.partilhado,
+          partilhado_com: form.partilhadoCom || 'todos'
         }).select().then(function (res) {
           loadJobs();
           var newJob = res.data && res.data[0];
@@ -4581,12 +4612,7 @@ function AgendaProApp(_ref13) {
             syncToFamilia(newJob.id, true, form);
           }
           try {
-            window.supabaseClient.functions.invoke('send-push', {
-              body: {
-                title: 'Agenda Pro',
-                body: (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi
-              }
-            }).catch(function () {});
+            sendPushTargeted('Agenda Pro', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
           } catch (e) {}
         }).catch(function () {});
       }
@@ -6115,7 +6141,64 @@ function AgendaProApp(_ref13) {
       color: A.muted,
       marginTop: 1
     }
-  }, "Aparece tamb\xE9m na app Fam\xEDlia"))), /*#__PURE__*/React.createElement("p", {
+  }, "Aparece tamb\xE9m na app Fam\xEDlia"))), form.partilhado && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 14,
+      flexWrap: 'wrap'
+    }
+  }, [{
+    id: 'todos',
+    nome: 'Toda a família',
+    emoji: '👥'
+  }, {
+    id: 'patricio',
+    nome: 'Patricio',
+    emoji: '👨‍💼'
+  }, {
+    id: 'esposa',
+    nome: 'Cristina',
+    emoji: '👩'
+  }, {
+    id: 'lucas',
+    nome: 'Lucas',
+    emoji: '👦'
+  }, {
+    id: 'liam',
+    nome: 'Liam',
+    emoji: '👦'
+  }].map(function (p) {
+    var isSel = (form.partilhadoCom || 'todos') === p.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: p.id,
+      onClick: function onClick() {
+        return setForm(function (prev) {
+          return _objectSpread(_objectSpread({}, prev), {}, {
+            partilhadoCom: p.id
+          });
+        });
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        background: isSel ? "".concat(A.orange, "18") : A.surface2,
+        border: "1px solid ".concat(isSel ? A.orange : A.border),
+        borderRadius: 18,
+        padding: '6px 11px',
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 13 }
+    }, p.emoji), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: isSel ? A.orange : A.muted
+      }
+    }, p.nome));
+  })), /*#__PURE__*/React.createElement("p", {
     style: {
       color: A.muted,
       fontSize: 10,
