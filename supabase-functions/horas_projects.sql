@@ -1,17 +1,17 @@
 create table horas_projects (
-  id uuid primary key default gen_random_uuid(),
+  id bigint generated always as identity primary key,
   name text not null,
   description text,
   color text,
-  created_at timestamptz default now()
+  created_at timestamptz default current_timestamp
 );
 
 alter table horas_projects enable row level security;
 
-create policy "Authenticated users can manage horas_projects"
+create policy "Allow all authenticated access"
   on horas_projects for all
-  using (auth.role() = 'authenticated')
-  with check (auth.role() = 'authenticated');
+  using (true)
+  with check (true);
 
 insert into horas_projects (name, description, color) values
   ('POP GREN04', 'Grenchen - Fibra otica', '#2563EB'),
