@@ -11729,6 +11729,9 @@ function EscolarApp(_ref31) {
   var tpcPendentes = aluno.tpc.filter(function (t) {
     return !t.feito;
   }).length;
+  var testesPendentes = aluno.tpc.filter(function (t) {
+    return t.tipo === 'teste' && !t.feito;
+  }).length;
   var E = {
     bg: '#09090E',
     surface: '#131319',
@@ -12246,6 +12249,9 @@ function EscolarApp(_ref31) {
   }, {
     v: 'tpc',
     l: "\uD83D\uDCCB".concat(tpcPendentes > 0 ? " ".concat(tpcPendentes) : '')
+  }, {
+    v: 'importante',
+    l: "\uD83D\uDCCC".concat(testesPendentes > 0 ? " ".concat(testesPendentes) : '')
   }, {
     v: 'notas',
     l: '📊'
@@ -14132,11 +14138,12 @@ function EscolarApp(_ref31) {
         var disc = aluno.disciplinas.find(function (d) {
           return d.id === novaTPC.discId;
         });
+        var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (novaTPC.titulo ? ' — ' + novaTPC.titulo : '');
         window.supabaseClient.from('agenda_pro_jobs').insert({
           job_date: novaTPC.data,
           start_time: null,
           end_time: null,
-          project: '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (novaTPC.titulo ? ' — ' + novaTPC.titulo : ''),
+          project: tituloTeste,
           address: null,
           monteur: aluno.nome,
           chf: 0,
@@ -14145,6 +14152,20 @@ function EscolarApp(_ref31) {
           source: 'escolar',
           source_id: novoId,
           categoria: 'escola'
+        }).then(function () {}).catch(function () {});
+        window.supabaseClient.from('family_events').insert({
+          title: tituloTeste,
+          emoji: '📚',
+          event_date: novaTPC.data,
+          event_time: null,
+          description: aluno.nome + ' tem teste',
+          color: '#A855F7',
+          categoria: 'escola',
+          participant_ids: ['todos'],
+          member_id: null,
+          source: 'escolar',
+          source_id: novoId,
+          created_by: aluno.nome
         }).then(function () {}).catch(function () {});
       }
       setNovaTPC({
@@ -14450,7 +14471,84 @@ function EscolarApp(_ref31) {
         cursor: 'pointer'
       }
     }, "\uD83D\uDDD1")));
-  }))), tab === 'notas' && /*#__PURE__*/React.createElement("div", {
+  }))), tab === 'importante' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '0 14px'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: E.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.6px',
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCCC Testes e coisas importantes"), aluno.tpc.filter(function (t) {
+    return t.tipo === 'teste';
+  }).length === 0 && /*#__PURE__*/React.createElement(ECard, {
+    style: { padding: '24px', textAlign: 'center' }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 32 }
+  }, "\uD83D\uDCCC"), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 13, marginTop: 8 }
+  }, "Nada importante marcado"), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 11, marginTop: 4 }
+  }, "Cria um \"Teste/Exame\" no separador TPC e aparece aqui")), aluno.tpc.filter(function (t) {
+    return t.tipo === 'teste';
+  }).sort(function (a, b) {
+    return (a.data || '').localeCompare(b.data || '');
+  }).map(function (t) {
+    var d = getDisc(t.discId);
+    var overdue = t.data && t.data < '2026-06-15' && !t.feito;
+    return /*#__PURE__*/React.createElement(ECard, {
+      key: t.id,
+      style: {
+        marginBottom: 8,
+        borderLeft: "3px solid ".concat(overdue ? E.red : E.purple),
+        opacity: t.feito ? 0.5 : 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '12px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 22 }
+    }, "\uD83D\uDCDA"), /*#__PURE__*/React.createElement("div", {
+      style: { flex: 1 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { fontWeight: 700, fontSize: 14, color: E.text }
+    }, t.titulo || 'Teste'), /*#__PURE__*/React.createElement("p", {
+      style: { color: E.muted, fontSize: 11, marginTop: 1 }
+    }, d.emoji, " ", d.nome, t.data ? " \xB7 \uD83D\uDCC5 ".concat(t.data) : ''), overdue && /*#__PURE__*/React.createElement("p", {
+      style: { color: E.red, fontSize: 10, fontWeight: 700, marginTop: 2 }
+    }, "\u26A0 J\xE1 passou")), !t.feito && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, {
+                feito: true
+              }) : x;
+            })
+          });
+        });
+      },
+      style: {
+        background: "".concat(E.purple, "22"),
+        border: "1px solid ".concat(E.purple, "44"),
+        borderRadius: 10,
+        padding: '7px 12px',
+        color: E.purple,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "Feito \u2713")));
+  })), tab === 'notas' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px'
     }
