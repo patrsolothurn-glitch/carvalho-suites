@@ -7333,6 +7333,13 @@ function FamiliaApp(_ref19) {
       hasAny: ev.length > 0 || sh.length > 0
     };
   };
+  var getISOWeek = function getISOWeek(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  };
   var addEvent = function addEvent() {
     if (!form.titulo || !form.dataDE) return;
     var participantes = form.participantes && form.participantes.length > 0 ? form.participantes : ['todos'];
@@ -7858,7 +7865,20 @@ function FamiliaApp(_ref19) {
       justifyContent: 'center',
       fontWeight: 700
     }
-  }, "\u2039"), /*#__PURE__*/React.createElement("p", {
+  }, "\u2039"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 10,
+      fontWeight: 800,
+      color: F.coral,
+      textTransform: 'uppercase',
+      letterSpacing: '0.6px',
+      marginBottom: 2
+    }
+  }, "Semana ", getISOWeek(weekStart)), /*#__PURE__*/React.createElement("p", {
     style: {
       fontWeight: 800,
       fontSize: 14,
@@ -7871,7 +7891,7 @@ function FamiliaApp(_ref19) {
     day: 'numeric',
     month: 'short',
     year: 'numeric'
-  })), /*#__PURE__*/React.createElement("button", {
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       var d = new Date(weekStart);
       d.setDate(d.getDate() + 7);
