@@ -11998,6 +11998,7 @@ function EscolarApp(_ref31) {
       background: E.bg,
       fontFamily: "'Inter',system-ui,sans-serif",
       color: E.text,
+      overflowX: 'hidden',
       paddingBottom: 90
     }
   }, /*#__PURE__*/React.createElement("div", {
@@ -12016,7 +12017,9 @@ function EscolarApp(_ref31) {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 6
+      gap: 6,
+      minWidth: 0,
+      overflow: 'hidden'
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: onBack,
@@ -12032,12 +12035,16 @@ function EscolarApp(_ref31) {
       height: 40,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      flexShrink: 0
     }
   }, "\u2039"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 900,
-      fontSize: 16
+      fontSize: 16,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
     }
   }, "\uD83D\uDCDA Agenda Escolar")), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -12046,7 +12053,8 @@ function EscolarApp(_ref31) {
       borderRadius: 8,
       padding: '4px 10px',
       cursor: 'pointer',
-      position: 'relative'
+      position: 'relative',
+      flexShrink: 0
     },
     onClick: function onClick() {
       return setEditKlasse(function (v) {
@@ -12151,7 +12159,8 @@ function EscolarApp(_ref31) {
       padding: '10px 14px',
       display: 'flex',
       gap: 10,
-      alignItems: 'center'
+      alignItems: 'center',
+      overflow: 'hidden'
     }
   }, (isAdmin ? ['lucas', 'liam'] : [alunoKey]).map(function (k) {
     var al = alunosData[k];
@@ -12167,6 +12176,7 @@ function EscolarApp(_ref31) {
         border: "2px solid ".concat(isSel ? al.cor : E.border),
         borderRadius: 14,
         flex: isAdmin ? 1 : 'auto',
+        minWidth: 0,
         position: 'relative'
       }
     }, /*#__PURE__*/React.createElement("div", {
@@ -12178,6 +12188,7 @@ function EscolarApp(_ref31) {
         alignItems: 'center',
         gap: 8,
         flex: 1,
+        minWidth: 0,
         cursor: 'pointer'
       }
     }, /*#__PURE__*/React.createElement("div", {
@@ -12199,29 +12210,38 @@ function EscolarApp(_ref31) {
     }, al.emoji)), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'left',
-        flex: 1
+        flex: 1,
+        minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         fontWeight: 800,
         fontSize: 13,
-        color: isSel ? al.cor : E.text
+        color: isSel ? al.cor : E.text,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
       }
     }, al.nome), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         alignItems: 'center',
-        gap: 4
+        gap: 4,
+        minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 10,
-        color: E.muted
+        color: E.muted,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
       }
     }, al.klasse || 'SEK P', " \xB7 ", al.cidade || 'Grenchen'), isAdmin && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 9,
-        color: "".concat(E.purple, "88")
+        color: "".concat(E.purple, "88"),
+        flexShrink: 0
       }
     }, "\u270E"))), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
