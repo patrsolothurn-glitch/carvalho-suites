@@ -66,7 +66,7 @@ function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 // ── TOKENS ─────────────────────────────────────────────────────────
-var T = {
+var T_DARK = {
   bg: '#09090E',
   surface: '#131319',
   surface2: '#1C1C26',
@@ -76,11 +76,29 @@ var T = {
   goldBrd: 'rgba(201,168,71,0.22)',
   text: '#F0EEE8',
   muted: '#7A7A90',
+  border: '#2A2A38',
   green: '#22C55E',
   red: '#EF4444',
   orange: '#F97316',
   blue: '#3B82F6'
 };
+var T_LIGHT = {
+  bg: '#FBF7EF',
+  surface: '#FFFFFF',
+  surface2: '#F2ECDD',
+  gold: '#B8862E',
+  goldL: '#D4A94A',
+  goldDim: 'rgba(184,134,46,0.12)',
+  goldBrd: 'rgba(184,134,46,0.28)',
+  text: '#2A2118',
+  muted: '#8A7F6E',
+  border: 'rgba(0,0,0,0.08)',
+  green: '#16A34A',
+  red: '#DC2626',
+  orange: '#EA580C',
+  blue: '#2563EB'
+};
+var T = Object.assign({}, T_DARK);
 var wrap = {
   minHeight: '100vh',
   background: T.bg,
@@ -88,6 +106,12 @@ var wrap = {
   color: T.text,
   overflowX: 'hidden'
 };
+function applyTheme(themeName) {
+  var src = themeName === 'light' ? T_LIGHT : T_DARK;
+  Object.assign(T, src);
+  wrap.background = T.bg;
+  wrap.color = T.text;
+}
 
 // ── NOTIFICAÇÕES: filtro por preferências e horário de silêncio ──────
 function isInQuietHours(qs, qe) {
@@ -16295,6 +16319,14 @@ function CarvalhoSuite() {
     });
     updateNotifPrefs({ disabledApps: next });
   };
+  var setTheme = function setTheme(themeName) {
+    if (!profile || !window.supabaseClient) return;
+    applyTheme(themeName);
+    setProfile(function (p) {
+      return p ? _objectSpread(_objectSpread({}, p), {}, { theme: themeName }) : p;
+    });
+    window.supabaseClient.from('profiles').update({ theme: themeName }).eq('id', profile.id).then(function () {}).catch(function () {});
+  };
   var setDefaultApp = function setDefaultApp(appId) {
     if (!profile || !window.supabaseClient) return;
     setProfile(function (p) {
@@ -16318,6 +16350,7 @@ function CarvalhoSuite() {
         setProfile(data);
         setUser(data.member_id || 'patricio');
         setProfileErr('');
+        applyTheme(data.theme || 'dark');
         if (isInitialEntry) {
           var allowed = data.allowed_apps || [];
           if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
@@ -17226,6 +17259,29 @@ function CarvalhoSuite() {
   React.createElement("p", {
     style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }
   }, "🎨 Personalização"),
+  React.createElement(Card, {
+    style: { padding: '16px', marginBottom: 14 }
+  },
+    React.createElement("p", {
+      style: { color: T.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "Tema"),
+    React.createElement("div", {
+      style: { display: 'flex', gap: 8 }
+    }, [{ id: 'dark', emoji: '🌙', name: 'Escuro' }, { id: 'light', emoji: '☀️', name: 'Claro' }].map(function (opt) {
+      var isSel = (profile && profile.theme) === opt.id || (!(profile && profile.theme) && opt.id === 'dark');
+      return React.createElement("button", {
+        key: opt.id,
+        onClick: function () { setTheme(opt.id); },
+        style: {
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          background: isSel ? T.goldDim : T.surface2,
+          border: '1px solid ' + (isSel ? T.gold : T.goldBrd),
+          borderRadius: 10, padding: '10px', color: isSel ? T.gold : T.text,
+          fontSize: 13, fontWeight: isSel ? 700 : 400, cursor: 'pointer'
+        }
+      }, opt.emoji, " ", opt.name);
+    }))
+  ),
   React.createElement(Card, {
     style: { padding: '16px' }
   },
