@@ -15723,6 +15723,18 @@ function CarvalhoSuite() {
     _useState184 = _slicedToArray(_useState183, 2),
     online = _useState184[0],
     setOnline = _useState184[1];
+  var _useStateCacheVer = (0, _react.useState)(''),
+    _useStateCacheVer2 = _slicedToArray(_useStateCacheVer, 2),
+    cacheVer = _useStateCacheVer2[0],
+    setCacheVer = _useStateCacheVer2[1];
+  var _useStateUpdChecking = (0, _react.useState)(false),
+    _useStateUpdChecking2 = _slicedToArray(_useStateUpdChecking, 2),
+    updChecking = _useStateUpdChecking2[0],
+    setUpdChecking = _useStateUpdChecking2[1];
+  var _useStateUpdMsg = (0, _react.useState)(''),
+    _useStateUpdMsg2 = _slicedToArray(_useStateUpdMsg, 2),
+    updMsg = _useStateUpdMsg2[0],
+    setUpdMsg = _useStateUpdMsg2[1];
   var _useState185 = (0, _react.useState)(USERS_DEF),
     _useState186 = _slicedToArray(_useState185, 2),
     users = _useState186[0],
@@ -16305,7 +16317,58 @@ function CarvalhoSuite() {
   };
   (0, _react.useEffect)(function () {
     if (screen === 'definicoes' && isAdmin) loadAllProfiles();
+    if (screen === 'definicoes' && 'caches' in window) {
+      caches.keys().then(function (keys) {
+        var c = keys.find(function (k) { return k.indexOf('carvalho-') === 0; });
+        setCacheVer(c || 'desconhecida');
+      }).catch(function () { setCacheVer('desconhecida'); });
+    }
   }, [screen, isAdmin]);
+  var checkForUpdate = function checkForUpdate() {
+    if (!('serviceWorker' in navigator)) {
+      setUpdMsg('Service Worker não suportado neste navegador.');
+      return;
+    }
+    setUpdChecking(true);
+    setUpdMsg('');
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) {
+        setUpdChecking(false);
+        setUpdMsg('A app ainda não está registada como PWA neste dispositivo.');
+        return;
+      }
+      var found = false;
+      reg.onupdatefound = function () { found = true; };
+      reg.update().then(function () {
+        setTimeout(function () {
+          setUpdChecking(false);
+          setUpdMsg(found ? '✓ Nova versão encontrada — a aplicar e reiniciar...' : '✓ Já tens a versão mais recente.');
+        }, 1200);
+      }).catch(function (err) {
+        setUpdChecking(false);
+        setUpdMsg('Erro ao verificar: ' + (err && err.message ? err.message : err));
+      });
+    });
+  };
+  var hardReset = function hardReset() {
+    if (!(window.confirm ? window.confirm('Isto vai limpar a cache local e reiniciar a app. Os teus dados continuam guardados no servidor. Continuar?') : true)) return;
+    setUpdChecking(true);
+    setUpdMsg('A limpar cache...');
+    var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
+      return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+    }) : Promise.resolve();
+    clearCaches.then(function () {
+      if ('serviceWorker' in navigator) {
+        return navigator.serviceWorker.getRegistration().then(function (reg) {
+          return reg ? reg.unregister() : null;
+        });
+      }
+    }).then(function () {
+      window.location.reload();
+    }).catch(function () {
+      window.location.reload();
+    });
+  };
   var nav = function nav(label) {
     if (label === 'Início') setScreen('hub');else if (label === 'Avisos') setScreen('notifs');else if (label === 'Definições') {
       setScreen('definicoes');
@@ -16790,480 +16853,65 @@ function CarvalhoSuite() {
       fontWeight: 800,
       fontSize: 17
     }
-  }, "Defini\xE7\xF5es")), false && /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setShowAddUser(function (v) {
-        return !v;
-      });
+  }, "Defini\xE7\xF5es"))), React.createElement("div", {
+    style: { padding: '14px 16px' }
+  },
+  React.createElement("p", {
+    style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }
+  }, "Diagnóstico & Manutenção"),
+  React.createElement(Card, {
+    style: { padding: '16px', marginBottom: 14 }
+  },
+    React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }
     },
-    style: {
-      background: "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
-      border: 'none',
-      borderRadius: 12,
-      padding: '7px 14px',
-      color: T.bg,
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, "\uFF0B Utilizador")), showAddUser && /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: '14px 16px 0',
-      background: T.surface,
-      borderRadius: 18,
-      padding: '16px',
-      border: "1px solid ".concat(T.gold)
-    }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: T.gold,
-      fontWeight: 800,
-      fontSize: 14,
-      marginBottom: 12
-    }
-  }, "Novo utilizador"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6,
-      marginBottom: 10
-    }
-  }, ['👤', '👨', '👩', '👦', '👧', '👴', '👵'].map(function (e) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: e,
-      onClick: function onClick() {
-        return setNewEmoji(e);
-      },
-      style: {
-        flex: 1,
-        background: newEmoji === e ? T.goldDim : T.surface2,
-        border: "1px solid ".concat(newEmoji === e ? T.gold : T.goldBrd),
-        borderRadius: 10,
-        padding: '7px 2px',
-        fontSize: 16,
-        cursor: 'pointer'
-      }
-    }, e);
-  })), /*#__PURE__*/React.createElement("input", {
-    value: newName,
-    onChange: function onChange(e) {
-      return setNewName(e.target.value);
+      React.createElement("span", { style: { color: T.muted, fontSize: 13 } }, "Versão instalada"),
+      React.createElement("span", { style: { color: T.text, fontSize: 13, fontWeight: 700, fontFamily: 'monospace' } }, cacheVer || '...')
+    ),
+    React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }
     },
-    placeholder: "Nome",
-    style: {
-      width: '100%',
-      background: T.surface2,
-      border: "1px solid ".concat(T.goldBrd),
-      borderRadius: 12,
-      padding: '11px 14px',
-      color: T.text,
-      fontSize: 14,
-      outline: 'none',
-      marginBottom: 8,
-      boxSizing: 'border-box'
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: newRole,
-    onChange: function onChange(e) {
-      return setNewRole(e.target.value);
-    },
-    placeholder: "Fun\xE7\xE3o (ex: Fam\xEDlia)",
-    style: {
-      width: '100%',
-      background: T.surface2,
-      border: "1px solid ".concat(T.goldBrd),
-      borderRadius: 12,
-      padding: '11px 14px',
-      color: T.text,
-      fontSize: 14,
-      outline: 'none',
-      marginBottom: 8,
-      boxSizing: 'border-box'
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: newPwd,
-    onChange: function onChange(e) {
-      return setNewPwd(e.target.value);
-    },
-    placeholder: "Password",
-    style: {
-      width: '100%',
-      background: T.surface2,
-      border: "1px solid ".concat(T.goldBrd),
-      borderRadius: 12,
-      padding: '11px 14px',
-      color: T.text,
-      fontSize: 14,
-      outline: 'none',
-      marginBottom: 12,
-      boxSizing: 'border-box'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setShowAddUser(false);
-      setNewName('');
-      setNewRole('Família');
-      setNewEmoji('👤');
-      setNewPwd('');
-    },
-    style: {
-      flex: 1,
-      background: T.surface2,
-      border: "1px solid ".concat(T.goldBrd),
-      borderRadius: 12,
-      padding: '11px',
-      color: T.muted,
-      fontSize: 14,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      if (!newName.trim()) return;
-      var id = 'u-' + Date.now();
-      setUsers(function (p) {
-        return [].concat(_toConsumableArray(p), [{
-          id: id,
-          name: newName.trim(),
-          role: newRole || 'Família',
-          emoji: newEmoji,
-          pwd: newPwd || 'Pc12345'
-        }]);
-      });
-      setPerms(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, id, []));
-      });
-      setNewName('');
-      setNewRole('Família');
-      setNewEmoji('👤');
-      setNewPwd('');
-      setShowAddUser(false);
-    },
-    style: {
-      flex: 2,
-      background: "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
-      border: 'none',
-      borderRadius: 12,
-      padding: '11px',
-      color: T.bg,
-      fontSize: 14,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, "\u2713 Guardar"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '14px 16px'
-    }
-  }, [].filter(function (u) {
-    return u.id !== 'patricio';
-  }).map(function (u) {
-    var isEditing = (editUser === null || editUser === void 0 ? void 0 : editUser.id) === u.id;
-    return /*#__PURE__*/React.createElement("div", {
-      key: u.id,
-      style: {
-        marginBottom: 20
-      }
-    }, /*#__PURE__*/React.createElement(Card, {
-      style: {
-        padding: '12px 16px',
-        marginBottom: isEditing ? 0 : 10,
-        border: "1px solid ".concat(isEditing ? T.gold : T.goldBrd),
-        borderRadius: isEditing ? '14px 14px 0 0' : '14px'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 22
-      }
-    }, u.emoji), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1
-      }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: {
-        fontWeight: 800,
-        fontSize: 15,
-        color: T.text
-      }
-    }, u.name), /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: T.muted,
-        fontSize: 12
-      }
-    }, u.role, " \xB7 ", (perms[u.id] || []).length, " apps ativas")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        gap: 6
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return setEditUser(isEditing ? null : {
-          id: u.id,
-          name: u.name,
-          role: u.role,
-          emoji: u.emoji,
-          pwd: u.pwd || 'Pc12345'
-        });
-      },
-      style: {
-        background: isEditing ? "".concat(T.gold, "22") : "rgba(201,168,71,0.08)",
-        border: "1px solid ".concat(isEditing ? T.gold : 'rgba(201,168,71,0.25)'),
-        borderRadius: 9,
-        padding: '6px 10px',
-        color: T.gold,
-        fontSize: 13,
-        cursor: 'pointer',
-        fontWeight: 700
-      }
-    }, isEditing ? '✕' : '✏️'), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        if (window.confirm ? window.confirm("Apagar ".concat(u.name, "?")) : true) {
-          setUsers(function (p) {
-            return p.filter(function (x) {
-              return x.id !== u.id;
-            });
-          });
-          setPerms(function (p) {
-            var c = _objectSpread({}, p);
-            delete c[u.id];
-            return c;
-          });
-        }
-      },
-      style: {
-        background: 'rgba(220,38,38,0.08)',
-        border: '1px solid rgba(220,38,38,0.2)',
-        borderRadius: 9,
-        padding: '6px 10px',
-        color: '#DC2626',
-        fontSize: 13,
-        cursor: 'pointer'
-      }
-    }, "\uD83D\uDDD1")))), isEditing && /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: T.surface,
-        border: "1px solid ".concat(T.gold),
-        borderTop: 'none',
-        borderRadius: '0 0 14px 14px',
-        padding: '14px 16px',
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: T.gold,
-        fontWeight: 800,
-        fontSize: 12,
-        textTransform: 'uppercase',
-        letterSpacing: '0.6px',
-        marginBottom: 10
-      }
-    }, "Editar utilizador"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        gap: 5,
-        marginBottom: 10
-      }
-    }, ['👤', '👨', '👩', '👦', '👧', '👴', '👵', '🧑', '👨‍💼', '👩‍💼'].map(function (e) {
-      return /*#__PURE__*/React.createElement("button", {
-        key: e,
-        onClick: function onClick() {
-          return setEditUser(function (p) {
-            return _objectSpread(_objectSpread({}, p), {}, {
-              emoji: e
-            });
-          });
-        },
-        style: {
-          flex: 1,
-          background: editUser.emoji === e ? T.goldDim : T.surface2,
-          border: "1px solid ".concat(editUser.emoji === e ? T.gold : T.goldBrd),
-          borderRadius: 8,
-          padding: '5px 2px',
-          fontSize: 14,
-          cursor: 'pointer'
-        }
-      }, e);
-    })), /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: T.muted,
-        fontSize: 10,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        marginBottom: 3
-      }
-    }, "Nome"), /*#__PURE__*/React.createElement("input", {
-      value: editUser.name,
-      onChange: function onChange(e) {
-        return setEditUser(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, {
-            name: e.target.value
-          });
-        });
-      },
+      React.createElement("span", { style: { color: T.muted, fontSize: 13 } }, "Ligação"),
+      React.createElement("span", { style: { color: online ? '#22C55E' : '#DC2626', fontSize: 13, fontWeight: 700 } }, online ? '● Online' : '● Offline')
+    ),
+    updMsg && React.createElement("p", {
+      style: { color: T.gold, fontSize: 12.5, marginBottom: 10, lineHeight: 1.4 }
+    }, updMsg),
+    React.createElement("button", {
+      onClick: checkForUpdate,
+      disabled: updChecking,
       style: {
         width: '100%',
-        background: T.surface2,
-        border: "1px solid ".concat(T.goldBrd),
-        borderRadius: 10,
-        padding: '10px 12px',
-        color: T.text,
-        fontSize: 14,
-        outline: 'none',
-        marginBottom: 8,
-        boxSizing: 'border-box'
-      }
-    }), /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: T.muted,
-        fontSize: 10,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        marginBottom: 3
-      }
-    }, "Fun\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
-      value: editUser.role,
-      onChange: function onChange(e) {
-        return setEditUser(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, {
-            role: e.target.value
-          });
-        });
-      },
-      placeholder: "Ex: Fam\xEDlia, Filho, Esposa...",
-      style: {
-        width: '100%',
-        background: T.surface2,
-        border: "1px solid ".concat(T.goldBrd),
-        borderRadius: 10,
-        padding: '10px 12px',
-        color: T.text,
-        fontSize: 14,
-        outline: 'none',
-        marginBottom: 8,
-        boxSizing: 'border-box'
-      }
-    }), /*#__PURE__*/React.createElement("p", {
-      style: {
-        color: T.muted,
-        fontSize: 10,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        marginBottom: 3
-      }
-    }, "Password"), /*#__PURE__*/React.createElement("input", {
-      value: editUser.pwd,
-      onChange: function onChange(e) {
-        return setEditUser(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, {
-            pwd: e.target.value
-          });
-        });
-      },
-      style: {
-        width: '100%',
-        background: T.surface2,
-        border: "1px solid ".concat(T.goldBrd),
-        borderRadius: 10,
-        padding: '10px 12px',
-        color: T.text,
-        fontSize: 14,
-        outline: 'none',
-        marginBottom: 12,
-        boxSizing: 'border-box'
-      }
-    }), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        setUsers(function (p) {
-          return p.map(function (x) {
-            return x.id === editUser.id ? _objectSpread(_objectSpread({}, x), {}, {
-              name: editUser.name.trim(),
-              role: editUser.role,
-              emoji: editUser.emoji,
-              pwd: editUser.pwd
-            }) : x;
-          });
-        });
-        setEditUser(null);
-      },
-      style: {
-        width: '100%',
-        background: "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
+        background: updChecking ? T.surface2 : "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
         border: 'none',
         borderRadius: 12,
         padding: '12px',
-        color: T.bg,
+        color: updChecking ? T.muted : T.bg,
         fontSize: 14,
         fontWeight: 800,
+        cursor: updChecking ? 'default' : 'pointer',
+        marginBottom: 8
+      }
+    }, updChecking ? 'A verificar…' : '🔄 Verificar atualizações'),
+    React.createElement("button", {
+      onClick: hardReset,
+      style: {
+        width: '100%',
+        background: 'rgba(220,38,38,0.08)',
+        border: '1px solid rgba(220,38,38,0.25)',
+        borderRadius: 12,
+        padding: '12px',
+        color: '#DC2626',
+        fontSize: 14,
+        fontWeight: 700,
         cursor: 'pointer'
       }
-    }, "\u2713 Guardar altera\xE7\xF5es")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 7,
-        paddingLeft: 8
-      }
-    }, APPS_DATA.map(function (app) {
-      var on = (perms[u.id] || []).includes(app.id);
-      return /*#__PURE__*/React.createElement("div", {
-        key: app.id,
-        onClick: function onClick() {
-          return togglePerm(u.id, app.id);
-        },
-        style: {
-          background: T.surface,
-          borderRadius: 14,
-          padding: '12px 16px',
-          border: "1px solid ".concat(on ? T.goldBrd : 'rgba(255,255,255,0.05)'),
-          borderLeft: "3px solid ".concat(on ? T.gold : '#2A2A3A'),
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          cursor: 'pointer'
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 18
-        }
-      }, app.emoji), /*#__PURE__*/React.createElement("span", {
-        style: {
-          flex: 1,
-          fontWeight: 600,
-          fontSize: 14,
-          color: on ? T.text : T.muted
-        }
-      }, app.name), /*#__PURE__*/React.createElement("div", {
-        style: {
-          width: 44,
-          height: 24,
-          borderRadius: 12,
-          background: on ? T.gold : '#2A2A3A',
-          border: "1px solid ".concat(on ? T.goldL : '#444'),
-          position: 'relative',
-          flexShrink: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          position: 'absolute',
-          top: 3,
-          left: on ? 22 : 3,
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          background: on ? T.bg : '#666'
-        }
-      })));
-    })));
-  })), /*#__PURE__*/React.createElement(BottomNav, {
+    }, "🧹 Limpar cache e reiniciar")
+  ),
+  React.createElement("p", {
+    style: { color: T.muted, fontSize: 12, lineHeight: 1.5, padding: '0 4px' }
+  }, "Se a app parecer desatualizada (faltam funcionalidades novas), usa primeiro \"Verificar atualizações\". Se persistir, usa \"Limpar cache\" — os teus dados continuam guardados no servidor.")
+), /*#__PURE__*/React.createElement(BottomNav, {
     active: "Defini\xE7\xF5es",
     onNav: nav
   }));
@@ -18272,6 +17920,9 @@ function CarvalhoSuite() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        window.location.reload();
       });
     }
   </script>
