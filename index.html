@@ -15735,6 +15735,42 @@ function CarvalhoSuite() {
     _useStateUpdMsg2 = _slicedToArray(_useStateUpdMsg, 2),
     updMsg = _useStateUpdMsg2[0],
     setUpdMsg = _useStateUpdMsg2[1];
+  var _useStateAddMemberOpen = (0, _react.useState)(false),
+    _useStateAddMemberOpen2 = _slicedToArray(_useStateAddMemberOpen, 2),
+    addMemberOpen = _useStateAddMemberOpen2[0],
+    setAddMemberOpen = _useStateAddMemberOpen2[1];
+  var _useStateNewMemberName = (0, _react.useState)(''),
+    _useStateNewMemberName2 = _slicedToArray(_useStateNewMemberName, 2),
+    newMemberName = _useStateNewMemberName2[0],
+    setNewMemberName = _useStateNewMemberName2[1];
+  var _useStateNewMemberEmail = (0, _react.useState)(''),
+    _useStateNewMemberEmail2 = _slicedToArray(_useStateNewMemberEmail, 2),
+    newMemberEmail = _useStateNewMemberEmail2[0],
+    setNewMemberEmail = _useStateNewMemberEmail2[1];
+  var _useStateNewMemberPwd = (0, _react.useState)(''),
+    _useStateNewMemberPwd2 = _slicedToArray(_useStateNewMemberPwd, 2),
+    newMemberPwd = _useStateNewMemberPwd2[0],
+    setNewMemberPwd = _useStateNewMemberPwd2[1];
+  var _useStateNewMemberEmoji = (0, _react.useState)('👤'),
+    _useStateNewMemberEmoji2 = _slicedToArray(_useStateNewMemberEmoji, 2),
+    newMemberEmoji = _useStateNewMemberEmoji2[0],
+    setNewMemberEmoji = _useStateNewMemberEmoji2[1];
+  var _useStateNewMemberApps = (0, _react.useState)([]),
+    _useStateNewMemberApps2 = _slicedToArray(_useStateNewMemberApps, 2),
+    newMemberApps = _useStateNewMemberApps2[0],
+    setNewMemberApps = _useStateNewMemberApps2[1];
+  var _useStateEditingMember = (0, _react.useState)(null),
+    _useStateEditingMember2 = _slicedToArray(_useStateEditingMember, 2),
+    editingMember = _useStateEditingMember2[0],
+    setEditingMember = _useStateEditingMember2[1];
+  var _useStateMemberMsg = (0, _react.useState)(''),
+    _useStateMemberMsg2 = _slicedToArray(_useStateMemberMsg, 2),
+    memberMsg = _useStateMemberMsg2[0],
+    setMemberMsg = _useStateMemberMsg2[1];
+  var _useStateMemberBusy = (0, _react.useState)(false),
+    _useStateMemberBusy2 = _slicedToArray(_useStateMemberBusy, 2),
+    memberBusy = _useStateMemberBusy2[0],
+    setMemberBusy = _useStateMemberBusy2[1];
   var _useState185 = (0, _react.useState)(USERS_DEF),
     _useState186 = _slicedToArray(_useState185, 2),
     users = _useState186[0],
@@ -16073,11 +16109,117 @@ function CarvalhoSuite() {
       }).eq('id', uid).then(function () {}).catch(function () {});
     }
   };
+  var fnErr = function fnErr(res) {
+    if (res && res.error) return res.error.message || 'Erro desconhecido';
+    if (res && res.data && res.data.error) return res.data.error;
+    return null;
+  };
+  var toggleNewMemberApp = function toggleNewMemberApp(aid) {
+    setNewMemberApps(function (p) {
+      return p.includes(aid) ? p.filter(function (x) { return x !== aid; }) : [].concat(_toConsumableArray(p), [aid]);
+    });
+  };
+  var createMember = function createMember() {
+    var name = newMemberName.trim();
+    var email = newMemberEmail.trim().toLowerCase();
+    var pwd = newMemberPwd.trim();
+    if (!name || !email || !pwd) { setMemberMsg('Preenche nome, email e password.'); return; }
+    if (!window.supabaseClient) return;
+    setMemberBusy(true);
+    setMemberMsg('');
+    window.supabaseClient.functions.invoke('manage-member', {
+      body: { action: 'create', email: email, password: pwd, display_name: name, allowed_apps: newMemberApps }
+    }).then(function (res) {
+      setMemberBusy(false);
+      var err = fnErr(res);
+      if (err) { setMemberMsg('Erro: ' + err); return; }
+      setMemberMsg('✓ Conta criada para ' + name);
+      setNewMemberName('');
+      setNewMemberEmail('');
+      setNewMemberPwd('');
+      setNewMemberApps([]);
+      setNewMemberEmoji('👤');
+      setAddMemberOpen(false);
+      loadAllProfiles();
+    }).catch(function (e) {
+      setMemberBusy(false);
+      setMemberMsg('Erro: ' + (e && e.message || String(e)));
+    });
+  };
+  var toggleDisabled = function toggleDisabled(uid, current) {
+    setAllProfiles(function (ps) {
+      return ps.map(function (p) { return p.id === uid ? _objectSpread(_objectSpread({}, p), {}, { disabled: !current }) : p; });
+    });
+    if (window.supabaseClient) {
+      window.supabaseClient.from('profiles').update({ disabled: !current }).eq('id', uid).then(function () {}).catch(function () {});
+    }
+  };
+  var handleMemberPhotoUpload = function handleMemberPhotoUpload(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file || !editingMember) return;
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      resizeProfilePhoto(ev.target.result, 240).then(function (resized) {
+        setEditingMember(function (p) { return p ? _objectSpread(_objectSpread({}, p), {}, { photo_url: resized }) : p; });
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+  var saveMemberEdit = function saveMemberEdit() {
+    if (!editingMember || !window.supabaseClient) return;
+    var uid = editingMember.id;
+    var newName = (editingMember.display_name || '').trim();
+    var newPhoto = editingMember.photo_url;
+    setMemberBusy(true);
+    window.supabaseClient.from('profiles').update({
+      display_name: newName,
+      photo_url: newPhoto
+    }).eq('id', uid).then(function (res) {
+      setMemberBusy(false);
+      if (res.error) { setMemberMsg('Erro ao guardar: ' + res.error.message); return; }
+      setAllProfiles(function (ps) {
+        return ps.map(function (p) { return p.id === uid ? _objectSpread(_objectSpread({}, p), {}, { display_name: newName, photo_url: newPhoto }) : p; });
+      });
+      setEditingMember(null);
+      setMemberMsg('✓ Guardado.');
+    }).catch(function (e) {
+      setMemberBusy(false);
+      setMemberMsg('Erro: ' + (e && e.message || String(e)));
+    });
+  };
+  var deleteMemberPermanent = function deleteMemberPermanent(u) {
+    var ok = window.confirm ? window.confirm('Apagar definitivamente a conta de ' + (u.display_name || u.email) + '? Esta ação não pode ser desfeita.') : true;
+    if (!ok) return;
+    if (!window.supabaseClient) return;
+    setMemberBusy(true);
+    setMemberMsg('');
+    window.supabaseClient.functions.invoke('manage-member', {
+      body: { action: 'delete', id: u.id }
+    }).then(function (res) {
+      setMemberBusy(false);
+      var err = fnErr(res);
+      if (err) { setMemberMsg('Erro: ' + err); return; }
+      setAllProfiles(function (ps) { return ps.filter(function (p) { return p.id !== u.id; }); });
+      setExpandedUser(null);
+      setMemberMsg('✓ Conta apagada.');
+    }).catch(function (e) {
+      setMemberBusy(false);
+      setMemberMsg('Erro: ' + (e && e.message || String(e)));
+    });
+  };
   var fetchProfile = function fetchProfile(userId) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('*').eq('id', userId).limit(1).then(function (res) {
       var data = res.data && res.data[0];
       if (!res.error && data) {
+        if (data.disabled) {
+          window.supabaseClient.auth.signOut().catch(function () {});
+          setSession(null);
+          setProfile(null);
+          setScreen('login');
+          setProfileErr('O teu acesso foi suspenso pelo administrador.');
+          return;
+        }
         setProfile(data);
         setUser(data.member_id || 'patricio');
         setProfileErr('');
@@ -17076,7 +17218,81 @@ function CarvalhoSuite() {
       margin: '18px 0 10px',
       paddingLeft: 4
     }
-  }, "\uD83D\uDC65 Utilizadores e acessos"), /*#__PURE__*/React.createElement(Card, {
+  }, "\uD83D\uDC65 Utilizadores e acessos"), React.createElement(Card, {
+    style: { marginBottom: 12, padding: '12px 14px', border: '1px solid ' + T.gold }
+  },
+    React.createElement("div", {
+      onClick: function () { setAddMemberOpen(function (v) { return !v; }); },
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }
+    },
+      React.createElement("p", { style: { color: T.gold, fontWeight: 800, fontSize: 13 } }, "➕ Adicionar membro"),
+      React.createElement("span", { style: { color: T.gold, fontSize: 16 } }, addMemberOpen ? '⌄' : '›')
+    ),
+    addMemberOpen && React.createElement("div", { style: { marginTop: 12 } },
+      React.createElement("div", { style: { display: 'flex', gap: 6, marginBottom: 10 } },
+        ['👤', '👨', '👩', '👦', '👧', '👴', '👵'].map(function (e) {
+          return React.createElement("button", {
+            key: e,
+            onClick: function () { setNewMemberEmoji(e); },
+            style: {
+              flex: 1,
+              background: newMemberEmoji === e ? T.goldDim : T.surface2,
+              border: '1px solid ' + (newMemberEmoji === e ? T.gold : T.goldBrd),
+              borderRadius: 10, padding: '7px 2px', fontSize: 16, cursor: 'pointer'
+            }
+          }, e);
+        })
+      ),
+      React.createElement("input", {
+        value: newMemberName,
+        onChange: function (e) { setNewMemberName(e.target.value); },
+        placeholder: 'Nome',
+        style: { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '9px 12px', color: T.text, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }
+      }),
+      React.createElement("input", {
+        type: 'email',
+        autoCapitalize: 'none',
+        value: newMemberEmail,
+        onChange: function (e) { setNewMemberEmail(e.target.value); },
+        placeholder: 'email@exemplo.com',
+        style: { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '9px 12px', color: T.text, fontSize: 13, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }
+      }),
+      React.createElement("input", {
+        value: newMemberPwd,
+        onChange: function (e) { setNewMemberPwd(e.target.value); },
+        placeholder: 'Password',
+        style: { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '9px 12px', color: T.text, fontSize: 13, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }
+      }),
+      React.createElement("p", { style: { color: T.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 } }, "Acesso às apps"),
+      React.createElement("div", { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 } },
+        APPS_DATA.map(function (app) {
+          var on = newMemberApps.includes(app.id);
+          return React.createElement("button", {
+            key: app.id,
+            onClick: function () { toggleNewMemberApp(app.id); },
+            style: {
+              background: on ? T.goldDim : T.surface2,
+              border: '1px solid ' + (on ? T.gold : T.goldBrd),
+              borderRadius: 10, padding: '6px 10px',
+              color: on ? T.gold : T.muted, fontSize: 12, fontWeight: 700, cursor: 'pointer'
+            }
+          }, app.emoji + ' ' + app.name);
+        })
+      ),
+      memberMsg && React.createElement("p", { style: { color: T.gold, fontSize: 12, marginBottom: 8 } }, memberMsg),
+      React.createElement("button", {
+        onClick: createMember,
+        disabled: memberBusy,
+        style: {
+          width: '100%',
+          background: memberBusy ? T.surface2 : "linear-gradient(135deg,".concat(T.gold, ",").concat(T.goldL, ")"),
+          border: 'none', borderRadius: 12, padding: '11px',
+          color: memberBusy ? T.muted : T.bg, fontSize: 14, fontWeight: 800,
+          cursor: memberBusy ? 'default' : 'pointer'
+        }
+      }, memberBusy ? 'A criar…' : '✓ Criar conta')
+    )
+  ), /*#__PURE__*/React.createElement(Card, {
     style: {
       marginBottom: 12,
       padding: '12px 14px'
@@ -17270,7 +17486,8 @@ function CarvalhoSuite() {
       key: u.id,
       style: {
         marginBottom: 10,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        opacity: u.disabled ? 0.55 : 1
       }
     }, /*#__PURE__*/React.createElement("div", {
       onClick: function onClick() {
@@ -17318,7 +17535,7 @@ function CarvalhoSuite() {
         color: T.muted,
         fontSize: 12
       }
-    }, u.email, " \xB7 ", userPerms.length, " app(s)")), /*#__PURE__*/React.createElement("span", {
+    }, u.email, " \xB7 ", userPerms.length, " app(s)", u.disabled ? " \xB7 \uD83D\uDEAB Suspenso" : "")), /*#__PURE__*/React.createElement("span", {
       style: {
         color: T.gold,
         fontSize: 16
@@ -17405,7 +17622,57 @@ function CarvalhoSuite() {
           transition: 'left 0.2s'
         }
       })));
-    }))));
+    })), React.createElement("div", {
+      style: { borderTop: '1px solid ' + T.border, marginTop: 12, paddingTop: 12 }
+    },
+      (editingMember && editingMember.id === u.id) ? React.createElement("div", null,
+        React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 } },
+          React.createElement("div", {
+            style: { width: 42, height: 42, borderRadius: 13, overflow: 'hidden', background: T.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+          }, editingMember.photo_url ? React.createElement("img", { src: editingMember.photo_url, style: { width: '100%', height: '100%', objectFit: 'cover' } }) : React.createElement("span", { style: { fontSize: 20 } }, uEmoji)),
+          React.createElement("label", { style: { color: T.gold, fontSize: 12, fontWeight: 700, cursor: 'pointer' } },
+            "📷 Mudar foto",
+            React.createElement("input", { type: 'file', accept: 'image/*', onChange: handleMemberPhotoUpload, style: { display: 'none' } })
+          )
+        ),
+        React.createElement("input", {
+          value: editingMember.display_name || '',
+          onChange: function (e) { var v = e.target.value; setEditingMember(function (p) { return p ? Object.assign({}, p, { display_name: v }) : p; }); },
+          placeholder: 'Nome',
+          style: { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '9px 12px', color: T.text, fontSize: 13, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }
+        }),
+        React.createElement("div", { style: { display: 'flex', gap: 8 } },
+          React.createElement("button", {
+            onClick: function () { setEditingMember(null); },
+            style: { flex: 1, background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '9px', color: T.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer' }
+          }, "Cancelar"),
+          React.createElement("button", {
+            onClick: saveMemberEdit,
+            disabled: memberBusy,
+            style: { flex: 2, background: memberBusy ? T.surface2 : T.gold, border: 'none', borderRadius: 10, padding: '9px', color: memberBusy ? T.muted : T.bg, fontSize: 13, fontWeight: 800, cursor: memberBusy ? 'default' : 'pointer' }
+          }, memberBusy ? 'A guardar…' : '✓ Guardar')
+        )
+      ) : React.createElement("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
+        React.createElement("button", {
+          onClick: function () { setEditingMember({ id: u.id, display_name: u.display_name || '', photo_url: u.photo_url || '' }); },
+          style: { background: 'rgba(201,168,71,0.08)', border: '1px solid ' + T.goldBrd, borderRadius: 9, padding: '7px 12px', color: T.gold, fontSize: 12, fontWeight: 700, cursor: 'pointer' }
+        }, "✏️ Editar"),
+        React.createElement("button", {
+          onClick: function () { toggleDisabled(u.id, u.disabled); },
+          style: {
+            background: u.disabled ? 'rgba(34,197,94,0.08)' : 'rgba(249,115,22,0.08)',
+            border: '1px solid ' + (u.disabled ? 'rgba(34,197,94,0.3)' : 'rgba(249,115,22,0.3)'),
+            borderRadius: 9, padding: '7px 12px',
+            color: u.disabled ? '#22C55E' : '#F97316', fontSize: 12, fontWeight: 700, cursor: 'pointer'
+          }
+        }, u.disabled ? '✅ Reativar' : '🚫 Suspender'),
+        React.createElement("button", {
+          onClick: function () { deleteMemberPermanent(u); },
+          style: { background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 9, padding: '7px 12px', color: '#DC2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }
+        }, "🗑️ Apagar definitivamente")
+      ),
+      memberMsg && React.createElement("p", { style: { color: T.gold, fontSize: 11.5, marginTop: 8 } }, memberMsg)
+    )));
   }), allProfiles.length === 0 && pendingInvites.length === 0 && /*#__PURE__*/React.createElement("p", {
     style: {
       color: T.muted,
