@@ -6436,7 +6436,9 @@ function FamiliaApp(_ref19) {
     _ref19$addSharedDia = _ref19.addSharedDia,
     addSharedDia = _ref19$addSharedDia === void 0 ? function () {} : _ref19$addSharedDia,
     _ref19$removeSharedDi = _ref19.removeSharedDia,
-    removeSharedDia = _ref19$removeSharedDi === void 0 ? function () {} : _ref19$removeSharedDi;
+    removeSharedDia = _ref19$removeSharedDi === void 0 ? function () {} : _ref19$removeSharedDi,
+    _ref19$currentMemberI = _ref19.currentMemberId,
+    currentMemberId = _ref19$currentMemberI === void 0 ? 'patricio' : _ref19$currentMemberI;
   var _useState95 = (0, _react.useState)(new Date(2026, 5, 1)),
     _useState96 = _slicedToArray(_useState95, 2),
     curMonth = _useState96[0],
@@ -6460,7 +6462,7 @@ function FamiliaApp(_ref19) {
   var _useState105 = (0, _react.useState)({
       titulo: '',
       emoji: '📅',
-      who: 'todos',
+      participantes: ['todos'],
       dataDE: '',
       dataATE: '',
       hora: '',
@@ -6628,7 +6630,7 @@ function FamiliaApp(_ref19) {
           id: row.id,
           t: row.title,
           emoji: row.emoji || '📅',
-          who: row.member_id || 'todos',
+          participantes: row.participant_ids && row.participant_ids.length > 0 ? row.participant_ids : [row.member_id || 'todos'],
           color: row.color || F.coral,
           hora: row.event_time || '',
           nota: row.description || ''
@@ -6692,8 +6694,12 @@ function FamiliaApp(_ref19) {
   var daysInMo = new Date(yr, mo + 1, 0).getDate();
   var firstDow = (new Date(yr, mo, 1).getDay() + 6) % 7;
   var selDateStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(selDay).padStart(2, '0'));
+  var eventVisibleTo = function eventVisibleTo(e, memberId) {
+    var p = e.participantes || ['todos'];
+    return p.indexOf('todos') !== -1 || p.indexOf(memberId) !== -1;
+  };
   var selEvents = (events[selDateStr] || []).filter(function (e) {
-    return selMember === 'todos' || e.who === selMember || e.who === 'todos';
+    return selMember === 'todos' || eventVisibleTo(e, selMember);
   });
   var sharedForDay = sharedDias.filter(function (d) {
     return d.date === selDateStr;
@@ -6707,7 +6713,7 @@ function FamiliaApp(_ref19) {
   var getDayEvents = function getDayEvents(d) {
     var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
     var ev = (events[dStr] || []).filter(function (e) {
-      return selMember === 'todos' || e.who === selMember || e.who === 'todos';
+      return selMember === 'todos' || eventVisibleTo(e, selMember);
     });
     var sh = sharedDias.filter(function (x) {
       return x.date === dStr;
@@ -6720,13 +6726,17 @@ function FamiliaApp(_ref19) {
   };
   var addEvent = function addEvent() {
     if (!form.titulo || !form.dataDE) return;
+    var participantes = form.participantes && form.participantes.length > 0 ? form.participantes : ['todos'];
+    var firstSpecific = participantes.find(function (id) {
+      return id !== 'todos';
+    });
     var m = members.find(function (x) {
-      return x.id === form.who;
+      return x.id === firstSpecific;
     });
     var ev = {
       t: form.titulo,
       emoji: form.emoji,
-      who: form.who,
+      participantes: participantes,
       color: (m === null || m === void 0 ? void 0 : m.color) || F.coral,
       hora: form.hora,
       nota: form.nota
@@ -6751,14 +6761,15 @@ function FamiliaApp(_ref19) {
     if (window.supabaseClient) {
       var rows = Object.keys(updates).map(function (d) {
         return {
-          member_id: form.who === 'todos' ? null : form.who,
+          member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
+          participant_ids: participantes,
           title: ev.t,
           description: ev.nota || null,
           event_date: d,
           event_time: ev.hora || null,
           emoji: ev.emoji,
           color: ev.color,
-          created_by: 'patricio'
+          created_by: currentMemberId
         };
       });
       window.supabaseClient.from('family_events').insert(rows).then(function () {
@@ -6776,7 +6787,7 @@ function FamiliaApp(_ref19) {
     setForm({
       titulo: '',
       emoji: '📅',
-      who: 'todos',
+      participantes: ['todos'],
       dataDE: '',
       dataATE: '',
       hora: '',
@@ -7331,7 +7342,7 @@ function FamiliaApp(_ref19) {
       return m.id !== 'todos';
     }).map(function (m) {
       var mEvs = dayEvs.filter(function (e) {
-        return e.who === m.id || e.who === 'todos';
+        return eventVisibleTo(e, m.id);
       });
       var mShared = dayShared.length > 0 && m.id === 'patricio';
       return /*#__PURE__*/React.createElement("div", {
@@ -7641,9 +7652,20 @@ function FamiliaApp(_ref19) {
       }
     }, d.nome)));
   }), selEvents.map(function (ev, i) {
-    var m = members.find(function (x) {
-      return x.id === ev.who;
+    var firstSpecific = (ev.participantes || ['todos']).find(function (id) {
+      return id !== 'todos';
     });
+    var m = members.find(function (x) {
+      return x.id === firstSpecific;
+    });
+    var multiplos = (ev.participantes || []).filter(function (id) {
+      return id !== 'todos';
+    }).length > 1;
+    var isTodos = !firstSpecific;
+    var whoLabel = isTodos ? 'Toda a família' : multiplos ? "".concat(m === null || m === void 0 ? void 0 : m.name, " +").concat((ev.participantes || []).filter(function (id) {
+      return id !== 'todos';
+    }).length - 1) : (m === null || m === void 0 ? void 0 : m.name) || '';
+    var whoEmoji = isTodos ? '👥' : m === null || m === void 0 ? void 0 : m.emoji;
     var evKey = "".concat(selDateStr, "-").concat(i);
     var isEditing = editEvKey === evKey;
     return /*#__PURE__*/React.createElement(FCard, {
@@ -7699,13 +7721,13 @@ function FamiliaApp(_ref19) {
       style: {
         fontSize: 13
       }
-    }, m === null || m === void 0 ? void 0 : m.emoji), /*#__PURE__*/React.createElement("span", {
+    }, whoEmoji), /*#__PURE__*/React.createElement("span", {
       style: {
         color: ev.color,
         fontSize: 12,
         fontWeight: 700
       }
-    }, (m === null || m === void 0 ? void 0 : m.name) || ev.who), ev.hora ? /*#__PURE__*/React.createElement("span", {
+    }, whoLabel), ev.hora ? /*#__PURE__*/React.createElement("span", {
       style: {
         background: "".concat(ev.color, "18"),
         border: "1px solid ".concat(ev.color, "33"),
@@ -7742,7 +7764,7 @@ function FamiliaApp(_ref19) {
         setForm({
           titulo: ev.t,
           emoji: ev.emoji,
-          who: ev.who,
+          participantes: ev.participantes || ['todos'],
           dataDE: selDateStr,
           dataATE: selDateStr,
           hora: ev.hora || '',
@@ -7903,24 +7925,58 @@ function FamiliaApp(_ref19) {
         textTransform: 'uppercase',
         marginBottom: 4
       }
-    }, "Para quem"), /*#__PURE__*/React.createElement("select", {
-      defaultValue: ev.who,
-      id: "ev-w-".concat(evKey),
+    }, "Para quem"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, marginBottom: 8 }
+    }, /*#__PURE__*/React.createElement("button", {
+      type: 'button',
+      onClick: function onClick() {
+        members.forEach(function (mb) {
+          if (mb.id === 'todos') return;
+          var cb = document.getElementById("ev-w-".concat(evKey, "-").concat(mb.id));
+          if (cb) cb.checked = mb.id === currentMemberId;
+        });
+      },
       style: {
-        width: '100%',
-        background: F.surface2,
-        border: "1px solid ".concat(F.border),
-        borderRadius: 10,
-        padding: '9px 10px',
-        color: F.text,
-        fontSize: 13,
-        outline: 'none'
+        flex: 1, background: F.surface2, border: "1px solid ".concat(F.border),
+        borderRadius: 8, padding: '6px', color: F.muted, fontSize: 11, fontWeight: 700, cursor: 'pointer'
       }
-    }, members.map(function (mb) {
-      return /*#__PURE__*/React.createElement("option", {
+    }, "\uD83D\uDC64 S\xF3 eu"), /*#__PURE__*/React.createElement("button", {
+      type: 'button',
+      onClick: function onClick() {
+        members.forEach(function (mb) {
+          if (mb.id === 'todos') return;
+          var cb = document.getElementById("ev-w-".concat(evKey, "-").concat(mb.id));
+          if (cb) cb.checked = true;
+        });
+      },
+      style: {
+        flex: 1, background: F.surface2, border: "1px solid ".concat(F.border),
+        borderRadius: 8, padding: '6px', color: F.muted, fontSize: 11, fontWeight: 700, cursor: 'pointer'
+      }
+    }, "\uD83D\uDC65 Todos")), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, flexWrap: 'wrap' }
+    }, members.filter(function (mb) {
+      return mb.id !== 'todos';
+    }).map(function (mb) {
+      var defChecked = (ev.participantes || ['todos']).indexOf('todos') !== -1 || (ev.participantes || []).indexOf(mb.id) !== -1;
+      return /*#__PURE__*/React.createElement("label", {
         key: mb.id,
-        value: mb.id
-      }, mb.emoji, " ", mb.name);
+        htmlFor: "ev-w-".concat(evKey, "-").concat(mb.id),
+        style: {
+          display: 'flex', alignItems: 'center', gap: 4,
+          background: F.surface2, border: "1px solid ".concat(F.border),
+          borderRadius: 16, padding: '5px 10px', cursor: 'pointer'
+        }
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "checkbox",
+        id: "ev-w-".concat(evKey, "-").concat(mb.id),
+        defaultChecked: defChecked,
+        style: { width: 13, height: 13, accentColor: mb.color }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 12 }
+      }, mb.emoji), /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 11, fontWeight: 700, color: F.text }
+      }, mb.name));
     })))), /*#__PURE__*/React.createElement("p", {
       style: {
         color: F.muted,
@@ -7968,20 +8024,34 @@ function FamiliaApp(_ref19) {
       }
     }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        var _document$getElementB2, _document$getElementB3, _document$getElementB4, _document$getElementB5, _members$find;
+        var _document$getElementB2, _document$getElementB3, _document$getElementB5;
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
         var isAllDay = document.getElementById("ev-allday-".concat(evKey)) ? document.getElementById("ev-allday-".concat(evKey)).checked : false;
         var hora = isAllDay ? '' : ((_document$getElementB3 = document.getElementById("ev-h-".concat(evKey))) === null || _document$getElementB3 === void 0 ? void 0 : _document$getElementB3.value) || ev.hora || '';
-        var who = ((_document$getElementB4 = document.getElementById("ev-w-".concat(evKey))) === null || _document$getElementB4 === void 0 ? void 0 : _document$getElementB4.value) || ev.who;
+        var checkedMembers = members.filter(function (mb) {
+          if (mb.id === 'todos') return false;
+          var cb = document.getElementById("ev-w-".concat(evKey, "-").concat(mb.id));
+          return cb && cb.checked;
+        }).map(function (mb) {
+          return mb.id;
+        });
+        var participantes = checkedMembers.length === 0 ? ['todos'] : checkedMembers.length === members.length - 1 ? ['todos'] : checkedMembers;
         var nota = ((_document$getElementB5 = document.getElementById("ev-n-".concat(evKey))) === null || _document$getElementB5 === void 0 ? void 0 : _document$getElementB5.value.trim()) || '';
-        var newColor = ((_members$find = members.find(function (x) {
-          return x.id === who;
-        })) === null || _members$find === void 0 ? void 0 : _members$find.color) || ev.color;
+        var firstSpecific = participantes.find(function (id) {
+          return id !== 'todos';
+        });
+        var newColor = (function () {
+          var found = members.find(function (x) {
+            return x.id === firstSpecific;
+          });
+          return found ? found.color : ev.color;
+        })();
         if (window.supabaseClient && ev.id) {
           window.supabaseClient.from('family_events').update({
             title: titulo,
             event_time: hora || null,
-            member_id: who === 'todos' ? null : who,
+            member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
+            participant_ids: participantes,
             description: nota || null,
             color: newColor
           }).eq('id', ev.id).then(function () {}).catch(function () {});
@@ -7992,7 +8062,7 @@ function FamiliaApp(_ref19) {
           arr[i] = _objectSpread(_objectSpread({}, arr[i]), {}, {
             t: titulo,
             hora: hora,
-            who: who,
+            participantes: participantes,
             nota: nota,
             color: newColor
           });
@@ -8118,7 +8188,8 @@ function FamiliaApp(_ref19) {
       };
     })).filter(function (ev) {
       var d = new Date(ev.date + 'T12:00:00');
-      if (selMember !== 'todos' && ev.who !== 'todos' && ev.who !== selMember) return false;
+      var evIds = ev.participantes || (ev.who ? [ev.who] : ['todos']);
+      if (selMember !== 'todos' && evIds.indexOf('todos') === -1 && evIds.indexOf(selMember) === -1) return false;
       if (timeTab === 'Hoje') return ev.date === todayStr2;
       if (timeTab === 'Semana') return d >= now && d <= weekEnd;
       return d >= now && d <= monthEnd;
@@ -8200,8 +8271,12 @@ function FamiliaApp(_ref19) {
           background: F.border
         }
       })), evs.map(function (ev, i) {
+        var evIds2 = ev.participantes || (ev.who ? [ev.who] : ['todos']);
+        var firstSpecific2 = evIds2.find(function (id) {
+          return id !== 'todos';
+        });
         var m = members.find(function (x) {
-          return x.id === ev.who;
+          return x.id === firstSpecific2;
         });
         return /*#__PURE__*/React.createElement(FCard, {
           key: i,
@@ -8553,16 +8628,93 @@ function FamiliaApp(_ref19) {
     style: {
       display: 'flex',
       gap: 7,
+      marginBottom: 9
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setForm(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, {
+          participantes: [currentMemberId]
+        });
+      });
+    },
+    style: {
+      flex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      background: form.participantes.length === 1 && form.participantes[0] === currentMemberId ? "".concat(F.coral, "18") : F.surface2,
+      border: "1px solid ".concat(form.participantes.length === 1 && form.participantes[0] === currentMemberId ? F.coral : F.border),
+      borderRadius: 12,
+      padding: '9px 10px',
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 13 }
+  }, "\uD83D\uDC64"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: form.participantes.length === 1 && form.participantes[0] === currentMemberId ? F.coral : F.muted
+    }
+  }, "S\xF3 eu")), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setForm(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, {
+          participantes: ['todos']
+        });
+      });
+    },
+    style: {
+      flex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      background: form.participantes.indexOf('todos') !== -1 ? "".concat(F.coral, "18") : F.surface2,
+      border: "1px solid ".concat(form.participantes.indexOf('todos') !== -1 ? F.coral : F.border),
+      borderRadius: 12,
+      padding: '9px 10px',
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 13 }
+  }, "\uD83D\uDC65"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: form.participantes.indexOf('todos') !== -1 ? F.coral : F.muted
+    }
+  }, "Toda a fam\xEDlia"))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.muted,
+      fontSize: 9,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      marginBottom: 7
+    }
+  }, "Ou escolhe pessoas espec\xEDficas"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 7,
       marginBottom: 16,
       flexWrap: 'wrap'
     }
-  }, members.map(function (m) {
+  }, members.filter(function (m) {
+    return m.id !== 'todos';
+  }).map(function (m) {
+    var isSelected = form.participantes.indexOf('todos') === -1 && form.participantes.indexOf(m.id) !== -1;
     return /*#__PURE__*/React.createElement("button", {
       key: m.id,
       onClick: function onClick() {
         return setForm(function (p) {
+          var current = p.participantes.indexOf('todos') !== -1 ? [] : p.participantes.slice();
+          var idx = current.indexOf(m.id);
+          if (idx !== -1) current.splice(idx, 1);else current.push(m.id);
+          if (current.length === 0) current = ['todos'];
           return _objectSpread(_objectSpread({}, p), {}, {
-            who: m.id
+            participantes: current
           });
         });
       },
@@ -8570,8 +8722,8 @@ function FamiliaApp(_ref19) {
         display: 'flex',
         alignItems: 'center',
         gap: 5,
-        background: form.who === m.id ? "".concat(m.color, "18") : F.surface2,
-        border: "1px solid ".concat(form.who === m.id ? m.color : F.border),
+        background: isSelected ? "".concat(m.color, "18") : F.surface2,
+        border: "1px solid ".concat(isSelected ? m.color : F.border),
         borderRadius: 20,
         padding: '6px 12px',
         cursor: 'pointer'
@@ -8584,9 +8736,11 @@ function FamiliaApp(_ref19) {
       style: {
         fontSize: 12,
         fontWeight: 700,
-        color: form.who === m.id ? m.color : F.muted
+        color: isSelected ? m.color : F.muted
       }
-    }, m.name));
+    }, m.name), isSelected && /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 11, color: m.color, fontWeight: 900 }
+    }, "\u2713"));
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -14902,7 +15056,8 @@ function CarvalhoSuite() {
     var sharedProps = {
       sharedDias: sharedDias,
       addSharedDia: addSharedDia,
-      removeSharedDia: removeSharedDia
+      removeSharedDia: removeSharedDia,
+      currentMemberId: (profile && profile.member_id) || 'patricio'
     };
     if (activeApp === 'horaspr') return /*#__PURE__*/React.createElement(HorasProApp, _extends({
       onBack: goBack
