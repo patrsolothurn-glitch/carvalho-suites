@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-20T23:25:53.424Z
+  Gerado em: 2026-06-20T23:37:21.545Z
 -->
 <html lang="pt">
 <head>
@@ -1073,30 +1073,168 @@ function HorasProApp(_ref9) {
   });
   var dayLabelCap = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
   var tipos = ['Spleisser', 'Instalação', 'Reparação', 'Inspeção', 'Manutenção'];
-  var _useState29 = (0, _react.useState)([{
-      id: 'p1',
-      name: 'POP GREN04',
-      color: H.blue,
-      desc: 'Grenchen - Fibra ótica'
-    }, {
-      id: 'p2',
-      name: 'BUDI-2S',
-      color: H.orange,
-      desc: 'Buildi - 2ª fase'
-    }, {
-      id: 'p3',
-      name: 'BUDI-1S',
-      color: H.orange,
-      desc: 'Buildi - 1ª fase'
-    }, {
-      id: 'p4',
-      name: 'BUDI-S',
-      color: H.green,
-      desc: 'Buildi'
-    }]),
+  var _useState29 = (0, _react.useState)([]),
     _useState30 = _slicedToArray(_useState29, 2),
     projList = _useState30[0],
     setProjList = _useState30[1];
+  var loadProjects = function loadProjects() {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
+      if (res.error || !res.data) return;
+      setProjList(res.data.map(function (row) {
+        return {
+          id: row.id,
+          name: row.name,
+          desc: row.description || '',
+          color: row.color || H.blue
+        };
+      }));
+    }).catch(function () {});
+  };
+  (0, _react.useEffect)(function () {
+    loadProjects();
+    if (!window.supabaseClient) return;
+    var projChannel = window.supabaseClient.channel('horas_projects_changes').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'horas_projects'
+    }, function () {
+      loadProjects();
+    }).subscribe();
+    return function () {
+      try {
+        window.supabaseClient.removeChannel(projChannel);
+      } catch (e) {}
+    };
+  }, []);
+  var _useStateProjSaveErr = (0, _react.useState)(''),
+    _useStateProjSaveErr2 = _slicedToArray(_useStateProjSaveErr, 2),
+    projSaveErr = _useStateProjSaveErr2[0],
+    setProjSaveErr = _useStateProjSaveErr2[1];
+  var _useStateProjSaving = (0, _react.useState)(false),
+    _useStateProjSaving2 = _slicedToArray(_useStateProjSaving, 2),
+    projSaving = _useStateProjSaving2[0],
+    setProjSaving = _useStateProjSaving2[1];
+  var saveProject = function saveProject() {
+    var _projNameRef$current, _projDescRef$current;
+    var name = (((_projNameRef$current = projNameRef.current) === null || _projNameRef$current === void 0 ? void 0 : _projNameRef$current.value) || '').trim();
+    var desc = (((_projDescRef$current = projDescRef.current) === null || _projDescRef$current === void 0 ? void 0 : _projDescRef$current.value) || '').trim();
+    if (!name) {
+      setProjSaveErr('Falta o nome do projeto.');
+      return;
+    }
+    setProjSaveErr('');
+    setProjSaving(true);
+    if (!window.supabaseClient) {
+      setProjSaving(false);
+      setProjSaveErr('Sem ligação ao servidor — não foi guardado.');
+      return;
+    }
+    if (editProj) {
+      var prevProj = projList.find(function (x) {
+        return x.id === editProj;
+      });
+      setProjList(function (p) {
+        return p.map(function (x) {
+          return x.id === editProj ? _objectSpread(_objectSpread({}, x), {}, {
+            name: name,
+            desc: desc,
+            color: newProjColor
+          }) : x;
+        });
+      });
+      window.supabaseClient.from('horas_projects').update({
+        name: name,
+        description: desc,
+        color: newProjColor
+      }).eq('id', editProj).then(function (res) {
+        setProjSaving(false);
+        if (res.error) {
+          setProjSaveErr('Erro ao guardar: ' + res.error.message);
+          if (prevProj) {
+            setProjList(function (p) {
+              return p.map(function (x) {
+                return x.id === editProj ? prevProj : x;
+              });
+            });
+          }
+          return;
+        }
+        loadProjects();
+        setShowAddProj(false);
+        setEditProj(null);
+        setNewProjName('');
+        setNewProjDesc('');
+      }).catch(function (e) {
+        setProjSaving(false);
+        setProjSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        if (prevProj) {
+          setProjList(function (p) {
+            return p.map(function (x) {
+              return x.id === editProj ? prevProj : x;
+            });
+          });
+        }
+      });
+    } else {
+      var tempId = 'temp-' + Date.now();
+      setProjList(function (p) {
+        return [].concat(_toConsumableArray(p), [{
+          id: tempId,
+          name: name,
+          desc: desc,
+          color: newProjColor
+        }]);
+      });
+      window.supabaseClient.from('horas_projects').insert({
+        name: name,
+        description: desc,
+        color: newProjColor
+      }).select().then(function (res) {
+        setProjSaving(false);
+        if (res.error) {
+          setProjSaveErr('Erro ao adicionar: ' + res.error.message);
+          setProjList(function (p) {
+            return p.filter(function (x) {
+              return x.id !== tempId;
+            });
+          });
+          return;
+        }
+        loadProjects();
+        setShowAddProj(false);
+        setEditProj(null);
+        setNewProjName('');
+        setNewProjDesc('');
+      }).catch(function (e) {
+        setProjSaving(false);
+        setProjSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        setProjList(function (p) {
+          return p.filter(function (x) {
+            return x.id !== tempId;
+          });
+        });
+      });
+    }
+  };
+  var deleteProject = function deleteProject(projId) {
+    var prevList = projList;
+    setProjList(function (p) {
+      return p.filter(function (x) {
+        return x.id !== projId;
+      });
+    });
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) {
+      if (res.error) {
+        setProjList(prevList);
+        setProjSaveErr('Erro ao apagar: ' + res.error.message);
+      }
+    }).catch(function (e) {
+      setProjList(prevList);
+      setProjSaveErr('Erro de ligação ao apagar: ' + (e && e.message || String(e)));
+    });
+  };
   var _useState31 = (0, _react.useState)('Todos'),
     _useState32 = _slicedToArray(_useState31, 2),
     projFilter = _useState32[0],
@@ -2517,6 +2655,7 @@ function HorasProApp(_ref9) {
       setEditProj(null);
       setNewProjName('');
       setNewProjDesc('');
+      setProjSaveErr('');
       setNewProjColor(H.blue);
     },
     style: {
@@ -2700,7 +2839,18 @@ function HorasProApp(_ref9) {
         border: newProjColor === c ? "3px solid ".concat(H.text) : '3px solid transparent'
       }
     });
-  })), /*#__PURE__*/React.createElement("div", {
+  })), projSaveErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#DC2626',
+      fontSize: 12.5,
+      lineHeight: 1.4,
+      marginBottom: 10,
+      padding: '8px 10px',
+      background: 'rgba(220,38,38,0.08)',
+      border: '1px solid rgba(220,38,38,0.25)',
+      borderRadius: 10
+    }
+  }, "\u26A0\uFE0F ", projSaveErr), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8
@@ -2721,48 +2871,20 @@ function HorasProApp(_ref9) {
       cursor: 'pointer'
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var _projNameRef$current, _projDescRef$current;
-      var name = (((_projNameRef$current = projNameRef.current) === null || _projNameRef$current === void 0 ? void 0 : _projNameRef$current.value) || '').trim();
-      var desc = (((_projDescRef$current = projDescRef.current) === null || _projDescRef$current === void 0 ? void 0 : _projDescRef$current.value) || '').trim();
-      if (!name) return;
-      if (editProj) {
-        setProjList(function (p) {
-          return p.map(function (x) {
-            return x.id === editProj ? _objectSpread(_objectSpread({}, x), {}, {
-              name: name,
-              desc: desc,
-              color: newProjColor
-            }) : x;
-          });
-        });
-      } else {
-        setProjList(function (p) {
-          return [].concat(_toConsumableArray(p), [{
-            id: 'p-' + Date.now(),
-            name: name,
-            desc: desc,
-            color: newProjColor
-          }]);
-        });
-      }
-      setShowAddProj(false);
-      setEditProj(null);
-      setNewProjName('');
-      setNewProjDesc('');
-    },
+    onClick: saveProject,
+    disabled: projSaving,
     style: {
       flex: 2,
-      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      background: projSaving ? H.surface2 : "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
       border: 'none',
       borderRadius: 10,
       padding: '10px',
-      color: '#fff',
+      color: projSaving ? H.muted : '#fff',
       fontSize: 13,
       fontWeight: 800,
-      cursor: 'pointer'
+      cursor: projSaving ? 'default' : 'pointer'
     }
-  }, "\u2713 ", editProj ? 'Guardar' : 'Adicionar'))), projList.filter(function (p) {
+  }, projSaving ? 'A guardar…' : "\u2713 " + (editProj ? 'Guardar' : 'Adicionar')))), projList.filter(function (p) {
     var hasReg = entries.some(function (e) {
       return e.proj === p.name;
     });
@@ -2865,6 +2987,7 @@ function HorasProApp(_ref9) {
         setNewProjDesc(proj.desc || '');
         setNewProjColor(proj.color);
         setShowAddProj(true);
+        setProjSaveErr('');
       },
       style: {
         background: H.surface2,
@@ -2877,11 +3000,7 @@ function HorasProApp(_ref9) {
       }
     }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return setProjList(function (p) {
-          return p.filter(function (x) {
-            return x.id !== proj.id;
-          });
-        });
+        return deleteProject(proj.id);
       },
       style: {
         background: 'rgba(220,38,38,0.07)',
