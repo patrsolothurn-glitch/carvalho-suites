@@ -4498,6 +4498,7 @@ function AgendaProApp(_ref13) {
           event_time: jobData.hi || null,
           description: jobData.morada || null,
           color: '#F59458',
+          categoria: 'trabalho',
           participant_ids: ['todos'],
           member_id: null,
           source: 'agenda_pro',
@@ -6652,6 +6653,12 @@ var MEMBER_COLORS = {
   lucas: '#E8773A',
   liam: '#2D8A4E'
 };
+var CATEGORIAS = {
+  trabalho: { label: 'Trabalho', emoji: '💼', color: '#F59458' },
+  familia: { label: 'Família', emoji: '🏠', color: '#E8773A' },
+  escola: { label: 'Escola', emoji: '📚', color: '#A855F7' },
+  pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
+};
 function FamiliaApp(_ref19) {
   var onBack = _ref19.onBack,
     _ref19$sharedDias = _ref19.sharedDias,
@@ -6686,6 +6693,7 @@ function FamiliaApp(_ref19) {
       titulo: '',
       emoji: '📅',
       participantes: ['todos'],
+      categoria: 'familia',
       dataDE: '',
       dataATE: '',
       hora: '',
@@ -6854,6 +6862,7 @@ function FamiliaApp(_ref19) {
           t: row.title,
           emoji: row.emoji || '📅',
           participantes: row.participant_ids && row.participant_ids.length > 0 ? row.participant_ids : [row.member_id || 'todos'],
+          categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
           color: row.color || F.coral,
           hora: row.event_time || '',
           nota: row.description || ''
@@ -6917,12 +6926,91 @@ function FamiliaApp(_ref19) {
   var daysInMo = new Date(yr, mo + 1, 0).getDate();
   var firstDow = (new Date(yr, mo, 1).getDay() + 6) % 7;
   var selDateStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(selDay).padStart(2, '0'));
+  var _useStateFiltros = (0, _react.useState)(Object.keys(CATEGORIAS)),
+    _useStateFiltros2 = _slicedToArray(_useStateFiltros, 2),
+    filtrosAtivos = _useStateFiltros2[0],
+    setFiltrosAtivos = _useStateFiltros2[1];
+  var toggleFiltro = function toggleFiltro(catKey) {
+    setFiltrosAtivos(function (p) {
+      if (p.indexOf(catKey) !== -1) {
+        return p.filter(function (c) {
+          return c !== catKey;
+        });
+      }
+      return [].concat(_toConsumableArray(p), [catKey]);
+    });
+  };
   var eventVisibleTo = function eventVisibleTo(e, memberId) {
     var p = e.participantes || ['todos'];
-    return p.indexOf('todos') !== -1 || p.indexOf(memberId) !== -1;
+    var memberOk = memberId === 'todos' || p.indexOf('todos') !== -1 || p.indexOf(memberId) !== -1;
+    var catOk = filtrosAtivos.indexOf(e.categoria || 'familia') !== -1;
+    return memberOk && catOk;
   };
+  var _useStateHorasMes = (0, _react.useState)([]),
+    _useStateHorasMes2 = _slicedToArray(_useStateHorasMes, 2),
+    horasMesData = _useStateHorasMes2[0],
+    setHorasMesData = _useStateHorasMes2[1];
+  var loadHorasMes = function loadHorasMes() {
+    if (!window.supabaseClient) return;
+    var y = curMonth.getFullYear();
+    var mo2 = curMonth.getMonth();
+    var ini = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-01");
+    var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-31");
+    window.supabaseClient.from('horas_entries').select('entry_date,hours').gte('entry_date', ini).lte('entry_date', fim2).then(function (res) {
+      setHorasMesData(res.data || []);
+    }).catch(function () {});
+  };
+  (0, _react.useEffect)(function () {
+    loadHorasMes();
+  }, [curMonth]);
+  var statsGraficos = (function () {
+    var y = curMonth.getFullYear();
+    var mo2 = curMonth.getMonth();
+    var prefix = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'));
+    var todosEventosMes = Object.keys(events).filter(function (d) {
+      return d.indexOf(prefix) === 0;
+    }).flatMap(function (d) {
+      return events[d];
+    });
+    var porCategoria = {};
+    Object.keys(CATEGORIAS).forEach(function (c) {
+      porCategoria[c] = 0;
+    });
+    todosEventosMes.forEach(function (e) {
+      var c = e.categoria || 'familia';
+      porCategoria[c] = (porCategoria[c] || 0) + 1;
+    });
+    var semanas = [0, 0, 0, 0, 0];
+    var semanasEscola = [0, 0, 0, 0, 0];
+    horasMesData.forEach(function (row) {
+      var dia = parseInt(row.entry_date.slice(8, 10));
+      var w = Math.min(4, Math.floor((dia - 1) / 7));
+      semanas[w] += Number(row.hours) || 0;
+    });
+    todosEventosMes.filter(function (e) {
+      return (e.categoria || 'familia') === 'escola';
+    }).forEach(function (e) {});
+    Object.keys(events).filter(function (d) {
+      return d.indexOf(prefix) === 0;
+    }).forEach(function (d) {
+      var dia = parseInt(d.slice(8, 10));
+      var w = Math.min(4, Math.floor((dia - 1) / 7));
+      (events[d] || []).forEach(function (e) {
+        if ((e.categoria || 'familia') === 'escola') semanasEscola[w]++;
+      });
+    });
+    return {
+      porCategoria: porCategoria,
+      horasPorSemana: semanas,
+      escolaPorSemana: semanasEscola,
+      totalEventos: todosEventosMes.length
+    };
+  })();
+  var CATEGORIA_ORDEM = ['trabalho', 'escola', 'familia', 'pessoal'];
   var selEvents = (events[selDateStr] || []).filter(function (e) {
-    return selMember === 'todos' || eventVisibleTo(e, selMember);
+    return eventVisibleTo(e, selMember);
+  }).sort(function (a, b) {
+    return CATEGORIA_ORDEM.indexOf(a.categoria || 'familia') - CATEGORIA_ORDEM.indexOf(b.categoria || 'familia');
   });
   var sharedForDay = sharedDias.filter(function (d) {
     return d.date === selDateStr;
@@ -6936,7 +7024,7 @@ function FamiliaApp(_ref19) {
   var getDayEvents = function getDayEvents(d) {
     var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
     var ev = (events[dStr] || []).filter(function (e) {
-      return selMember === 'todos' || eventVisibleTo(e, selMember);
+      return eventVisibleTo(e, selMember);
     });
     var sh = sharedDias.filter(function (x) {
       return x.date === dStr;
@@ -6960,7 +7048,8 @@ function FamiliaApp(_ref19) {
       t: form.titulo,
       emoji: form.emoji,
       participantes: participantes,
-      color: (m === null || m === void 0 ? void 0 : m.color) || F.coral,
+      categoria: form.categoria || 'familia',
+      color: (CATEGORIAS[form.categoria] || CATEGORIAS.familia).color,
       hora: form.hora,
       nota: form.nota
     };
@@ -6992,6 +7081,7 @@ function FamiliaApp(_ref19) {
           event_time: ev.hora || null,
           emoji: ev.emoji,
           color: ev.color,
+          categoria: ev.categoria,
           created_by: currentMemberId
         };
       });
@@ -7011,6 +7101,7 @@ function FamiliaApp(_ref19) {
       titulo: '',
       emoji: '📅',
       participantes: ['todos'],
+      categoria: 'familia',
       dataDE: '',
       dataATE: '',
       hora: '',
@@ -7130,7 +7221,20 @@ function FamiliaApp(_ref19) {
       fontWeight: 700,
       cursor: 'pointer'
     }
-  }, "M\xEAs")), /*#__PURE__*/React.createElement("button", {
+  }, "M\xEAs"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setMainView('graficos');
+    },
+    style: {
+      background: mainView === 'graficos' ? F.coral : 'transparent',
+      border: 'none',
+      padding: '6px 9px',
+      color: mainView === 'graficos' ? '#fff' : F.muted,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\uD83D\uDCCA")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setShowAdd(true);
     },
@@ -7375,6 +7479,41 @@ function FamiliaApp(_ref19) {
         color: F.muted
       }
     }, "\u270E")));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '12px 16px 0',
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap'
+    }
+  }, Object.keys(CATEGORIAS).map(function (catKey) {
+    var cat = CATEGORIAS[catKey];
+    var ativo = filtrosAtivos.indexOf(catKey) !== -1;
+    return /*#__PURE__*/React.createElement("button", {
+      key: catKey,
+      onClick: function onClick() {
+        return toggleFiltro(catKey);
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        background: ativo ? "".concat(cat.color, "18") : 'transparent',
+        border: "1px solid ".concat(ativo ? cat.color : F.border),
+        borderRadius: 16,
+        padding: '4px 10px',
+        cursor: 'pointer',
+        opacity: ativo ? 1 : 0.5
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 11 }
+    }, cat.emoji), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        color: ativo ? cat.color : F.muted
+      }
+    }, cat.label));
   })), mainView === 'semana' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 16px 0'
@@ -8342,7 +8481,165 @@ function FamiliaApp(_ref19) {
       cursor: 'pointer',
       marginTop: 12
     }
-  }, "+ Adicionar evento"))), /*#__PURE__*/React.createElement("div", {
+  }, "+ Adicionar evento"))), mainView === 'graficos' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '14px 16px 20px'
+    }
+  }, /*#__PURE__*/React.createElement(FCard, {
+    style: {
+      padding: '16px',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.text,
+      fontWeight: 800,
+      fontSize: 14,
+      marginBottom: 4
+    }
+  }, "\uD83D\uDCCA Eventos por categoria"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.muted,
+      fontSize: 11,
+      marginBottom: 14
+    }
+  }, curMonth.toLocaleDateString('pt-PT', {
+    month: 'long',
+    year: 'numeric'
+  }), " \xB7 ", statsGraficos.totalEventos, " no total"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: 12,
+      height: 100
+    }
+  }, Object.keys(CATEGORIAS).map(function (catKey) {
+    var cat = CATEGORIAS[catKey];
+    var val = statsGraficos.porCategoria[catKey] || 0;
+    var maxVal = Math.max.apply(Math, Object.values(statsGraficos.porCategoria).concat([1]));
+    var h = Math.max(4, val / maxVal * 80);
+    return /*#__PURE__*/React.createElement("div", {
+      key: catKey,
+      style: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { fontSize: 12, fontWeight: 800, color: cat.color }
+    }, val), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: '100%',
+        maxWidth: 36,
+        height: h,
+        background: cat.color,
+        borderRadius: '6px 6px 0 0'
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 14 }
+    }, cat.emoji));
+  }))), /*#__PURE__*/React.createElement(FCard, {
+    style: {
+      padding: '16px',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.text,
+      fontWeight: 800,
+      fontSize: 14,
+      marginBottom: 4
+    }
+  }, "\uD83D\uDCBC Horas de trabalho por semana"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.muted,
+      fontSize: 11,
+      marginBottom: 14
+    }
+  }, "Dados reais do HorasPro"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: 10,
+      height: 90
+    }
+  }, statsGraficos.horasPorSemana.map(function (val, wi) {
+    var maxVal = Math.max.apply(Math, statsGraficos.horasPorSemana.concat([1]));
+    var h = Math.max(4, val / maxVal * 70);
+    return /*#__PURE__*/React.createElement("div", {
+      key: wi,
+      style: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { fontSize: 11, fontWeight: 800, color: '#F59458' }
+    }, val.toFixed(0), "h"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: '100%',
+        maxWidth: 30,
+        height: h,
+        background: '#F59458',
+        borderRadius: '6px 6px 0 0'
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 10, color: F.muted, fontWeight: 700 }
+    }, "S", wi + 1));
+  }))), /*#__PURE__*/React.createElement(FCard, {
+    style: {
+      padding: '16px'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.text,
+      fontWeight: 800,
+      fontSize: 14,
+      marginBottom: 4
+    }
+  }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.muted,
+      fontSize: 11,
+      marginBottom: 14
+    }
+  }, "Testes e eventos da Escola"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      gap: 10,
+      height: 90
+    }
+  }, statsGraficos.escolaPorSemana.map(function (val, wi) {
+    var maxVal = Math.max.apply(Math, statsGraficos.escolaPorSemana.concat([1]));
+    var h = Math.max(4, val / maxVal * 70);
+    return /*#__PURE__*/React.createElement("div", {
+      key: wi,
+      style: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: { fontSize: 11, fontWeight: 800, color: CATEGORIAS.escola.color }
+    }, val), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: '100%',
+        maxWidth: 30,
+        height: h,
+        background: CATEGORIAS.escola.color,
+        borderRadius: '6px 6px 0 0'
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 10, color: F.muted, fontWeight: 700 }
+    }, "S", wi + 1));
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
@@ -8840,6 +9137,52 @@ function FamiliaApp(_ref19) {
       fontWeight: 700
     }
   }, "\uD83D\uDCC5 ", Math.round((new Date(form.dataATE) - new Date(form.dataDE)) / 86400000) + 1, " dias marcados")), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      marginBottom: 8
+    }
+  }, "Categoria"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 16,
+      flexWrap: 'wrap'
+    }
+  }, Object.keys(CATEGORIAS).map(function (catKey) {
+    var cat = CATEGORIAS[catKey];
+    var isSel = form.categoria === catKey;
+    return /*#__PURE__*/React.createElement("button", {
+      key: catKey,
+      onClick: function onClick() {
+        return setForm(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, {
+            categoria: catKey
+          });
+        });
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        background: isSel ? "".concat(cat.color, "18") : F.surface2,
+        border: "1px solid ".concat(isSel ? cat.color : F.border),
+        borderRadius: 20,
+        padding: '6px 12px',
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 13 }
+    }, cat.emoji), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: isSel ? cat.color : F.muted
+      }
+    }, cat.label));
+  })), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 10,
