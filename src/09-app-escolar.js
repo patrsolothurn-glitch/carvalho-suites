@@ -3331,7 +3331,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), novaTPC.tipo === 'teste' && /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, "Vai aparecer automaticamente na Carvalho Work"), /*#__PURE__*/React.createElement("p", {
+  }, "Vai aparecer automaticamente na Patricio Work"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
