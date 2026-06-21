@@ -303,7 +303,87 @@ function AgendaProApp(_ref13) {
     return d.toISOString().split('T')[0];
   };
   var todayStr = fmt(curDate);
-  var projs = ['BUDI-2S', 'POP GREN04', 'BUDI-1S', 'BUDI-S'];
+  var _useStateProjList = (0, _react.useState)([]),
+    _useStateProjList2 = _slicedToArray(_useStateProjList, 2),
+    projList = _useStateProjList2[0],
+    setProjList = _useStateProjList2[1];
+  var loadProjects = function loadProjects() {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
+      if (res.error || !res.data) return;
+      setProjList(res.data.map(function (row) {
+        return {
+          id: row.id,
+          name: row.name
+        };
+      }));
+    }).catch(function () {});
+  };
+  (0, _react.useEffect)(function () {
+    loadProjects();
+    if (!window.supabaseClient) return;
+    var projChannel = window.supabaseClient.channel('horas_projects_changes_agenda').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'horas_projects'
+    }, function () {
+      loadProjects();
+    }).subscribe();
+    return function () {
+      try {
+        window.supabaseClient.removeChannel(projChannel);
+      } catch (e) {}
+    };
+  }, []);
+  var _useStateShowAddProjInline = (0, _react.useState)(false),
+    _useStateShowAddProjInline2 = _slicedToArray(_useStateShowAddProjInline, 2),
+    showAddProjInline = _useStateShowAddProjInline2[0],
+    setShowAddProjInline = _useStateShowAddProjInline2[1];
+  var _useStateNewProjNameInline = (0, _react.useState)(''),
+    _useStateNewProjNameInline2 = _slicedToArray(_useStateNewProjNameInline, 2),
+    newProjNameInline = _useStateNewProjNameInline2[0],
+    setNewProjNameInline = _useStateNewProjNameInline2[1];
+  var _useStateProjAddErr = (0, _react.useState)(''),
+    _useStateProjAddErr2 = _slicedToArray(_useStateProjAddErr, 2),
+    projAddErr = _useStateProjAddErr2[0],
+    setProjAddErr = _useStateProjAddErr2[1];
+  var _useStateProjAddBusy = (0, _react.useState)(false),
+    _useStateProjAddBusy2 = _slicedToArray(_useStateProjAddBusy, 2),
+    projAddBusy = _useStateProjAddBusy2[0],
+    setProjAddBusy = _useStateProjAddBusy2[1];
+  var addProjectInline = function addProjectInline() {
+    var name = (newProjNameInline || '').trim();
+    if (!name) {
+      setProjAddErr('Escreve o nome do projeto.');
+      return;
+    }
+    if (!window.supabaseClient) {
+      setProjAddErr('Sem ligação ao servidor.');
+      return;
+    }
+    setProjAddBusy(true);
+    setProjAddErr('');
+    window.supabaseClient.from('horas_projects').insert({
+      name: name
+    }).select().then(function (res) {
+      setProjAddBusy(false);
+      if (res.error) {
+        setProjAddErr('Erro: ' + res.error.message);
+        return;
+      }
+      loadProjects();
+      setForm(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, {
+          proj: name
+        });
+      });
+      setNewProjNameInline('');
+      setShowAddProjInline(false);
+    }).catch(function (e) {
+      setProjAddBusy(false);
+      setProjAddErr('Erro de ligação: ' + (e && e.message || String(e)));
+    });
+  };
   var prevDay = function prevDay() {
     var d = new Date(curDate);
     d.setDate(d.getDate() - 1);
@@ -2349,15 +2429,79 @@ function AgendaProApp(_ref13) {
     style: {
       marginBottom: 10
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4
+    }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
       color: A.muted,
       fontSize: 10,
       fontWeight: 700,
-      textTransform: 'uppercase',
-      marginBottom: 4
+      textTransform: 'uppercase'
     }
-  }, "Projeto"), /*#__PURE__*/React.createElement("select", {
+  }, "Projeto"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setShowAddProjInline(function (v) {
+        return !v;
+      });
+      setProjAddErr('');
+      setNewProjNameInline('');
+    },
+    style: {
+      background: 'none',
+      border: 'none',
+      color: A.orange,
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, showAddProjInline ? 'Cancelar' : '+ Novo')), showAddProjInline && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: newProjNameInline,
+    onChange: function onChange(e) {
+      return setNewProjNameInline(e.target.value);
+    },
+    placeholder: 'Nome do novo projeto',
+    style: {
+      flex: 1,
+      background: A.surface2,
+      border: "1px solid ".concat(A.border),
+      borderRadius: 10,
+      padding: '9px 12px',
+      color: A.text,
+      fontSize: 13,
+      outline: 'none',
+      boxSizing: 'border-box'
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: addProjectInline,
+    disabled: projAddBusy,
+    style: {
+      background: projAddBusy ? A.surface2 : A.orange,
+      border: 'none',
+      borderRadius: 10,
+      padding: '9px 14px',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: projAddBusy ? 'default' : 'pointer'
+    }
+  }, projAddBusy ? '…' : '✓')), projAddErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#DC2626',
+      fontSize: 11.5,
+      marginBottom: 6
+    }
+  }, projAddErr), /*#__PURE__*/React.createElement("select", {
     value: form.proj,
     onChange: function onChange(e) {
       return setForm(function (p) {
@@ -2376,10 +2520,10 @@ function AgendaProApp(_ref13) {
       fontSize: 14,
       outline: 'none'
     }
-  }, projs.map(function (p) {
+  }, projList.map(function (p) {
     return /*#__PURE__*/React.createElement("option", {
-      key: p
-    }, p);
+      key: p.id
+    }, p.name);
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 10
