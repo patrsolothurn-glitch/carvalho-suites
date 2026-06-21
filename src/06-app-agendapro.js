@@ -196,7 +196,8 @@ function AgendaProApp(_ref13) {
           emoji: row.emoji || '👷',
           tel: row.tel || '',
           notif: row.notif !== false,
-          cor: row.cor || A.blue
+          cor: row.cor || A.blue,
+          categoria: row.categoria || ''
         };
       }));
     }).catch(function () {});
@@ -243,7 +244,8 @@ function AgendaProApp(_ref13) {
         emoji: mForm.emoji,
         tel: mForm.tel,
         notif: mForm.notif,
-        cor: mForm.cor
+        cor: mForm.cor,
+        categoria: mForm.categoria || ''
       }).then(function (res) {
         setMonteurSaving(false);
         if (res.error) {
@@ -272,7 +274,8 @@ function AgendaProApp(_ref13) {
         emoji: mForm.emoji,
         tel: mForm.tel,
         notif: mForm.notif,
-        cor: mForm.cor
+        cor: mForm.cor,
+        categoria: mForm.categoria || ''
       }).eq('id', editMonteur).then(function (res) {
         setMonteurSaving(false);
         if (res.error) {
@@ -333,7 +336,8 @@ function AgendaProApp(_ref13) {
       emoji: '👷',
       tel: '',
       notif: true,
-      cor: A.blue
+      cor: A.blue,
+      categoria: ''
     }),
     _useState82 = _slicedToArray(_useState81, 2),
     mForm = _useState82[0],
@@ -2082,7 +2086,8 @@ function AgendaProApp(_ref13) {
         emoji: '👷',
         tel: '',
         notif: true,
-        cor: A.blue
+        cor: A.blue,
+        categoria: ''
       });
       setMonteurSaveErr('');
     },
@@ -2169,6 +2174,28 @@ function AgendaProApp(_ref13) {
       });
     },
     placeholder: "Telefone (opcional)",
+    style: {
+      width: '100%',
+      background: A.surface,
+      border: "1px solid ".concat(A.border),
+      borderRadius: 10,
+      padding: '10px 12px',
+      color: A.text,
+      fontSize: 14,
+      outline: 'none',
+      marginBottom: 10,
+      boxSizing: 'border-box'
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: mForm.categoria || '',
+    onChange: function onChange(e) {
+      return setMForm(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, {
+          categoria: e.target.value
+        });
+      });
+    },
+    placeholder: "Categoria/cargo (ex: Spleisser, Chefe de equipa)",
     style: {
       width: '100%',
       background: A.surface,
@@ -2324,7 +2351,14 @@ function AgendaProApp(_ref13) {
         fontSize: 15,
         color: A.text
       }
-    }, m.name), m.tel && /*#__PURE__*/React.createElement("p", {
+    }, m.name), m.categoria && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: A.orange,
+        fontSize: 11,
+        fontWeight: 700,
+        marginTop: 1
+      }
+    }, m.categoria), m.tel && /*#__PURE__*/React.createElement("p", {
       style: {
         color: A.muted,
         fontSize: 12,
