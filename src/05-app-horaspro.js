@@ -3050,7 +3050,7 @@ function HorasProApp(_ref9) {
       color: H.muted,
       fontSize: 12
     }
-  }, "Hauswart \xB7 Selzach"), perfilFoto && /*#__PURE__*/React.createElement("button", {
+  }, "Monteur \xB7 Selzach"), perfilFoto && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setPerfilFoto(null);
     },
