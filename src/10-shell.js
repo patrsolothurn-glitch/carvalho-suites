@@ -1480,7 +1480,10 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', emoji: '📅', name: 'Agenda Pro' }, { id: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família' }].map(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Agenda Pro' }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família' }].filter(function (app) {
+      var allowed = (profile && profile.allowed_apps) || [];
+      return allowed.indexOf(app.permApp) !== -1;
+    }).map(function (app) {
       var disabledApps = (profile && profile.notification_prefs && profile.notification_prefs.disabledApps) || [];
       var on = disabledApps.indexOf(app.id) === -1;
       return React.createElement("div", {
@@ -1498,7 +1501,12 @@ function CarvalhoSuite() {
           })
         )
       );
-    })),
+    })), [{ id: 'agendapr', permApp: 'agenda' }, { id: 'familia', permApp: 'familia' }].filter(function (app) {
+      var allowed = (profile && profile.allowed_apps) || [];
+      return allowed.indexOf(app.permApp) !== -1;
+    }).length === 0 && React.createElement("p", {
+      style: { color: T.muted, fontSize: 12.5, textAlign: 'center', padding: '8px 0', marginBottom: 16 }
+    }, "Não tens nenhuma app com avisos disponível."),
     React.createElement("div", {
       style: { borderTop: '1px solid ' + T.border, paddingTop: 12 }
     },
