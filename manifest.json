@@ -1,7 +1,7 @@
 {
   "name": "Carvalho Suite",
   "short_name": "C. Suite",
-  "description": "Sistema privado Carvalho — HorasPro, Agenda Pro, Família, Nutriguima, Escolar",
+  "description": "Sistema privado Carvalho — Carvalho Time, Carvalho Work, Família, Nutriguima, Carvalho Schule",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
