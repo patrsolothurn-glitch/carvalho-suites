@@ -113,7 +113,7 @@ var APPS_DATA = [{
   id: 'escolar',
   emoji: '📚',
   name: 'Vida Escolar',
-  desc: 'Escola do Lucas · SEK P',
+  desc: 'Escola do Lucas / Liam',
   badge: null,
   color: '#A855F7'
 }];
