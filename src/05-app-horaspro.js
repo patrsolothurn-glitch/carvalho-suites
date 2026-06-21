@@ -509,7 +509,7 @@ function HorasProApp(_ref9) {
       setEntries(res.data.map(function (row) {
         return {
           id: row.id,
-          date: row.entry_date,
+          date: row.data,
           tipo: row.tipo,
           proj: row.project,
           hi: row.start_time,
@@ -580,7 +580,7 @@ function HorasProApp(_ref9) {
       horas = 0;
     }
     window.supabaseClient.from('horas_entries').insert({
-      entry_date: job.job_date,
+      data: job.job_date,
       tipo: 'Trabalho',
       project: job.project || 'Agenda Pro',
       start_time: hi,
@@ -612,7 +612,7 @@ function HorasProApp(_ref9) {
   var pushEntryToSupabase = function pushEntryToSupabase(e) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').insert({
-      entry_date: e.date,
+      data: e.date,
       tipo: e.tipo,
       project: e.proj,
       start_time: e.hi,
@@ -3401,7 +3401,7 @@ function HorasProApp(_ref9) {
       setEntrySaving(true);
       setEntrySaveErr('');
       window.supabaseClient.from('horas_entries').insert({
-        entry_date: today,
+        data: today,
         tipo: tipo,
         project: proj,
         start_time: hi,
