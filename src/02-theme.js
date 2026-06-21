@@ -84,14 +84,14 @@ function getEligibleProfileIds(appId, onlyMemberId) {
 var APPS_DATA = [{
   id: 'horaspr',
   emoji: '⏱️',
-  name: 'Carvalho Time',
+  name: 'Patricio Time',
   desc: 'Registo de horas e CHF',
   badge: null,
   color: T.gold
 }, {
   id: 'agenda',
   emoji: '📋',
-  name: 'Carvalho Work',
+  name: 'Patricio Work',
   desc: 'Gestão de trabalho',
   badge: null,
   color: T.orange
