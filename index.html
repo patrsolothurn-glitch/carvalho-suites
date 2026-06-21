@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T15:03:33.203Z
+  Gerado em: 2026-06-21T15:11:42.953Z
 -->
 <html lang="pt">
 <head>
@@ -159,14 +159,14 @@ function getEligibleProfileIds(appId, onlyMemberId) {
 var APPS_DATA = [{
   id: 'horaspr',
   emoji: '⏱️',
-  name: 'Carvalho Time',
+  name: 'Patricio Time',
   desc: 'Registo de horas e CHF',
   badge: null,
   color: T.gold
 }, {
   id: 'agenda',
   emoji: '📋',
-  name: 'Carvalho Work',
+  name: 'Patricio Work',
   desc: 'Gestão de trabalho',
   badge: null,
   color: T.orange
@@ -1002,7 +1002,7 @@ function HorasProApp(_ref9) {
     window.supabaseClient.from('horas_entries').insert({
       data: job.job_date,
       tipo: 'Trabalho',
-      project: job.project || 'Carvalho Work',
+      project: job.project || 'Patricio Work',
       start_time: hi,
       end_time: hf,
       hours: horas,
@@ -1615,7 +1615,7 @@ function HorasProApp(_ref9) {
       fontSize: 18,
       color: H.text
     }
-  }, "Carvalho"), /*#__PURE__*/React.createElement("span", {
+  }, "Patricio"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 900,
       fontSize: 18,
@@ -2408,7 +2408,7 @@ function HorasProApp(_ref9) {
       textTransform: 'uppercase',
       marginBottom: 10
     }
-  }, "\uD83D\uDCC5 Sugest\xF5es do Carvalho Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
+  }, "\uD83D\uDCC5 Sugest\xF5es do Patricio Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
     return /*#__PURE__*/React.createElement("div", {
       key: job.id,
       style: {
@@ -5297,7 +5297,7 @@ function AgendaProApp(_ref13) {
           syncToFamilia(newJob.id, true, form);
         }
         try {
-          sendPushTargeted('Carvalho Work', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
+          sendPushTargeted('Patricio Work', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
         } catch (e) {}
         sendNotifTo(form.monteur, "\uD83D\uDCCB Nova marca\xE7\xE3o \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
         setShowAdd(false);
@@ -5408,7 +5408,7 @@ function AgendaProApp(_ref13) {
       fontWeight: 900,
       fontSize: 18
     }
-  }, "\uD83D\uDCCB Carvalho Work"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCB Patricio Work"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -10111,7 +10111,7 @@ function FamiliaApp(_ref19) {
       fontSize: 11,
       marginBottom: 14
     }
-  }, "Dados reais do Carvalho Time"), /*#__PURE__*/React.createElement("div", {
+  }, "Dados reais do Patricio Time"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'flex-end',
@@ -15590,7 +15590,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), novaTPC.tipo === 'teste' && /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, "Vai aparecer automaticamente na Carvalho Work"), /*#__PURE__*/React.createElement("p", {
+  }, "Vai aparecer automaticamente na Patricio Work"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
@@ -17195,7 +17195,7 @@ function CarvalhoSuite() {
         jobRes.data.forEach(function (row) {
           items.push({
             id: 'job_' + row.id,
-            app: 'Carvalho Work',
+            app: 'Patricio Work',
             appId: 'agenda',
             msg: (row.project || 'Marcação') + (row.start_time ? ' · ' + row.start_time : ''),
             time: formatRelDatePt(row.job_date),
@@ -18434,7 +18434,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Carvalho Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Carvalho Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Carvalho Schule', active: false }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Carvalho Schule', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
