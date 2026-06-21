@@ -347,7 +347,12 @@ function HorasProApp(_ref9) {
     _ref9$addSharedDia = _ref9.addSharedDia,
     addSharedDia = _ref9$addSharedDia === void 0 ? function () {} : _ref9$addSharedDia,
     _ref9$removeSharedDia = _ref9.removeSharedDia,
-    removeSharedDia = _ref9$removeSharedDia === void 0 ? function () {} : _ref9$removeSharedDia;
+    removeSharedDia = _ref9$removeSharedDia === void 0 ? function () {} : _ref9$removeSharedDia,
+    profile = _ref9.profile,
+    _ref9$onPhotoUpload = _ref9.onPhotoUpload,
+    onPhotoUpload = _ref9$onPhotoUpload === void 0 ? function () {} : _ref9$onPhotoUpload,
+    _ref9$onPhotoRemove = _ref9.onPhotoRemove,
+    onPhotoRemove = _ref9$onPhotoRemove === void 0 ? function () {} : _ref9$onPhotoRemove;
   var today = new Date();
   var _useState = (0, _react.useState)(new Date()),
     _useState2 = _slicedToArray(_useState, 2),
@@ -385,10 +390,6 @@ function HorasProApp(_ref9) {
     _useStateEntrySaving2 = _slicedToArray(_useStateEntrySaving, 2),
     entrySaving = _useStateEntrySaving2[0],
     setEntrySaving = _useStateEntrySaving2[1];
-  var _useState13 = (0, _react.useState)(null),
-    _useState14 = _slicedToArray(_useState13, 2),
-    perfilFoto = _useState14[0],
-    setPerfilFoto = _useState14[1];
   var _useState15 = (0, _react.useState)(''),
     _useState16 = _slicedToArray(_useState15, 2),
     feriasDe = _useState16[0],
@@ -2988,8 +2989,8 @@ function HorasProApp(_ref9) {
       alignItems: 'center',
       justifyContent: 'center'
     }
-  }, perfilFoto ? /*#__PURE__*/React.createElement("img", {
-    src: perfilFoto,
+  }, (profile && profile.photo_url) ? /*#__PURE__*/React.createElement("img", {
+    src: profile.photo_url,
     style: {
       width: '100%',
       height: '100%',
@@ -3027,13 +3028,7 @@ function HorasProApp(_ref9) {
       display: 'none'
     },
     onChange: function onChange(e) {
-      var f = e.target.files[0];
-      if (!f) return;
-      var r = new FileReader();
-      r.onload = function (ev) {
-        return setPerfilFoto(ev.target.result);
-      };
-      r.readAsDataURL(f);
+      onPhotoUpload(e);
     }
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -3050,9 +3045,9 @@ function HorasProApp(_ref9) {
       color: H.muted,
       fontSize: 12
     }
-  }, "Monteur \xB7 Selzach"), perfilFoto && /*#__PURE__*/React.createElement("button", {
+  }, "Monteur \xB7 Selzach"), (profile && profile.photo_url) && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setPerfilFoto(null);
+      return onPhotoRemove();
     },
     style: {
       background: 'none',

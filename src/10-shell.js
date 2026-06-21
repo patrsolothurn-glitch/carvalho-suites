@@ -722,6 +722,13 @@ function CarvalhoSuite() {
     };
     reader.readAsDataURL(file);
   };
+  var handleMyPhotoRemove = function handleMyPhotoRemove() {
+    if (!profile) return;
+    setProfile(function (p) { return _objectSpread(_objectSpread({}, p), {}, { photo_url: null }); });
+    if (window.supabaseClient && profile.id) {
+      window.supabaseClient.from('profiles').update({ photo_url: null }).eq('id', profile.id).then(function () {}).catch(function () {});
+    }
+  };
   (0, _react.useEffect)(function () {
     if (!window.supabaseClient) {
       setCheckingAuth(false);
@@ -1015,7 +1022,10 @@ function CarvalhoSuite() {
       sharedDias: sharedDias,
       addSharedDia: addSharedDia,
       removeSharedDia: removeSharedDia,
-      currentMemberId: (profile && profile.member_id) || 'patricio'
+      currentMemberId: (profile && profile.member_id) || 'patricio',
+      profile: profile,
+      onPhotoUpload: handleMyPhotoUpload,
+      onPhotoRemove: handleMyPhotoRemove
     };
     if (activeApp === 'horaspr') return /*#__PURE__*/React.createElement(HorasProApp, _extends({
       onBack: goBack
