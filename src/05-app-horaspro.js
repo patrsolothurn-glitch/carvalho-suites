@@ -629,9 +629,9 @@ function HorasProApp(_ref9) {
     return d.toISOString().split('T')[0];
   };
   var todayStr = fmt(curDate);
-  var metaDia = 5.9,
-    metaSem = 29.4,
-    metaMes = 127.3;
+  var metaDia = 5.9;
+  var metaSem = Math.round(metaDia * 5 * 10) / 10;
+  var metaMes = Math.round(metaSem * 52 / 12 * 10) / 10;
   var getKW = function getKW(d) {
     var s = new Date(d.getFullYear(), 0, 1);
     return Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
