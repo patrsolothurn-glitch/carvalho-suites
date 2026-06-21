@@ -224,6 +224,25 @@ function CarvalhoSuite() {
     return myAllowedApps.includes(a.id);
   });
   var myReadNotifs = (profile && profile.read_notifications) || [];
+  var _useStateEscolarPendentes = (0, _react.useState)(0),
+    _useStateEscolarPendentes2 = _slicedToArray(_useStateEscolarPendentes, 2),
+    escolarPendentes = _useStateEscolarPendentes2[0],
+    setEscolarPendentes = _useStateEscolarPendentes2[1];
+  (0, _react.useEffect)(function () {
+    if (!window.supabaseClient) return;
+    var alunoKeys = isAdmin ? ['lucas', 'liam'] : profile && profile.member_id ? [profile.member_id] : [];
+    if (alunoKeys.length === 0) {
+      setEscolarPendentes(0);
+      return;
+    }
+    window.supabaseClient.from('escolar_tpc').select('*').in('aluno', alunoKeys).then(function (res) {
+      if (res.error || !res.data) return;
+      var pendentes = res.data.filter(function (t) {
+        return !t.feito;
+      }).length;
+      setEscolarPendentes(pendentes);
+    }).catch(function () {});
+  }, [isAdmin, profile && profile.member_id]);
   var _useStateNotifData = (0, _react.useState)([]),
     _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
     notifItems = _useStateNotifData2[0],
@@ -316,6 +335,21 @@ function CarvalhoSuite() {
     return myReadNotifs.indexOf(n.id) === -1;
   });
   var totalBadge = unreadNotifs.length;
+  var dynamicBadgeFor = function dynamicBadgeFor(appId) {
+    if (appId === 'escolar') return escolarPendentes > 0 ? String(escolarPendentes) : null;
+    if (appId === 'agenda' || appId === 'familia') {
+      var n = unreadNotifs.filter(function (it) {
+        return it.appId === appId;
+      }).length;
+      return n > 0 ? String(n) : null;
+    }
+    return null;
+  };
+  var visAppsWithBadges = visApps.map(function (a) {
+    return _objectSpread(_objectSpread({}, a), {}, {
+      badge: dynamicBadgeFor(a.id)
+    });
+  });
   var _useStateNotifPerm = (0, _react.useState)(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'),
     _useStateNotifPerm2 = _slicedToArray(_useStateNotifPerm, 2),
     notifPerm = _useStateNotifPerm2[0],
@@ -2665,7 +2699,7 @@ function CarvalhoSuite() {
       flexDirection: 'column',
       gap: 9
     }
-  }, visApps.map(function (app) {
+  }, visAppsWithBadges.map(function (app) {
     return /*#__PURE__*/React.createElement("div", {
       key: app.id,
       onClick: function onClick() {
