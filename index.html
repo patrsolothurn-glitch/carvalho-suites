@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T07:11:42.773Z
+  Gerado em: 2026-06-21T08:35:28.077Z
 -->
 <html lang="pt">
 <head>
@@ -437,6 +437,10 @@ var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
     projList = _ref8.projList,
     calcHoras = _ref8.calcHoras,
     H = _ref8.H,
+    _ref8$saveErr = _ref8.saveErr,
+    saveErr = _ref8$saveErr === void 0 ? '' : _ref8$saveErr,
+    _ref8$saving = _ref8.saving,
+    saving = _ref8$saving === void 0 ? false : _ref8$saving,
     _ref8$editData = _ref8.editData,
     editData = _ref8$editData === void 0 ? null : _ref8$editData;
   var _React$useState = React.useState((editData === null || editData === void 0 ? void 0 : editData.tipo) || 'Spleisser'),
@@ -723,22 +727,33 @@ var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
       flexShrink: 0,
       borderTop: "1px solid ".concat(H.border)
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, saveErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#DC2626',
+      fontSize: 12.5,
+      lineHeight: 1.4,
+      marginBottom: 10,
+      padding: '8px 10px',
+      background: 'rgba(220,38,38,0.08)',
+      border: '1px solid rgba(220,38,38,0.25)',
+      borderRadius: 10
+    }
+  }, "\u26A0\uFE0F ", saveErr), /*#__PURE__*/React.createElement("button", {
     onClick: guardar,
-    disabled: horas <= 0,
+    disabled: horas <= 0 || saving,
     style: {
       width: '100%',
-      background: horas > 0 ? "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")") : '#ddd',
+      background: saving ? '#ddd' : horas > 0 ? "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")") : '#ddd',
       border: 'none',
       borderRadius: 16,
       padding: '16px',
-      color: horas > 0 ? '#fff' : '#aaa',
+      color: horas > 0 && !saving ? '#fff' : '#aaa',
       fontSize: 16,
       fontWeight: 900,
-      cursor: horas > 0 ? 'pointer' : 'default',
-      boxShadow: horas > 0 ? "0 6px 20px rgba(184,150,46,0.35)" : 'none'
+      cursor: horas > 0 && !saving ? 'pointer' : 'default',
+      boxShadow: horas > 0 && !saving ? "0 6px 20px rgba(184,150,46,0.35)" : 'none'
     }
-  }, isEdit ? '✓ Guardar alterações' : '✓ Guardar registo', horas > 0 ? " \xB7 ".concat(horas, "h") : ''))));
+  }, saving ? 'A guardar…' : (isEdit ? '✓ Guardar alterações' : '✓ Guardar registo') + (horas > 0 ? " \xB7 ".concat(horas, "h") : '')))));
 });
 function HorasProApp(_ref9) {
   var onBack = _ref9.onBack,
@@ -777,6 +792,14 @@ function HorasProApp(_ref9) {
     _useState12 = _slicedToArray(_useState11, 2),
     editEntry = _useState12[0],
     setEditEntry = _useState12[1];
+  var _useStateEntrySaveErr = (0, _react.useState)(''),
+    _useStateEntrySaveErr2 = _slicedToArray(_useStateEntrySaveErr, 2),
+    entrySaveErr = _useStateEntrySaveErr2[0],
+    setEntrySaveErr = _useStateEntrySaveErr2[1];
+  var _useStateEntrySaving = (0, _react.useState)(false),
+    _useStateEntrySaving2 = _slicedToArray(_useStateEntrySaving, 2),
+    entrySaving = _useStateEntrySaving2[0],
+    setEntrySaving = _useStateEntrySaving2[1];
   var _useState13 = (0, _react.useState)(null),
     _useState14 = _slicedToArray(_useState13, 2),
     perfilFoto = _useState14[0],
@@ -3781,24 +3804,54 @@ function HorasProApp(_ref9) {
           morada: morada
         }]);
       });
-      if (window.supabaseClient) {
-        window.supabaseClient.from('horas_entries').insert({
-          entry_date: today,
-          tipo: tipo,
-          project: proj,
-          start_time: hi,
-          end_time: hf,
-          hours: horas,
-          address: morada || null
-        }).then(function () {
-          loadEntries();
-        }).catch(function () {});
+      if (!window.supabaseClient) {
+        setEntrySaveErr('Sem ligação ao servidor — não foi guardado.');
+        setEntries(function (p) {
+          return p.filter(function (x) {
+            return x.id !== tempId;
+          });
+        });
+        return;
       }
-      setShowAdd(false);
+      setEntrySaving(true);
+      setEntrySaveErr('');
+      window.supabaseClient.from('horas_entries').insert({
+        entry_date: today,
+        tipo: tipo,
+        project: proj,
+        start_time: hi,
+        end_time: hf,
+        hours: horas,
+        address: morada || null
+      }).then(function (res) {
+        setEntrySaving(false);
+        if (res.error) {
+          setEntrySaveErr('Erro ao guardar: ' + res.error.message);
+          setEntries(function (p) {
+            return p.filter(function (x) {
+              return x.id !== tempId;
+            });
+          });
+          return;
+        }
+        loadEntries();
+        setShowAdd(false);
+      }).catch(function (e) {
+        setEntrySaving(false);
+        setEntrySaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        setEntries(function (p) {
+          return p.filter(function (x) {
+            return x.id !== tempId;
+          });
+        });
+      });
     },
     onClose: function onClose() {
-      return setShowAdd(false);
+      setShowAdd(false);
+      setEntrySaveErr('');
     },
+    saveErr: entrySaveErr,
+    saving: entrySaving,
     tipos: tipos,
     projList: projList,
     calcHoras: calcHoras,
@@ -3812,6 +3865,9 @@ function HorasProApp(_ref9) {
         hf = _ref10.hf,
         horas = _ref10.horas,
         morada = _ref10.morada;
+      var prevEntry = entries.find(function (x) {
+        return x.id === editEntry.id;
+      });
       setEntries(function (p) {
         return p.map(function (x) {
           return x.id === editEntry.id ? _objectSpread(_objectSpread({}, x), {}, {
@@ -3824,23 +3880,59 @@ function HorasProApp(_ref9) {
           }) : x;
         });
       });
-      if (window.supabaseClient) {
-        window.supabaseClient.from('horas_entries').update({
-          tipo: tipo,
-          project: proj,
-          start_time: hi,
-          end_time: hf,
-          hours: horas,
-          address: morada || null
-        }).eq('id', editEntry.id).then(function () {
-          loadEntries();
-        }).catch(function () {});
+      if (!window.supabaseClient) {
+        setEntrySaveErr('Sem ligação ao servidor — não foi guardado.');
+        if (prevEntry) {
+          setEntries(function (p) {
+            return p.map(function (x) {
+              return x.id === editEntry.id ? prevEntry : x;
+            });
+          });
+        }
+        return;
       }
-      setEditEntry(null);
+      setEntrySaving(true);
+      setEntrySaveErr('');
+      window.supabaseClient.from('horas_entries').update({
+        tipo: tipo,
+        project: proj,
+        start_time: hi,
+        end_time: hf,
+        hours: horas,
+        address: morada || null
+      }).eq('id', editEntry.id).then(function (res) {
+        setEntrySaving(false);
+        if (res.error) {
+          setEntrySaveErr('Erro ao guardar: ' + res.error.message);
+          if (prevEntry) {
+            setEntries(function (p) {
+              return p.map(function (x) {
+                return x.id === editEntry.id ? prevEntry : x;
+              });
+            });
+          }
+          return;
+        }
+        loadEntries();
+        setEditEntry(null);
+      }).catch(function (e) {
+        setEntrySaving(false);
+        setEntrySaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        if (prevEntry) {
+          setEntries(function (p) {
+            return p.map(function (x) {
+              return x.id === editEntry.id ? prevEntry : x;
+            });
+          });
+        }
+      });
     },
     onClose: function onClose() {
-      return setEditEntry(null);
+      setEditEntry(null);
+      setEntrySaveErr('');
     },
+    saveErr: entrySaveErr,
+    saving: entrySaving,
     tipos: tipos,
     projList: projList,
     calcHoras: calcHoras,
