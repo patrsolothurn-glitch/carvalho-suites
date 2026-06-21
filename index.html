@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T10:00:28.454Z
+  Gerado em: 2026-06-21T10:09:00.999Z
 -->
 <html lang="pt">
 <head>
@@ -4457,6 +4457,10 @@ function AgendaProApp(_ref13) {
     _useState68 = _slicedToArray(_useState67, 2),
     showAdd = _useState68[0],
     setShowAdd = _useState68[1];
+  var _useStateGanhoOffset = (0, _react.useState)(0),
+    _useStateGanhoOffset2 = _slicedToArray(_useStateGanhoOffset, 2),
+    ganhoWeekOffset = _useStateGanhoOffset2[0],
+    setGanhoWeekOffset = _useStateGanhoOffset2[1];
   var _useStateSaveErr = (0, _react.useState)(''),
     _useStateSaveErr2 = _slicedToArray(_useStateSaveErr, 2),
     saveErr = _useStateSaveErr2[0],
@@ -5031,7 +5035,7 @@ function AgendaProApp(_ref13) {
   }, {});
   var sortedDates = Object.keys(grouped).sort();
   var weeklyChart = function () {
-    var weeks = {};
+    var weeksData = {};
     appts.filter(function (a) {
       return a.status === 'concluido' && projContaEstatisticas(a.proj);
     }).forEach(function (a) {
@@ -5039,15 +5043,26 @@ function AgendaProApp(_ref13) {
       var monday = new Date(d);
       monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
       var key = monday.toISOString().slice(0, 10);
-      weeks[key] = (weeks[key] || 0) + a.chf;
+      weeksData[key] = (weeksData[key] || 0) + a.chf;
     });
-    var keys = Object.keys(weeks).sort().slice(-8);
-    return keys.map(function (k) {
-      return {
-        week: k,
-        chf: weeks[k]
-      };
-    });
+    var today = new Date();
+    var dow = today.getDay();
+    var diff = dow === 0 ? -6 : 1 - dow;
+    var thisMonday = new Date(today);
+    thisMonday.setDate(thisMonday.getDate() + diff);
+    thisMonday.setHours(0, 0, 0, 0);
+    var result = [];
+    for (var i = -2; i <= 2; i++) {
+      var monday = new Date(thisMonday);
+      monday.setDate(monday.getDate() + (i + ganhoWeekOffset) * 7);
+      var key = monday.toISOString().slice(0, 10);
+      result.push({
+        week: key,
+        chf: weeksData[key] || 0,
+        isCurrent: i + ganhoWeekOffset === 0
+      });
+    }
+    return result;
   }();
   var nextAppt = appts.filter(function (a) {
     return a.date >= todayStr && a.status !== 'concluido';
@@ -5994,16 +6009,72 @@ function AgendaProApp(_ref13) {
       padding: '14px 12px',
       marginTop: 10
     }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
       color: A.muted,
       fontSize: 10,
       fontWeight: 700,
       textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      marginBottom: 10
+      letterSpacing: '0.5px'
     }
   }, "\uD83D\uDCC8 Ganhos por semana (CHF)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setGanhoWeekOffset(function (o) {
+        return o - 1;
+      });
+    },
+    style: {
+      background: A.surface2,
+      border: 'none',
+      borderRadius: 8,
+      width: 26,
+      height: 26,
+      color: A.text,
+      fontSize: 14,
+      cursor: 'pointer'
+    }
+  }, "\u2039"), ganhoWeekOffset !== 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setGanhoWeekOffset(0);
+    },
+    style: {
+      background: 'none',
+      border: 'none',
+      color: A.orange,
+      fontSize: 10,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "hoje"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setGanhoWeekOffset(function (o) {
+        return o + 1;
+      });
+    },
+    style: {
+      background: A.surface2,
+      border: 'none',
+      borderRadius: 8,
+      width: 26,
+      height: 26,
+      color: A.text,
+      fontSize: 14,
+      cursor: 'pointer'
+    }
+  }, "\u203A"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'flex-end',
@@ -6029,7 +6100,7 @@ function AgendaProApp(_ref13) {
         }
       }, /*#__PURE__*/React.createElement("p", {
         style: {
-          color: A.gold,
+          color: w.isCurrent ? A.orange : A.gold,
           fontSize: 9,
           fontWeight: 800
         }
@@ -6039,13 +6110,15 @@ function AgendaProApp(_ref13) {
           maxWidth: 26,
           height: h,
           borderRadius: 5,
-          background: "linear-gradient(180deg, ".concat(A.gold, ", ").concat(A.orange, ")")
+          background: w.isCurrent ? A.orange : "linear-gradient(180deg, ".concat(A.gold, ", ").concat(A.orange, ")"),
+          border: w.isCurrent ? "2px solid ".concat(A.text) : 'none',
+          boxSizing: 'border-box'
         }
       }), /*#__PURE__*/React.createElement("p", {
         style: {
-          color: A.muted,
+          color: w.isCurrent ? A.orange : A.muted,
           fontSize: 8,
-          fontWeight: 600
+          fontWeight: w.isCurrent ? 800 : 600
         }
       }, label));
     });
