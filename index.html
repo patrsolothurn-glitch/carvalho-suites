@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T15:20:43.228Z
+  Gerado em: 2026-06-21T15:35:26.305Z
 -->
 <html lang="pt">
 <head>
@@ -187,7 +187,7 @@ var APPS_DATA = [{
 }, {
   id: 'escolar',
   emoji: '📚',
-  name: 'Carvalho Escola',
+  name: 'Vida Escolar',
   desc: 'Escola do Lucas · SEK P',
   badge: null,
   color: '#A855F7'
@@ -7809,7 +7809,7 @@ function AgendaProApp(_ref13) {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
     }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
       style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "Testes enviados pela Carvalho Escola"), /*#__PURE__*/React.createElement("div", {
+    }, "Testes enviados pela Vida Escolar"), /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
     }, escolaSemana.map(function (val, wi) {
       var h = Math.max(4, val / maxEscola * 70);
@@ -13390,7 +13390,7 @@ function EscolarApp(_ref31) {
       overflow: 'hidden',
       textOverflow: 'ellipsis'
     }
-  }, "\uD83D\uDCDA Carvalho Escola")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCDA Vida Escolar")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "".concat(E.gold, "22"),
       border: "1px solid ".concat(E.gold, "44"),
@@ -15729,7 +15729,7 @@ function EscolarApp(_ref31) {
           monteur: aluno.nome,
           chf: 0,
           status: 'aberto',
-          note: 'Criado automaticamente pela Carvalho Escola',
+          note: 'Criado automaticamente pela Vida Escolar',
           source: 'escolar',
           source_id: novoId,
           categoria: 'escola'
@@ -18471,7 +18471,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Carvalho Escola', active: false }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
