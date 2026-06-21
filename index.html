@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T00:13:49.520Z
+  Gerado em: 2026-06-21T00:19:32.803Z
 -->
 <html lang="pt">
 <head>
@@ -4392,24 +4392,145 @@ function AgendaProApp(_ref13) {
     _useState74 = _slicedToArray(_useState73, 2),
     form = _useState74[0],
     setForm = _useState74[1];
-  var _useState75 = (0, _react.useState)([{
-      id: 'm1',
-      name: 'Patricio',
-      emoji: '👨‍🔧',
-      tel: '',
-      notif: true,
-      cor: A.orange
-    }, {
-      id: 'm2',
-      name: 'David',
-      emoji: '👷',
-      tel: '',
-      notif: true,
-      cor: A.blue
-    }]),
+  var _useState75 = (0, _react.useState)([]),
     _useState76 = _slicedToArray(_useState75, 2),
     monteurs = _useState76[0],
     setMonteurs = _useState76[1];
+  var loadMonteurs = function loadMonteurs() {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('agenda_monteurs').select('*').order('created_at', { ascending: true }).then(function (res) {
+      if (res.error || !res.data) return;
+      setMonteurs(res.data.map(function (row) {
+        return {
+          id: row.id,
+          name: row.name,
+          emoji: row.emoji || '👷',
+          tel: row.tel || '',
+          notif: row.notif !== false,
+          cor: row.cor || A.blue
+        };
+      }));
+    }).catch(function () {});
+  };
+  (0, _react.useEffect)(function () {
+    loadMonteurs();
+    if (!window.supabaseClient) return;
+    var monteurChannel = window.supabaseClient.channel('agenda_monteurs_changes').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'agenda_monteurs'
+    }, function () {
+      loadMonteurs();
+    }).subscribe();
+    return function () {
+      try {
+        window.supabaseClient.removeChannel(monteurChannel);
+      } catch (e) {}
+    };
+  }, []);
+  var _useStateMonteurSaveErr = (0, _react.useState)(''),
+    _useStateMonteurSaveErr2 = _slicedToArray(_useStateMonteurSaveErr, 2),
+    monteurSaveErr = _useStateMonteurSaveErr2[0],
+    setMonteurSaveErr = _useStateMonteurSaveErr2[1];
+  var _useStateMonteurSaving = (0, _react.useState)(false),
+    _useStateMonteurSaving2 = _slicedToArray(_useStateMonteurSaving, 2),
+    monteurSaving = _useStateMonteurSaving2[0],
+    setMonteurSaving = _useStateMonteurSaving2[1];
+  var saveMonteur = function saveMonteur() {
+    var name = (mForm.name || '').trim();
+    if (!name) {
+      setMonteurSaveErr('Falta o nome do monteur.');
+      return;
+    }
+    if (!window.supabaseClient) {
+      setMonteurSaveErr('Sem ligação ao servidor.');
+      return;
+    }
+    setMonteurSaveErr('');
+    setMonteurSaving(true);
+    if (editMonteur === 'new') {
+      window.supabaseClient.from('agenda_monteurs').insert({
+        name: name,
+        emoji: mForm.emoji,
+        tel: mForm.tel,
+        notif: mForm.notif,
+        cor: mForm.cor
+      }).then(function (res) {
+        setMonteurSaving(false);
+        if (res.error) {
+          setMonteurSaveErr('Erro: ' + res.error.message);
+          return;
+        }
+        loadMonteurs();
+        setEditMonteur(null);
+      }).catch(function (e) {
+        setMonteurSaving(false);
+        setMonteurSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+      });
+    } else {
+      var prevMonteur = monteurs.find(function (m) {
+        return m.id === editMonteur;
+      });
+      setMonteurs(function (p) {
+        return p.map(function (m) {
+          return m.id === editMonteur ? _objectSpread(_objectSpread(_objectSpread({}, m), mForm), {}, {
+            name: name
+          }) : m;
+        });
+      });
+      window.supabaseClient.from('agenda_monteurs').update({
+        name: name,
+        emoji: mForm.emoji,
+        tel: mForm.tel,
+        notif: mForm.notif,
+        cor: mForm.cor
+      }).eq('id', editMonteur).then(function (res) {
+        setMonteurSaving(false);
+        if (res.error) {
+          setMonteurSaveErr('Erro: ' + res.error.message);
+          if (prevMonteur) {
+            setMonteurs(function (p) {
+              return p.map(function (m) {
+                return m.id === editMonteur ? prevMonteur : m;
+              });
+            });
+          }
+          return;
+        }
+        loadMonteurs();
+        setEditMonteur(null);
+      }).catch(function (e) {
+        setMonteurSaving(false);
+        setMonteurSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
+        if (prevMonteur) {
+          setMonteurs(function (p) {
+            return p.map(function (m) {
+              return m.id === editMonteur ? prevMonteur : m;
+            });
+          });
+        }
+      });
+    }
+  };
+  var deleteMonteurDb = function deleteMonteurDb(monteurId, monteurName) {
+    if (!window.confirm('Apagar o monteur "' + monteurName + '"? Marcações já criadas não são afetadas.')) return;
+    if (!window.supabaseClient) return;
+    var prevList = monteurs;
+    setMonteurs(function (p) {
+      return p.filter(function (x) {
+        return x.id !== monteurId;
+      });
+    });
+    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) {
+      if (res.error) {
+        setMonteurs(prevList);
+        setMonteurSaveErr('Erro ao apagar: ' + res.error.message);
+      }
+    }).catch(function (e) {
+      setMonteurs(prevList);
+      setMonteurSaveErr('Erro de ligação ao apagar: ' + (e && e.message || String(e)));
+    });
+  };
   var _useState77 = (0, _react.useState)(false),
     _useState78 = _slicedToArray(_useState77, 2),
     showMonteurs = _useState78[0],
@@ -6147,6 +6268,7 @@ function AgendaProApp(_ref13) {
         notif: true,
         cor: A.blue
       });
+      setMonteurSaveErr('');
     },
     style: {
       background: "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
@@ -6318,7 +6440,13 @@ function AgendaProApp(_ref13) {
         border: mForm.cor === c ? "3px solid ".concat(A.text) : '3px solid transparent'
       }
     });
-  })), /*#__PURE__*/React.createElement("div", {
+  })), monteurSaveErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#DC2626',
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, monteurSaveErr), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8
@@ -6339,38 +6467,20 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer'
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      if (!mForm.name.trim()) return;
-      if (editMonteur === 'new') {
-        setMonteurs(function (p) {
-          return [].concat(_toConsumableArray(p), [_objectSpread(_objectSpread({}, mForm), {}, {
-            id: 'm-' + Date.now(),
-            name: mForm.name.trim()
-          })]);
-        });
-      } else {
-        setMonteurs(function (p) {
-          return p.map(function (m) {
-            return m.id === editMonteur ? _objectSpread(_objectSpread(_objectSpread({}, m), mForm), {}, {
-              name: mForm.name.trim()
-            }) : m;
-          });
-        });
-      }
-      setEditMonteur(null);
-    },
+    onClick: saveMonteur,
+    disabled: monteurSaving,
     style: {
       flex: 2,
-      background: "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
+      background: monteurSaving ? A.surface2 : "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
       border: 'none',
       borderRadius: 10,
       padding: '10px',
-      color: '#fff',
+      color: monteurSaving ? A.muted : '#fff',
       fontSize: 13,
       fontWeight: 800,
-      cursor: 'pointer'
+      cursor: monteurSaving ? 'default' : 'pointer'
     }
-  }, "\u2713 Guardar"))), monteurs.map(function (m) {
+  }, monteurSaving ? 'A guardar…' : "\u2713 Guardar"))), monteurs.map(function (m) {
     return /*#__PURE__*/React.createElement("div", {
       key: m.id,
       style: {
@@ -6420,6 +6530,7 @@ function AgendaProApp(_ref13) {
       onClick: function onClick() {
         setEditMonteur(m.id);
         setMForm(_objectSpread({}, m));
+        setMonteurSaveErr('');
       },
       style: {
         background: A.surface,
@@ -6432,11 +6543,7 @@ function AgendaProApp(_ref13) {
       }
     }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return setMonteurs(function (p) {
-          return p.filter(function (x) {
-            return x.id !== m.id;
-          });
-        });
+        return deleteMonteurDb(m.id, m.name);
       },
       style: {
         background: 'rgba(220,38,38,0.08)',
