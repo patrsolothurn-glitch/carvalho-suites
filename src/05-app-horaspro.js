@@ -502,6 +502,10 @@ function HorasProApp(_ref9) {
     _useState28 = _slicedToArray(_useState27, 2),
     entries = _useState28[0],
     setEntries = _useState28[1];
+  var _useStateEntriesLoaded = (0, _react.useState)(false),
+    _useStateEntriesLoaded2 = _slicedToArray(_useStateEntriesLoaded, 2),
+    entriesLoaded = _useStateEntriesLoaded2[0],
+    setEntriesLoaded = _useStateEntriesLoaded2[1];
   var loadEntries = function loadEntries() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').select('*').then(function (res) {
@@ -520,6 +524,7 @@ function HorasProApp(_ref9) {
           dlTipo: row.dl_tipo || undefined
         };
       }));
+      setEntriesLoaded(true);
     }).catch(function () {});
   };
   (0, _react.useEffect)(function () {
@@ -952,6 +957,7 @@ function HorasProApp(_ref9) {
   // Auto-adicionar sextas como dia livre remunerado
   (0, _react.useEffect)(function () {
     if (!sextaLivre) return;
+    if (!entriesLoaded) return;
     var yr = curDate.getFullYear();
     var mo = curDate.getMonth();
     var daysInMo = new Date(yr, mo + 1, 0).getDate();
@@ -1003,7 +1009,7 @@ function HorasProApp(_ref9) {
         return x.tipo !== 'sexta';
       })), newDias);
     });
-  }, [sextaLivre, curDate.getMonth()]);
+  }, [sextaLivre, curDate.getMonth(), entriesLoaded, entries]);
 
   // Check if date is weekday
   var isWeekday = function isWeekday(d) {
