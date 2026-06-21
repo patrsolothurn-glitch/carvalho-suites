@@ -2207,7 +2207,7 @@ function AgendaProApp(_ref13) {
       marginBottom: 10,
       boxSizing: 'border-box'
     }
-  }, [{ v: '', l: '— Categoria —' }, { v: 'Monteur', l: 'Monteur' }, { v: 'Leitermonteur', l: 'Leitermonteur' }, { v: 'Gruppenchef', l: 'Gruppenchef' }, { v: 'Bauleiter', l: 'Bauleiter' }].map(function (opt) {
+  }, [{ v: '', l: '— Categoria —' }, { v: 'Monteur', l: 'Monteur' }, { v: 'Chefemonteur', l: 'Chefemonteur' }, { v: 'Leitermonteur', l: 'Leitermonteur' }, { v: 'Gruppenchef', l: 'Gruppenchef' }, { v: 'Bauleiter', l: 'Bauleiter' }].map(function (opt) {
     return /*#__PURE__*/React.createElement("option", {
       key: opt.v,
       value: opt.v
