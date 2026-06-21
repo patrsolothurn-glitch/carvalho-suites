@@ -587,7 +587,7 @@ function HorasProApp(_ref9) {
     window.supabaseClient.from('horas_entries').insert({
       data: job.job_date,
       tipo: 'Trabalho',
-      project: job.project || 'Carvalho Work',
+      project: job.project || 'Patricio Work',
       start_time: hi,
       end_time: hf,
       hours: horas,
@@ -1200,7 +1200,7 @@ function HorasProApp(_ref9) {
       fontSize: 18,
       color: H.text
     }
-  }, "Carvalho"), /*#__PURE__*/React.createElement("span", {
+  }, "Patricio"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 900,
       fontSize: 18,
@@ -1993,7 +1993,7 @@ function HorasProApp(_ref9) {
       textTransform: 'uppercase',
       marginBottom: 10
     }
-  }, "\uD83D\uDCC5 Sugest\xF5es do Carvalho Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
+  }, "\uD83D\uDCC5 Sugest\xF5es do Patricio Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
     return /*#__PURE__*/React.createElement("div", {
       key: job.id,
       style: {
