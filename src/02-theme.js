@@ -112,7 +112,7 @@ var APPS_DATA = [{
 }, {
   id: 'escolar',
   emoji: '📚',
-  name: 'Carvalho Escola',
+  name: 'Vida Escolar',
   desc: 'Escola do Lucas · SEK P',
   badge: null,
   color: '#A855F7'
