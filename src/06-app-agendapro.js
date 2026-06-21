@@ -686,7 +686,8 @@ function AgendaProApp(_ref13) {
     if (filter === 'Semana') {
       var d = new Date(a.date + 'T12:00:00');
       var s = new Date(curDate);
-      s.setDate(s.getDate() - s.getDay() + 1);
+      var dow0 = s.getDay();
+      s.setDate(s.getDate() + (dow0 === 0 ? -6 : 1 - dow0));
       var e = new Date(s);
       e.setDate(e.getDate() + 6);
       return d >= s && d <= e;
@@ -713,10 +714,11 @@ function AgendaProApp(_ref13) {
   var chfSem = appts.filter(function (a) {
     var d = new Date(a.date + 'T12:00:00');
     var s = new Date(curDate);
-    s.setDate(s.getDate() - s.getDay() + 1);
+    var dow1 = s.getDay();
+    s.setDate(s.getDate() + (dow1 === 0 ? -6 : 1 - dow1));
     var e = new Date(s);
     e.setDate(e.getDate() + 6);
-    return d >= s && d <= e && a.status === 'concluido' && projContaEstatisticas(a.proj);
+    return d >= s && d <= e && projContaEstatisticas(a.proj);
   }).reduce(function (s, a) {
     return s + a.chf;
   }, 0);
@@ -725,15 +727,18 @@ function AgendaProApp(_ref13) {
     return acc;
   }, {});
   var sortedDates = Object.keys(grouped).sort();
+  var fmtLocalDate = function fmtLocalDate(d) {
+    return "".concat(d.getFullYear(), "-").concat(String(d.getMonth() + 1).padStart(2, '0'), "-").concat(String(d.getDate()).padStart(2, '0'));
+  };
   var weeklyChart = function () {
     var weeksData = {};
     appts.filter(function (a) {
-      return a.status === 'concluido' && projContaEstatisticas(a.proj);
+      return projContaEstatisticas(a.proj);
     }).forEach(function (a) {
       var d = new Date(a.date + 'T12:00:00');
       var monday = new Date(d);
       monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-      var key = monday.toISOString().slice(0, 10);
+      var key = fmtLocalDate(monday);
       weeksData[key] = (weeksData[key] || 0) + a.chf;
     });
     var today = new Date();
@@ -746,7 +751,7 @@ function AgendaProApp(_ref13) {
     for (var i = -2; i <= 2; i++) {
       var monday = new Date(thisMonday);
       monday.setDate(monday.getDate() + (i + ganhoWeekOffset) * 7);
-      var key = monday.toISOString().slice(0, 10);
+      var key = fmtLocalDate(monday);
       result.push({
         week: key,
         chf: weeksData[key] || 0,
