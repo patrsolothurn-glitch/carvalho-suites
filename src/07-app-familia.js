@@ -1987,7 +1987,7 @@ function FamiliaApp(_ref19) {
       fontSize: 11,
       marginBottom: 14
     }
-  }, "Dados reais do Carvalho Time"), /*#__PURE__*/React.createElement("div", {
+  }, "Dados reais do Patricio Time"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'flex-end',
