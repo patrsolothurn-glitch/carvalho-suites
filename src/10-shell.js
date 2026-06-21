@@ -1555,7 +1555,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Carvalho Escola', active: false }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
