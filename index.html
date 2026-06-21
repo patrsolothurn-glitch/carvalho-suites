@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T14:45:32.538Z
+  Gerado em: 2026-06-21T15:03:33.203Z
 -->
 <html lang="pt">
 <head>
@@ -159,14 +159,14 @@ function getEligibleProfileIds(appId, onlyMemberId) {
 var APPS_DATA = [{
   id: 'horaspr',
   emoji: '⏱️',
-  name: 'HorasPro',
+  name: 'Carvalho Time',
   desc: 'Registo de horas e CHF',
   badge: null,
   color: T.gold
 }, {
   id: 'agenda',
   emoji: '📋',
-  name: 'Agenda Pro',
+  name: 'Carvalho Work',
   desc: 'Gestão de trabalho',
   badge: null,
   color: T.orange
@@ -187,7 +187,7 @@ var APPS_DATA = [{
 }, {
   id: 'escolar',
   emoji: '📚',
-  name: 'Agenda Escolar',
+  name: 'Carvalho Schule',
   desc: 'Escola do Lucas · SEK P',
   badge: null,
   color: '#A855F7'
@@ -1002,7 +1002,7 @@ function HorasProApp(_ref9) {
     window.supabaseClient.from('horas_entries').insert({
       data: job.job_date,
       tipo: 'Trabalho',
-      project: job.project || 'Agenda Pro',
+      project: job.project || 'Carvalho Work',
       start_time: hi,
       end_time: hf,
       hours: horas,
@@ -1615,13 +1615,13 @@ function HorasProApp(_ref9) {
       fontSize: 18,
       color: H.text
     }
-  }, "Horas"), /*#__PURE__*/React.createElement("span", {
+  }, "Carvalho"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 900,
       fontSize: 18,
       color: H.gold
     }
-  }, "Pro")), /*#__PURE__*/React.createElement("p", {
+  }, "Time")), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.muted,
       fontSize: 10,
@@ -2408,7 +2408,7 @@ function HorasProApp(_ref9) {
       textTransform: 'uppercase',
       marginBottom: 10
     }
-  }, "\uD83D\uDCC5 Sugest\xF5es do Agenda Pro (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
+  }, "\uD83D\uDCC5 Sugest\xF5es do Carvalho Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
     return /*#__PURE__*/React.createElement("div", {
       key: job.id,
       style: {
@@ -5297,7 +5297,7 @@ function AgendaProApp(_ref13) {
           syncToFamilia(newJob.id, true, form);
         }
         try {
-          sendPushTargeted('Agenda Pro', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
+          sendPushTargeted('Carvalho Work', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
         } catch (e) {}
         sendNotifTo(form.monteur, "\uD83D\uDCCB Nova marca\xE7\xE3o \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
         setShowAdd(false);
@@ -5408,7 +5408,7 @@ function AgendaProApp(_ref13) {
       fontWeight: 900,
       fontSize: 18
     }
-  }, "\uD83D\uDCCB Agenda Pro"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCB Carvalho Work"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -7809,7 +7809,7 @@ function AgendaProApp(_ref13) {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
     }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
       style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "Testes enviados pela Agenda Escolar"), /*#__PURE__*/React.createElement("div", {
+    }, "Testes enviados pela Carvalho Schule"), /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
     }, escolaSemana.map(function (val, wi) {
       var h = Math.max(4, val / maxEscola * 70);
@@ -10111,7 +10111,7 @@ function FamiliaApp(_ref19) {
       fontSize: 11,
       marginBottom: 14
     }
-  }, "Dados reais do HorasPro"), /*#__PURE__*/React.createElement("div", {
+  }, "Dados reais do Carvalho Time"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'flex-end',
@@ -13390,7 +13390,7 @@ function EscolarApp(_ref31) {
       overflow: 'hidden',
       textOverflow: 'ellipsis'
     }
-  }, "\uD83D\uDCDA Agenda Escolar")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCDA Carvalho Schule")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "".concat(E.gold, "22"),
       border: "1px solid ".concat(E.gold, "44"),
@@ -15590,7 +15590,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), novaTPC.tipo === 'teste' && /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, "Vai aparecer automaticamente na Agenda Pro"), /*#__PURE__*/React.createElement("p", {
+  }, "Vai aparecer automaticamente na Carvalho Work"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
@@ -15729,7 +15729,7 @@ function EscolarApp(_ref31) {
           monteur: aluno.nome,
           chf: 0,
           status: 'aberto',
-          note: 'Criado automaticamente pela Agenda Escolar',
+          note: 'Criado automaticamente pela Carvalho Schule',
           source: 'escolar',
           source_id: novoId,
           categoria: 'escola'
@@ -17195,7 +17195,7 @@ function CarvalhoSuite() {
         jobRes.data.forEach(function (row) {
           items.push({
             id: 'job_' + row.id,
-            app: 'Agenda Pro',
+            app: 'Carvalho Work',
             appId: 'agenda',
             msg: (row.project || 'Marcação') + (row.start_time ? ' · ' + row.start_time : ''),
             time: formatRelDatePt(row.job_date),
@@ -18434,7 +18434,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Agenda Pro', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'HorasPro', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Agenda Escolar', active: false }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Carvalho Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Carvalho Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Carvalho Schule', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
