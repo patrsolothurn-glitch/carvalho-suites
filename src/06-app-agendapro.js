@@ -619,6 +619,23 @@ function AgendaProApp(_ref13) {
       fm = _hf$split$map4[1];
     return (fh * 60 + fm - (hh * 60 + hm)) / 60;
   };
+  var calcChfFromRate = function calcChfFromRate(projName, hi, hf) {
+    if (!hi || !hf) return null;
+    var proj = projList.find(function (p) {
+      return p.name === projName;
+    });
+    if (!proj || !proj.hourlyRate) return null;
+    var hiParts = hi.split(':');
+    var hfParts = hf.split(':');
+    if (hiParts.length < 2 || hfParts.length < 2) return null;
+    var hiMin = parseInt(hiParts[0], 10) * 60 + parseInt(hiParts[1], 10);
+    var hfMin = parseInt(hfParts[0], 10) * 60 + parseInt(hfParts[1], 10);
+    if (isNaN(hiMin) || isNaN(hfMin)) return null;
+    var diffMin = hfMin - hiMin;
+    if (diffMin < 0) diffMin += 24 * 60;
+    var hours = diffMin / 60;
+    return Math.round(hours * proj.hourlyRate);
+  };
   var projColor = function projColor(p) {
     return p.includes('POP') ? A.blue : p.includes('BUDI') ? A.orange : A.gold;
   };
@@ -2844,15 +2861,39 @@ function AgendaProApp(_ref13) {
       style: {
         marginBottom: 10
       }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4
+      }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         color: A.muted,
         fontSize: 10,
         fontWeight: 700,
-        textTransform: 'uppercase',
-        marginBottom: 4
+        textTransform: 'uppercase'
       }
-    }, f.l), /*#__PURE__*/React.createElement("input", {
+    }, f.l), f.k === 'chf' && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        var autoChf = calcChfFromRate(form.proj, form.hi, form.hf);
+        if (autoChf === null) return;
+        setForm(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, {
+            chf: autoChf
+          });
+        });
+      },
+      style: {
+        background: 'none',
+        border: 'none',
+        color: A.orange,
+        fontSize: 10,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDD04 Calcular (horas \xD7 pre\xE7o/h)")), /*#__PURE__*/React.createElement("input", {
       type: f.type,
       value: form[f.k],
       onChange: function onChange(e) {
@@ -2952,9 +2993,12 @@ function AgendaProApp(_ref13) {
   }, projAddErr), /*#__PURE__*/React.createElement("select", {
     value: form.proj,
     onChange: function onChange(e) {
+      var newProj = e.target.value;
+      var autoChf = calcChfFromRate(newProj, form.hi, form.hf);
       return setForm(function (p) {
         return _objectSpread(_objectSpread({}, p), {}, {
-          proj: e.target.value
+          proj: newProj,
+          chf: autoChf !== null ? autoChf : p.chf
         });
       });
     },
