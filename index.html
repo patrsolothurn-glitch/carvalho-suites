@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T11:34:15.663Z
+  Gerado em: 2026-06-21T11:41:42.659Z
 -->
 <html lang="pt">
 <head>
@@ -17186,6 +17186,10 @@ function CarvalhoSuite() {
           });
         });
       }
+      var allowedApps = (profile && profile.allowed_apps) || [];
+      items = items.filter(function (it) {
+        return allowedApps.indexOf(it.appId) !== -1;
+      });
       items.sort(function (a, b) {
         return (a.sortDate || '').localeCompare(b.sortDate || '');
       });
