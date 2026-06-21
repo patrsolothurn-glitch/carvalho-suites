@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T00:02:42.451Z
+  Gerado em: 2026-06-21T00:13:49.520Z
 -->
 <html lang="pt">
 <head>
@@ -4595,6 +4595,89 @@ function AgendaProApp(_ref13) {
       setProjAddErr('Erro de ligação: ' + (e && e.message || String(e)));
     });
   };
+  var _useStateShowManageProj = (0, _react.useState)(false),
+    _useStateShowManageProj2 = _slicedToArray(_useStateShowManageProj, 2),
+    showManageProj = _useStateShowManageProj2[0],
+    setShowManageProj = _useStateShowManageProj2[1];
+  var _useStateEditProjId = (0, _react.useState)(null),
+    _useStateEditProjId2 = _slicedToArray(_useStateEditProjId, 2),
+    editProjId = _useStateEditProjId2[0],
+    setEditProjId = _useStateEditProjId2[1];
+  var _useStatePFormName = (0, _react.useState)(''),
+    _useStatePFormName2 = _slicedToArray(_useStatePFormName, 2),
+    pFormName = _useStatePFormName2[0],
+    setPFormName = _useStatePFormName2[1];
+  var _useStateProjManageErr = (0, _react.useState)(''),
+    _useStateProjManageErr2 = _slicedToArray(_useStateProjManageErr, 2),
+    projManageErr = _useStateProjManageErr2[0],
+    setProjManageErr = _useStateProjManageErr2[1];
+  var _useStateProjManageBusy = (0, _react.useState)(false),
+    _useStateProjManageBusy2 = _slicedToArray(_useStateProjManageBusy, 2),
+    projManageBusy = _useStateProjManageBusy2[0],
+    setProjManageBusy = _useStateProjManageBusy2[1];
+  var saveProjectManage = function saveProjectManage() {
+    var name = (pFormName || '').trim();
+    if (!name) {
+      setProjManageErr('Falta o nome do projeto.');
+      return;
+    }
+    if (!window.supabaseClient) {
+      setProjManageErr('Sem ligação ao servidor.');
+      return;
+    }
+    setProjManageBusy(true);
+    setProjManageErr('');
+    if (editProjId === 'new') {
+      window.supabaseClient.from('horas_projects').insert({
+        name: name
+      }).then(function (res) {
+        setProjManageBusy(false);
+        if (res.error) {
+          setProjManageErr('Erro: ' + res.error.message);
+          return;
+        }
+        loadProjects();
+        setEditProjId(null);
+      }).catch(function (e) {
+        setProjManageBusy(false);
+        setProjManageErr('Erro de ligação: ' + (e && e.message || String(e)));
+      });
+    } else {
+      window.supabaseClient.from('horas_projects').update({
+        name: name
+      }).eq('id', editProjId).then(function (res) {
+        setProjManageBusy(false);
+        if (res.error) {
+          setProjManageErr('Erro: ' + res.error.message);
+          return;
+        }
+        loadProjects();
+        setEditProjId(null);
+      }).catch(function (e) {
+        setProjManageBusy(false);
+        setProjManageErr('Erro de ligação: ' + (e && e.message || String(e)));
+      });
+    }
+  };
+  var deleteProjectManage = function deleteProjectManage(projId, projName) {
+    if (!window.confirm('Apagar o projeto "' + projName + '"? Marcações já criadas com este projeto não são afetadas.')) return;
+    if (!window.supabaseClient) return;
+    var prevList = projList;
+    setProjList(function (p) {
+      return p.filter(function (x) {
+        return x.id !== projId;
+      });
+    });
+    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) {
+      if (res.error) {
+        setProjList(prevList);
+        setProjManageErr('Erro ao apagar: ' + res.error.message);
+      }
+    }).catch(function (e) {
+      setProjList(prevList);
+      setProjManageErr('Erro de ligação ao apagar: ' + (e && e.message || String(e)));
+    });
+  };
   var prevDay = function prevDay() {
     var d = new Date(curDate);
     d.setDate(d.getDate() - 1);
@@ -5105,24 +5188,23 @@ function AgendaProApp(_ref13) {
     }
   }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return openForm();
+      setShowManageProj(true);
+      setEditProjId(null);
     },
     style: {
-      background: "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
-      border: 'none',
-      borderRadius: 12,
+      background: A.surface2,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
       width: 38,
       height: 38,
-      color: '#fff',
-      fontSize: 22,
+      color: A.muted,
+      fontSize: 16,
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      fontWeight: 300,
-      boxShadow: '0 4px 14px rgba(249,115,22,0.4)'
+      justifyContent: 'center'
     }
-  }, "+"))), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCC1"))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 16px 0'
     }
@@ -6383,7 +6465,226 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer',
       marginTop: 8
     }
-  }, "\u2713 Fechar"))), showAdd && /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 Fechar")))  , showManageProj && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 500,
+      display: 'flex',
+      flexDirection: 'column'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() {
+      setShowManageProj(false);
+      setEditProjId(null);
+    },
+    style: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.5)'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: A.surface,
+      borderRadius: '22px 22px 0 0',
+      border: "2px solid ".concat(A.orange),
+      borderBottom: 'none',
+      padding: '20px 16px 32px',
+      maxHeight: '85vh',
+      overflowY: 'auto'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: A.orange,
+      fontWeight: 800,
+      fontSize: 16
+    }
+  }, "\uD83D\uDCC1 Projetos"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setEditProjId('new');
+      setPFormName('');
+      setProjManageErr('');
+    },
+    style: {
+      background: "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '7px 14px',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, "\uFF0B Novo")), editProjId && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: A.surface2,
+      borderRadius: 16,
+      padding: '14px',
+      marginBottom: 14,
+      border: "1px solid ".concat(A.border)
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: A.orange,
+      fontWeight: 700,
+      fontSize: 13,
+      marginBottom: 12
+    }
+  }, editProjId === 'new' ? 'Novo projeto' : 'Editar projeto'), /*#__PURE__*/React.createElement("input", {
+    value: pFormName,
+    onChange: function onChange(e) {
+      return setPFormName(e.target.value);
+    },
+    placeholder: "Nome do projeto",
+    style: {
+      width: '100%',
+      background: A.surface,
+      border: "1px solid ".concat(A.border),
+      borderRadius: 10,
+      padding: '10px 12px',
+      color: A.text,
+      fontSize: 14,
+      outline: 'none',
+      marginBottom: 10,
+      boxSizing: 'border-box'
+    }
+  }), projManageErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#DC2626',
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, projManageErr), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setEditProjId(null);
+    },
+    style: {
+      flex: 1,
+      background: A.surface,
+      border: "1px solid ".concat(A.border),
+      borderRadius: 10,
+      padding: '10px',
+      color: A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+    onClick: saveProjectManage,
+    disabled: projManageBusy,
+    style: {
+      flex: 2,
+      background: projManageBusy ? A.surface2 : "linear-gradient(135deg,".concat(A.orange, ",#FB923C)"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '10px',
+      color: projManageBusy ? A.muted : '#fff',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: projManageBusy ? 'default' : 'pointer'
+    }
+  }, projManageBusy ? 'A guardar…' : "\u2713 Guardar"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8
+    }
+  }, projList.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: A.muted,
+      fontSize: 13,
+      textAlign: 'center',
+      padding: '20px 0'
+    }
+  }, "Sem projetos ainda."), projList.map(function (p) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: p.id,
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '12px 14px',
+        background: A.surface2,
+        borderRadius: 14,
+        border: "1px solid ".concat(A.border)
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        flex: 1,
+        fontWeight: 700,
+        fontSize: 14,
+        color: A.text
+      }
+    }, p.name), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setEditProjId(p.id);
+        setPFormName(p.name);
+        setProjManageErr('');
+      },
+      style: {
+        background: A.surface,
+        border: "1px solid ".concat(A.border),
+        borderRadius: 8,
+        padding: '6px 10px',
+        fontSize: 13,
+        color: A.muted,
+        cursor: 'pointer'
+      }
+    }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return deleteProjectManage(p.id, p.name);
+      },
+      style: {
+        background: 'rgba(220,38,38,0.08)',
+        border: '1px solid rgba(220,38,38,0.25)',
+        borderRadius: 8,
+        padding: '6px 10px',
+        fontSize: 13,
+        color: '#DC2626',
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDDD1\uFE0F"));
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setShowManageProj(false);
+      setEditProjId(null);
+    },
+    style: {
+      width: '100%',
+      marginTop: 16,
+      background: 'none',
+      border: "1px solid ".concat(A.border),
+      borderRadius: 12,
+      padding: '12px',
+      color: A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Fechar")))
+, showAdd && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
       top: 0,
