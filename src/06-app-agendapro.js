@@ -860,10 +860,6 @@ function AgendaProApp(_ref13) {
     }
   };
   var saveForm = function saveForm() {
-    if (!form.morada || !form.morada.trim()) {
-      setSaveErr('Falta a morada.');
-      return;
-    }
     setSaveErr('');
     setSaving(true);
     if (editId) {
