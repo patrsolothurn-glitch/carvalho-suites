@@ -1131,7 +1131,7 @@ function EscolarApp(_ref31) {
       overflow: 'hidden',
       textOverflow: 'ellipsis'
     }
-  }, "\uD83D\uDCDA Agenda Escolar")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCDA Carvalho Schule")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "".concat(E.gold, "22"),
       border: "1px solid ".concat(E.gold, "44"),
@@ -3331,7 +3331,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), novaTPC.tipo === 'teste' && /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, "Vai aparecer automaticamente na Agenda Pro"), /*#__PURE__*/React.createElement("p", {
+  }, "Vai aparecer automaticamente na Carvalho Work"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
@@ -3470,7 +3470,7 @@ function EscolarApp(_ref31) {
           monteur: aluno.nome,
           chf: 0,
           status: 'aberto',
-          note: 'Criado automaticamente pela Agenda Escolar',
+          note: 'Criado automaticamente pela Carvalho Schule',
           source: 'escolar',
           source_id: novoId,
           categoria: 'escola'
