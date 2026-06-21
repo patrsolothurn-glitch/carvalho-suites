@@ -1518,7 +1518,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Agenda Pro' }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família' }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Agenda Pro', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'HorasPro', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Agenda Escolar', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
@@ -1529,7 +1529,10 @@ function CarvalhoSuite() {
         style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: T.surface2, borderRadius: 10 }
       },
         React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
-        React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } }, app.name),
+        React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } },
+          app.name,
+          !app.active && React.createElement("span", { style: { color: T.muted, fontSize: 11, fontWeight: 600, marginLeft: 6 } }, "(em breve)")
+        ),
         React.createElement("div", {
           onClick: function () { toggleNotifApp(app.id); },
           style: { width: 42, height: 24, borderRadius: 12, background: on ? T.gold : '#333', border: '1px solid ' + (on ? T.goldL : '#444'), position: 'relative', cursor: 'pointer', transition: 'background 0.2s' }
@@ -1539,7 +1542,7 @@ function CarvalhoSuite() {
           })
         )
       );
-    })), [{ id: 'agendapr', permApp: 'agenda' }, { id: 'familia', permApp: 'familia' }].filter(function (app) {
+    })), [{ id: 'agendapr', permApp: 'agenda' }, { id: 'familia', permApp: 'familia' }, { id: 'horaspr', permApp: 'horaspr' }, { id: 'nutri', permApp: 'nutri' }, { id: 'escolar', permApp: 'escolar' }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).length === 0 && React.createElement("p", {
