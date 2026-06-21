@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T09:23:10.764Z
+  Gerado em: 2026-06-21T09:48:11.383Z
 -->
 <html lang="pt">
 <head>
@@ -5169,10 +5169,6 @@ function AgendaProApp(_ref13) {
     }
   };
   var saveForm = function saveForm() {
-    if (!form.morada || !form.morada.trim()) {
-      setSaveErr('Falta a morada.');
-      return;
-    }
     setSaveErr('');
     setSaving(true);
     if (editId) {
