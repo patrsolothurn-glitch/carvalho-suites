@@ -440,7 +440,8 @@ function AgendaProApp(_ref13) {
         return {
           id: row.id,
           name: row.name,
-          hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : 60
+          hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : 60,
+          contaEstatisticas: row.conta_estatisticas !== false
         };
       }));
     }).catch(function () {});
@@ -526,6 +527,10 @@ function AgendaProApp(_ref13) {
     _useStatePFormRate2 = _slicedToArray(_useStatePFormRate, 2),
     pFormRate = _useStatePFormRate2[0],
     setPFormRate = _useStatePFormRate2[1];
+  var _useStatePFormConta = (0, _react.useState)(true),
+    _useStatePFormConta2 = _slicedToArray(_useStatePFormConta, 2),
+    pFormConta = _useStatePFormConta2[0],
+    setPFormConta = _useStatePFormConta2[1];
   var _useStateProjManageErr = (0, _react.useState)(''),
     _useStateProjManageErr2 = _slicedToArray(_useStateProjManageErr, 2),
     projManageErr = _useStateProjManageErr2[0],
@@ -552,7 +557,8 @@ function AgendaProApp(_ref13) {
     if (editProjId === 'new') {
       window.supabaseClient.from('horas_projects').insert({
         name: name,
-        hourly_rate: hourlyRate
+        hourly_rate: hourlyRate,
+        conta_estatisticas: pFormConta
       }).then(function (res) {
         setProjManageBusy(false);
         if (res.error) {
@@ -568,7 +574,8 @@ function AgendaProApp(_ref13) {
     } else {
       window.supabaseClient.from('horas_projects').update({
         name: name,
-        hourly_rate: hourlyRate
+        hourly_rate: hourlyRate,
+        conta_estatisticas: pFormConta
       }).eq('id', editProjId).then(function (res) {
         setProjManageBusy(false);
         if (res.error) {
@@ -622,6 +629,12 @@ function AgendaProApp(_ref13) {
       fh = _hf$split$map4[0],
       fm = _hf$split$map4[1];
     return (fh * 60 + fm - (hh * 60 + hm)) / 60;
+  };
+  var projContaEstatisticas = function projContaEstatisticas(projName) {
+    var proj = projList.find(function (p) {
+      return p.name === projName;
+    });
+    return !proj || proj.contaEstatisticas !== false;
   };
   var calcChfFromRate = function calcChfFromRate(projName, hi, hf) {
     if (!hi || !hf) return null;
@@ -699,7 +712,7 @@ function AgendaProApp(_ref13) {
     s.setDate(s.getDate() - s.getDay() + 1);
     var e = new Date(s);
     e.setDate(e.getDate() + 6);
-    return d >= s && d <= e && a.status === 'concluido';
+    return d >= s && d <= e && a.status === 'concluido' && projContaEstatisticas(a.proj);
   }).reduce(function (s, a) {
     return s + a.chf;
   }, 0);
@@ -711,7 +724,7 @@ function AgendaProApp(_ref13) {
   var weeklyChart = function () {
     var weeks = {};
     appts.filter(function (a) {
-      return a.status === 'concluido';
+      return a.status === 'concluido' && projContaEstatisticas(a.proj);
     }).forEach(function (a) {
       var d = new Date(a.date + 'T12:00:00');
       var monday = new Date(d);
@@ -2482,6 +2495,7 @@ function AgendaProApp(_ref13) {
       setEditProjId('new');
       setPFormName('');
       setPFormRate('60');
+      setPFormConta(true);
       setProjManageErr('');
     },
     style: {
@@ -2546,7 +2560,54 @@ function AgendaProApp(_ref13) {
       marginBottom: 10,
       boxSizing: 'border-box'
     }
-  }), projManageErr && /*#__PURE__*/React.createElement("p", {
+  }), /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() {
+      return setPFormConta(!pFormConta);
+    },
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      background: A.surface,
+      border: "1px solid ".concat(A.border),
+      borderRadius: 10,
+      padding: '10px 12px',
+      marginBottom: 10,
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: A.text
+    }
+  }, "Conta para as estat\u00EDsticas de ganho"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 42,
+      height: 24,
+      borderRadius: 12,
+      background: pFormConta ? A.orange : '#ccc',
+      position: 'relative',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 2,
+      left: pFormConta ? 20 : 2,
+      width: 18,
+      height: 18,
+      borderRadius: '50%',
+      background: '#fff',
+      transition: 'left 0.2s'
+    }
+  }))), !pFormConta && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: A.muted,
+      fontSize: 11.5,
+      lineHeight: 1.4,
+      marginBottom: 10
+    }
+  }, "O valor em CHF continua a aparecer nas marca\u00E7\u00F5es, mas n\u00E3o entra nos totais nem nos gr\u00E1ficos de ganhos."), projManageErr && /*#__PURE__*/React.createElement("p", {
     style: {
       color: '#DC2626',
       fontSize: 12,
@@ -2627,11 +2688,12 @@ function AgendaProApp(_ref13) {
         color: A.muted,
         marginTop: 1
       }
-    }, p.hourlyRate || 0, " CHF/h")), /*#__PURE__*/React.createElement("button", {
+    }, p.hourlyRate || 0, " CHF/h", p.contaEstatisticas === false ? ' · não conta p/ estatísticas' : '')), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setEditProjId(p.id);
         setPFormName(p.name);
         setPFormRate(String(p.hourlyRate != null ? p.hourlyRate : 60));
+        setPFormConta(p.contaEstatisticas !== false);
         setProjManageErr('');
       },
       style: {
