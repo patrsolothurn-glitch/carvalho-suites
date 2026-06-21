@@ -676,6 +676,18 @@ function AgendaProApp(_ref13) {
       return [].concat(_toConsumableArray(p), [catKey]);
     });
   };
+  // Janela da semana atual (seg-dom), baseada na data real de hoje —
+  // independente de curDate, para que a lista avance sozinha cada
+  // segunda-feira, sem depender de navegação no calendário.
+  var realToday = new Date();
+  var realDow = realToday.getDay();
+  var realDiff = realDow === 0 ? -6 : 1 - realDow;
+  var curWeekStart = new Date(realToday);
+  curWeekStart.setDate(curWeekStart.getDate() + realDiff);
+  curWeekStart.setHours(0, 0, 0, 0);
+  var curWeekEnd = new Date(curWeekStart);
+  curWeekEnd.setDate(curWeekEnd.getDate() + 6);
+  curWeekEnd.setHours(23, 59, 59, 999);
   var filtered = appts.filter(function (a) {
     var matchSearch = !search || a.morada.toLowerCase().includes(search.toLowerCase()) || a.proj.toLowerCase().includes(search.toLowerCase()) || a.monteur.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
@@ -696,7 +708,12 @@ function AgendaProApp(_ref13) {
     if (filter === 'Em curso') return a.status === 'emcurso';
     if (filter === 'Concluído') return a.status === 'concluido';
     if (filter === 'Problema') return a.status === 'problema';
-    return true;
+    // Todos (padrão): só a semana atual completa. Marcações com
+    // Problema ficam visíveis mesmo de semanas anteriores, até serem
+    // resolvidas — todo o resto sai automaticamente na segunda seguinte.
+    if (a.status === 'problema') return true;
+    var ad = new Date(a.date + 'T12:00:00');
+    return ad >= curWeekStart && ad <= curWeekEnd;
   }).sort(function (a, b) {
     return a.date.localeCompare(b.date) || a.hi.localeCompare(b.hi);
   });
