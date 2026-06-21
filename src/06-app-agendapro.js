@@ -3500,7 +3500,7 @@ function AgendaProApp(_ref13) {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
     }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
       style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "Testes enviados pela Carvalho Escola"), /*#__PURE__*/React.createElement("div", {
+    }, "Testes enviados pela Vida Escolar"), /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
     }, escolaSemana.map(function (val, wi) {
       var h = Math.max(4, val / maxEscola * 70);
