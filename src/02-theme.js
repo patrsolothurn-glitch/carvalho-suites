@@ -84,14 +84,14 @@ function getEligibleProfileIds(appId, onlyMemberId) {
 var APPS_DATA = [{
   id: 'horaspr',
   emoji: '⏱️',
-  name: 'HorasPro',
+  name: 'Carvalho Time',
   desc: 'Registo de horas e CHF',
   badge: null,
   color: T.gold
 }, {
   id: 'agenda',
   emoji: '📋',
-  name: 'Agenda Pro',
+  name: 'Carvalho Work',
   desc: 'Gestão de trabalho',
   badge: null,
   color: T.orange
@@ -112,7 +112,7 @@ var APPS_DATA = [{
 }, {
   id: 'escolar',
   emoji: '📚',
-  name: 'Agenda Escolar',
+  name: 'Carvalho Schule',
   desc: 'Escola do Lucas · SEK P',
   badge: null,
   color: '#A855F7'
