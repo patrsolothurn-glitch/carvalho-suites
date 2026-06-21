@@ -2186,7 +2186,7 @@ function AgendaProApp(_ref13) {
       marginBottom: 10,
       boxSizing: 'border-box'
     }
-  }), /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("select", {
     value: mForm.categoria || '',
     onChange: function onChange(e) {
       return setMForm(function (p) {
@@ -2195,7 +2195,6 @@ function AgendaProApp(_ref13) {
         });
       });
     },
-    placeholder: "Categoria/cargo (ex: Spleisser, Chefe de equipa)",
     style: {
       width: '100%',
       background: A.surface,
@@ -2208,7 +2207,12 @@ function AgendaProApp(_ref13) {
       marginBottom: 10,
       boxSizing: 'border-box'
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, [{ v: '', l: '— Categoria —' }, { v: 'Monteur', l: 'Monteur' }, { v: 'Leitermonteur', l: 'Leitermonteur' }, { v: 'Gruppenchef', l: 'Gruppenchef' }, { v: 'Bauleiter', l: 'Bauleiter' }].map(function (opt) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: opt.v,
+      value: opt.v
+    }, opt.l);
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
