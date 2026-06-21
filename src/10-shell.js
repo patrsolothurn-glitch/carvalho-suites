@@ -270,6 +270,10 @@ function CarvalhoSuite() {
           });
         });
       }
+      var allowedApps = (profile && profile.allowed_apps) || [];
+      items = items.filter(function (it) {
+        return allowedApps.indexOf(it.appId) !== -1;
+      });
       items.sort(function (a, b) {
         return (a.sortDate || '').localeCompare(b.sortDate || '');
       });
