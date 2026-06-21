@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-21T09:48:11.383Z
+  Gerado em: 2026-06-21T10:00:28.454Z
 -->
 <html lang="pt">
 <head>
@@ -7635,21 +7635,51 @@ function AgendaProApp(_ref13) {
       var c = a.categoria || 'trabalho';
       porCategoria[c] = (porCategoria[c] || 0) + 1;
     });
-    var horasSemana = [0, 0, 0, 0, 0];
     var escolaSemana = [0, 0, 0, 0, 0];
     doMes.forEach(function (a) {
       var dia = parseInt(a.date.slice(8, 10));
       var w = Math.min(4, Math.floor((dia - 1) / 7));
-      if ((a.categoria || 'trabalho') === 'trabalho' && a.hi && a.hf) {
-        try {
-          horasSemana[w] += calcHoras(a.hi, a.hf);
-        } catch (e) {}
-      }
       if ((a.categoria || 'trabalho') === 'escola') escolaSemana[w]++;
     });
     var maxCat = Math.max.apply(Math, Object.values(porCategoria).concat([1]));
-    var maxHoras = Math.max.apply(Math, horasSemana.concat([1]));
     var maxEscola = Math.max.apply(Math, escolaSemana.concat([1]));
+    var weekRangeHoras = function () {
+      var today = new Date();
+      var dow = today.getDay();
+      var diff = dow === 0 ? -6 : 1 - dow;
+      var thisMonday = new Date(today);
+      thisMonday.setDate(thisMonday.getDate() + diff);
+      thisMonday.setHours(0, 0, 0, 0);
+      var weeks = [];
+      for (var i = -4; i <= 4; i++) {
+        var monday = new Date(thisMonday);
+        monday.setDate(monday.getDate() + i * 7);
+        var sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+        weeks.push({
+          monday: monday,
+          sunday: sunday,
+          horas: 0,
+          isCurrent: i === 0
+        });
+      }
+      appts.forEach(function (a) {
+        if ((a.categoria || 'trabalho') !== 'trabalho' || !a.hi || !a.hf) return;
+        var d = new Date(a.date + 'T12:00:00');
+        for (var j = 0; j < weeks.length; j++) {
+          if (d >= weeks[j].monday && d <= weeks[j].sunday) {
+            try {
+              weeks[j].horas += calcHoras(a.hi, a.hf);
+            } catch (e) {}
+            break;
+          }
+        }
+      });
+      return weeks;
+    }();
+    var maxHoras = Math.max.apply(Math, weekRangeHoras.map(function (w) {
+      return w.horas;
+    }).concat([1]));
     return /*#__PURE__*/React.createElement("div", {
       style: { padding: '0 16px 20px' }
     }, /*#__PURE__*/React.createElement(ACard, {
@@ -7680,20 +7710,21 @@ function AgendaProApp(_ref13) {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
     }, "\uD83D\uDCBC Horas de trabalho por semana"), /*#__PURE__*/React.createElement("p", {
       style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "Calculado a partir das marca\xE7\xF5es de trabalho"), /*#__PURE__*/React.createElement("div", {
-      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
-    }, horasSemana.map(function (val, wi) {
-      var h = Math.max(4, val / maxHoras * 70);
+    }, "4 semanas antes e depois de hoje"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90, overflowX: 'auto', paddingBottom: 2 }
+    }, weekRangeHoras.map(function (w, wi) {
+      var h = Math.max(4, w.horas / maxHoras * 70);
+      var label = "".concat(w.monday.getDate(), "/").concat(w.monday.getMonth() + 1);
       return /*#__PURE__*/React.createElement("div", {
         key: wi,
-        style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
+        style: { flex: '0 0 auto', minWidth: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
       }, /*#__PURE__*/React.createElement("p", {
-        style: { fontSize: 11, fontWeight: 800, color: CATEGORIAS.trabalho.color }
-      }, val.toFixed(1), "h"), /*#__PURE__*/React.createElement("div", {
-        style: { width: '100%', maxWidth: 30, height: h, background: CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
+        style: { fontSize: 11, fontWeight: 800, color: w.isCurrent ? A.orange : CATEGORIAS.trabalho.color }
+      }, w.horas.toFixed(1), "h"), /*#__PURE__*/React.createElement("div", {
+        style: { width: '100%', maxWidth: 30, height: h, background: w.isCurrent ? A.orange : CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
       }), /*#__PURE__*/React.createElement("span", {
-        style: { fontSize: 10, color: A.muted, fontWeight: 700 }
-      }, "S", wi + 1));
+        style: { fontSize: 10, color: w.isCurrent ? A.orange : A.muted, fontWeight: w.isCurrent ? 800 : 700 }
+      }, label));
     }))), /*#__PURE__*/React.createElement(ACard, {
       style: { padding: '16px' }
     }, /*#__PURE__*/React.createElement("p", {
