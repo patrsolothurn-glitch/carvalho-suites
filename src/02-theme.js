@@ -93,14 +93,14 @@ var APPS_DATA = [{
   emoji: '📋',
   name: 'Agenda Pro',
   desc: 'Gestão de trabalho',
-  badge: '2',
+  badge: null,
   color: T.orange
 }, {
   id: 'familia',
   emoji: '🏠',
   name: 'Família Carvalho',
   desc: 'Calendário familiar',
-  badge: '1',
+  badge: null,
   color: T.blue
 }, {
   id: 'nutri',
@@ -114,6 +114,6 @@ var APPS_DATA = [{
   emoji: '📚',
   name: 'Agenda Escolar',
   desc: 'Escola do Lucas · SEK P',
-  badge: '3',
+  badge: null,
   color: '#A855F7'
 }];
