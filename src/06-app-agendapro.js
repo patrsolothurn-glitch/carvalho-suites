@@ -435,7 +435,8 @@ function AgendaProApp(_ref13) {
       setProjList(res.data.map(function (row) {
         return {
           id: row.id,
-          name: row.name
+          name: row.name,
+          hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : 60
         };
       }));
     }).catch(function () {});
@@ -517,6 +518,10 @@ function AgendaProApp(_ref13) {
     _useStatePFormName2 = _slicedToArray(_useStatePFormName, 2),
     pFormName = _useStatePFormName2[0],
     setPFormName = _useStatePFormName2[1];
+  var _useStatePFormRate = (0, _react.useState)('60'),
+    _useStatePFormRate2 = _slicedToArray(_useStatePFormRate, 2),
+    pFormRate = _useStatePFormRate2[0],
+    setPFormRate = _useStatePFormRate2[1];
   var _useStateProjManageErr = (0, _react.useState)(''),
     _useStateProjManageErr2 = _slicedToArray(_useStateProjManageErr, 2),
     projManageErr = _useStateProjManageErr2[0],
@@ -527,6 +532,9 @@ function AgendaProApp(_ref13) {
     setProjManageBusy = _useStateProjManageBusy2[1];
   var saveProjectManage = function saveProjectManage() {
     var name = (pFormName || '').trim();
+    var rateRaw = (pFormRate || '').trim();
+    var hourlyRate = rateRaw === '' ? 0 : Number(rateRaw);
+    if (isNaN(hourlyRate)) hourlyRate = 0;
     if (!name) {
       setProjManageErr('Falta o nome do projeto.');
       return;
@@ -539,7 +547,8 @@ function AgendaProApp(_ref13) {
     setProjManageErr('');
     if (editProjId === 'new') {
       window.supabaseClient.from('horas_projects').insert({
-        name: name
+        name: name,
+        hourly_rate: hourlyRate
       }).then(function (res) {
         setProjManageBusy(false);
         if (res.error) {
@@ -554,7 +563,8 @@ function AgendaProApp(_ref13) {
       });
     } else {
       window.supabaseClient.from('horas_projects').update({
-        name: name
+        name: name,
+        hourly_rate: hourlyRate
       }).eq('id', editProjId).then(function (res) {
         setProjManageBusy(false);
         if (res.error) {
@@ -2416,6 +2426,7 @@ function AgendaProApp(_ref13) {
     onClick: function onClick() {
       setEditProjId('new');
       setPFormName('');
+      setPFormRate('60');
       setProjManageErr('');
     },
     style: {
@@ -2449,6 +2460,25 @@ function AgendaProApp(_ref13) {
       return setPFormName(e.target.value);
     },
     placeholder: "Nome do projeto",
+    style: {
+      width: '100%',
+      background: A.surface,
+      border: "1px solid ".concat(A.border),
+      borderRadius: 10,
+      padding: '10px 12px',
+      color: A.text,
+      fontSize: 14,
+      outline: 'none',
+      marginBottom: 10,
+      boxSizing: 'border-box'
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: pFormRate,
+    onChange: function onChange(e) {
+      return setPFormRate(e.target.value);
+    },
+    type: 'number',
+    placeholder: "Pre\u00E7o por hora (CHF)",
     style: {
       width: '100%',
       background: A.surface,
@@ -2526,17 +2556,27 @@ function AgendaProApp(_ref13) {
         borderRadius: 14,
         border: "1px solid ".concat(A.border)
       }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
-        flex: 1,
         fontWeight: 700,
         fontSize: 14,
         color: A.text
       }
-    }, p.name), /*#__PURE__*/React.createElement("button", {
+    }, p.name), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 11,
+        color: A.muted,
+        marginTop: 1
+      }
+    }, p.hourlyRate || 0, " CHF/h")), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setEditProjId(p.id);
         setPFormName(p.name);
+        setPFormRate(String(p.hourlyRate != null ? p.hourlyRate : 60));
         setProjManageErr('');
       },
       style: {
