@@ -279,7 +279,7 @@ function CarvalhoSuite() {
         jobRes.data.forEach(function (row) {
           items.push({
             id: 'job_' + row.id,
-            app: 'Agenda Pro',
+            app: 'Carvalho Work',
             appId: 'agenda',
             msg: (row.project || 'Marcação') + (row.start_time ? ' · ' + row.start_time : ''),
             time: formatRelDatePt(row.job_date),
@@ -1518,7 +1518,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Agenda Pro', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'HorasPro', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Agenda Escolar', active: false }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Carvalho Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Carvalho Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Carvalho Schule', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
