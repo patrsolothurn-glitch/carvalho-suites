@@ -60,6 +60,43 @@ function CarvalhoSuite() {
     _useState184 = _slicedToArray(_useState183, 2),
     online = _useState184[0],
     setOnline = _useState184[1];
+  var _useStateLinkCopied = (0, _react.useState)(false),
+    _useStateLinkCopied2 = _slicedToArray(_useStateLinkCopied, 2),
+    linkCopied = _useStateLinkCopied2[0],
+    setLinkCopied = _useStateLinkCopied2[1];
+  var copyAppLink = function copyAppLink() {
+    var url = 'https://patrsolothurn-glitch.github.io/carvalho-suites/';
+    var done = function done() {
+      setLinkCopied(true);
+      setTimeout(function () {
+        return setLinkCopied(false);
+      }, 2200);
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(function () {
+          fallbackCopy(url, done);
+        });
+      } else {
+        fallbackCopy(url, done);
+      }
+    } catch (e) {
+      fallbackCopy(url, done);
+    }
+  };
+  var fallbackCopy = function fallbackCopy(text, cb) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      cb();
+    } catch (e) {}
+  };
   var _useStateCacheVer = (0, _react.useState)(''),
     _useStateCacheVer2 = _slicedToArray(_useStateCacheVer, 2),
     cacheVer = _useStateCacheVer2[0],
@@ -2378,10 +2415,14 @@ function CarvalhoSuite() {
       zIndex: 200
     }
   }, /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() {
+      return setScreen('hub');
+    },
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 10
+      gap: 10,
+      cursor: 'pointer'
     }
   }, /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
@@ -2424,6 +2465,7 @@ function CarvalhoSuite() {
       gap: 10
     }
   }, /*#__PURE__*/React.createElement("div", {
+    onClick: copyAppLink,
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -2431,23 +2473,24 @@ function CarvalhoSuite() {
       background: T.surface2,
       borderRadius: 20,
       padding: '5px 10px',
-      border: "1px solid ".concat(online ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)')
+      border: "1px solid ".concat(linkCopied ? T.goldL : online ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'),
+      cursor: 'pointer'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       width: 7,
       height: 7,
       borderRadius: '50%',
-      background: online ? T.green : T.red,
-      boxShadow: "0 0 8px ".concat(online ? T.green : T.red)
+      background: linkCopied ? T.gold : online ? T.green : T.red,
+      boxShadow: "0 0 8px ".concat(linkCopied ? T.gold : online ? T.green : T.red)
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
       fontWeight: 700,
-      color: online ? T.green : T.red
+      color: linkCopied ? T.gold : online ? T.green : T.red
     }
-  }, online ? 'Sync ✓' : 'Offline')), /*#__PURE__*/React.createElement("div", {
+  }, linkCopied ? '🔗 Copiado!' : online ? 'Sync ✓' : 'Offline')), /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
       return setScreen('notifs');
     },
