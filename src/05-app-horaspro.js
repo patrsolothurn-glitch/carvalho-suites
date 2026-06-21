@@ -671,8 +671,7 @@ function HorasProApp(_ref9) {
           id: row.id,
           name: row.name,
           desc: row.description || '',
-          color: row.color || H.blue,
-          hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : 60
+          color: row.color || H.blue
         };
       }));
     }).catch(function () {});
@@ -702,12 +701,9 @@ function HorasProApp(_ref9) {
     projSaving = _useStateProjSaving2[0],
     setProjSaving = _useStateProjSaving2[1];
   var saveProject = function saveProject() {
-    var _projNameRef$current, _projDescRef$current, _projRateRef$current;
+    var _projNameRef$current, _projDescRef$current;
     var name = (((_projNameRef$current = projNameRef.current) === null || _projNameRef$current === void 0 ? void 0 : _projNameRef$current.value) || '').trim();
     var desc = (((_projDescRef$current = projDescRef.current) === null || _projDescRef$current === void 0 ? void 0 : _projDescRef$current.value) || '').trim();
-    var rateRaw = (((_projRateRef$current = projRateRef.current) === null || _projRateRef$current === void 0 ? void 0 : _projRateRef$current.value) || '').trim();
-    var hourlyRate = rateRaw === '' ? 0 : Number(rateRaw);
-    if (isNaN(hourlyRate)) hourlyRate = 0;
     if (!name) {
       setProjSaveErr('Falta o nome do projeto.');
       return;
@@ -728,16 +724,14 @@ function HorasProApp(_ref9) {
           return x.id === editProj ? _objectSpread(_objectSpread({}, x), {}, {
             name: name,
             desc: desc,
-            color: newProjColor,
-            hourlyRate: hourlyRate
+            color: newProjColor
           }) : x;
         });
       });
       window.supabaseClient.from('horas_projects').update({
         name: name,
         description: desc,
-        color: newProjColor,
-        hourly_rate: hourlyRate
+        color: newProjColor
       }).eq('id', editProj).then(function (res) {
         setProjSaving(false);
         if (res.error) {
@@ -756,7 +750,6 @@ function HorasProApp(_ref9) {
         setEditProj(null);
         setNewProjName('');
         setNewProjDesc('');
-        setNewProjRate('60');
       }).catch(function (e) {
         setProjSaving(false);
         setProjSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
@@ -775,15 +768,13 @@ function HorasProApp(_ref9) {
           id: tempId,
           name: name,
           desc: desc,
-          color: newProjColor,
-          hourlyRate: hourlyRate
+          color: newProjColor
         }]);
       });
       window.supabaseClient.from('horas_projects').insert({
         name: name,
         description: desc,
-        color: newProjColor,
-        hourly_rate: hourlyRate
+        color: newProjColor
       }).select().then(function (res) {
         setProjSaving(false);
         if (res.error) {
@@ -800,7 +791,6 @@ function HorasProApp(_ref9) {
         setEditProj(null);
         setNewProjName('');
         setNewProjDesc('');
-        setNewProjRate('60');
       }).catch(function (e) {
         setProjSaving(false);
         setProjSaveErr('Erro de ligação: ' + (e && e.message || String(e)));
@@ -850,17 +840,12 @@ function HorasProApp(_ref9) {
     _useState40 = _slicedToArray(_useState39, 2),
     newProjDesc = _useState40[0],
     setNewProjDesc = _useState40[1];
-  var _useStateNewProjRate = (0, _react.useState)('60'),
-    _useStateNewProjRate2 = _slicedToArray(_useStateNewProjRate, 2),
-    newProjRate = _useStateNewProjRate2[0],
-    setNewProjRate = _useStateNewProjRate2[1];
   var _useState41 = (0, _react.useState)(H.blue),
     _useState42 = _slicedToArray(_useState41, 2),
     newProjColor = _useState42[0],
     setNewProjColor = _useState42[1];
   var projNameRef = React.useRef(null);
   var projDescRef = React.useRef(null);
-  var projRateRef = React.useRef(null);
 
   // Feriados Solothurn 2026
   var FERIADOS_SO = [{
@@ -2255,7 +2240,6 @@ function HorasProApp(_ref9) {
       setEditProj(null);
       setNewProjName('');
       setNewProjDesc('');
-      setNewProjRate('60');
       setProjSaveErr('');
       setNewProjColor(H.blue);
     },
@@ -2417,32 +2401,6 @@ function HorasProApp(_ref9) {
       fontSize: 10,
       fontWeight: 700,
       textTransform: 'uppercase',
-      marginBottom: 4
-    }
-  }, "Pre\u00E7o por hora (CHF)"), /*#__PURE__*/React.createElement("input", {
-    ref: projRateRef,
-    type: 'number',
-    defaultValue: newProjRate,
-    key: "rate-".concat(editProj),
-    placeholder: "60",
-    style: {
-      width: '100%',
-      background: H.surface2,
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '10px 12px',
-      color: H.text,
-      fontSize: 14,
-      outline: 'none',
-      marginBottom: 12,
-      boxSizing: 'border-box'
-    }
-  }), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
       marginBottom: 8
     }
   }, "Cor"), /*#__PURE__*/React.createElement("div", {
@@ -2581,7 +2539,7 @@ function HorasProApp(_ref9) {
         color: H.muted,
         fontSize: 12
       }
-    }, projEntries.length, " registo", projEntries.length !== 1 ? 's' : '', " \xB7 \xDAltimo: ", lastDate, " \xB7 ", proj.hourlyRate || 0, " CHF/h")), /*#__PURE__*/React.createElement("div", {
+    }, projEntries.length, " registo", projEntries.length !== 1 ? 's' : '', " \xB7 \xDAltimo: ", lastDate)), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'right',
         flexShrink: 0
@@ -2600,7 +2558,7 @@ function HorasProApp(_ref9) {
         fontWeight: 800,
         marginTop: 2
       }
-    }, "CHF ", Math.round(projHoras * (proj.hourlyRate || 0))), /*#__PURE__*/React.createElement("div", {
+    }, "CHF ", Math.round(projHoras * 60)), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 6,
@@ -2612,7 +2570,6 @@ function HorasProApp(_ref9) {
         setEditProj(proj.id);
         setNewProjName(proj.name);
         setNewProjDesc(proj.desc || '');
-        setNewProjRate(String(proj.hourlyRate != null ? proj.hourlyRate : 60));
         setNewProjColor(proj.color);
         setShowAddProj(true);
         setProjSaveErr('');
@@ -3300,8 +3257,8 @@ function HorasProApp(_ref9) {
   }, {
     icon: '💰',
     label: 'Taxa horária',
-    value: 'Por projeto',
-    sub: 'definida em cada projeto'
+    value: 'CHF 60/h',
+    sub: 'valor por hora'
   }, {
     icon: '🔔',
     label: 'Notificações',
