@@ -988,7 +988,7 @@ function AgendaProApp(_ref13) {
           syncToFamilia(newJob.id, true, form);
         }
         try {
-          sendPushTargeted('Agenda Pro', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
+          sendPushTargeted('Carvalho Work', (form.proj || 'Marcação') + ' · ' + form.date + ' às ' + form.hi, form.partilhado, form.partilhadoCom);
         } catch (e) {}
         sendNotifTo(form.monteur, "\uD83D\uDCCB Nova marca\xE7\xE3o \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
         setShowAdd(false);
@@ -1099,7 +1099,7 @@ function AgendaProApp(_ref13) {
       fontWeight: 900,
       fontSize: 18
     }
-  }, "\uD83D\uDCCB Agenda Pro"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCB Carvalho Work"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -3500,7 +3500,7 @@ function AgendaProApp(_ref13) {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
     }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
       style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "Testes enviados pela Agenda Escolar"), /*#__PURE__*/React.createElement("div", {
+    }, "Testes enviados pela Carvalho Schule"), /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
     }, escolaSemana.map(function (val, wi) {
       var h = Math.max(4, val / maxEscola * 70);
