@@ -366,6 +366,10 @@ function HorasProApp(_ref9) {
     _useState6 = _slicedToArray(_useState5, 2),
     subNav = _useState6[0],
     setSubNav = _useState6[1];
+  var _useStateViewMode = (0, _react.useState)('pendentes'),
+    _useStateViewMode2 = _slicedToArray(_useStateViewMode, 2),
+    viewMode = _useStateViewMode2[0],
+    setViewMode = _useStateViewMode2[1];
   var _useState7 = (0, _react.useState)(false),
     _useState8 = _slicedToArray(_useState7, 2),
     showMenu = _useState8[0],
@@ -522,7 +526,8 @@ function HorasProApp(_ref9) {
           horas: Number(row.hours) || 0,
           morada: row.address || '',
           isAuto: !!row.is_auto,
-          dlTipo: row.dl_tipo || undefined
+          dlTipo: row.dl_tipo || undefined,
+          validado: !!row.validated
         };
       }));
       setEntriesLoaded(true);
@@ -626,7 +631,8 @@ function HorasProApp(_ref9) {
       hours: e.horas,
       address: e.morada || null,
       is_auto: !!e.isAuto,
-      dl_tipo: e.dlTipo || null
+      dl_tipo: e.dlTipo || null,
+      validated: !!e.validado
     }).then(function () {
       loadEntries();
     }).catch(function () {});
@@ -720,6 +726,55 @@ function HorasProApp(_ref9) {
   var sortedDates = Object.keys(grouped).sort(function (a, b) {
     return b.localeCompare(a);
   });
+  // Lista do ecrã "Registo": separada em Pendentes/Concluídos. Usa
+  // listEntries (já filtrada por Dia/Semana/Mês) — não afeta os gráficos,
+  // que continuam a usar `grouped`/`sortedDates` com tudo.
+  var pendentesNaJanela = listEntries.filter(function (e) {
+    return !e.validado;
+  });
+  var registoVisivel = listEntries.filter(function (e) {
+    return viewMode === 'concluidos' ? !!e.validado : !e.validado;
+  });
+  var groupedRegisto = registoVisivel.reduce(function (acc, e) {
+    (acc[e.date] = acc[e.date] || []).push(e);
+    return acc;
+  }, {});
+  var sortedDatesRegisto = Object.keys(groupedRegisto).sort(function (a, b) {
+    return b.localeCompare(a);
+  });
+  var toggleValidado = function toggleValidado(entry) {
+    var novo = !entry.validado;
+    setEntries(function (p) {
+      return p.map(function (x) {
+        return x.id === entry.id ? _objectSpread(_objectSpread({}, x), {}, {
+          validado: novo
+        }) : x;
+      });
+    });
+    if (window.supabaseClient) {
+      window.supabaseClient.from('horas_entries').update({
+        validated: novo
+      }).eq('id', entry.id).then(function () {}).catch(function () {});
+    }
+  };
+  var validarTudoVisivel = function validarTudoVisivel() {
+    var ids = pendentesNaJanela.map(function (e) {
+      return e.id;
+    });
+    if (ids.length === 0) return;
+    setEntries(function (p) {
+      return p.map(function (x) {
+        return ids.indexOf(x.id) !== -1 ? _objectSpread(_objectSpread({}, x), {}, {
+          validado: true
+        }) : x;
+      });
+    });
+    if (window.supabaseClient) {
+      window.supabaseClient.from('horas_entries').update({
+        validated: true
+      }).in('id', ids).then(function () {}).catch(function () {});
+    }
+  };
   var dayLabel = curDate.toLocaleDateString('pt-PT', {
     weekday: 'long',
     day: 'numeric',
@@ -1032,7 +1087,8 @@ function HorasProApp(_ref9) {
           hf: '00:00',
           horas: metaDia,
           isAuto: true,
-          dlTipo: 'sexta'
+          dlTipo: 'sexta',
+          validado: true
         });
         if (!alreadyDl) newDias.push({
           date: dStr,
@@ -2091,7 +2147,47 @@ function HorasProApp(_ref9) {
     style: {
       padding: '0 16px 20px'
     }
-  }, /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 12
+    }
+  }, [['pendentes', 'Pendentes'], ['concluidos', 'Concluídos']].map(function (opt) {
+    var key = opt[0],
+      lbl = opt[1];
+    return /*#__PURE__*/React.createElement("button", {
+      key: key,
+      onClick: function onClick() {
+        return setViewMode(key);
+      },
+      style: {
+        flex: 1,
+        padding: '9px 0',
+        borderRadius: 10,
+        border: viewMode === key ? 'none' : "1.5px solid ".concat(H.border),
+        background: viewMode === key ? H.gold : H.surface,
+        color: viewMode === key ? '#09090E' : H.muted,
+        fontWeight: 700,
+        fontSize: 13,
+        cursor: 'pointer'
+      }
+    }, lbl, key === 'pendentes' && pendentesNaJanela.length > 0 ? " (".concat(pendentesNaJanela.length, ")") : '');
+  })), viewMode === 'pendentes' && pendentesNaJanela.length > 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: validarTudoVisivel,
+    style: {
+      width: '100%',
+      padding: '11px 0',
+      borderRadius: 10,
+      border: 'none',
+      background: H.green,
+      color: '#fff',
+      fontWeight: 800,
+      fontSize: 13,
+      cursor: 'pointer',
+      marginBottom: 14
+    }
+  }, "\u2713 Validar tudo (", tab.toLowerCase(), ") \u2014 ", pendentesNaJanela.length, " registo", pendentesNaJanela.length === 1 ? '' : 's'), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.gold,
       fontSize: 11,
@@ -2100,7 +2196,13 @@ function HorasProApp(_ref9) {
       textTransform: 'uppercase',
       marginBottom: 14
     }
-  }, "TODOS OS REGISTOS"), sortedDates.map(function (date) {
+  }, viewMode === 'concluidos' ? 'REGISTOS CONCLUÍDOS' : 'REGISTOS PENDENTES'), sortedDatesRegisto.length === 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 13,
+      padding: '8px 0'
+    }
+  }, viewMode === 'concluidos' ? 'Ainda sem registos validados neste período.' : 'Sem registos pendentes neste período.'), sortedDatesRegisto.map(function (date) {
     return /*#__PURE__*/React.createElement("div", {
       key: date,
       style: {
@@ -2118,7 +2220,7 @@ function HorasProApp(_ref9) {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
-    }).toUpperCase()), grouped[date].map(function (e) {
+    }).toUpperCase()), groupedRegisto[date].map(function (e) {
       return /*#__PURE__*/React.createElement(LCard, {
         key: e.id,
         style: {
@@ -2227,7 +2329,33 @@ function HorasProApp(_ref9) {
           flexDirection: 'column',
           gap: 4
         }
-      }, !e.isAuto && /*#__PURE__*/React.createElement("button", {
+      }, /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
+          return toggleValidado(e);
+        },
+        title: e.validado ? 'Concluído — toca para voltar a pendente' : 'Validar',
+        style: {
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '4px'
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          border: "1.5px solid ".concat(e.validado ? H.green : H.gold),
+          background: e.validado ? "".concat(H.green, "22") : "".concat(H.gold, "1A"),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13
+        }
+      }, e.validado ? "\u2705" : "\u2713"))), !e.isAuto && /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return setEditEntry(e);
         },
@@ -3433,7 +3561,8 @@ function HorasProApp(_ref9) {
           hi: hi,
           hf: hf,
           horas: horas,
-          morada: morada
+          morada: morada,
+          validado: false
         }]);
       });
       if (!window.supabaseClient) {
@@ -3454,7 +3583,8 @@ function HorasProApp(_ref9) {
         start_time: hi,
         end_time: hf,
         hours: horas,
-        address: morada || null
+        address: morada || null,
+        validated: false
       }).then(function (res) {
         setEntrySaving(false);
         if (res.error) {
