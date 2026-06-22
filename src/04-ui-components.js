@@ -100,7 +100,7 @@ var BottomNav = function BottomNav(_ref4) {
       justifyContent: 'space-around',
       zIndex: 200
     }
-  }, [['🏠', 'Início'], ['🔔', 'Avisos'], ['⚙️', 'Definições'], ['👤', 'Perfil']].map(function (_ref5) {
+  }, [['🏠', 'Início'], ['📅', 'Hoje'], ['⚙️', 'Definições'], ['👤', 'Perfil']].map(function (_ref5) {
     var _ref6 = _slicedToArray(_ref5, 2),
       icon = _ref6[0],
       label = _ref6[1];
