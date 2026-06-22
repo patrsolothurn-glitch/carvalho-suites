@@ -740,7 +740,7 @@ function HorasProApp(_ref9) {
     return acc;
   }, {});
   var sortedDatesRegisto = Object.keys(groupedRegisto).sort(function (a, b) {
-    return b.localeCompare(a);
+    return a.localeCompare(b);
   });
   var toggleValidado = function toggleValidado(entry) {
     var novo = !entry.validado;
