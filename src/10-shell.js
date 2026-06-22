@@ -318,6 +318,20 @@ function CarvalhoSuite() {
     _useStateHojeLoading2 = _slicedToArray(_useStateHojeLoading, 2),
     hojeLoading = _useStateHojeLoading2[0],
     setHojeLoading = _useStateHojeLoading2[1];
+  var deleteHojeItem = function deleteHojeItem(it) {
+    var ok = window.confirm ? window.confirm('Apagar "' + it.msg + '" definitivamente? Isto remove o evento/marcação a sério, não só desta lista.') : true;
+    if (!ok) return;
+    if (!window.supabaseClient) return;
+    var table = null;
+    var realId = null;
+    if (it.id.indexOf('fam_') === 0) { table = 'family_events'; realId = it.id.slice(4); }
+    else if (it.id.indexOf('job_') === 0) { table = 'agenda_pro_jobs'; realId = it.id.slice(4); }
+    else if (it.id.indexOf('esc_') === 0) { table = 'escolar_tpc'; realId = it.id.slice(4); }
+    if (!table || !realId) return;
+    window.supabaseClient.from(table).delete().eq('id', realId).then(function () {
+      setHojeItems(function (p) { return p.filter(function (x) { return x.id !== it.id; }); });
+    }).catch(function () {});
+  };
   var dismissHojeItem = function dismissHojeItem(id) {
     if (!profile) return;
     var current = profile.dismissed_hoje || [];
@@ -1734,6 +1748,9 @@ function CarvalhoSuite() {
               },
               onDismiss: function onDismiss() {
                 return dismissHojeItem(it.id);
+              },
+              onDelete: function onDelete() {
+                return deleteHojeItem(it);
               },
               style: {
                 padding: '12px 14px',
