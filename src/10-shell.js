@@ -109,6 +109,14 @@ function CarvalhoSuite() {
     _useStateUpdMsg2 = _slicedToArray(_useStateUpdMsg, 2),
     updMsg = _useStateUpdMsg2[0],
     setUpdMsg = _useStateUpdMsg2[1];
+  var _useStatePushTestMsg = (0, _react.useState)(''),
+    _useStatePushTestMsg2 = _slicedToArray(_useStatePushTestMsg, 2),
+    pushTestMsg = _useStatePushTestMsg2[0],
+    setPushTestMsg = _useStatePushTestMsg2[1];
+  var _useStatePushTestChecking = (0, _react.useState)(false),
+    _useStatePushTestChecking2 = _slicedToArray(_useStatePushTestChecking, 2),
+    pushTestChecking = _useStatePushTestChecking2[0],
+    setPushTestChecking = _useStatePushTestChecking2[1];
   var _useStateAddMemberOpen = (0, _react.useState)(false),
     _useStateAddMemberOpen2 = _slicedToArray(_useStateAddMemberOpen, 2),
     addMemberOpen = _useStateAddMemberOpen2[0],
@@ -1029,6 +1037,53 @@ function CarvalhoSuite() {
       proceedWithReset();
     }
   };
+  var testPushNotif = function testPushNotif() {
+    setPushTestChecking(true);
+    setPushTestMsg('A verificar...');
+    var lines = [];
+    var subCheck = 'serviceWorker' in navigator ? navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription();
+    }).then(function (sub) {
+      lines.push(sub ? '✓ Este aparelho tem subscrição push ativa (local).' : '✗ Este aparelho NÃO tem subscrição push local.');
+    }).catch(function () {
+      lines.push('✗ Erro ao verificar subscrição local.');
+    }) : Promise.resolve().then(function () {
+      lines.push('✗ Push não suportado neste navegador.');
+    });
+    subCheck.then(function () {
+      if (!window.supabaseClient || !profile) {
+        lines.push('✗ Sem ligação ao servidor ou perfil.');
+        setPushTestMsg(lines.join('\n'));
+        setPushTestChecking(false);
+        return;
+      }
+      return window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).then(function (res) {
+        lines.push((res.count || 0) + ' subscrição(ões) guardada(s) no servidor para o TEU perfil.');
+      }).then(function () {
+        return window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true });
+      }).then(function (res2) {
+        lines.push((res2.count || 0) + ' subscrição(ões) no total (todos os perfis).');
+      }).then(function () {
+        return getEligibleProfileIds('familia', null);
+      }).then(function (ids) {
+        lines.push(ids.length + ' perfil(is) elegível(eis) para receber avisos de Família agora.');
+        return window.supabaseClient.functions.invoke('send-push', {
+          body: { title: 'Teste Carvalho', body: 'Notificação de teste — ' + new Date().toLocaleTimeString('pt-PT'), profileIds: ids }
+        });
+      }).then(function (res3) {
+        if (res3 && res3.error) {
+          lines.push('✗ Erro ao chamar send-push: ' + (res3.error.message || JSON.stringify(res3.error)));
+        } else {
+          lines.push('✓ send-push chamado sem erro. Resposta: ' + JSON.stringify(res3 && res3.data));
+        }
+      }).catch(function (e) {
+        lines.push('✗ Excepção: ' + (e && e.message || String(e)));
+      }).then(function () {
+        setPushTestMsg(lines.join('\n'));
+        setPushTestChecking(false);
+      });
+    });
+  };
   var nav = function nav(label) {
     if (label === 'Início') setScreen('hub');else if (label === 'Avisos') setScreen('notifs');else if (label === 'Definições') {
       setScreen('definicoes');
@@ -1569,7 +1624,37 @@ function CarvalhoSuite() {
         fontWeight: 700,
         cursor: 'pointer'
       }
-    }, "🧹 Limpar cache e reiniciar")
+    }, "🧹 Limpar cache e reiniciar"),
+    React.createElement("button", {
+      onClick: testPushNotif,
+      disabled: pushTestChecking,
+      style: {
+        width: '100%',
+        marginTop: 8,
+        background: pushTestChecking ? T.surface2 : 'rgba(34,197,94,0.08)',
+        border: '1px solid rgba(34,197,94,0.3)',
+        borderRadius: 12,
+        padding: '12px',
+        color: pushTestChecking ? T.muted : '#22C55E',
+        fontSize: 14,
+        fontWeight: 700,
+        cursor: pushTestChecking ? 'default' : 'pointer'
+      }
+    }, pushTestChecking ? 'A testar…' : '🔔 Testar notificações push'),
+    pushTestMsg && React.createElement("pre", {
+      style: {
+        whiteSpace: 'pre-wrap',
+        color: T.text,
+        fontSize: 11.5,
+        lineHeight: 1.6,
+        marginTop: 10,
+        marginBottom: 0,
+        fontFamily: 'inherit',
+        background: T.surface2,
+        borderRadius: 10,
+        padding: '10px'
+      }
+    }, pushTestMsg)
   ),
   React.createElement("p", {
     style: { color: T.muted, fontSize: 12, lineHeight: 1.5, padding: '0 4px' }
