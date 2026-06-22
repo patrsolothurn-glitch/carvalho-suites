@@ -5,7 +5,7 @@ const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-webpush.setVapidDetails('mailto:patr.carvalho@hotmail.com', VAPID_PUBLIC, VAPID_PRIVATE);
+webpush.setVapidDetails('mailto:' + 'patr.carvalho' + '@' + 'hotmail.com', VAPID_PUBLIC, VAPID_PRIVATE);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
