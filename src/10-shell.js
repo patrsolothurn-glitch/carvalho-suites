@@ -1853,10 +1853,13 @@ function CarvalhoSuite() {
     style: { padding: '16px', marginBottom: 14 }
   },
     React.createElement("div", {
-      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }
     },
       React.createElement("span", { style: { color: T.muted, fontSize: 13 } }, "Versão instalada"),
-      React.createElement("span", { style: { color: T.text, fontSize: 13, fontWeight: 700, fontFamily: 'monospace' } }, cacheVer || '...')
+      React.createElement("div", { style: { textAlign: 'right' } },
+        React.createElement("div", { style: { color: T.text, fontSize: 14, fontWeight: 800 } }, (typeof window !== 'undefined' && window.CARVALHO_FRIENDLY_VERSION) || 'Carvalho-00'),
+        React.createElement("div", { style: { color: T.muted, fontSize: 9.5, fontFamily: 'monospace', marginTop: 1 } }, cacheVer || '...')
+      )
     ),
     React.createElement("div", {
       style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }
