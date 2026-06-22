@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T20:17:11.624Z
+  Gerado em: 2026-06-22T21:12:37.381Z
 -->
 <html lang="pt">
 <head>
@@ -18160,6 +18160,22 @@ function CarvalhoSuite() {
       }).catch(function () { setCacheVer('desconhecida'); });
     }
   }, [screen, isAdmin]);
+  (0, _react.useEffect)(function () {
+    if (screen !== 'notifs' || !profile) return;
+    var unreadIds = notifItems.filter(function (n) {
+      return myReadNotifs.indexOf(n.id) === -1;
+    }).map(function (n) {
+      return n.id;
+    });
+    if (!unreadIds.length) return;
+    var nextRead = myReadNotifs.concat(unreadIds);
+    setProfile(function (p) {
+      return p ? _objectSpread(_objectSpread({}, p), {}, { read_notifications: nextRead }) : p;
+    });
+    if (window.supabaseClient && profile.id) {
+      window.supabaseClient.from('profiles').update({ read_notifications: nextRead }).eq('id', profile.id).then(function () {}).catch(function () {});
+    }
+  }, [screen, notifItems]);
   var checkForUpdate = function checkForUpdate() {
     if (!('serviceWorker' in navigator)) {
       setUpdMsg('Service Worker não suportado neste navegador.');
