@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T21:20:06.641Z
+  Gerado em: 2026-06-22T21:30:59.581Z
 -->
 <html lang="pt">
 <head>
@@ -352,7 +352,7 @@ var BottomNav = function BottomNav(_ref4) {
       justifyContent: 'space-around',
       zIndex: 200
     }
-  }, [['🏠', 'Início'], ['🔔', 'Avisos'], ['⚙️', 'Definições'], ['👤', 'Perfil']].map(function (_ref5) {
+  }, [['🏠', 'Início'], ['📅', 'Hoje'], ['⚙️', 'Definições'], ['👤', 'Perfil']].map(function (_ref5) {
     var _ref6 = _slicedToArray(_ref5, 2),
       icon = _ref6[0],
       label = _ref6[1];
@@ -17480,6 +17480,94 @@ function CarvalhoSuite() {
     _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
     notifItems = _useStateNotifData2[0],
     setNotifItems = _useStateNotifData2[1];
+  var _useStateHojeItems = (0, _react.useState)([]),
+    _useStateHojeItems2 = _slicedToArray(_useStateHojeItems, 2),
+    hojeItems = _useStateHojeItems2[0],
+    setHojeItems = _useStateHojeItems2[1];
+  var _useStateHojeLoading = (0, _react.useState)(false),
+    _useStateHojeLoading2 = _slicedToArray(_useStateHojeLoading, 2),
+    hojeLoading = _useStateHojeLoading2[0],
+    setHojeLoading = _useStateHojeLoading2[1];
+  var loadHojeData = function loadHojeData() {
+    if (!window.supabaseClient) return;
+    setHojeLoading(true);
+    var now = new Date();
+    var todayStr = now.toISOString().slice(0, 10);
+    var future = new Date(now);
+    future.setDate(future.getDate() + 2);
+    var futureStr = future.toISOString().slice(0, 10);
+    var allowedApps = (profile && profile.allowed_apps) || [];
+    var queries = [];
+    if (allowedApps.indexOf('familia') !== -1) {
+      queries.push(window.supabaseClient.from('family_events').select('*').gte('event_date', todayStr).lte('event_date', futureStr));
+    } else {
+      queries.push(Promise.resolve({ data: [] }));
+    }
+    if (allowedApps.indexOf('agenda') !== -1) {
+      queries.push(window.supabaseClient.from('agenda_pro_jobs').select('*').gte('job_date', todayStr).lte('job_date', futureStr));
+    } else {
+      queries.push(Promise.resolve({ data: [] }));
+    }
+    if (allowedApps.indexOf('escolar') !== -1) {
+      var alunos = isAdmin ? ['lucas', 'liam'] : profile && profile.member_id ? [profile.member_id] : [];
+      if (alunos.length > 0) {
+        queries.push(window.supabaseClient.from('escolar_tpc').select('*').eq('tipo', 'teste').eq('feito', false).gte('data', todayStr).lte('data', futureStr).in('aluno', alunos));
+      } else {
+        queries.push(Promise.resolve({ data: [] }));
+      }
+    } else {
+      queries.push(Promise.resolve({ data: [] }));
+    }
+    Promise.all(queries).then(function (resArr) {
+      var famRes = resArr[0],
+        jobRes = resArr[1],
+        escRes = resArr[2];
+      var items = [];
+      (famRes && famRes.data || []).forEach(function (row) {
+        items.push({
+          id: 'fam_' + row.id,
+          app: 'Família',
+          appId: 'familia',
+          msg: row.title + (row.event_time ? ' · ' + row.event_time : ''),
+          date: row.event_date,
+          time: row.event_time || '',
+          icon: row.emoji || '🏠',
+          color: T.blue
+        });
+      });
+      (jobRes && jobRes.data || []).forEach(function (row) {
+        items.push({
+          id: 'job_' + row.id,
+          app: 'Patricio Work',
+          appId: 'agenda',
+          msg: (row.project || 'Marcação') + (row.start_time ? ' · ' + row.start_time : ''),
+          date: row.job_date,
+          time: row.start_time || '',
+          icon: '📋',
+          color: T.orange
+        });
+      });
+      (escRes && escRes.data || []).forEach(function (row) {
+        items.push({
+          id: 'esc_' + row.id,
+          app: 'Vida Escolar',
+          appId: 'escolar',
+          msg: '📌 ' + (row.titulo || 'Teste') + (row.aluno ? ' · ' + (row.aluno.charAt(0).toUpperCase() + row.aluno.slice(1)) : ''),
+          date: row.data,
+          time: '',
+          icon: '📚',
+          color: '#A855F7'
+        });
+      });
+      items.sort(function (a, b) {
+        return (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || '');
+      });
+      setHojeItems(items);
+      setHojeLoading(false);
+    }).catch(function () {
+      setHojeLoading(false);
+    });
+  };
   var loadNotifData = function loadNotifData() {
     if (!window.supabaseClient) return;
     var now = new Date();
@@ -18154,6 +18242,7 @@ function CarvalhoSuite() {
   (0, _react.useEffect)(function () {
     if (screen === 'definicoes' && isAdmin) loadAllProfiles();
     if (screen === 'notifs') loadNotifData();
+    if (screen === 'hoje') loadHojeData();
     if (screen === 'definicoes' && 'caches' in window) {
       caches.keys().then(function (keys) {
         var c = keys.find(function (k) { return k.indexOf('carvalho-') === 0; });
@@ -18310,7 +18399,7 @@ function CarvalhoSuite() {
     });
   };
   var nav = function nav(label) {
-    if (label === 'Início') setScreen('hub');else if (label === 'Avisos') setScreen('notifs');else if (label === 'Definições') {
+    if (label === 'Início') setScreen('hub');else if (label === 'Hoje') setScreen('hoje');else if (label === 'Definições') {
       setScreen('definicoes');
       if (isAdmin) loadAllProfiles();
     } else if (label === 'Perfil') setScreen('perfil');
@@ -18751,9 +18840,74 @@ function CarvalhoSuite() {
       }
     }, n.time)));
   })), /*#__PURE__*/React.createElement(BottomNav, {
-    active: "Avisos",
+    active: "",
     onNav: nav
   }));
+
+  // ── HOJE ──
+  if (screen === 'hoje') {
+    var groups = [];
+    hojeItems.forEach(function (it) {
+      var label = formatRelDatePt(it.date);
+      var g = groups.find(function (gr) { return gr.label === label; });
+      if (!g) { g = { label: label, items: [] }; groups.push(g); }
+      g.items.push(it);
+    });
+    return /*#__PURE__*/React.createElement("div", {
+      style: _objectSpread(_objectSpread({}, wrap), {}, {
+        paddingBottom: 80
+      })
+    }, /*#__PURE__*/React.createElement(TopBar, {
+      onBack: function onBack() {
+        return setScreen('hub');
+      },
+      title: "Hoje"
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14
+      }
+    }, hojeLoading ? /*#__PURE__*/React.createElement("p", {
+      style: { color: T.muted, fontSize: 13, textAlign: 'center', marginTop: 24 }
+    }, "A carregar…") : groups.length === 0 ? /*#__PURE__*/React.createElement("p", {
+      style: { color: T.muted, fontSize: 13, textAlign: 'center', marginTop: 24 }
+    }, "Nada marcado nos próximos dias ✨") : groups.map(function (g) {
+      return /*#__PURE__*/React.createElement("div", { key: g.label },
+        /*#__PURE__*/React.createElement("p", {
+          style: { color: T.gold, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }
+        }, g.label),
+        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+          g.items.map(function (it) {
+            return /*#__PURE__*/React.createElement(Card, {
+              key: it.id,
+              onClick: function onClick() {
+                setApp(it.appId);
+                setScreen('app');
+              },
+              style: {
+                padding: '12px 14px',
+                borderLeft: "3px solid ".concat(it.color),
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+                cursor: 'pointer'
+              }
+            }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 19 } }, it.icon),
+              /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+                /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13.5, color: T.text } }, it.msg),
+                /*#__PURE__*/React.createElement("p", { style: { color: T.muted, fontSize: 11, marginTop: 2, fontWeight: 600 } }, it.app)
+              )
+            );
+          })
+        )
+      );
+    })), /*#__PURE__*/React.createElement(BottomNav, {
+      active: "Hoje",
+      onNav: nav
+    }));
+  }
 
   // ── DEFINIÇÕES ──
   if (screen === 'definicoes') return /*#__PURE__*/React.createElement("div", {
