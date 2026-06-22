@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T21:55:35.956Z
+  Gerado em: 2026-06-22T22:01:21.939Z
 -->
 <html lang="pt">
 <head>
@@ -25,6 +25,7 @@
     body{background:#09090E;font-family:system-ui,sans-serif;overflow-x:hidden}
     #root{min-height:100vh}
   </style>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-01";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -19111,10 +19112,13 @@ function CarvalhoSuite() {
     style: { padding: '16px', marginBottom: 14 }
   },
     React.createElement("div", {
-      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }
     },
       React.createElement("span", { style: { color: T.muted, fontSize: 13 } }, "Versão instalada"),
-      React.createElement("span", { style: { color: T.text, fontSize: 13, fontWeight: 700, fontFamily: 'monospace' } }, cacheVer || '...')
+      React.createElement("div", { style: { textAlign: 'right' } },
+        React.createElement("div", { style: { color: T.text, fontSize: 14, fontWeight: 800 } }, (typeof window !== 'undefined' && window.CARVALHO_FRIENDLY_VERSION) || 'Carvalho-00'),
+        React.createElement("div", { style: { color: T.muted, fontSize: 9.5, fontFamily: 'monospace', marginTop: 1 } }, cacheVer || '...')
+      )
     ),
     React.createElement("div", {
       style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }
