@@ -990,6 +990,22 @@ function CarvalhoSuite() {
       }).catch(function () { setCacheVer('desconhecida'); });
     }
   }, [screen, isAdmin]);
+  (0, _react.useEffect)(function () {
+    if (screen !== 'notifs' || !profile) return;
+    var unreadIds = notifItems.filter(function (n) {
+      return myReadNotifs.indexOf(n.id) === -1;
+    }).map(function (n) {
+      return n.id;
+    });
+    if (!unreadIds.length) return;
+    var nextRead = myReadNotifs.concat(unreadIds);
+    setProfile(function (p) {
+      return p ? _objectSpread(_objectSpread({}, p), {}, { read_notifications: nextRead }) : p;
+    });
+    if (window.supabaseClient && profile.id) {
+      window.supabaseClient.from('profiles').update({ read_notifications: nextRead }).eq('id', profile.id).then(function () {}).catch(function () {});
+    }
+  }, [screen, notifItems]);
   var checkForUpdate = function checkForUpdate() {
     if (!('serviceWorker' in navigator)) {
       setUpdMsg('Service Worker não suportado neste navegador.');
