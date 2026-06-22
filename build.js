@@ -9,10 +9,12 @@
  */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const SRC_DIR = path.join(__dirname, 'src');
 const OUT_FILE = path.join(__dirname, 'index.html');
+const SW_FILE = path.join(__dirname, 'sw.js');
 
 // Ordem de montagem do bundle JS. Cada ficheiro é uma secção lógica
 // e independente — para editar uma app, só é preciso abrir o ficheiro
@@ -90,6 +92,30 @@ function main() {
 
   fs.writeFileSync(OUT_FILE, finalHtml, 'utf8');
   console.log(`✓ index.html gerado: ${finalHtml.length} caracteres, ${JS_SECTIONS.length} secções JS`);
+
+  // ── Atualiza automaticamente a versão da cache do Service Worker ──
+  // A versão é um hash do código real (jsBody), por isso só muda
+  // quando o código muda — e muda SEMPRE que mudar, sem ninguém ter
+  // de se lembrar de bater o número à mão (isso é o que estava a
+  // causar telemóveis a ficarem agarrados a versões antigas).
+  if (fs.existsSync(SW_FILE)) {
+    var swContent = fs.readFileSync(SW_FILE, 'utf8');
+    var match = swContent.match(/const CACHE = '([^']+)';/);
+    if (match) {
+      var contentHash = crypto.createHash('sha256').update(jsBody).digest('hex').slice(0, 8);
+      var newVersion = 'carvalho-v' + contentHash;
+      var oldVersion = match[1];
+      if (oldVersion !== newVersion) {
+        swContent = swContent.replace(/const CACHE = '[^']+';/, "const CACHE = '" + newVersion + "';");
+        fs.writeFileSync(SW_FILE, swContent, 'utf8');
+        console.log(`✓ sw.js: versão da cache atualizada ${oldVersion} → ${newVersion}`);
+      } else {
+        console.log(`  sw.js: código sem alterações — versão mantida (${oldVersion})`);
+      }
+    } else {
+      console.warn('⚠ Aviso: não encontrei "const CACHE = ..." em sw.js — versão da cache NÃO foi atualizada automaticamente.');
+    }
+  }
   console.log('  (pronto para publicar)');
 }
 
