@@ -102,6 +102,7 @@ async function main() {
   console.log('2/4 — A validar e publicar index.html e sw.js no GitHub...');
   await putFile('index.html', path.join(__dirname, 'index.html'), MESSAGE);
   await putFile('sw.js', path.join(__dirname, 'sw.js'), `${MESSAGE} (sw bump)`);
+  await putFile('build-number.txt', path.join(__dirname, 'build-number.txt'), `${MESSAGE} (build number)`);
 
   console.log('3/4 — A aguardar o GitHub Pages publicar...');
   const conclusion = await waitForPagesDeploy(6);
