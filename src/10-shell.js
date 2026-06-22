@@ -169,6 +169,20 @@ function CarvalhoSuite() {
     _useState190 = _slicedToArray(_useState189, 2),
     activeUser = _useState190[0],
     setUser = _useState190[1];
+  var _useStateVoltarBannerShown = (0, _react.useState)(false),
+    _useStateVoltarBannerShown2 = _slicedToArray(_useStateVoltarBannerShown, 2),
+    voltarBannerShown = _useStateVoltarBannerShown2[0],
+    setVoltarBannerShown = _useStateVoltarBannerShown2[1];
+  (0, _react.useEffect)(function () {
+    if (activeUser === 'patricio') return;
+    setVoltarBannerShown(true);
+    var t = setTimeout(function () {
+      setVoltarBannerShown(false);
+    }, 4000);
+    return function () {
+      clearTimeout(t);
+    };
+  }, [activeUser]);
   var _useState191 = (0, _react.useState)(null),
     _useState192 = _slicedToArray(_useState191, 2),
     activeApp = _useState192[0],
@@ -2542,7 +2556,7 @@ function CarvalhoSuite() {
   }));
 
   // ── HUB ──
-  var voltarBanner = activeUser !== 'patricio' ? /*#__PURE__*/React.createElement("div", {
+  var voltarBanner = activeUser !== 'patricio' && voltarBannerShown ? /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'rgba(201,168,71,0.1)',
       borderBottom: "1px solid ".concat(T.goldBrd),
