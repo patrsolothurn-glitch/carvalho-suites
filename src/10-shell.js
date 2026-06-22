@@ -397,6 +397,7 @@ function CarvalhoSuite() {
           app: 'Patricio Work',
           appId: 'agenda',
           msg: (row.project || 'Marcação') + (row.start_time ? ' · ' + row.start_time : ''),
+          address: row.address || '',
           date: row.job_date,
           time: row.start_time || '',
           icon: '📋',
@@ -1788,6 +1789,7 @@ function CarvalhoSuite() {
             }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 19 } }, it.icon),
               /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
                 /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13.5, color: T.text } }, it.msg),
+                it.address && /*#__PURE__*/React.createElement("p", { style: { color: T.gold, fontSize: 12, marginTop: 2, fontWeight: 700 } }, "📍 " + it.address),
                 /*#__PURE__*/React.createElement("p", { style: { color: T.muted, fontSize: 11, marginTop: 2, fontWeight: 600 } }, it.app)
               )
             );
