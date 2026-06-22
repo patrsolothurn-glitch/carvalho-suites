@@ -944,6 +944,9 @@ function AgendaProApp(_ref13) {
         loadJobs();
         syncToFamilia(editId, form.partilhado, form);
         sendNotifTo(form.monteur, "\u270F\uFE0F Marca\xE7\xE3o alterada \u2014 ".concat(form.monteur), "".concat(form.morada, " \xB7 ").concat(form.date, " \xE0s ").concat(form.hi, "\u2013").concat(form.hf));
+        try {
+          sendPushTargeted('Patricio Work', '\u270F\uFE0F ' + (form.proj || 'Marca\u00e7\u00e3o') + ' \u00b7 ' + form.date + ' \u00e0s ' + form.hi, form.partilhado, form.partilhadoCom);
+        } catch (e) {}
         setShowAdd(false);
         setEditId(null);
       }).catch(function (e) {
@@ -1024,6 +1027,9 @@ function AgendaProApp(_ref13) {
   var deleteApptWithNotif = function deleteApptWithNotif(a) {
     deleteAppt(a.id);
     sendNotifTo(a.monteur, "\u274C Marca\xE7\xE3o cancelada \u2014 ".concat(a.monteur), "".concat(a.morada, " \xB7 ").concat(a.date, " \xE0s ").concat(a.hi, " foi cancelada"));
+    try {
+      sendPushTargeted('Patricio Work', '\u274C ' + (a.proj || 'Marca\u00e7\u00e3o') + ' \u00b7 ' + a.date + ' foi cancelada', a.partilhado, a.partilhadoCom);
+    } catch (e) {}
   };
   var changeStatusWithNotif = function changeStatusWithNotif(id, status) {
     var a = appts.find(function (x) {
