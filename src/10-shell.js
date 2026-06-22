@@ -1260,6 +1260,29 @@ function CarvalhoSuite() {
       if (isAdmin) loadAllProfiles();
     } else if (label === 'Perfil') setScreen('perfil');
   };
+  var TAB_ORDER = ['hub', 'hoje', 'definicoes', 'perfil'];
+  var swipeNavStartX = (0, _react.useRef)(null);
+  var swipeNavStartY = (0, _react.useRef)(null);
+  var onPageTouchStart = function onPageTouchStart(e) {
+    swipeNavStartX.current = e.touches[0].clientX;
+    swipeNavStartY.current = e.touches[0].clientY;
+  };
+  var onPageTouchEnd = function onPageTouchEnd(e) {
+    if (swipeNavStartX.current === null) return;
+    var dx = e.changedTouches[0].clientX - swipeNavStartX.current;
+    var dy = e.changedTouches[0].clientY - (swipeNavStartY.current || 0);
+    swipeNavStartX.current = null;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)) return;
+    var idx = TAB_ORDER.indexOf(screen);
+    if (idx === -1) return;
+    if (dx < 0 && idx < TAB_ORDER.length - 1) {
+      var nextScreen = TAB_ORDER[idx + 1];
+      setScreen(nextScreen);
+      if (nextScreen === 'definicoes' && isAdmin) loadAllProfiles();
+    } else if (dx > 0 && idx > 0) {
+      setScreen(TAB_ORDER[idx - 1]);
+    }
+  };
 
   // ── APP SCREENS ──
   if (screen === 'app' && activeApp) {
@@ -1714,6 +1737,8 @@ function CarvalhoSuite() {
       g.items.push(it);
     });
     return /*#__PURE__*/React.createElement("div", {
+      onTouchStart: onPageTouchStart,
+      onTouchEnd: onPageTouchEnd,
       style: _objectSpread(_objectSpread({}, wrap), {}, {
         paddingBottom: 80
       })
@@ -1777,6 +1802,8 @@ function CarvalhoSuite() {
 
   // ── DEFINIÇÕES ──
   if (screen === 'definicoes') return /*#__PURE__*/React.createElement("div", {
+    onTouchStart: onPageTouchStart,
+    onTouchEnd: onPageTouchEnd,
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 80
     })
@@ -2049,6 +2076,8 @@ function CarvalhoSuite() {
 
   // ── PERFIL ──
   if (screen === 'perfil') return /*#__PURE__*/React.createElement("div", {
+    onTouchStart: onPageTouchStart,
+    onTouchEnd: onPageTouchEnd,
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 80
     })
@@ -2794,6 +2823,8 @@ function CarvalhoSuite() {
     }
   }, "\u2039 Voltar")) : null;
   return /*#__PURE__*/React.createElement("div", {
+    onTouchStart: onPageTouchStart,
+    onTouchEnd: onPageTouchEnd,
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 90
     })
