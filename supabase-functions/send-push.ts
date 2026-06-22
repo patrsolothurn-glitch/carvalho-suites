@@ -14,8 +14,6 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // O navegador manda sempre um pedido OPTIONS antes do POST (preflight).
-  // Tem de ser respondido já aqui, sem tentar ler o corpo do pedido.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -31,6 +29,7 @@ Deno.serve(async (req) => {
     });
     const subs = await res.json();
     const payload = JSON.stringify({ title: title || 'Carvalho Suite', body: body || '' });
+
     const results = await Promise.allSettled(
       (subs || []).map((s: any) =>
         webpush.sendNotification(
@@ -39,9 +38,49 @@ Deno.serve(async (req) => {
         )
       )
     );
-    return new Response(JSON.stringify({ sent: results.length }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+
+    let sentCount = 0;
+    const errors: any[] = [];
+    const deadEndpoints: string[] = [];
+
+    results.forEach((r: any, i: number) => {
+      if (r.status === 'fulfilled') {
+        sentCount++;
+      } else {
+        const reason = r.reason || {};
+        const statusCode = reason.statusCode;
+        errors.push({
+          endpoint: (subs[i].endpoint || '').slice(0, 50),
+          statusCode,
+          message: String(reason.body || reason.message || reason),
+        });
+        if (statusCode === 404 || statusCode === 410) {
+          deadEndpoints.push(subs[i].endpoint);
+        }
+      }
     });
+
+    // Limpa subscrições mortas (o navegador/dispositivo já não as reconhece)
+    if (deadEndpoints.length > 0) {
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/push_subscriptions?endpoint=in.(${deadEndpoints.map((e) => encodeURIComponent(e)).join(',')})`,
+        {
+          method: 'DELETE',
+          headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+        }
+      ).catch(() => {});
+    }
+
+    return new Response(
+      JSON.stringify({
+        attempted: results.length,
+        sent: sentCount,
+        failed: errors.length,
+        removed: deadEndpoints.length,
+        errors,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
