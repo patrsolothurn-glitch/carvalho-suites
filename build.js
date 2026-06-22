@@ -15,6 +15,7 @@ const { execSync } = require('child_process');
 const SRC_DIR = path.join(__dirname, 'src');
 const OUT_FILE = path.join(__dirname, 'index.html');
 const SW_FILE = path.join(__dirname, 'sw.js');
+const BUILD_NO_FILE = path.join(__dirname, 'build-number.txt');
 
 // Ordem de montagem do bundle JS. Cada ficheiro é uma secção lógica
 // e independente — para editar uma app, só é preciso abrir o ficheiro
@@ -55,6 +56,27 @@ function main() {
   const tail = read('tail.html');
   const jsBody = JS_SECTIONS.map(read).join('\n');
 
+  // ── Hash do código real + número de build amigável ──
+  // O hash (usado na cache do Service Worker) muda sempre que o
+  // código muda — é isso que evita telemóveis presos em versões
+  // antigas. O "número de build" é só cosmético, para mostrar em
+  // Definições algo como "Carvalho-07" em vez do hash em si.
+  const contentHash = crypto.createHash('sha256').update(jsBody).digest('hex').slice(0, 8);
+  const newCacheVersion = 'carvalho-v' + contentHash;
+  let oldCacheVersion = null;
+  if (fs.existsSync(SW_FILE)) {
+    const swMatch = fs.readFileSync(SW_FILE, 'utf8').match(/const CACHE = '([^']+)';/);
+    if (swMatch) oldCacheVersion = swMatch[1];
+  }
+  let buildNo = 0;
+  if (fs.existsSync(BUILD_NO_FILE)) {
+    buildNo = parseInt(fs.readFileSync(BUILD_NO_FILE, 'utf8').trim(), 10) || 0;
+  }
+  if (oldCacheVersion !== newCacheVersion) {
+    buildNo += 1;
+  }
+  const friendlyVersion = 'Carvalho-' + String(buildNo).padStart(2, '0');
+
   const banner = `<!--
   GERADO AUTOMATICAMENTE por build.js a partir dos ficheiros em src/.
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
@@ -63,7 +85,9 @@ function main() {
   Gerado em: ${new Date().toISOString()}
 -->
 `;
-  const headWithBanner = head.replace('<!DOCTYPE html>\n', '<!DOCTYPE html>\n' + banner);
+  const buildNoScript = `  <script>window.CARVALHO_FRIENDLY_VERSION = ${JSON.stringify(friendlyVersion)};</script>\n`;
+  let headWithBanner = head.replace('<!DOCTYPE html>\n', '<!DOCTYPE html>\n' + banner);
+  headWithBanner = headWithBanner.replace('</head>', buildNoScript + '</head>');
 
   const finalHtml = headWithBanner + jsBody + tail;
 
@@ -99,23 +123,20 @@ function main() {
   // de se lembrar de bater o número à mão (isso é o que estava a
   // causar telemóveis a ficarem agarrados a versões antigas).
   if (fs.existsSync(SW_FILE)) {
-    var swContent = fs.readFileSync(SW_FILE, 'utf8');
-    var match = swContent.match(/const CACHE = '([^']+)';/);
-    if (match) {
-      var contentHash = crypto.createHash('sha256').update(jsBody).digest('hex').slice(0, 8);
-      var newVersion = 'carvalho-v' + contentHash;
-      var oldVersion = match[1];
-      if (oldVersion !== newVersion) {
-        swContent = swContent.replace(/const CACHE = '[^']+';/, "const CACHE = '" + newVersion + "';");
+    if (oldCacheVersion) {
+      if (oldCacheVersion !== newCacheVersion) {
+        const swContent = fs.readFileSync(SW_FILE, 'utf8').replace(/const CACHE = '[^']+';/, "const CACHE = '" + newCacheVersion + "';");
         fs.writeFileSync(SW_FILE, swContent, 'utf8');
-        console.log(`✓ sw.js: versão da cache atualizada ${oldVersion} → ${newVersion}`);
+        console.log(`✓ sw.js: versão da cache atualizada ${oldCacheVersion} → ${newCacheVersion}`);
       } else {
-        console.log(`  sw.js: código sem alterações — versão mantida (${oldVersion})`);
+        console.log(`  sw.js: código sem alterações — versão mantida (${oldCacheVersion})`);
       }
     } else {
       console.warn('⚠ Aviso: não encontrei "const CACHE = ..." em sw.js — versão da cache NÃO foi atualizada automaticamente.');
     }
   }
+  fs.writeFileSync(BUILD_NO_FILE, String(buildNo), 'utf8');
+  console.log(`  Versão amigável: ${friendlyVersion}`);
   console.log('  (pronto para publicar)');
 }
 
