@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T15:23:11.190Z
+  Gerado em: 2026-06-22T15:38:23.317Z
 -->
 <html lang="pt">
 <head>
@@ -18160,21 +18160,44 @@ function CarvalhoSuite() {
   var hardReset = function hardReset() {
     if (!(window.confirm ? window.confirm('Isto vai limpar a cache local e reiniciar a app. Os teus dados continuam guardados no servidor. Continuar?') : true)) return;
     setUpdChecking(true);
-    setUpdMsg('A limpar cache...');
-    var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-    }) : Promise.resolve();
-    clearCaches.then(function () {
-      if ('serviceWorker' in navigator) {
-        return navigator.serviceWorker.getRegistration().then(function (reg) {
-          return reg ? reg.unregister() : null;
-        });
-      }
-    }).then(function () {
-      window.location.reload();
-    }).catch(function () {
-      window.location.reload();
-    });
+    var proceedWithReset = function proceedWithReset() {
+      setUpdMsg('A limpar cache...');
+      var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }) : Promise.resolve();
+      clearCaches.then(function () {
+        if ('serviceWorker' in navigator) {
+          return navigator.serviceWorker.getRegistration().then(function (reg) {
+            return reg ? reg.unregister() : null;
+          });
+        }
+      }).then(function () {
+        window.location.reload();
+      }).catch(function () {
+        window.location.reload();
+      });
+    };
+    if (typeof Notification === 'undefined') {
+      proceedWithReset();
+    } else if (Notification.permission === 'default') {
+      setUpdMsg('A pedir permissão de notificações...');
+      Notification.requestPermission().then(function (perm) {
+        setNotifPerm(perm);
+        if (perm === 'granted') {
+          loadNotifData();
+          subscribeToPush();
+        }
+        proceedWithReset();
+      }).catch(function () {
+        proceedWithReset();
+      });
+    } else if (Notification.permission === 'denied') {
+      setUpdMsg('⚠️ Notificações bloqueadas no telemóvel/navegador — ativa manualmente nas definições de notificações antes de continuar. A reiniciar...');
+      setTimeout(proceedWithReset, 2500);
+    } else {
+      subscribeToPush();
+      proceedWithReset();
+    }
   };
   var nav = function nav(label) {
     if (label === 'Início') setScreen('hub');else if (label === 'Avisos') setScreen('notifs');else if (label === 'Definições') {
