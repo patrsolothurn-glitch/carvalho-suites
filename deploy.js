@@ -72,23 +72,6 @@ async function putFile(filePath, localPath, message) {
   console.log(`  ${filePath} -> ${res.commit.sha.slice(0, 10)}${sha ? '' : ' (novo)'}`);
 }
 
-async function bumpServiceWorkerVersion() {
-  const swPath = path.join(__dirname, 'sw.js');
-  let content = fs.readFileSync(swPath, 'utf8');
-  const m = content.match(/carvalho-v(\d+)/);
-  if (!m) {
-    console.log('  (aviso: não encontrei "carvalho-vNN" em sw.js, a manter como está)');
-    return null;
-  }
-  const next = String(parseInt(m[1], 10) + 1).padStart(2, '0');
-  const oldVersion = m[0];
-  const newVersion = `carvalho-v${next}`;
-  content = content.replace(oldVersion, newVersion);
-  fs.writeFileSync(swPath, content, 'utf8');
-  console.log(`  ${oldVersion} -> ${newVersion}`);
-  return newVersion;
-}
-
 async function waitForPagesDeploy(maxAttempts) {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 15000));
@@ -111,22 +94,19 @@ const SRC_FILES = [
 ];
 
 async function main() {
-  console.log('1/5 — A incrementar a versão da cache (sw.js)...');
-  await bumpServiceWorkerVersion();
-
-  console.log('2/5 — A publicar os ficheiros fonte (src/) no GitHub...');
+  console.log('1/4 — A publicar os ficheiros fonte (src/) no GitHub...');
   for (const f of SRC_FILES) {
     await putFile(f, path.join(__dirname, f), MESSAGE);
   }
 
-  console.log('3/5 — A validar e publicar index.html e sw.js no GitHub...');
+  console.log('2/4 — A validar e publicar index.html e sw.js no GitHub...');
   await putFile('index.html', path.join(__dirname, 'index.html'), MESSAGE);
   await putFile('sw.js', path.join(__dirname, 'sw.js'), `${MESSAGE} (sw bump)`);
 
-  console.log('4/5 — A aguardar o GitHub Pages publicar...');
+  console.log('3/4 — A aguardar o GitHub Pages publicar...');
   const conclusion = await waitForPagesDeploy(6);
 
-  console.log('5/5 — Resultado:', conclusion);
+  console.log('4/4 — Resultado:', conclusion);
   if (conclusion !== 'success') {
     console.error('✗ O deploy do GitHub Pages não terminou com sucesso. Verifica manualmente.');
     process.exit(1);
