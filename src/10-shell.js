@@ -318,6 +318,18 @@ function CarvalhoSuite() {
     _useStateHojeLoading2 = _slicedToArray(_useStateHojeLoading, 2),
     hojeLoading = _useStateHojeLoading2[0],
     setHojeLoading = _useStateHojeLoading2[1];
+  var dismissHojeItem = function dismissHojeItem(id) {
+    if (!profile) return;
+    var current = profile.dismissed_hoje || [];
+    if (current.indexOf(id) !== -1) return;
+    var next = current.concat([id]);
+    setProfile(function (p) {
+      return p ? _objectSpread(_objectSpread({}, p), {}, { dismissed_hoje: next }) : p;
+    });
+    if (window.supabaseClient && profile.id) {
+      window.supabaseClient.from('profiles').update({ dismissed_hoje: next }).eq('id', profile.id).then(function () {}).catch(function () {});
+    }
+  };
   var loadHojeData = function loadHojeData() {
     if (!window.supabaseClient) return;
     setHojeLoading(true);
@@ -1676,8 +1688,12 @@ function CarvalhoSuite() {
 
   // ── HOJE ──
   if (screen === 'hoje') {
+    var dismissedHoje = (profile && profile.dismissed_hoje) || [];
+    var visibleHojeItems = hojeItems.filter(function (it) {
+      return dismissedHoje.indexOf(it.id) === -1;
+    });
     var groups = [];
-    hojeItems.forEach(function (it) {
+    visibleHojeItems.forEach(function (it) {
       var label = formatRelDatePt(it.date);
       var g = groups.find(function (gr) { return gr.label === label; });
       if (!g) { g = { label: label, items: [] }; groups.push(g); }
@@ -1710,11 +1726,14 @@ function CarvalhoSuite() {
         }, g.label),
         /*#__PURE__*/React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           g.items.map(function (it) {
-            return /*#__PURE__*/React.createElement(Card, {
+            return /*#__PURE__*/React.createElement(SwipeCard, {
               key: it.id,
               onClick: function onClick() {
                 setApp(it.appId);
                 setScreen('app');
+              },
+              onDismiss: function onDismiss() {
+                return dismissHojeItem(it.id);
               },
               style: {
                 padding: '12px 14px',
