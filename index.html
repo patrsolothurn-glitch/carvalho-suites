@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T15:52:06.631Z
+  Gerado em: 2026-06-22T17:38:20.339Z
 -->
 <html lang="pt">
 <head>
@@ -18230,9 +18230,26 @@ function CarvalhoSuite() {
       return window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).then(function (res) {
         lines.push((res.count || 0) + ' subscrição(ões) guardada(s) no servidor para o TEU perfil.');
       }).then(function () {
-        return window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true });
+        return window.supabaseClient.from('push_subscriptions').select('profile_id');
       }).then(function (res2) {
-        lines.push((res2.count || 0) + ' subscrição(ões) no total (todos os perfis).');
+        var rows = res2.data || [];
+        lines.push(rows.length + ' subscrição(ões) no total (todos os perfis).');
+        var counts = {};
+        rows.forEach(function (r) {
+          counts[r.profile_id] = (counts[r.profile_id] || 0) + 1;
+        });
+        var uEmoji = { patricio: '👨‍💼', esposa: '👩', lucas: '👦', liam: '👦' };
+        var byMember = (allProfiles || []).map(function (u) {
+          var name = u.display_name || (u.member_id ? u.member_id.charAt(0).toUpperCase() + u.member_id.slice(1) : u.email || 'Utilizador');
+          var emoji = uEmoji[u.member_id] || '👤';
+          return emoji + ' ' + name + ': ' + (counts[u.id] || 0) + ' subscrição(ões)';
+        });
+        if (byMember.length) {
+          lines.push('— Por pessoa —');
+          byMember.forEach(function (l) {
+            lines.push(l);
+          });
+        }
       }).then(function () {
         return getEligibleProfileIds('familia', null);
       }).then(function (ids) {
@@ -18795,7 +18812,7 @@ function CarvalhoSuite() {
         cursor: 'pointer'
       }
     }, "🧹 Limpar cache e reiniciar"),
-    React.createElement("button", {
+    isAdmin && React.createElement("button", {
       onClick: testPushNotif,
       disabled: pushTestChecking,
       style: {
@@ -18811,7 +18828,7 @@ function CarvalhoSuite() {
         cursor: pushTestChecking ? 'default' : 'pointer'
       }
     }, pushTestChecking ? 'A testar…' : '🔔 Testar notificações push'),
-    pushTestMsg && React.createElement("pre", {
+    isAdmin && pushTestMsg && React.createElement("pre", {
       style: {
         whiteSpace: 'pre-wrap',
         color: T.text,
