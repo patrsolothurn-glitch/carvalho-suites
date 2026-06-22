@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T21:49:30.125Z
+  Gerado em: 2026-06-22T21:55:35.956Z
 -->
 <html lang="pt">
 <head>
@@ -1243,7 +1243,7 @@ function HorasProApp(_ref9) {
     return acc;
   }, {});
   var sortedDatesRegisto = Object.keys(groupedRegisto).sort(function (a, b) {
-    return b.localeCompare(a);
+    return a.localeCompare(b);
   });
   var toggleValidado = function toggleValidado(entry) {
     var novo = !entry.validado;
