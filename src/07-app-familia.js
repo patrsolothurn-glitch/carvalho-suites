@@ -1598,6 +1598,18 @@ function FamiliaApp(_ref19) {
       onClick: function onClick() {
         if (window.supabaseClient && ev.id) {
           window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () {}).catch(function () {});
+          try {
+            getEligibleProfileIds('familia', null).then(function (ids) {
+              if (!ids.length) return;
+              window.supabaseClient.functions.invoke('send-push', {
+                body: {
+                  title: 'Fam\u00edlia Carvalho',
+                  body: '\uD83D\uDDD1\uFE0F ' + ev.t + ' foi apagado',
+                  profileIds: ids
+                }
+              }).catch(function () {});
+            });
+          } catch (e) {}
         }
         return setEvents(function (p) {
           var d = _objectSpread({}, p);
@@ -1885,6 +1897,18 @@ function FamiliaApp(_ref19) {
           }
           setEditEvErr('');
           setEditEvKey(null);
+          try {
+            getEligibleProfileIds('familia', null).then(function (ids) {
+              if (!ids.length) return;
+              window.supabaseClient.functions.invoke('send-push', {
+                body: {
+                  title: 'Fam\u00edlia Carvalho',
+                  body: '\u270F\uFE0F ' + titulo + (hora ? ' \u00b7 ' + hora : ''),
+                  profileIds: ids
+                }
+              }).catch(function () {});
+            });
+          } catch (e) {}
         }).catch(function (e) {
           setEditEvSaving(false);
           setEditEvErr('Erro de ligação: ' + (e && e.message || String(e)));
