@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T21:12:37.381Z
+  Gerado em: 2026-06-22T21:20:06.641Z
 -->
 <html lang="pt">
 <head>
@@ -18153,6 +18153,7 @@ function CarvalhoSuite() {
   };
   (0, _react.useEffect)(function () {
     if (screen === 'definicoes' && isAdmin) loadAllProfiles();
+    if (screen === 'notifs') loadNotifData();
     if (screen === 'definicoes' && 'caches' in window) {
       caches.keys().then(function (keys) {
         var c = keys.find(function (k) { return k.indexOf('carvalho-') === 0; });
