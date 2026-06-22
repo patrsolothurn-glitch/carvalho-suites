@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-22T14:38:18.739Z
+  Gerado em: 2026-06-22T15:08:30.923Z
 -->
 <html lang="pt">
 <head>
@@ -8392,6 +8392,14 @@ function FamiliaApp(_ref19) {
     _useState108 = _slicedToArray(_useState107, 2),
     editEvKey = _useState108[0],
     setEditEvKey = _useState108[1];
+  var _useStateEditEvErr = (0, _react.useState)(''),
+    _useStateEditEvErr2 = _slicedToArray(_useStateEditEvErr, 2),
+    editEvErr = _useStateEditEvErr2[0],
+    setEditEvErr = _useStateEditEvErr2[1];
+  var _useStateEditEvSaving = (0, _react.useState)(false),
+    _useStateEditEvSaving2 = _slicedToArray(_useStateEditEvSaving, 2),
+    editEvSaving = _useStateEditEvSaving2[0],
+    setEditEvSaving = _useStateEditEvSaving2[1];
   var _useState109 = (0, _react.useState)({}),
     _useState110 = _slicedToArray(_useState109, 2),
     memberPhotos = _useState110[0],
@@ -10126,6 +10134,7 @@ function FamiliaApp(_ref19) {
         cursor: 'pointer'
       }
     }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      disabled: editEvSaving,
       onClick: function onClick() {
         var _document$getElementB2, _document$getElementB3, _document$getElementB5;
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
@@ -10149,43 +10158,70 @@ function FamiliaApp(_ref19) {
           });
           return found ? found.color : ev.color;
         })();
-        if (window.supabaseClient && ev.id) {
-          window.supabaseClient.from('family_events').update({
-            title: titulo,
-            event_time: hora || null,
-            member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
-            participant_ids: participantes,
-            description: nota || null,
-            color: newColor
-          }).eq('id', ev.id).then(function () {}).catch(function () {});
-        }
-        setEvents(function (p) {
-          var d = _objectSpread({}, p);
-          var arr = _toConsumableArray(d[selDateStr] || []);
-          arr[i] = _objectSpread(_objectSpread({}, arr[i]), {}, {
-            t: titulo,
-            hora: hora,
-            participantes: participantes,
-            nota: nota,
-            color: newColor
+        var prevEv = ev;
+        var applyLocal = function applyLocal(novo) {
+          setEvents(function (p) {
+            var d = _objectSpread({}, p);
+            var arr = _toConsumableArray(d[selDateStr] || []);
+            arr[i] = novo ? _objectSpread(_objectSpread({}, arr[i]), novo) : prevEv;
+            d[selDateStr] = arr;
+            return d;
           });
-          d[selDateStr] = arr;
-          return d;
+        };
+        if (!window.supabaseClient || !ev.id) {
+          setEditEvErr('Sem ligação ao servidor — não foi guardado.');
+          return;
+        }
+        setEditEvErr('');
+        setEditEvSaving(true);
+        applyLocal({
+          t: titulo,
+          hora: hora,
+          participantes: participantes,
+          nota: nota,
+          color: newColor
         });
-        setEditEvKey(null);
+        window.supabaseClient.from('family_events').update({
+          title: titulo,
+          event_time: hora || null,
+          member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
+          participant_ids: participantes,
+          description: nota || null,
+          color: newColor
+        }).eq('id', ev.id).then(function (res) {
+          setEditEvSaving(false);
+          if (res.error) {
+            setEditEvErr('Erro ao guardar: ' + res.error.message);
+            applyLocal(null);
+            return;
+          }
+          setEditEvErr('');
+          setEditEvKey(null);
+        }).catch(function (e) {
+          setEditEvSaving(false);
+          setEditEvErr('Erro de ligação: ' + (e && e.message || String(e)));
+          applyLocal(null);
+        });
       },
       style: {
         flex: 2,
-        background: "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
+        background: editEvSaving ? F.muted : "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
         border: 'none',
         borderRadius: 10,
         padding: '10px',
         color: '#fff',
         fontSize: 13,
         fontWeight: 800,
-        cursor: 'pointer'
+        cursor: editEvSaving ? 'default' : 'pointer'
       }
-    }, "\u2713 Guardar"))));
+    }, editEvSaving ? 'A guardar…' : '✓ Guardar')), editEvErr && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: '#DC2626',
+        fontSize: 12,
+        marginTop: 8,
+        textAlign: 'center'
+      }
+    }, "\u26A0\uFE0F ", editEvErr)));
   }), selEvents.length === 0 && sharedForDay.length === 0 && /*#__PURE__*/React.createElement(FCard, {
     style: {
       padding: '24px',
