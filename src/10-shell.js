@@ -983,6 +983,7 @@ function CarvalhoSuite() {
   };
   (0, _react.useEffect)(function () {
     if (screen === 'definicoes' && isAdmin) loadAllProfiles();
+    if (screen === 'notifs') loadNotifData();
     if (screen === 'definicoes' && 'caches' in window) {
       caches.keys().then(function (keys) {
         var c = keys.find(function (k) { return k.indexOf('carvalho-') === 0; });
