@@ -643,18 +643,31 @@ function HorasProApp(_ref9) {
     return Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
   };
   var kw = getKW(curDate);
-  var horasHoje = entries.filter(function (e) {
+  // Entradas automáticas (ex: Sexta-feira livre) só devem contar uma vez
+  // por dia. Isto protege os totais mesmo que existam registos automáticos
+  // duplicados (ex: de uma falha antiga a re-inserir o mesmo dia).
+  var dedupedEntries = (0, _react.useMemo)(function () {
+    var seen = {};
+    return entries.filter(function (e) {
+      if (!e.isAuto || !e.dlTipo) return true;
+      var key = e.date + '|' + e.dlTipo;
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  }, [entries]);
+  var horasHoje = dedupedEntries.filter(function (e) {
     return e.date === todayStr;
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
-  var horasSem = entries.filter(function (e) {
+  var horasSem = dedupedEntries.filter(function (e) {
     var d = new Date(e.date);
     return getKW(d) === kw && d.getFullYear() === curDate.getFullYear();
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
-  var horasMes = entries.filter(function (e) {
+  var horasMes = dedupedEntries.filter(function (e) {
     return e.date.startsWith(curDate.toISOString().slice(0, 7));
   }).reduce(function (s, e) {
     return s + e.horas;
@@ -673,7 +686,34 @@ function HorasProApp(_ref9) {
     d.setDate(d.getDate() + 1);
     setCurDate(d);
   };
-  var grouped = entries.reduce(function (acc, e) {
+  // Lista "Todos os registos" abaixo: mostra só a janela da aba escolhida
+  // (Dia / Semana completa seg-dom / Mês), em vez de todo o histórico.
+  var listEntries = (0, _react.useMemo)(function () {
+    if (tab === 'Dia') {
+      return dedupedEntries.filter(function (e) {
+        return e.date === todayStr;
+      });
+    }
+    if (tab === 'Semana') {
+      var dow = curDate.getDay();
+      var diff = dow === 0 ? -6 : 1 - dow;
+      var ws = new Date(curDate);
+      ws.setDate(ws.getDate() + diff);
+      ws.setHours(0, 0, 0, 0);
+      var we = new Date(ws);
+      we.setDate(we.getDate() + 6);
+      we.setHours(23, 59, 59, 999);
+      return dedupedEntries.filter(function (e) {
+        var ed = new Date(e.date + 'T12:00:00');
+        return ed >= ws && ed <= we;
+      });
+    }
+    var ym = curDate.toISOString().slice(0, 7);
+    return dedupedEntries.filter(function (e) {
+      return e.date.startsWith(ym);
+    });
+  }, [dedupedEntries, tab, curDate]);
+  var grouped = listEntries.reduce(function (acc, e) {
     (acc[e.date] = acc[e.date] || []).push(e);
     return acc;
   }, {});
@@ -955,12 +995,20 @@ function HorasProApp(_ref9) {
     sextaLivre = _useState56[0],
     setSextaLivre = _useState56[1]; // Sextas automaticamente livres
 
+  var sextaProcessedRef = (0, _react.useRef)({});
+
   // Auto-adicionar sextas como dia livre remunerado
   (0, _react.useEffect)(function () {
     if (!sextaLivre) return;
     if (!entriesLoaded) return;
     var yr = curDate.getFullYear();
     var mo = curDate.getMonth();
+    var monthKey = yr + '-' + mo;
+    // Só processa cada mês uma vez por sessão — evita o ciclo que estava
+    // a recriar "Sexta-feira livre" repetidamente sempre que `entries`
+    // mudava (cada reload disparava este efeito outra vez).
+    if (sextaProcessedRef.current[monthKey]) return;
+    sextaProcessedRef.current[monthKey] = true;
     var daysInMo = new Date(yr, mo + 1, 0).getDate();
     var newEntries = [];
     var newDias = [];
@@ -996,21 +1044,19 @@ function HorasProApp(_ref9) {
       _loop();
     }
     if (newEntries.length > 0) {
+      // Só acrescenta as novas — nunca remove o que já estava local,
+      // para não haver flicker nem perda temporária de outros meses.
       setEntries(function (p) {
-        return [].concat(_toConsumableArray(p.filter(function (e) {
-          return e.dlTipo !== 'sexta';
-        })), newEntries);
+        return [].concat(_toConsumableArray(p), newEntries);
       });
       newEntries.forEach(function (e) {
         return pushEntryToSupabase(e);
       });
     }
     if (newDias.length > 0) setDiasLivres(function (p) {
-      return [].concat(_toConsumableArray(p.filter(function (x) {
-        return x.tipo !== 'sexta';
-      })), newDias);
+      return [].concat(_toConsumableArray(p), newDias);
     });
-  }, [sextaLivre, curDate.getMonth(), entriesLoaded, entries]);
+  }, [sextaLivre, curDate.getFullYear(), curDate.getMonth(), entriesLoaded]);
 
   // Check if date is weekday
   var isWeekday = function isWeekday(d) {
