@@ -59,15 +59,18 @@ var SwipeCard = function SwipeCard(_ref2b) {
   var THRESHOLD_DONE = -70;
   var THRESHOLD_DELETE = 70;
   var onTouchStart = function onTouchStart(e) {
+    e.stopPropagation();
     startX.current = e.touches[0].clientX;
     dragging.current = true;
   };
   var onTouchMove = function onTouchMove(e) {
+    e.stopPropagation();
     if (!dragging.current || startX.current === null) return;
     var dx = e.touches[0].clientX - startX.current;
     setDragX(Math.max(-110, Math.min(110, dx)));
   };
-  var onTouchEnd = function onTouchEnd() {
+  var onTouchEnd = function onTouchEnd(e) {
+    e.stopPropagation();
     dragging.current = false;
     if (dragX < THRESHOLD_DONE) {
       setDragX(-400);
