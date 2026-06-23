@@ -802,10 +802,12 @@ function EscolarApp(_ref31) {
     alunosData = _useState176[0],
     setAlunosData = _useState176[1];
   var aluno = alunosData[alunoKey];
-  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
-    if (!window.supabaseClient) return;
+  var _escolarSaveInFlight = {};
+  var _escolarSavePending = {};
+  var doSaveAlunoSnapshot = function doSaveAlunoSnapshot(key, data) {
+    if (!window.supabaseClient) return Promise.resolve();
     var sb = window.supabaseClient;
-    sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function () {
+    var p1 = sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function () {
       var rows = (data.disciplinas || []).map(function (d) {
         return {
           id: d.id,
@@ -818,9 +820,9 @@ function EscolarApp(_ref31) {
           cor: d.cor || ''
         };
       });
-      if (rows.length > 0) sb.from('escolar_disciplinas').insert(rows).then(function () {}).catch(function () {});
+      if (rows.length > 0) return sb.from('escolar_disciplinas').insert(rows).then(function () {}).catch(function () {});
     }).catch(function () {});
-    sb.from('escolar_horario').delete().eq('aluno', key).then(function () {
+    var p2 = sb.from('escolar_horario').delete().eq('aluno', key).then(function () {
       var rows = [];
       Object.keys(data.horario || {}).forEach(function (dia) {
         (data.horario[dia] || []).forEach(function (slot) {
@@ -835,9 +837,9 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      if (rows.length > 0) sb.from('escolar_horario').insert(rows).then(function () {}).catch(function () {});
+      if (rows.length > 0) return sb.from('escolar_horario').insert(rows).then(function () {}).catch(function () {});
     }).catch(function () {});
-    sb.from('escolar_notas').delete().eq('aluno', key).then(function () {
+    var p3 = sb.from('escolar_notas').delete().eq('aluno', key).then(function () {
       var rows = [];
       Object.keys(data.notas || {}).forEach(function (discId) {
         Object.keys(data.notas[discId] || {}).forEach(function (sem) {
@@ -851,9 +853,9 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      if (rows.length > 0) sb.from('escolar_notas').insert(rows).then(function () {}).catch(function () {});
+      if (rows.length > 0) return sb.from('escolar_notas').insert(rows).then(function () {}).catch(function () {});
     }).catch(function () {});
-    sb.from('escolar_tpc').delete().eq('aluno', key).then(function () {
+    var p4 = sb.from('escolar_tpc').delete().eq('aluno', key).then(function () {
       var rows = (data.tpc || []).map(function (t) {
         return {
           id: t.id,
@@ -865,8 +867,27 @@ function EscolarApp(_ref31) {
           tipo: t.tipo || 'tpc'
         };
       });
-      if (rows.length > 0) sb.from('escolar_tpc').insert(rows).then(function () {}).catch(function () {});
+      if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(function () {}).catch(function () {});
     }).catch(function () {});
+    return Promise.all([p1, p2, p3, p4]);
+  };
+  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
+    if (!window.supabaseClient) return;
+    if (_escolarSaveInFlight[key]) {
+      _escolarSavePending[key] = data;
+      return;
+    }
+    _escolarSaveInFlight[key] = true;
+    doSaveAlunoSnapshot(key, data).then(function () {
+      _escolarSaveInFlight[key] = false;
+      var next = _escolarSavePending[key];
+      if (next) {
+        _escolarSavePending[key] = null;
+        saveAlunoSnapshot(key, next);
+      }
+    }).catch(function () {
+      _escolarSaveInFlight[key] = false;
+    });
   };
   var setAluno = function setAluno(fn) {
     return setAlunosData(function (p) {
