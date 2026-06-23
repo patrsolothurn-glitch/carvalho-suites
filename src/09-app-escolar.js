@@ -716,7 +716,17 @@ function EscolarApp(_ref31) {
   var doSaveAlunoSnapshot = function doSaveAlunoSnapshot(key, data) {
     if (!window.supabaseClient) return Promise.resolve();
     var sb = window.supabaseClient;
-    var p1 = sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function () {
+    // Helper: log erro se o INSERT devolver { error }
+    var logIns = function logIns(tbl) {
+      return function (r) {
+        if (r && r.error) console.warn('[escolar] INSERT ' + tbl + ' falhou:', r.error.message || r.error);
+      };
+    };
+    var p1 = sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE disciplinas falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
+        return;
+      }
       var rows = (data.disciplinas || []).map(function (d) {
         return {
           id: d.id,
@@ -729,9 +739,13 @@ function EscolarApp(_ref31) {
           cor: d.cor || ''
         };
       });
-      if (rows.length > 0) return sb.from('escolar_disciplinas').insert(rows).then(function () {}).catch(function () {});
-    }).catch(function () {});
-    var p2 = sb.from('escolar_horario').delete().eq('aluno', key).then(function () {
+      if (rows.length > 0) return sb.from('escolar_disciplinas').insert(rows).then(logIns('disciplinas'));
+    }).catch(function (e) { console.warn('[escolar] erro disciplinas:', e); });
+    var p2 = sb.from('escolar_horario').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE horario falhou — NAO inserindo:', delRes.error.message);
+        return;
+      }
       var rows = [];
       Object.keys(data.horario || {}).forEach(function (dia) {
         (data.horario[dia] || []).forEach(function (slot) {
@@ -746,9 +760,13 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      if (rows.length > 0) return sb.from('escolar_horario').insert(rows).then(function () {}).catch(function () {});
-    }).catch(function () {});
-    var p3 = sb.from('escolar_notas').delete().eq('aluno', key).then(function () {
+      if (rows.length > 0) return sb.from('escolar_horario').insert(rows).then(logIns('horario'));
+    }).catch(function (e) { console.warn('[escolar] erro horario:', e); });
+    var p3 = sb.from('escolar_notas').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE notas falhou:', delRes.error.message);
+        return;
+      }
       var rows = [];
       Object.keys(data.notas || {}).forEach(function (discId) {
         Object.keys(data.notas[discId] || {}).forEach(function (sem) {
@@ -762,9 +780,13 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      if (rows.length > 0) return sb.from('escolar_notas').insert(rows).then(function () {}).catch(function () {});
-    }).catch(function () {});
-    var p4 = sb.from('escolar_tpc').delete().eq('aluno', key).then(function () {
+      if (rows.length > 0) return sb.from('escolar_notas').insert(rows).then(logIns('notas'));
+    }).catch(function (e) { console.warn('[escolar] erro notas:', e); });
+    var p4 = sb.from('escolar_tpc').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE tpc falhou:', delRes.error.message);
+        return;
+      }
       var rows = (data.tpc || []).map(function (t) {
         return {
           id: t.id,
@@ -776,8 +798,8 @@ function EscolarApp(_ref31) {
           tipo: t.tipo || 'tpc'
         };
       });
-      if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(function () {}).catch(function () {});
-    }).catch(function () {});
+      if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
+    }).catch(function (e) { console.warn('[escolar] erro tpc:', e); });
     return Promise.all([p1, p2, p3, p4]);
   };
   var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
