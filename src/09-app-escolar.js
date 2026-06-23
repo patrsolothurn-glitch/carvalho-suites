@@ -540,6 +540,7 @@ var ALUNOS_DEF = {
         { discId: 101, hi: '09:00', hf: '09:45', sala: 'S.III', livre: false },
         { discId: 101, hi: '10:10', hf: '10:55', sala: 'S.III', livre: false },
         { discId: 101, hi: '11:00', hf: '11:45', sala: 'S.III', livre: false },
+        { discId: 101, hi: '13:45', hf: '14:30', sala: 'S.III', livre: false },
         { discId: 101, hi: '14:35', hf: '15:20', sala: 'S.III', livre: false }
       ]
     },
@@ -831,15 +832,38 @@ function EscolarApp(_ref31) {
     });
   };
   var loadEscolarData = function loadEscolarData() {
-    if (!window.supabaseClient) return;
+    if (!window.supabaseClient) {
+      // Pode acontecer se o CDN do supabase-js ainda nao carregou
+      // quando a app monta. Tenta de novo em 500 ms (max 6 tentativas).
+      var tries = (window._escolarLoadTries = (window._escolarLoadTries || 0) + 1);
+      if (tries <= 6) setTimeout(loadEscolarData, 500);
+      else console.warn('[escolar] supabaseClient indisponivel apos 6 retries; a usar fallback ALUNOS_DEF');
+      return;
+    }
+    window._escolarLoadTries = 0;
     var sb = window.supabaseClient;
     Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*')]).then(function (resArr) {
       var discRes = resArr[0],
         horRes = resArr[1],
         notasRes = resArr[2],
         tpcRes = resArr[3];
+      // Diagnostico: se alguma query devolveu erro, regista no console
+      // para podermos perceber porque alguns dispositivos caem no fallback.
+      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes]].forEach(function (p) {
+        if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
+      });
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
       if (!anyData) {
+        // Se todas as queries falharam (e.g. CDN bloqueado, sem rede), NAO
+        // sobrescrever o Supabase com o fallback — usamos so o fallback
+        // em memoria. Sobrescrever so faz sentido em first-run real.
+        var allErrored = [discRes, horRes, notasRes, tpcRes].every(function (r) {
+          return !r || r.error || r.data === null;
+        });
+        if (allErrored) {
+          console.warn('[escolar] todas as queries falharam; nao sobrescrevo Supabase com fallback');
+          return;
+        }
         Object.keys(ALUNOS_DEF).forEach(function (key) {
           saveAlunoSnapshot(key, ALUNOS_DEF[key]);
         });
@@ -913,10 +937,22 @@ function EscolarApp(_ref31) {
         });
         return next;
       });
-    }).catch(function () {});
+    }).catch(function (err) {
+      console.warn('[escolar] loadEscolarData falhou:', err && err.message || err);
+    });
   };
   (0, _react.useEffect)(function () {
     loadEscolarData();
+  }, []);
+  // Refetch quando a app volta a ficar visivel apos background.
+  // Em mobile a aba pode ficar suspensa horas — sem isto, dados editados
+  // noutro telemovel nao aparecem ate forcar hard refresh.
+  (0, _react.useEffect)(function () {
+    var onVisible = function onVisible() {
+      if (document.visibilityState === 'visible') loadEscolarData();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return function () { document.removeEventListener('visibilitychange', onVisible); };
   }, []);
   // Garante que edições pendentes (debounced) são guardadas se o user
   // fecha a app ou minimiza o browser antes do timer de 800 ms disparar.
