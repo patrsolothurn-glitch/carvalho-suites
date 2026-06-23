@@ -468,221 +468,83 @@ var ALUNOS_DEF = {
     klasse: 'Prim 3a',
     cidade: 'Selzach',
     disciplinas: [{
-      id: 1,
-      abr: 'D',
-      nome: 'Deutsch',
-      prof: 'Frau Meyer',
-      tel: '',
-      emoji: '📝',
+      id: 101,
+      abr: 'U',
+      nome: 'Unterricht',
+      prof: 'Aïna Probst',
+      tel: '032 641 70 75',
+      emoji: '📚',
       cor: '#2563EB'
     }, {
-      id: 2,
-      abr: 'M',
-      nome: 'Mathematik',
-      prof: 'Herr Vogel',
-      tel: '',
-      emoji: '📐',
-      cor: '#DC2626'
+      id: 102,
+      abr: 'TTG',
+      nome: 'Textiles & Technisches Gestalten',
+      prof: 'Sonja Seiler',
+      tel: '032 641 70 62',
+      emoji: '✂️',
+      cor: '#F97316'
     }, {
-      id: 3,
-      abr: 'T',
-      nome: 'Sport',
-      prof: 'Herr Weber',
-      tel: '',
+      id: 103,
+      abr: 'BS',
+      nome: 'Bewegung & Sport',
+      prof: 'Lea Kipfer',
+      tel: '032 641 70 75',
       emoji: '⚽',
-      cor: '#D97706'
-    }, {
-      id: 4,
-      abr: 'E',
-      nome: 'Englisch',
-      prof: 'Frau Koch',
-      tel: '',
-      emoji: '🌍',
-      cor: '#7C3AED'
-    }, {
-      id: 5,
-      abr: 'Bio',
-      nome: 'Biologie',
-      prof: 'Frau Huber',
-      tel: '',
-      emoji: '🌿',
       cor: '#16A34A'
     }, {
-      id: 6,
-      abr: 'Z',
-      nome: 'Zeichnen',
-      prof: 'Herr Braun',
+      id: 104,
+      abr: 'Rel',
+      nome: 'Religion',
+      prof: 'Sylvie Ulrich',
       tel: '',
-      emoji: '✏️',
-      cor: '#EA580C'
-    }, {
-      id: 7,
-      abr: 'Inf',
-      nome: 'Informatik',
-      prof: 'Herr Klein',
-      tel: '',
-      emoji: '💻',
-      cor: '#0891B2'
+      emoji: '⛪',
+      cor: '#DB2777'
     }],
     slots: SWISS_SLOTS_LIAM_3A,
     horario: {
-      0: [{
-        discId: 1,
-        hi: '08:10',
-        hf: '09:00',
-        sala: '108',
-        livre: false
-      }, {
-        discId: 2,
-        hi: '09:05',
-        hf: '09:55',
-        sala: '102',
-        livre: false
-      }, {
-        discId: 3,
-        hi: '10:05',
-        hf: '11:45',
-        sala: 'Gym',
-        livre: false
-      }, {
-        discId: 7,
-        hi: '13:45',
-        hf: '14:35',
-        sala: 'Computer',
-        livre: false
-      }],
-      1: [{
-        discId: 4,
-        hi: '08:10',
-        hf: '09:00',
-        sala: '110',
-        livre: false
-      }, {
-        discId: 5,
-        hi: '09:05',
-        hf: '09:55',
-        sala: '201',
-        livre: false
-      }, {
-        discId: 7,
-        hi: '10:05',
-        hf: '10:55',
-        sala: 'Computer',
-        livre: false
-      }, {
-        discId: 1,
-        hi: '13:45',
-        hf: '14:35',
-        sala: '108',
-        livre: false
-      }, {
-        discId: 2,
-        hi: '14:40',
-        hf: '15:30',
-        sala: '102',
-        livre: false
-      }],
-      2: [{
-        discId: 1,
-        hi: '08:10',
-        hf: '09:00',
-        sala: '108',
-        livre: false
-      }, {
-        discId: 2,
-        hi: '09:05',
-        hf: '09:55',
-        sala: '102',
-        livre: false
-      }, {
-        discId: 4,
-        hi: '10:05',
-        hf: '10:55',
-        sala: '110',
-        livre: false
-      }],
-      3: [{
-        discId: 2,
-        hi: '08:10',
-        hf: '09:00',
-        sala: '102',
-        livre: false
-      }, {
-        discId: 6,
-        hi: '09:05',
-        hf: '11:45',
-        sala: 'Atelier',
-        livre: false
-      }, {
-        discId: 5,
-        hi: '13:45',
-        hf: '14:35',
-        sala: '201',
-        livre: false
-      }, {
-        discId: 4,
-        hi: '14:40',
-        hf: '15:30',
-        sala: '110',
-        livre: false
-      }, {
-        discId: 7,
-        hi: '15:35',
-        hf: '16:20',
-        sala: 'Computer',
-        livre: false
-      }],
-      4: [{
-        discId: 4,
-        hi: '08:10',
-        hf: '09:00',
-        sala: '110',
-        livre: false
-      }, {
-        discId: 3,
-        hi: '09:05',
-        hf: '11:45',
-        sala: 'Gym',
-        livre: false
-      }, {
-        discId: 1,
-        hi: '13:45',
-        hf: '14:35',
-        sala: '108',
-        livre: false
-      }]
+      0: [
+        { discId: 101, hi: '07:40', hf: '08:07', sala: 'S.III', livre: false },
+        { discId: 101, hi: '08:10', hf: '08:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '09:00', hf: '09:45', sala: 'S.III', livre: false },
+        { discId: 103, hi: '10:10', hf: '10:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '11:00', hf: '11:45', sala: 'S.III', livre: false },
+        { discId: 101, hi: '13:45', hf: '14:30', sala: 'S.III', livre: false },
+        { discId: 101, hi: '14:35', hf: '15:20', sala: 'S.III', livre: false }
+      ],
+      1: [
+        { discId: 101, hi: '07:40', hf: '08:07', sala: 'S.III', livre: false },
+        { discId: 101, hi: '08:10', hf: '08:55', sala: 'S.III', livre: false },
+        { discId: 102, hi: '09:00', hf: '09:45', sala: 'S.III', livre: false },
+        { discId: 102, hi: '10:10', hf: '10:55', sala: 'S.III', livre: false },
+        { discId: 102, hi: '11:00', hf: '11:45', sala: 'S.III', livre: false }
+      ],
+      2: [
+        { discId: 101, hi: '07:40', hf: '08:07', sala: 'S.III', livre: false },
+        { discId: 101, hi: '08:10', hf: '08:55', sala: 'S.III', livre: false },
+        { discId: 103, hi: '09:00', hf: '09:45', sala: 'S.III', livre: false },
+        { discId: 101, hi: '10:10', hf: '10:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '11:00', hf: '11:45', sala: 'S.III', livre: false }
+      ],
+      3: [
+        { discId: 101, hi: '07:40', hf: '08:07', sala: 'S.III', livre: false },
+        { discId: 104, hi: '08:10', hf: '08:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '09:00', hf: '09:45', sala: 'S.III', livre: false },
+        { discId: 103, hi: '10:10', hf: '10:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '11:00', hf: '11:45', sala: 'S.III', livre: false },
+        { discId: 101, hi: '13:45', hf: '14:30', sala: 'S.III', livre: false },
+        { discId: 101, hi: '14:35', hf: '15:20', sala: 'S.III', livre: false }
+      ],
+      4: [
+        { discId: 101, hi: '07:40', hf: '08:07', sala: 'S.III', livre: false },
+        { discId: 101, hi: '08:10', hf: '08:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '09:00', hf: '09:45', sala: 'S.III', livre: false },
+        { discId: 101, hi: '10:10', hf: '10:55', sala: 'S.III', livre: false },
+        { discId: 101, hi: '11:00', hf: '11:45', sala: 'S.III', livre: false },
+        { discId: 101, hi: '14:35', hf: '15:20', sala: 'S.III', livre: false }
+      ]
     },
-    notas: {
-      1: {
-        1: [4.5, 5.0],
-        2: [4.0]
-      },
-      2: {
-        1: [3.5, 4.0],
-        2: [4.5]
-      },
-      3: {
-        1: [5.0],
-        2: [5.5]
-      },
-      4: {
-        1: [4.0, 4.5],
-        2: [3.5]
-      }
-    },
-    tpc: [{
-      id: 1,
-      discId: 1,
-      titulo: 'Text lesen S.30',
-      data: '2026-06-17',
-      feito: false
-    }, {
-      id: 2,
-      discId: 2,
-      titulo: 'Aufgaben 5-8',
-      data: '2026-06-18',
-      feito: false
-    }]
+    notas: {},
+    tpc: []
   }
 };
 function EscolarApp(_ref31) {
