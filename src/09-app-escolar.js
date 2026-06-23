@@ -88,6 +88,49 @@ var SWISS_SLOTS_LIAM = [{
   hf: '16:10',
   tarde: true
 }];
+// Slots Klasse 3a (Primarschule Selzach, Schulhaus III) — Sonne & Regenbogen
+// Inclui Morgenkreis curto (07:40-08:07) e horários reais do Stundenplan 26/27
+var SWISS_SLOTS_LIAM_3A = [{
+  id: 0,
+  hi: '07:40',
+  hf: '08:07'
+}, {
+  id: 1,
+  hi: '08:10',
+  hf: '08:55'
+}, {
+  id: 2,
+  hi: '09:00',
+  hf: '09:45'
+}, {
+  id: 3,
+  hi: '10:10',
+  hf: '10:55'
+}, {
+  id: 4,
+  hi: '11:00',
+  hf: '11:45'
+}, {
+  id: 'a',
+  hi: '11:45',
+  hf: '13:45',
+  almoco: true
+}, {
+  id: 5,
+  hi: '13:45',
+  hf: '14:30',
+  tarde: true
+}, {
+  id: 6,
+  hi: '14:35',
+  hf: '15:20',
+  tarde: true
+}, {
+  id: 7,
+  hi: '15:35',
+  hf: '16:20',
+  tarde: true
+}];
 var SWISS_SLOTS = SWISS_SLOTS_LUCAS; // default
 
 var ALUNOS_DEF = {
@@ -422,7 +465,7 @@ var ALUNOS_DEF = {
     nome: 'Liam',
     emoji: '👦',
     cor: '#22C55E',
-    klasse: 'SEK B',
+    klasse: 'Prim 3a',
     cidade: 'Selzach',
     disciplinas: [{
       id: 1,
@@ -481,7 +524,7 @@ var ALUNOS_DEF = {
       emoji: '💻',
       cor: '#0891B2'
     }],
-    slots: SWISS_SLOTS_LIAM,
+    slots: SWISS_SLOTS_LIAM_3A,
     horario: {
       0: [{
         discId: 1,
