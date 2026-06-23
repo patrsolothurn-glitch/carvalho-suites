@@ -932,10 +932,36 @@ function EscolarApp(_ref31) {
       _escolarSaveInFlight[key] = false;
     });
   };
+  // Debounce do save ao Supabase: cada keystroke num input (sala, professor, etc.)
+  // chamava saveAlunoSnapshot imediatamente, que faz DELETE + 30 INSERTs.
+  // Em mobile com rede lenta isto travava o teclado "letra a letra".
+  // Agora atualizamos o state local na hora, mas só sincronizamos com o
+  // Supabase 800 ms após a última edição. O save final no unmount é tratado
+  // pelo flush abaixo.
+  var _saveTimers = window._escolarSaveTimers || (window._escolarSaveTimers = {});
+  var _saveLatest  = window._escolarSaveLatest || (window._escolarSaveLatest = {});
+  var flushSaveAluno = function flushSaveAluno(key) {
+    if (_saveTimers[key]) {
+      clearTimeout(_saveTimers[key]);
+      _saveTimers[key] = null;
+    }
+    if (_saveLatest[key]) {
+      var data = _saveLatest[key];
+      _saveLatest[key] = null;
+      saveAlunoSnapshot(key, data);
+    }
+  };
   var setAluno = function setAluno(fn) {
     return setAlunosData(function (p) {
       var newData = fn(p[alunoKey]);
-      saveAlunoSnapshot(alunoKey, newData);
+      _saveLatest[alunoKey] = newData;
+      if (_saveTimers[alunoKey]) clearTimeout(_saveTimers[alunoKey]);
+      _saveTimers[alunoKey] = setTimeout(function () {
+        _saveTimers[alunoKey] = null;
+        var d = _saveLatest[alunoKey];
+        _saveLatest[alunoKey] = null;
+        if (d) saveAlunoSnapshot(alunoKey, d);
+      }, 800);
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, newData));
     });
   };
@@ -1026,6 +1052,24 @@ function EscolarApp(_ref31) {
   };
   (0, _react.useEffect)(function () {
     loadEscolarData();
+  }, []);
+  // Garante que edições pendentes (debounced) são guardadas se o user
+  // fecha a app ou minimiza o browser antes do timer de 800 ms disparar.
+  (0, _react.useEffect)(function () {
+    var onHide = function onHide() {
+      Object.keys(_saveTimers).forEach(function (k) {
+        flushSaveAluno(k);
+      });
+    };
+    window.addEventListener('beforeunload', onHide);
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') onHide();
+    });
+    return function () {
+      window.removeEventListener('beforeunload', onHide);
+      window.removeEventListener('pagehide', onHide);
+    };
   }, []);
   var dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
   var getDia = function getDia(i) {
