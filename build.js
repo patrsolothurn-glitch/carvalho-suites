@@ -61,7 +61,7 @@ function main() {
   // código muda — é isso que evita telemóveis presos em versões
   // antigas. O "número de build" é só cosmético, para mostrar em
   // Definições algo como "Carvalho-07" em vez do hash em si.
-  const contentHash = crypto.createHash('sha256').update(jsBody).digest('hex').slice(0, 8);
+  const contentHash = crypto.createHash('sha256').update(jsBody + head + tail).digest('hex').slice(0, 8);
   const newCacheVersion = 'carvalho-v' + contentHash;
   let oldCacheVersion = null;
   if (fs.existsSync(SW_FILE)) {
