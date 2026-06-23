@@ -693,7 +693,10 @@ function EscolarApp(_ref31) {
     addSharedDia = _ref31$addSharedDia === void 0 ? function () {} : _ref31$addSharedDia,
     _ref31$activeUser = _ref31.activeUser,
     activeUser = _ref31$activeUser === void 0 ? 'patricio' : _ref31$activeUser;
-  var isAdmin = activeUser === 'patricio';
+  // Na app Vida Escolar, "isAdmin" significa acesso total: ver chips de ambos
+  // os filhos (Lucas + Liam) e editar klasse de cada um. Ambos os pais
+  // (Patricio + Cristina) têm este acesso. Lucas vê só Lucas; Liam vê só Liam.
+  var isAdmin = activeUser === 'patricio' || activeUser === 'cristina';
   var defaultAluno = activeUser === 'liam' ? 'liam' : 'lucas';
   var _useState139 = (0, _react.useState)(defaultAluno),
     _useState140 = _slicedToArray(_useState139, 2),
