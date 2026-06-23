@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-23T19:38:19.264Z
+  Gerado em: 2026-06-23T19:45:21.728Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-06";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-07";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -13296,7 +13296,10 @@ function EscolarApp(_ref31) {
     addSharedDia = _ref31$addSharedDia === void 0 ? function () {} : _ref31$addSharedDia,
     _ref31$activeUser = _ref31.activeUser,
     activeUser = _ref31$activeUser === void 0 ? 'patricio' : _ref31$activeUser;
-  var isAdmin = activeUser === 'patricio';
+  // Na app Vida Escolar, "isAdmin" significa acesso total: ver chips de ambos
+  // os filhos (Lucas + Liam) e editar klasse de cada um. Ambos os pais
+  // (Patricio + Cristina) têm este acesso. Lucas vê só Lucas; Liam vê só Liam.
+  var isAdmin = activeUser === 'patricio' || activeUser === 'cristina';
   var defaultAluno = activeUser === 'liam' ? 'liam' : 'lucas';
   var _useState139 = (0, _react.useState)(defaultAluno),
     _useState140 = _slicedToArray(_useState139, 2),
