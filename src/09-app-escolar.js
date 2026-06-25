@@ -2073,13 +2073,16 @@ function EscolarApp(_ref31) {
       }
     }, "In\xEDcio"), /*#__PURE__*/React.createElement("input", {
       type: "time",
-      value: aula.hi,
-      onChange: function onChange(e) {
-        return setAluno(function (al) {
+      defaultValue: aula.hi,
+      key: "hi-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i, "-").concat(aula.hi),
+      onBlur: function onBlur(e) {
+        var newVal = e.target.value;
+        if (newVal === aula.hi) return;
+        setAluno(function (al) {
           var h = _objectSpread({}, al.horario);
           var d = _toConsumableArray(h[dayIdx]);
           d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
-            hi: e.target.value
+            hi: newVal
           });
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
@@ -2111,13 +2114,16 @@ function EscolarApp(_ref31) {
       }
     }, "Fim"), /*#__PURE__*/React.createElement("input", {
       type: "time",
-      value: aula.hf,
-      onChange: function onChange(e) {
-        return setAluno(function (al) {
+      defaultValue: aula.hf,
+      key: "hf-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i, "-").concat(aula.hf),
+      onBlur: function onBlur(e) {
+        var newVal = e.target.value;
+        if (newVal === aula.hf) return;
+        setAluno(function (al) {
           var h = _objectSpread({}, al.horario);
           var d = _toConsumableArray(h[dayIdx]);
           d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
-            hf: e.target.value
+            hf: newVal
           });
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
@@ -2148,13 +2154,17 @@ function EscolarApp(_ref31) {
         marginBottom: 3
       }
     }, "Sala"), /*#__PURE__*/React.createElement("input", {
-      value: aula.sala,
-      onChange: function onChange(e) {
-        return setAluno(function (al) {
+      defaultValue: aula.sala || '',
+      key: "sala-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i, "-").concat(aula.hi),
+      autoComplete: "off",
+      onBlur: function onBlur(e) {
+        var newVal = e.target.value;
+        if (newVal === aula.sala) return;
+        setAluno(function (al) {
           var h = _objectSpread({}, al.horario);
           var d = _toConsumableArray(h[dayIdx]);
           d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
-            sala: e.target.value
+            sala: newVal
           });
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
@@ -2421,14 +2431,8 @@ function EscolarApp(_ref31) {
     }
   }, "In\xEDcio"), /*#__PURE__*/React.createElement("input", {
     type: "time",
-    value: novaAula.hi,
-    onChange: function onChange(e) {
-      return setNovaAula(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          hi: e.target.value
-        });
-      });
-    },
+    defaultValue: novaAula.hi,
+    id: "novaaula-hi",
     style: {
       width: '100%',
       background: E.surface2,
@@ -2436,7 +2440,7 @@ function EscolarApp(_ref31) {
       borderRadius: 9,
       padding: '7px 8px',
       color: E.text,
-      fontSize: 13,
+      fontSize: 16,
       outline: 'none',
       boxSizing: 'border-box'
     }
@@ -2454,14 +2458,8 @@ function EscolarApp(_ref31) {
     }
   }, "Fim"), /*#__PURE__*/React.createElement("input", {
     type: "time",
-    value: novaAula.hf,
-    onChange: function onChange(e) {
-      return setNovaAula(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          hf: e.target.value
-        });
-      });
-    },
+    defaultValue: novaAula.hf,
+    id: "novaaula-hf",
     style: {
       width: '100%',
       background: E.surface2,
@@ -2469,7 +2467,7 @@ function EscolarApp(_ref31) {
       borderRadius: 9,
       padding: '7px 8px',
       color: E.text,
-      fontSize: 13,
+      fontSize: 16,
       outline: 'none',
       boxSizing: 'border-box'
     }
@@ -2486,14 +2484,9 @@ function EscolarApp(_ref31) {
       marginBottom: 3
     }
   }, "Sala"), /*#__PURE__*/React.createElement("input", {
-    value: novaAula.sala,
-    onChange: function onChange(e) {
-      return setNovaAula(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          sala: e.target.value
-        });
-      });
-    },
+    defaultValue: novaAula.sala || '',
+    id: "novaaula-sala",
+    autoComplete: "off",
     placeholder: "Ex: 213",
     style: {
       width: '100%',
@@ -2570,17 +2563,32 @@ function EscolarApp(_ref31) {
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      if (!novaAula.hi || !novaAula.hf) return;
+      var get = function get(k) {
+        var el = document.getElementById('novaaula-' + k);
+        return el ? el.value : '';
+      };
+      var hi = get('hi');
+      var hf = get('hf');
+      var sala = get('sala');
+      if (!hi || !hf) return;
       setAluno(function (al) {
         var h = _objectSpread({}, al.horario);
         var d = _toConsumableArray(h[dayIdx] || []);
-        d.push(_objectSpread({}, novaAula));
+        d.push(_objectSpread(_objectSpread({}, novaAula), {}, {
+          hi: hi,
+          hf: hf,
+          sala: sala
+        }));
         d.sort(function (a, b) {
           return a.hi.localeCompare(b.hi);
         });
         return _objectSpread(_objectSpread({}, al), {}, {
           horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
         });
+      });
+      ['hi', 'hf', 'sala'].forEach(function (k) {
+        var el = document.getElementById('novaaula-' + k);
+        if (el) el.value = '';
       });
       setNovaAula({
         discId: aluno.disciplinas[0] && aluno.disciplinas[0].id || 1,
@@ -2899,12 +2907,9 @@ function EscolarApp(_ref31) {
         marginBottom: 3
       }
     }, f.l), /*#__PURE__*/React.createElement("input", {
-      value: novaDisc[f.k],
-      onChange: function onChange(e) {
-        return setNovaDisc(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, f.k, e.target.value));
-        });
-      },
+      defaultValue: novaDisc[f.k] || '',
+      id: "novadisc-".concat(f.k),
+      autoComplete: "off",
       placeholder: f.ph,
       style: {
         width: '100%',
@@ -2913,7 +2918,7 @@ function EscolarApp(_ref31) {
         borderRadius: 9,
         padding: '8px 11px',
         color: E.text,
-        fontSize: 13,
+        fontSize: 16,
         outline: 'none',
         boxSizing: 'border-box'
       }
@@ -2946,16 +2951,31 @@ function EscolarApp(_ref31) {
     });
   })), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      if (!novaDisc.nome.trim()) return;
+      var get = function get(k) {
+        var el = document.getElementById('novadisc-' + k);
+        return el ? el.value : '';
+      };
+      var nome = get('nome').trim();
+      if (!nome) return;
+      var prof = get('prof');
+      var tel = get('tel');
       var id = Date.now();
       setAluno(function (al) {
         return _objectSpread(_objectSpread({}, al), {}, {
-          disciplinas: [].concat(_toConsumableArray(al.disciplinas), [_objectSpread(_objectSpread({
-            id: id
-          }, novaDisc), {}, {
-            abr: novaDisc.nome.slice(0, 3)
-          })])
+          disciplinas: [].concat(_toConsumableArray(al.disciplinas), [{
+            id: id,
+            nome: nome,
+            prof: prof,
+            tel: tel,
+            abr: nome.slice(0, 3),
+            emoji: novaDisc.emoji || '📚',
+            cor: novaDisc.cor || '#7C3AED'
+          }])
         });
+      });
+      ['nome', 'prof', 'tel'].forEach(function (k) {
+        var el = document.getElementById('novadisc-' + k);
+        if (el) el.value = '';
       });
       setNovaDisc({
         nome: '',
@@ -3404,14 +3424,9 @@ function EscolarApp(_ref31) {
       marginBottom: 4
     }
   }, "Descri\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
-    value: novaTPC.titulo,
-    onChange: function onChange(e) {
-      return setNovaTPC(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          titulo: e.target.value
-        });
-      });
-    },
+    defaultValue: novaTPC.titulo || '',
+    id: "novatpc-titulo",
+    autoComplete: "off",
     placeholder: "Ex: Seite 42-44",
     style: {
       width: '100%',
@@ -3420,7 +3435,7 @@ function EscolarApp(_ref31) {
       borderRadius: 9,
       padding: '9px 11px',
       color: E.text,
-      fontSize: 13,
+      fontSize: 16,
       outline: 'none',
       marginBottom: 8,
       boxSizing: 'border-box'
@@ -3435,14 +3450,8 @@ function EscolarApp(_ref31) {
     }
   }, "Para quando"), /*#__PURE__*/React.createElement("input", {
     type: "date",
-    value: novaTPC.data,
-    onChange: function onChange(e) {
-      return setNovaTPC(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          data: e.target.value
-        });
-      });
-    },
+    defaultValue: novaTPC.data,
+    id: "novatpc-data",
     style: {
       width: '100%',
       background: E.surface2,
@@ -3450,7 +3459,7 @@ function EscolarApp(_ref31) {
       borderRadius: 9,
       padding: '9px 11px',
       color: E.text,
-      fontSize: 13,
+      fontSize: 16,
       outline: 'none',
       marginBottom: 12,
       boxSizing: 'border-box'
@@ -3478,22 +3487,30 @@ function EscolarApp(_ref31) {
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       var _aluno$disciplinas$;
-      if (!novaTPC.titulo.trim() || !novaTPC.data) return;
+      var tituloEl = document.getElementById('novatpc-titulo');
+      var dataEl = document.getElementById('novatpc-data');
+      var titulo = (tituloEl ? tituloEl.value : '').trim();
+      var data = dataEl ? dataEl.value : '';
+      if (!titulo || !data) return;
       var novoId = Date.now();
+      var tpcRow = _objectSpread(_objectSpread({}, novaTPC), {}, {
+        titulo: titulo,
+        data: data
+      });
       setAluno(function (al) {
         return _objectSpread(_objectSpread({}, al), {}, {
           tpc: [].concat(_toConsumableArray(al.tpc), [_objectSpread({
             id: novoId
-          }, novaTPC)])
+          }, tpcRow)])
         });
       });
-      if (novaTPC.tipo === 'teste' && window.supabaseClient) {
+      if (tpcRow.tipo === 'teste' && window.supabaseClient) {
         var disc = aluno.disciplinas.find(function (d) {
-          return d.id === novaTPC.discId;
+          return d.id === tpcRow.discId;
         });
-        var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (novaTPC.titulo ? ' — ' + novaTPC.titulo : '');
+        var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (titulo ? ' — ' + titulo : '');
         window.supabaseClient.from('agenda_pro_jobs').insert({
-          job_date: novaTPC.data,
+          job_date: data,
           start_time: null,
           end_time: null,
           project: tituloTeste,
@@ -3509,7 +3526,7 @@ function EscolarApp(_ref31) {
         window.supabaseClient.from('family_events').insert({
           title: tituloTeste,
           emoji: '📚',
-          event_date: novaTPC.data,
+          event_date: data,
           event_time: null,
           description: aluno.nome + ' tem teste',
           color: '#A855F7',
@@ -3521,6 +3538,8 @@ function EscolarApp(_ref31) {
           created_by: aluno.nome
         }).then(function () {}).catch(function () {});
       }
+      if (tituloEl) tituloEl.value = '';
+      if (dataEl) dataEl.value = '';
       setNovaTPC({
         discId: ((_aluno$disciplinas$ = aluno.disciplinas[0]) === null || _aluno$disciplinas$ === void 0 ? void 0 : _aluno$disciplinas$.id) || 1,
         titulo: '',
