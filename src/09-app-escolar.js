@@ -924,19 +924,13 @@ function EscolarApp(_ref31) {
       });
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
       if (!anyData) {
-        // Se todas as queries falharam (e.g. CDN bloqueado, sem rede), NAO
-        // sobrescrever o Supabase com o fallback — usamos so o fallback
-        // em memoria. Sobrescrever so faz sentido em first-run real.
-        var allErrored = [discRes, horRes, notasRes, tpcRes].every(function (r) {
-          return !r || r.error || r.data === null;
-        });
-        if (allErrored) {
-          console.warn('[escolar] todas as queries falharam; nao sobrescrevo Supabase com fallback');
-          return;
-        }
-        Object.keys(ALUNOS_DEF).forEach(function (key) {
-          saveAlunoSnapshot(key, ALUNOS_DEF[key]);
-        });
+        // Já não repomos os dados de exemplo (ALUNOS_DEF) automaticamente.
+        // Isto causou perda de dados reais quando uma tabela ficava vazia
+        // por engano (ex: um DELETE a mais) — a app reescrevia por cima
+        // com os dados de exemplo antigos, sem avisar ninguém.
+        // Agora, se as tabelas estiverem mesmo vazias, ficamos com o que
+        // já está em memória e avisamos na consola, sem inserir nada.
+        console.warn('[escolar] escolar_disciplinas/escolar_horario/escolar_tpc vieram vazios — NAO reponho dados de exemplo automaticamente.');
         return;
       }
       setAlunosData(function (prev) {
