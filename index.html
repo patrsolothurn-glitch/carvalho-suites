@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-25T13:03:58.587Z
+  Gerado em: 2026-06-26T05:23:50.681Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-11";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-17";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -903,6 +903,22 @@ function HorasProApp(_ref9) {
     _useState16 = _slicedToArray(_useState15, 2),
     feriasDe = _useState16[0],
     setFeriasDe = _useState16[1];
+  var _useStateSaldoEdit = (0, _react.useState)(false),
+    _useStateSaldoEdit2 = _slicedToArray(_useStateSaldoEdit, 2),
+    editandoSaldoJanAbr = _useStateSaldoEdit2[0],
+    setEditandoSaldoJanAbr = _useStateSaldoEdit2[1];
+  var _useStateSaldoInput = (0, _react.useState)(''),
+    _useStateSaldoInput2 = _slicedToArray(_useStateSaldoInput, 2),
+    saldoJanAbrInput = _useStateSaldoInput2[0],
+    setSaldoJanAbrInput = _useStateSaldoInput2[1];
+  var _useStateSaldoErr = (0, _react.useState)(''),
+    _useStateSaldoErr2 = _slicedToArray(_useStateSaldoErr, 2),
+    saldoJanAbrErr = _useStateSaldoErr2[0],
+    setSaldoJanAbrErr = _useStateSaldoErr2[1];
+  var _useStateSaldoSaving = (0, _react.useState)(false),
+    _useStateSaldoSaving2 = _slicedToArray(_useStateSaldoSaving, 2),
+    saldoJanAbrSaving = _useStateSaldoSaving2[0],
+    setSaldoJanAbrSaving = _useStateSaldoSaving2[1];
   var _useState17 = (0, _react.useState)(''),
     _useState18 = _slicedToArray(_useState17, 2),
     feriasAte = _useState18[0],
@@ -1154,6 +1170,17 @@ function HorasProApp(_ref9) {
     return Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
   };
   var kw = getKW(curDate);
+  // Entradas automáticas (sexta/feriado/férias) só ficam pré-validadas
+  // quando a SEMANA delas já é a atual ou uma semana passada — mesmo que o
+  // dia exato dentro dessa semana ainda não tenha chegado. Sextas/feriados
+  // de semanas futuras ficam em Pendentes até a própria semana chegar.
+  var isOwnWeekDue = function isOwnWeekDue(dateStr) {
+    var d = new Date(dateStr + 'T12:00:00');
+    var today = new Date();
+    var dKey = d.getFullYear() * 100 + getKW(d);
+    var todayKey = today.getFullYear() * 100 + getKW(today);
+    return dKey <= todayKey;
+  };
   // Entradas automáticas (ex: Sexta-feira livre) só devem contar uma vez
   // por dia. Isto protege os totais mesmo que existam registos automáticos
   // duplicados (ex: de uma falha antiga a re-inserir o mesmo dia).
@@ -1183,7 +1210,58 @@ function HorasProApp(_ref9) {
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
+  // Horas acumuladas do dia 1 do mês até ao dia que estás a ver (não conta
+  // dias do mês que ainda estão "no futuro" em relação a esse dia, mesmo que
+  // já existam pré-criados na base de dados — ex: sextas/feriados futuros).
+  var horasAteHoje = dedupedEntries.filter(function (e) {
+    return e.date.startsWith(curDate.toISOString().slice(0, 7)) && e.date <= todayStr;
+  }).reduce(function (s, e) {
+    return s + e.horas;
+  }, 0);
   var saldo = horasMes - metaMes;
+  // Reconciliação Jan-Abril com a Abaclick: Jan/Fev/Mar são 3 registos
+  // "Total X" só de saldo (sem detalhe diário); Abril já tem dados reais
+  // (sextas). Editar aqui só reparte Jan/Fev/Mar — nunca toca em Abril,
+  // nem em maio ou meses seguintes.
+  var horasJanFevMar = dedupedEntries.filter(function (e) {
+    return e.date >= '2026-01-01' && e.date <= '2026-03-31';
+  }).reduce(function (s, e) {
+    return s + e.horas;
+  }, 0);
+  var horasAbril2026 = dedupedEntries.filter(function (e) {
+    return e.date >= '2026-04-01' && e.date <= '2026-04-30';
+  }).reduce(function (s, e) {
+    return s + e.horas;
+  }, 0);
+  var totalJanAbrSaldo = Math.round((horasJanFevMar + horasAbril2026) * 100) / 100;
+  var guardarSaldoJanAbr = function guardarSaldoJanAbr() {
+    var novoTotal = parseFloat(saldoJanAbrInput.replace(',', '.'));
+    if (isNaN(novoTotal)) {
+      setSaldoJanAbrErr('Número inválido.');
+      return;
+    }
+    var novoJanMar = Math.round((novoTotal - horasAbril2026) * 100) / 100;
+    if (novoJanMar < 0) {
+      setSaldoJanAbrErr('Abril j\xE1 tem ' + horasAbril2026.toFixed(1) + 'h reais \u2014 o total tem de ser maior que isso.');
+      return;
+    }
+    setSaldoJanAbrSaving(true);
+    setSaldoJanAbrErr('');
+    if (!window.supabaseClient) {
+      setSaldoJanAbrSaving(false);
+      return;
+    }
+    window.supabaseClient.from('horas_entries').update({
+      hours: novoJanMar
+    }).eq('tipo', 'Saldo Jan-Mar (Abaclick)').gte('data', '2026-01-01').lte('data', '2026-03-31').then(function () {
+      setSaldoJanAbrSaving(false);
+      setEditandoSaldoJanAbr(false);
+      loadEntries();
+    }).catch(function () {
+      setSaldoJanAbrSaving(false);
+      setSaldoJanAbrErr('Erro ao guardar. Tenta outra vez.');
+    });
+  };
   var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMes;
   var metaTab = tab === 'Dia' ? metaDia : tab === 'Semana' ? metaSem : metaMes;
   var pct = Math.min(100, Math.round(horasTab / metaTab * 100));
@@ -1593,7 +1671,7 @@ function HorasProApp(_ref9) {
           horas: metaDia,
           isAuto: true,
           dlTipo: 'sexta',
-          validado: true
+          validado: isOwnWeekDue(dStr)
         });
         if (!alreadyDl) newDias.push({
           date: dStr,
@@ -1694,7 +1772,8 @@ function HorasProApp(_ref9) {
         hf: '00:00',
         horas: metaDia,
         isAuto: true,
-        dlTipo: tipo
+        dlTipo: tipo,
+        validado: isOwnWeekDue(d.date)
       };
     });
     setEntries(function (p) {
@@ -2169,7 +2248,8 @@ function HorasProApp(_ref9) {
           hf: '00:00',
           horas: metaDia,
           isAuto: true,
-          dlTipo: 'feriado'
+          dlTipo: 'feriado',
+          validado: isOwnWeekDue(f.date)
         };
         setEntries(function (p) {
           return [].concat(_toConsumableArray(p), [feriadoEntry]);
@@ -2253,7 +2333,8 @@ function HorasProApp(_ref9) {
           hf: '00:00',
           horas: metaDia,
           isAuto: true,
-          dlTipo: 'feriado'
+          dlTipo: 'feriado',
+          validado: isOwnWeekDue(f.date)
         };
         setEntries(function (p) {
           return [].concat(_toConsumableArray(p), [feriadoEntry2]);
@@ -2564,6 +2645,31 @@ function HorasProApp(_ref9) {
       marginTop: 1
     }
   }, "faltam ", Math.abs(saldo).toFixed(1), "h")), /*#__PURE__*/React.createElement(LCard, {
+    style: {
+      padding: '12px 14px',
+      minWidth: 130,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 600
+    }
+  }, "At\xE9 Hoje"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 22,
+      fontWeight: 900,
+      marginTop: 3
+    }
+  }, horasAteHoje.toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      marginTop: 2
+    }
+  }, "m\xEAs corrente")), /*#__PURE__*/React.createElement(LCard, {
     style: {
       padding: '12px 14px',
       minWidth: 120,
@@ -4448,7 +4554,7 @@ function HorasProApp(_ref9) {
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: '1fr 1fr 1fr',
       gap: 8,
       marginBottom: 16
     }
@@ -4463,6 +4569,10 @@ function HorasProApp(_ref9) {
   }, {
     l: 'Mês',
     v: "".concat(horasMes.toFixed(1), "h"),
+    c: H.gold
+  }, {
+    l: 'Até Hoje',
+    v: "".concat(horasAteHoje.toFixed(1), "h"),
     c: H.gold
   }, {
     l: 'Saldo',
@@ -4494,7 +4604,123 @@ function HorasProApp(_ref9) {
         marginTop: 4
       }
     }, s.v));
-  })), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: H.surface2,
+      borderRadius: 14,
+      padding: '12px 14px',
+      border: "1px solid ".concat(H.border),
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px'
+    }
+  }, "Saldo Abaclick (Jan\u2013Abril)"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 20,
+      fontWeight: 900,
+      marginTop: 4
+    }
+  }, totalJanAbrSaldo.toFixed(2), "h")), !editandoSaldoJanAbr && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setSaldoJanAbrInput(String(totalJanAbrSaldo));
+      setSaldoJanAbrErr('');
+      setEditandoSaldoJanAbr(true);
+    },
+    style: {
+      background: 'none',
+      border: "1px solid ".concat(H.gold),
+      borderRadius: 10,
+      padding: '8px 12px',
+      color: H.gold,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\u270F\uFE0F Editar")), editandoSaldoJanAbr && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "decimal",
+    defaultValue: saldoJanAbrInput,
+    onChange: function onChange(e) {
+      return setSaldoJanAbrInput(e.target.value);
+    },
+    placeholder: "ex: 59.93",
+    style: {
+      width: '100%',
+      background: H.surface,
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '10px 12px',
+      color: H.text,
+      fontSize: 16,
+      marginBottom: 8
+    }
+  }), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.red,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, saldoJanAbrErr), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 11,
+      marginBottom: 8
+    }
+  }, "Fica tudo num \xFAnico registo em Jan\u2013Mar (Abril fica com as ", horasAbril2026.toFixed(1), "h reais que j\xE1 tem). Maio em diante nunca \xE9 tocado."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: guardarSaldoJanAbr,
+    disabled: saldoJanAbrSaving,
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '11px',
+      color: '#1a1410',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer',
+      opacity: saldoJanAbrSaving ? 0.6 : 1
+    }
+  }, saldoJanAbrSaving ? 'A guardar...' : '\u2713 Guardar'), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setEditandoSaldoJanAbr(false);
+      setSaldoJanAbrErr('');
+    },
+    disabled: saldoJanAbrSaving,
+    style: {
+      flex: 1,
+      background: 'none',
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '11px',
+      color: H.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar")))), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setShowMenu(false);
     },
