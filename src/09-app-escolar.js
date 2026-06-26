@@ -480,6 +480,12 @@ var ALUNOS_DEF = {
         hf: '11:50',
         sala: '3-01',
         livre: false
+      }, {
+        discId: 16,
+        hi: '11:55',
+        hf: '12:40',
+        sala: '4-35',
+        livre: false
       }]
     },
     notas: {},
