@@ -4083,24 +4083,28 @@ function HorasProApp(_ref9) {
       style: {
         background: H.surface2,
         borderRadius: 14,
-        padding: '14px',
+        padding: '10px 6px',
         border: "1px solid ".concat(H.border),
-        textAlign: 'center'
+        textAlign: 'center',
+        minWidth: 0,
+        overflow: 'hidden'
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         color: H.muted,
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 700,
         textTransform: 'uppercase',
-        letterSpacing: '0.4px'
+        letterSpacing: '0.2px',
+        whiteSpace: 'nowrap'
       }
     }, s.l), /*#__PURE__*/React.createElement("p", {
       style: {
         color: s.c,
-        fontSize: 26,
+        fontSize: 18,
         fontWeight: 900,
-        marginTop: 4
+        marginTop: 4,
+        whiteSpace: 'nowrap'
       }
     }, s.v));
   })), /*#__PURE__*/React.createElement("div", {
