@@ -147,328 +147,349 @@ var ALUNOS_DEF = {
     nome: 'Lucas',
     emoji: '👦',
     cor: '#F97316',
-    klasse: 'SEK P',
+    klasse: 'SEK P 1p',
     cidade: 'Grenchen',
+    responsavel: {
+      nome: 'Petra Humair',
+      sala: '3-01',
+      tel: '079 763 71 86',
+      email: 'petra.humair@schulen-grenchen.ch'
+    },
     disciplinas: [{
       id: 1,
       abr: 'D',
       nome: 'Deutsch',
-      prof: 'Herr Müller',
-      tel: '',
+      prof: 'Petra Humair',
+      tel: '079 763 71 86',
       emoji: '📝',
       cor: '#2563EB'
     }, {
       id: 2,
-      abr: 'F',
-      nome: 'Français',
-      prof: 'Mme. Dupont',
-      tel: '',
-      emoji: '🗼',
-      cor: '#9333EA'
-    }, {
-      id: 3,
-      abr: 'E',
-      nome: 'Englisch',
-      prof: 'Frau Koch',
-      tel: '',
-      emoji: '🌍',
-      cor: '#7C3AED'
-    }, {
-      id: 4,
       abr: 'M',
       nome: 'Mathematik',
-      prof: 'Frau Schmidt',
+      prof: 'Greder',
       tel: '',
       emoji: '📐',
       cor: '#DC2626'
     }, {
-      id: 5,
-      abr: 'Bio',
-      nome: 'Biologie',
-      prof: 'Frau Huber',
-      tel: '',
-      emoji: '🌿',
-      cor: '#16A34A'
+      id: 3,
+      abr: 'F',
+      nome: 'Französisch',
+      prof: 'Petra Humair',
+      tel: '079 763 71 86',
+      emoji: '🗼',
+      cor: '#9333EA'
     }, {
-      id: 6,
-      abr: 'Ch',
-      nome: 'Chemie',
-      prof: 'Herr Bauer',
+      id: 4,
+      abr: 'Inf',
+      nome: 'Informatik',
+      prof: 'Walcher',
       tel: '',
-      emoji: '⚗️',
+      emoji: '💻',
       cor: '#0891B2'
     }, {
-      id: 7,
+      id: 5,
+      abr: 'E',
+      nome: 'Englisch',
+      prof: 'Von Streit',
+      tel: '',
+      emoji: '🌍',
+      cor: '#7C3AED'
+    }, {
+      id: 6,
       abr: 'Gs',
       nome: 'Geschichte',
-      prof: 'Herr Weber',
-      tel: '',
+      prof: 'Petra Humair',
+      tel: '079 763 71 86',
       emoji: '🏛',
       cor: '#92400E'
     }, {
-      id: 8,
-      abr: 'Gg',
-      nome: 'Geographie',
-      prof: 'Frau Schwarz',
+      id: 7,
+      abr: 'Mu',
+      nome: 'Musik',
+      prof: 'Von Streit',
       tel: '',
+      emoji: '🎵',
+      cor: '#DB2777'
+    }, {
+      id: 8,
+      abr: 'Schw',
+      nome: 'Schwimmen',
+      prof: 'Sutter',
+      tel: '',
+      emoji: '🏊',
+      cor: '#0EA5E9'
+    }, {
+      id: 9,
+      abr: 'Gg',
+      nome: 'Geografie',
+      prof: 'Petra Humair',
+      tel: '079 763 71 86',
       emoji: '🗺',
       cor: '#65A30D'
     }, {
-      id: 9,
-      abr: 'TG',
-      nome: 'Techn. Gestalten',
-      prof: 'Herr Klein',
-      tel: '',
-      emoji: '🔧',
-      cor: '#D97706'
-    }, {
       id: 10,
       abr: 'BG',
-      nome: 'Bild. Gestalten',
-      prof: 'Herr Braun',
+      nome: 'Bildnerisches Gestalten',
+      prof: 'Walcher',
       tel: '',
       emoji: '🎨',
       cor: '#EA580C'
     }, {
       id: 11,
-      abr: 'Mu',
-      nome: 'Musik',
-      prof: 'Frau Wolf',
+      abr: 'Ch',
+      nome: 'Chemie',
+      prof: 'Ruprecht',
       tel: '',
-      emoji: '🎵',
-      cor: '#DB2777'
+      emoji: '⚗️',
+      cor: '#0891B2'
     }, {
       id: 12,
-      abr: 'T',
-      nome: 'Sport',
-      prof: 'Herr Fischer',
+      abr: 'Rök',
+      nome: 'Religion ökumenisch',
+      prof: 'Wehrle',
+      tel: '',
+      emoji: '⛪',
+      cor: '#DB2777'
+    }, {
+      id: 13,
+      abr: 'Tu',
+      nome: 'Turnen',
+      prof: 'Sutter',
       tel: '',
       emoji: '⚽',
       cor: '#16A34A'
     }, {
-      id: 13,
-      abr: 'Inf',
-      nome: 'Informatik',
-      prof: 'Herr Schneider',
-      tel: '',
-      emoji: '💻',
-      cor: '#0891B2'
-    }, {
       id: 14,
-      abr: 'Lat',
-      nome: 'Latein',
-      prof: 'Frau Meyer',
+      abr: 'Bio',
+      nome: 'Biologie',
+      prof: 'Greder',
       tel: '',
-      emoji: '🏺',
-      cor: '#7C3AED'
+      emoji: '🌿',
+      cor: '#16A34A'
+    }, {
+      id: 15,
+      abr: 'LT',
+      nome: 'Lerntechnik',
+      prof: 'Wyss',
+      tel: '',
+      emoji: '🧠',
+      cor: '#F59E0B'
+    }, {
+      id: 16,
+      abr: 'TT',
+      nome: 'Tastaturschreiben',
+      prof: 'Walcher',
+      tel: '',
+      emoji: '⌨️',
+      cor: '#64748B'
+    }, {
+      id: 18,
+      abr: 'TG',
+      nome: 'Textiles und Technisches Gestalten',
+      prof: 'Stampfli',
+      tel: '',
+      emoji: '🧵',
+      cor: '#D97706'
+    }, {
+      id: 19,
+      abr: 'W+T',
+      nome: 'Wissenschaft und Technik',
+      prof: 'Greder',
+      tel: '',
+      emoji: '🔬',
+      cor: '#0D9488'
     }],
     slots: SWISS_SLOTS_LUCAS,
     horario: {
       0: [{
         discId: 1,
-        hi: '07:40',
-        hf: '08:30',
-        sala: '213',
+        hi: '07:30',
+        hf: '09:05',
+        sala: '3-01',
         livre: false
       }, {
         discId: 2,
-        hi: '08:35',
-        hf: '09:25',
-        sala: '114',
-        livre: false
-      }, {
-        discId: 12,
-        hi: '09:35',
-        hf: '11:20',
-        sala: 'Gym',
+        hi: '09:10',
+        hf: '11:00',
+        sala: '2-02',
         livre: false
       }, {
         discId: 3,
-        hi: '11:20',
-        hf: '11:45',
-        sala: '211',
+        hi: '11:05',
+        hf: '11:50',
+        sala: '3-01',
         livre: false
       }, {
-        discId: 7,
-        hi: '13:45',
-        hf: '14:35',
-        sala: '205',
+        discId: 4,
+        hi: '13:30',
+        hf: '14:15',
+        sala: '4-35',
         livre: false
-      }],
-      1: [{
+      }, {
         discId: 5,
-        hi: '07:40',
-        hf: '08:30',
-        sala: '301',
+        hi: '14:20',
+        hf: '15:05',
+        sala: '1-13',
         livre: false
       }, {
         discId: 6,
-        hi: '08:35',
-        hf: '09:25',
-        sala: '205',
+        hi: '15:20',
+        hf: '16:05',
+        sala: '3-01',
         livre: false
       }, {
-        discId: 2,
-        hi: '09:35',
-        hf: '10:25',
-        sala: '114',
+        discId: 7,
+        hi: '16:10',
+        hf: '16:55',
+        sala: '1-Aula',
         livre: false
-      }, {
+      }],
+      1: [{
         discId: 8,
-        hi: '11:20',
-        hf: '11:45',
-        sala: 'Computer',
+        hi: '07:30',
+        hf: '08:15',
+        sala: 'SSH',
         livre: false
       }, {
-        discId: 14,
-        hi: '13:45',
-        hf: '14:35',
-        sala: '210',
+        discId: 3,
+        hi: '08:20',
+        hf: '09:05',
+        sala: '3-01',
         livre: false
       }, {
-        discId: 14,
-        hi: '14:40',
-        hf: '15:30',
-        sala: '210',
+        discId: 9,
+        hi: '09:10',
+        hf: '09:55',
+        sala: '3-01',
+        livre: false
+      }, {
+        discId: 18,
+        hi: '10:15',
+        hf: '11:50',
+        sala: '4-37',
+        livre: false
+      }, {
+        discId: 10,
+        hi: '13:30',
+        hf: '15:05',
+        sala: '3-32',
+        livre: false
+      }, {
+        discId: 11,
+        hi: '15:20',
+        hf: '16:05',
+        sala: '3-21',
+        livre: false
+      }, {
+        discId: 7,
+        hi: '16:10',
+        hf: '16:55',
+        sala: '1-Aula',
         livre: false
       }],
       2: [{
-        discId: 9,
-        hi: '07:40',
-        hf: '08:30',
-        sala: '210',
-        livre: false
-      }, {
         discId: 1,
-        hi: '08:35',
-        hf: '09:25',
-        sala: '213',
+        hi: '07:30',
+        hf: '08:15',
+        sala: '3-01',
         livre: false
       }, {
-        discId: 4,
-        hi: '09:35',
-        hf: '10:25',
-        sala: '114',
+        discId: 2,
+        hi: '08:20',
+        hf: '09:55',
+        sala: '2-02',
         livre: false
       }, {
-        discId: 11,
-        hi: '13:45',
-        hf: '14:35',
-        sala: 'Musik',
+        discId: 19,
+        hi: '10:15',
+        hf: '11:50',
+        sala: '2-02',
         livre: false
       }],
       3: [{
-        discId: 2,
-        hi: '07:40',
-        hf: '08:30',
-        sala: '114',
+        discId: 3,
+        hi: '07:30',
+        hf: '08:15',
+        sala: '3-01',
         livre: false
       }, {
-        discId: 4,
-        hi: '08:35',
-        hf: '09:25',
-        sala: '211',
+        discId: 5,
+        hi: '08:20',
+        hf: '09:55',
+        sala: '1-13',
+        livre: false
+      }, {
+        discId: 12,
+        hi: '10:15',
+        hf: '11:50',
+        sala: '1-13',
+        livre: false
+      }, {
+        discId: 2,
+        hi: '13:30',
+        hf: '14:15',
+        sala: '2-02',
         livre: false
       }, {
         discId: 13,
-        hi: '09:35',
-        hf: '11:20',
-        sala: 'Computer',
-        livre: false
-      }, {
-        discId: 10,
-        hi: '13:45',
-        hf: '14:35',
-        sala: 'Atelier',
-        livre: false
-      }, {
-        discId: 10,
-        hi: '14:40',
-        hf: '15:30',
-        sala: 'Atelier',
-        livre: false
-      }, {
-        discId: 7,
-        hi: '15:35',
-        hf: '16:20',
-        sala: '205',
-        livre: false
-      }],
-      4: [{
-        discId: 10,
-        hi: '07:40',
-        hf: '08:30',
-        sala: 'Atelier',
-        livre: false
-      }, {
-        discId: 11,
-        hi: '08:35',
-        hf: '09:25',
-        sala: 'Musik',
-        livre: false
-      }, {
-        discId: 7,
-        hi: '09:35',
-        hf: '10:25',
-        sala: '205',
+        hi: '14:20',
+        hf: '15:05',
+        sala: 'DTN',
         livre: false
       }, {
         discId: 14,
-        hi: '13:45',
-        hf: '14:35',
-        sala: '210',
+        hi: '15:20',
+        hf: '16:05',
+        sala: '2-02',
+        livre: false
+      }, {
+        discId: 15,
+        hi: '16:10',
+        hf: '16:55',
+        sala: '4-27',
+        livre: false
+      }],
+      4: [{
+        discId: 9,
+        hi: '07:30',
+        hf: '08:15',
+        sala: '3-01',
+        livre: false
+      }, {
+        discId: 6,
+        hi: '08:20',
+        hf: '09:05',
+        sala: '3-01',
+        livre: false
+      }, {
+        discId: 19,
+        hi: '10:15',
+        hf: '11:50',
+        sala: '2-02',
+        livre: false
+      }, {
+        discId: 13,
+        hi: '13:30',
+        hf: '14:15',
+        sala: 'DTN',
+        livre: false
+      }, {
+        discId: 1,
+        hi: '14:20',
+        hf: '15:05',
+        sala: '3-01',
+        livre: false
+      }, {
+        discId: 16,
+        hi: '15:20',
+        hf: '16:05',
+        sala: '4-35',
         livre: false
       }]
     },
-    notas: {
-      1: {
-        1: [5.5, 4.0, 5.0],
-        2: [4.5, 5.0]
-      },
-      2: {
-        1: [4.0, 4.5, 3.5],
-        2: [5.0, 4.0]
-      },
-      3: {
-        1: [5.0, 5.5],
-        2: [4.5]
-      },
-      4: {
-        1: [4.5, 4.0, 5.0],
-        2: [3.5, 4.5]
-      },
-      5: {
-        1: [5.0, 4.5],
-        2: [5.5, 5.0]
-      },
-      9: {
-        1: [3.5, 4.0],
-        2: [4.0]
-      },
-      12: {
-        1: [5.5, 5.0],
-        2: [5.0]
-      }
-    },
-    tpc: [{
-      id: 1,
-      discId: 1,
-      titulo: 'Aufsatz schreiben',
-      data: '2026-06-18',
-      feito: false
-    }, {
-      id: 2,
-      discId: 2,
-      titulo: 'Seite 42-44',
-      data: '2026-06-17',
-      feito: true
-    }, {
-      id: 3,
-      discId: 4,
-      titulo: 'Vocabulary Unit 5',
-      data: '2026-06-19',
-      feito: false
-    }]
+    notas: {},
+    tpc: []
   },
   liam: {
     nome: 'Liam',
@@ -1011,6 +1032,17 @@ function EscolarApp(_ref31) {
             };
           }
           next[key] = updated;
+          // Proteção: se um aluno protegido (com dados reais conhecidos)
+          // aparecer com a tabela completamente vazia — por um DELETE
+          // a mais, SQL errado, etc. — repomos a cópia de segurança
+          // guardada no código de volta para o Supabase, sem precisar
+          // de intervenção manual.
+          var PROTEGIDOS = ['lucas'];
+          if (PROTEGIDOS.indexOf(key) !== -1 && discRows.length === 0 && horRows.length === 0 && ALUNOS_DEF[key] && (ALUNOS_DEF[key].disciplinas || []).length > 0) {
+            console.warn('[escolar] ' + key + ' apareceu sem disciplinas/horario — a repor a copia de seguranca automaticamente.');
+            saveAlunoSnapshot(key, ALUNOS_DEF[key]);
+            next[key] = _objectSpread({}, ALUNOS_DEF[key]);
+          }
         });
         return next;
       });
