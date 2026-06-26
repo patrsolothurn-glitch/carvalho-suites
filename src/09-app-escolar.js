@@ -23,29 +23,33 @@ var SWISS_SLOTS_LUCAS = [{
   hi: '11:05',
   hf: '11:50'
 }, {
+  id: 6,
+  hi: '11:55',
+  hf: '12:40'
+}, {
   id: 'a',
-  hi: '11:50',
+  hi: '12:40',
   hf: '13:30',
   almoco: true
 },
 // almoço — pode ter aulas
 {
-  id: 6,
+  id: 7,
   hi: '13:30',
   hf: '14:15',
   tarde: true
 }, {
-  id: 7,
+  id: 8,
   hi: '14:20',
   hf: '15:05',
   tarde: true
 }, {
-  id: 8,
+  id: 9,
   hi: '15:20',
   hf: '16:05',
   tarde: true
 }, {
-  id: 9,
+  id: 10,
   hi: '16:10',
   hf: '16:55',
   tarde: true
