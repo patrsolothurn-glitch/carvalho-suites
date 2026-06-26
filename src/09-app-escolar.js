@@ -422,7 +422,7 @@ var ALUNOS_DEF = {
       }, {
         discId: 12,
         hi: '10:15',
-        hf: '11:50',
+        hf: '11:00',
         sala: '1-13',
         livre: false
       }, {
@@ -464,27 +464,21 @@ var ALUNOS_DEF = {
         livre: false
       }, {
         discId: 19,
-        hi: '10:15',
-        hf: '11:50',
+        hi: '09:10',
+        hf: '09:55',
         sala: '2-02',
         livre: false
       }, {
         discId: 13,
-        hi: '13:30',
-        hf: '14:15',
+        hi: '10:15',
+        hf: '11:00',
         sala: 'DTN',
         livre: false
       }, {
         discId: 1,
-        hi: '14:20',
-        hf: '15:05',
+        hi: '11:05',
+        hf: '11:50',
         sala: '3-01',
-        livre: false
-      }, {
-        discId: 16,
-        hi: '15:20',
-        hf: '16:05',
-        sala: '4-35',
         livre: false
       }]
     },
