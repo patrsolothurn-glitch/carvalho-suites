@@ -4,45 +4,50 @@ var DISC_CORES = ['#7C3AED', '#2563EB', '#DC2626', '#D97706', '#16A34A', '#DB277
 // Slots Grenchen — 45 min por lição
 var SWISS_SLOTS_LUCAS = [{
   id: 1,
-  hi: '07:40',
-  hf: '08:25'
+  hi: '07:30',
+  hf: '08:15'
 }, {
   id: 2,
-  hi: '08:30',
-  hf: '09:15'
+  hi: '08:20',
+  hf: '09:05'
 }, {
   id: 3,
-  hi: '09:20',
-  hf: '10:05'
+  hi: '09:10',
+  hf: '09:55'
 }, {
   id: 4,
-  hi: '10:10',
-  hf: '10:55'
+  hi: '10:15',
+  hf: '11:00'
 }, {
   id: 5,
-  hi: '11:00',
-  hf: '11:45'
+  hi: '11:05',
+  hf: '11:50'
 }, {
   id: 'a',
-  hi: '11:45',
-  hf: '13:45',
+  hi: '11:50',
+  hf: '13:30',
   almoco: true
 },
 // almoço — pode ter aulas
 {
   id: 6,
-  hi: '13:45',
-  hf: '14:30',
+  hi: '13:30',
+  hf: '14:15',
   tarde: true
 }, {
   id: 7,
-  hi: '14:35',
-  hf: '15:20',
+  hi: '14:20',
+  hf: '15:05',
   tarde: true
 }, {
   id: 8,
-  hi: '15:25',
-  hf: '16:10',
+  hi: '15:20',
+  hf: '16:05',
+  tarde: true
+}, {
+  id: 9,
+  hi: '16:10',
+  hf: '16:55',
   tarde: true
 }];
 var SWISS_SLOTS_LIAM = [{
