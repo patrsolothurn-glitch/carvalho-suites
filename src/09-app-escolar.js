@@ -737,16 +737,26 @@ function EscolarApp(_ref31) {
   var aluno = alunosData[alunoKey];
   var _escolarSaveInFlight = {};
   var _escolarSavePending = {};
-  var doSaveAlunoSnapshot = function doSaveAlunoSnapshot(key, data) {
+  var _escolarSavePendingDomains = {};
+  // domains: lista de quais secoes gravar ('disciplinas','horario','notas','tpc','perfil').
+  // Se omitido, grava tudo (usado apenas na semeadura inicial a partir de ALUNOS_DEF).
+  // Isto evita que uma edicao pequena (ex: marcar um TPC) reescreva o horario
+  // inteiro com uma copia local desatualizada e apague correcoes feitas noutro
+  // dispositivo — cada accao agora so toca na tabela que realmente mudou.
+  var doSaveAlunoSnapshot = function doSaveAlunoSnapshot(key, data, domains) {
     if (!window.supabaseClient) return Promise.resolve();
     var sb = window.supabaseClient;
+    var doms = domains || ['disciplinas', 'horario', 'notas', 'tpc', 'perfil'];
+    var inc = function inc(d) { return doms.indexOf(d) !== -1; };
+    if (doms.length === 0) console.warn('[escolar] saveAlunoSnapshot chamado sem dominio — nada vai ser gravado');
     // Helper: log erro se o INSERT devolver { error }
     var logIns = function logIns(tbl) {
       return function (r) {
         if (r && r.error) console.warn('[escolar] INSERT ' + tbl + ' falhou:', r.error.message || r.error);
       };
     };
-    var p1 = sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
+    var ps = [];
+    if (inc('disciplinas')) ps.push(sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE disciplinas falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
         return;
@@ -764,8 +774,8 @@ function EscolarApp(_ref31) {
         };
       });
       if (rows.length > 0) return sb.from('escolar_disciplinas').insert(rows).then(logIns('disciplinas'));
-    }).catch(function (e) { console.warn('[escolar] erro disciplinas:', e); });
-    var p2 = sb.from('escolar_horario').delete().eq('aluno', key).then(function (delRes) {
+    }).catch(function (e) { console.warn('[escolar] erro disciplinas:', e); }));
+    if (inc('horario')) ps.push(sb.from('escolar_horario').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE horario falhou — NAO inserindo:', delRes.error.message);
         return;
@@ -785,8 +795,8 @@ function EscolarApp(_ref31) {
         });
       });
       if (rows.length > 0) return sb.from('escolar_horario').insert(rows).then(logIns('horario'));
-    }).catch(function (e) { console.warn('[escolar] erro horario:', e); });
-    var p3 = sb.from('escolar_notas').delete().eq('aluno', key).then(function (delRes) {
+    }).catch(function (e) { console.warn('[escolar] erro horario:', e); }));
+    if (inc('notas')) ps.push(sb.from('escolar_notas').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE notas falhou:', delRes.error.message);
         return;
@@ -805,8 +815,8 @@ function EscolarApp(_ref31) {
         });
       });
       if (rows.length > 0) return sb.from('escolar_notas').insert(rows).then(logIns('notas'));
-    }).catch(function (e) { console.warn('[escolar] erro notas:', e); });
-    var p4 = sb.from('escolar_tpc').delete().eq('aluno', key).then(function (delRes) {
+    }).catch(function (e) { console.warn('[escolar] erro notas:', e); }));
+    if (inc('tpc')) ps.push(sb.from('escolar_tpc').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE tpc falhou:', delRes.error.message);
         return;
@@ -823,8 +833,8 @@ function EscolarApp(_ref31) {
         };
       });
       if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
-    }).catch(function (e) { console.warn('[escolar] erro tpc:', e); });
-    var p5 = sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
+    }).catch(function (e) { console.warn('[escolar] erro tpc:', e); }));
+    if (inc('perfil')) ps.push(sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
         return;
@@ -839,8 +849,8 @@ function EscolarApp(_ref31) {
         resp_tel: resp.tel || '',
         resp_email: resp.email || ''
       }).then(logIns('perfil'));
-    }).catch(function (e) { console.warn('[escolar] erro perfil:', e); });
-    return Promise.all([p1, p2, p3, p4, p5]);
+    }).catch(function (e) { console.warn('[escolar] erro perfil:', e); }));
+    return Promise.all(ps);
   };
   var savePerfilOnly = function savePerfilOnly(key, data) {
     if (!window.supabaseClient) return;
@@ -864,19 +874,26 @@ function EscolarApp(_ref31) {
       console.warn('[escolar] erro perfil:', e);
     });
   };
-  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
+  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains) {
     if (!window.supabaseClient) return;
     if (_escolarSaveInFlight[key]) {
       _escolarSavePending[key] = data;
+      var pendDoms = _escolarSavePendingDomains[key] || [];
+      (domains || []).forEach(function (d) {
+        if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
+      });
+      _escolarSavePendingDomains[key] = pendDoms;
       return;
     }
     _escolarSaveInFlight[key] = true;
-    doSaveAlunoSnapshot(key, data).then(function () {
+    doSaveAlunoSnapshot(key, data, domains).then(function () {
       _escolarSaveInFlight[key] = false;
       var next = _escolarSavePending[key];
+      var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
         _escolarSavePending[key] = null;
-        saveAlunoSnapshot(key, next);
+        _escolarSavePendingDomains[key] = null;
+        saveAlunoSnapshot(key, next, nextDoms);
       }
     }).catch(function () {
       _escolarSaveInFlight[key] = false;
@@ -890,6 +907,7 @@ function EscolarApp(_ref31) {
   // pelo flush abaixo.
   var _saveTimers = window._escolarSaveTimers || (window._escolarSaveTimers = {});
   var _saveLatest  = window._escolarSaveLatest || (window._escolarSaveLatest = {});
+  var _saveDomains = window._escolarSaveDomains || (window._escolarSaveDomains = {});
   var flushSaveAluno = function flushSaveAluno(key) {
     if (_saveTimers[key]) {
       clearTimeout(_saveTimers[key]);
@@ -897,20 +915,31 @@ function EscolarApp(_ref31) {
     }
     if (_saveLatest[key]) {
       var data = _saveLatest[key];
+      var doms = _saveDomains[key];
       _saveLatest[key] = null;
-      saveAlunoSnapshot(key, data);
+      _saveDomains[key] = null;
+      saveAlunoSnapshot(key, data, doms);
     }
   };
-  var setAluno = function setAluno(fn) {
+  // domain identifica qual tabela esta edicao realmente afeta ('horario',
+  // 'disciplinas', 'notas' ou 'tpc'). So essa tabela e regravada — assim uma
+  // edicao num TPC, por exemplo, nunca pode reescrever o horario com uma
+  // copia local desatualizada.
+  var setAluno = function setAluno(fn, domain) {
     return setAlunosData(function (p) {
       var newData = fn(p[alunoKey]);
       _saveLatest[alunoKey] = newData;
+      var doms = _saveDomains[alunoKey] || [];
+      if (domain && doms.indexOf(domain) === -1) doms = doms.concat([domain]);
+      _saveDomains[alunoKey] = doms;
       if (_saveTimers[alunoKey]) clearTimeout(_saveTimers[alunoKey]);
       _saveTimers[alunoKey] = setTimeout(function () {
         _saveTimers[alunoKey] = null;
         var d = _saveLatest[alunoKey];
+        var domsToSave = _saveDomains[alunoKey];
         _saveLatest[alunoKey] = null;
-        if (d) saveAlunoSnapshot(alunoKey, d);
+        _saveDomains[alunoKey] = null;
+        if (d) saveAlunoSnapshot(alunoKey, d, domsToSave);
       }, 800);
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, newData));
     });
@@ -2183,7 +2212,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
-        });
+        }, 'horario');
       },
       style: {
         width: '100%',
@@ -2224,7 +2253,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
-        });
+        }, 'horario');
       },
       style: {
         width: '100%',
@@ -2265,7 +2294,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
-        });
+        }, 'horario');
       },
       style: {
         width: '100%',
@@ -2302,7 +2331,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
-        });
+        }, 'horario');
       },
       style: {
         width: '100%',
@@ -2411,7 +2440,7 @@ function EscolarApp(_ref31) {
               }) : d;
             })
           });
-        });
+        }, 'disciplinas');
       },
       style: {
         width: '100%',
@@ -2440,7 +2469,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
-        });
+        }, 'horario');
       },
       style: {
         flex: 1,
@@ -2462,7 +2491,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
-        });
+        }, 'horario');
       },
       style: {
         background: 'rgba(220,38,38,0.1)',
@@ -2681,7 +2710,7 @@ function EscolarApp(_ref31) {
         return _objectSpread(_objectSpread({}, al), {}, {
           horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
         });
-      });
+      }, 'horario');
       ['hi', 'hf', 'sala'].forEach(function (k) {
         var el = document.getElementById('novaaula-' + k);
         if (el) el.value = '';
@@ -2865,7 +2894,7 @@ function EscolarApp(_ref31) {
                 }) : x;
               })
             });
-          });
+          }, 'disciplinas');
         },
         style: {
           background: d.emoji === e ? "".concat(d.cor, "22") : 'transparent',
@@ -2895,7 +2924,7 @@ function EscolarApp(_ref31) {
                 }) : x;
               })
             });
-          });
+          }, 'disciplinas');
         },
         style: {
           width: 22,
@@ -2928,7 +2957,7 @@ function EscolarApp(_ref31) {
               }) : x;
             })
           });
-        });
+        }, 'disciplinas');
         setEditDiscId(null);
       },
       style: {
@@ -2950,7 +2979,7 @@ function EscolarApp(_ref31) {
               return x.id !== d.id;
             })
           });
-        });
+        }, 'disciplinas');
         setEditDiscId(null);
       },
       style: {
@@ -3068,7 +3097,7 @@ function EscolarApp(_ref31) {
             cor: novaDisc.cor || '#7C3AED'
           }])
         });
-      });
+      }, 'disciplinas');
       ['nome', 'prof', 'tel'].forEach(function (k) {
         var el = document.getElementById('novadisc-' + k);
         if (el) el.value = '';
@@ -3347,7 +3376,7 @@ function EscolarApp(_ref31) {
                 }) : x;
               })
             });
-          });
+          }, 'tpc');
         },
         style: {
           background: t.feito ? 'rgba(22,163,74,0.15)' : 'transparent',
@@ -3599,7 +3628,7 @@ function EscolarApp(_ref31) {
             id: novoId
           }, tpcRow)])
         });
-      });
+      }, 'tpc');
       if (tpcRow.tipo === 'teste' && window.supabaseClient) {
         var disc = aluno.disciplinas.find(function (d) {
           return d.id === tpcRow.discId;
@@ -3712,7 +3741,7 @@ function EscolarApp(_ref31) {
               }) : x;
             })
           });
-        });
+        }, 'tpc');
       },
       style: {
         background: "".concat(E.purple, "22"),
@@ -3745,7 +3774,7 @@ function EscolarApp(_ref31) {
               return x.id !== t.id;
             })
           });
-        });
+        }, 'tpc');
         setEditTpcId(null);
       },
       style: {
@@ -3853,7 +3882,7 @@ function EscolarApp(_ref31) {
               }) : x;
             })
           });
-        });
+        }, 'tpc');
         setEditTpcId(null);
       },
       style: {
@@ -3929,7 +3958,7 @@ function EscolarApp(_ref31) {
               return x.id !== t.id;
             })
           });
-        });
+        }, 'tpc');
       },
       style: {
         background: 'none',
@@ -4003,7 +4032,7 @@ function EscolarApp(_ref31) {
               }) : x;
             })
           });
-        });
+        }, 'tpc');
       },
       style: {
         background: "".concat(E.purple, "22"),
@@ -4220,7 +4249,7 @@ function EscolarApp(_ref31) {
             });
             copy.notas[disc.id][semestre][i] = v;
             return copy;
-          });
+          }, 'notas');
           setEditNotaKey(null);
         },
         style: {
@@ -4264,7 +4293,7 @@ function EscolarApp(_ref31) {
             });
             copy.notas[disc.id][semestre].splice(i, 1);
             return copy;
-          });
+          }, 'notas');
         },
         style: {
           background: 'none',
@@ -4310,7 +4339,7 @@ function EscolarApp(_ref31) {
           return _objectSpread(_objectSpread({}, al), {}, {
             notas: _objectSpread(_objectSpread({}, al.notas), {}, _defineProperty({}, disc.id, _objectSpread(_objectSpread({}, al.notas[disc.id] || {}), {}, _defineProperty({}, semestre, [].concat(_toConsumableArray(((_al$notas$disc$id2 = al.notas[disc.id]) === null || _al$notas$disc$id2 === void 0 ? void 0 : _al$notas$disc$id2[semestre]) || []), [v])))))
           });
-        });
+        }, 'notas');
         setNovaNotaVal('');
         setShowAddNota(null);
       },
