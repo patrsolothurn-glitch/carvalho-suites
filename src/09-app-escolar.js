@@ -1572,12 +1572,15 @@ function EscolarApp(_ref31) {
         var _document$getElementB7, _document$getElementB8;
         var klasse = (((_document$getElementB7 = document.getElementById("klasse-inp-".concat(k))) === null || _document$getElementB7 === void 0 ? void 0 : _document$getElementB7.value) || '').trim();
         var cidade = (((_document$getElementB8 = document.getElementById("cidade-inp-".concat(k))) === null || _document$getElementB8 === void 0 ? void 0 : _document$getElementB8.value) || '').trim();
+        var novoDado = null;
         setAlunosData(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, _objectSpread(_objectSpread({}, p[k]), {}, {
+          novoDado = _objectSpread(_objectSpread({}, p[k]), {}, {
             klasse: klasse || p[k].klasse,
             cidade: cidade || p[k].cidade
-          })));
+          });
+          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, novoDado));
         });
+        if (novoDado) saveAlunoSnapshot(k, novoDado);
         setEditKlasseKey(null);
       },
       style: {
