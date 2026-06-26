@@ -497,6 +497,12 @@ var ALUNOS_DEF = {
     cor: '#22C55E',
     klasse: 'Prim 3a',
     cidade: 'Selzach',
+    responsavel: {
+      nome: 'Aïna Probst',
+      sala: '',
+      tel: '032 641 70 75',
+      email: ''
+    },
     disciplinas: [{
       id: 101,
       abr: 'U',
