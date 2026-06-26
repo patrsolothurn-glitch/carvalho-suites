@@ -4073,6 +4073,10 @@ function HorasProApp(_ref9) {
     l: 'Saldo',
     v: "".concat(saldo >= 0 ? '+' : '').concat(saldo.toFixed(1), "h"),
     c: saldo >= 0 ? H.green : H.red
+  }, {
+    l: 'Total',
+    v: "".concat(saldo + totalJanAbrSaldo >= 0 ? '+' : '').concat((saldo + totalJanAbrSaldo).toFixed(1), "h"),
+    c: saldo + totalJanAbrSaldo >= 0 ? H.green : H.red
   }].map(function (s) {
     return /*#__PURE__*/React.createElement("div", {
       key: s.l,
