@@ -50,6 +50,11 @@ function FamiliaApp(_ref19) {
     _useState98 = _slicedToArray(_useState97, 2),
     selDay = _useState98[0],
     setSelDay = _useState98[1];
+  (0, _react.useEffect)(function () {
+    var today = new Date();
+    var isRealCurrentMonth = curMonth.getFullYear() === today.getFullYear() && curMonth.getMonth() === today.getMonth();
+    setSelDay(isRealCurrentMonth ? today.getDate() : 1);
+  }, [curMonth]);
   var _useState99 = (0, _react.useState)(false),
     _useState100 = _slicedToArray(_useState99, 2),
     showAdd = _useState100[0],
