@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-26T07:58:43.339Z
+  Gerado em: 2026-06-26T08:23:57.718Z
 -->
 <html lang="pt">
 <head>
@@ -13642,7 +13642,23 @@ function EscolarApp(_ref31) {
       });
       if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
     }).catch(function (e) { console.warn('[escolar] erro tpc:', e); });
-    return Promise.all([p1, p2, p3, p4]);
+    var p5 = sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
+        return;
+      }
+      var resp = data.responsavel || {};
+      return sb.from('escolar_perfil').insert({
+        aluno: key,
+        klasse: data.klasse || '',
+        cidade: data.cidade || '',
+        resp_nome: resp.nome || '',
+        resp_sala: resp.sala || '',
+        resp_tel: resp.tel || '',
+        resp_email: resp.email || ''
+      }).then(logIns('perfil'));
+    }).catch(function (e) { console.warn('[escolar] erro perfil:', e); });
+    return Promise.all([p1, p2, p3, p4, p5]);
   };
   var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
     if (!window.supabaseClient) return;
@@ -13706,14 +13722,15 @@ function EscolarApp(_ref31) {
     }
     window._escolarLoadTries = 0;
     var sb = window.supabaseClient;
-    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*')]).then(function (resArr) {
+    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*'), sb.from('escolar_perfil').select('*')]).then(function (resArr) {
       var discRes = resArr[0],
         horRes = resArr[1],
         notasRes = resArr[2],
-        tpcRes = resArr[3];
+        tpcRes = resArr[3],
+        perfilRes = resArr[4];
       // Diagnostico: se alguma query devolveu erro, regista no console
       // para podermos perceber porque alguns dispositivos caem no fallback.
-      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes]].forEach(function (p) {
+      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes]].forEach(function (p) {
         if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
       });
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
@@ -13796,6 +13813,19 @@ function EscolarApp(_ref31) {
                 tipo: r.tipo || 'tpc'
               };
             });
+          }
+          var perfilRow = (perfilRes.data || []).find(function (r) {
+            return r.aluno === key;
+          });
+          if (perfilRow) {
+            if (perfilRow.klasse) updated.klasse = perfilRow.klasse;
+            if (perfilRow.cidade) updated.cidade = perfilRow.cidade;
+            updated.responsavel = {
+              nome: perfilRow.resp_nome || '',
+              sala: perfilRow.resp_sala || '',
+              tel: perfilRow.resp_tel || '',
+              email: perfilRow.resp_email || ''
+            };
           }
           next[key] = updated;
         });
@@ -14202,7 +14232,16 @@ function EscolarApp(_ref31) {
         color: "".concat(E.purple, "88"),
         flexShrink: 0
       }
-    }, "\u270E"))), isSel && /*#__PURE__*/React.createElement("div", {
+    }, "\u270E")), isSel && al.responsavel && al.responsavel.nome && /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 9.5,
+        color: E.muted,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.3,
+        marginTop: 1
+      }
+    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome, al.responsavel.sala ? " \xB7 sala ".concat(al.responsavel.sala) : '', al.responsavel.tel ? " \xB7 ".concat(al.responsavel.tel) : '')), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
         width: 7,
         height: 7,
