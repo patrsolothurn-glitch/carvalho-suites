@@ -827,6 +827,28 @@ function EscolarApp(_ref31) {
     }).catch(function (e) { console.warn('[escolar] erro perfil:', e); });
     return Promise.all([p1, p2, p3, p4, p5]);
   };
+  var savePerfilOnly = function savePerfilOnly(key, data) {
+    if (!window.supabaseClient) return;
+    var sb = window.supabaseClient;
+    var resp = data.responsavel || {};
+    sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
+        return;
+      }
+      return sb.from('escolar_perfil').insert({
+        aluno: key,
+        klasse: data.klasse || '',
+        cidade: data.cidade || '',
+        resp_nome: resp.nome || '',
+        resp_sala: resp.sala || '',
+        resp_tel: resp.tel || '',
+        resp_email: resp.email || ''
+      });
+    }).catch(function (e) {
+      console.warn('[escolar] erro perfil:', e);
+    });
+  };
   var saveAlunoSnapshot = function saveAlunoSnapshot(key, data) {
     if (!window.supabaseClient) return;
     if (_escolarSaveInFlight[key]) {
@@ -1291,11 +1313,14 @@ function EscolarApp(_ref31) {
     onClick: function onClick() {
       var _document$getElementB6;
       var val = (((_document$getElementB6 = document.getElementById('klasse-input')) === null || _document$getElementB6 === void 0 ? void 0 : _document$getElementB6.value) || '').trim();
-      if (val) setAluno(function (al) {
-        return _objectSpread(_objectSpread({}, al), {}, {
+      var novoDado = null;
+      if (val) setAlunosData(function (p) {
+        novoDado = _objectSpread(_objectSpread({}, p[alunoKey]), {}, {
           klasse: val
         });
+        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoDado));
       });
+      if (novoDado) savePerfilOnly(alunoKey, novoDado);
       setEditKlasse(false);
     },
     style: {
@@ -1580,7 +1605,7 @@ function EscolarApp(_ref31) {
           });
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, novoDado));
         });
-        if (novoDado) saveAlunoSnapshot(k, novoDado);
+        if (novoDado) savePerfilOnly(k, novoDado);
         setEditKlasseKey(null);
       },
       style: {
