@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-26T13:26:17.364Z
+  Gerado em: 2026-06-26T14:00:04.433Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-01";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-02";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -13766,19 +13766,13 @@ function EscolarApp(_ref31) {
       });
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
       if (!anyData) {
-        // Se todas as queries falharam (e.g. CDN bloqueado, sem rede), NAO
-        // sobrescrever o Supabase com o fallback — usamos so o fallback
-        // em memoria. Sobrescrever so faz sentido em first-run real.
-        var allErrored = [discRes, horRes, notasRes, tpcRes].every(function (r) {
-          return !r || r.error || r.data === null;
-        });
-        if (allErrored) {
-          console.warn('[escolar] todas as queries falharam; nao sobrescrevo Supabase com fallback');
-          return;
-        }
-        Object.keys(ALUNOS_DEF).forEach(function (key) {
-          saveAlunoSnapshot(key, ALUNOS_DEF[key]);
-        });
+        // Já não repomos os dados de exemplo (ALUNOS_DEF) automaticamente.
+        // Isto causou perda de dados reais quando uma tabela ficava vazia
+        // por engano (ex: um DELETE a mais) — a app reescrevia por cima
+        // com os dados de exemplo antigos, sem avisar ninguém.
+        // Agora, se as tabelas estiverem mesmo vazias, ficamos com o que
+        // já está em memória e avisamos na consola, sem inserir nada.
+        console.warn('[escolar] escolar_disciplinas/escolar_horario/escolar_tpc vieram vazios — NAO reponho dados de exemplo automaticamente.');
         return;
       }
       setAlunosData(function (prev) {
