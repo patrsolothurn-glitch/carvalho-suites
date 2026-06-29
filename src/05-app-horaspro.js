@@ -591,6 +591,7 @@ function HorasProApp(_ref9) {
   };
   var todayStr = fmt(curDate);
   var metaDia = 5.9;
+  var metaFerias = 5.7;
   var metaSem = Math.round(metaDia * 5 * 10) / 10;
   var metaMes = Math.round(metaSem * 52 / 12 * 10) / 10;
   var getKW = function getKW(d) {
@@ -638,10 +639,11 @@ function HorasProApp(_ref9) {
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
-  // No Mês (e no saldo), sexta/feriado automáticos não contam como horas —
-  // só entram horas realmente trabalhadas e dias de férias.
+  // No Mês (e no saldo), sexta/feriado/férias automáticos não contam como
+  // horas trabalhadas — a meta desses dias simplesmente desaparece. Férias
+  // têm, à parte, um débito fixo de metaFerias por dia (ver saldo abaixo).
   var contaNoMes = function contaNoMes(e) {
-    return !e.isAuto || e.dlTipo === 'ferias';
+    return !e.isAuto;
   };
   var horasMes = dedupedEntries.filter(function (e) {
     return e.date.startsWith(curDate.toISOString().slice(0, 7)) && contaNoMes(e);
@@ -656,7 +658,13 @@ function HorasProApp(_ref9) {
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
-  var saldo = horasMes - metaMes;
+  // Cada dia de férias do mês desconta metaFerias (5.7h) directamente do
+  // saldo — a meta diária desse dia já não existe (não entra em horasMes
+  // nem é exigida em metaMes), por isso este débito não duplica com nada.
+  var diasFeriasMes = dedupedEntries.filter(function (e) {
+    return e.isAuto && e.dlTipo === 'ferias' && e.date.startsWith(curDate.toISOString().slice(0, 7));
+  }).length;
+  var saldo = horasMes - metaMes - diasFeriasMes * metaFerias;
   // Reconciliação Jan-Abril com a Abaclick: Jan/Fev/Mar são 3 registos
   // "Total X" só de saldo (sem detalhe diário); Abril já tem dados reais
   // (sextas). Editar aqui só reparte Jan/Fev/Mar — nunca toca em Abril,
@@ -1166,10 +1174,8 @@ function HorasProApp(_ref9) {
     })) === null || _diasLivres$find === void 0 ? void 0 : _diasLivres$find.tipo) || null;
   };
 
-  // Dias úteis recebem metaDia automaticamente (neutro). Férias são a
-  // excepção: creditam menos (metaFerias) porque não equivalem a um dia
-  // de trabalho normal — isto reflecte-se ligeiramente no saldo.
-  var metaFerias = 5.7;
+  // Dias úteis recebem metaDia automaticamente (neutro). Férias creditam
+  // metaFerias (5.7h) na entrada — ver saldo acima para o débito real.
   var addDiasLivresRange = function addDiasLivresRange(de, ate, tipo) {
     var nome = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
     var horasTipo = tipo === 'ferias' ? metaFerias : metaDia;
