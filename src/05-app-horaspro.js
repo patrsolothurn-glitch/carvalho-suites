@@ -378,25 +378,6 @@ function HorasProApp(_ref9) {
     _useState0 = _slicedToArray(_useState9, 2),
     menuMonth = _useState0[0],
     setMenuMonth = _useState0[1];
-  var MESES_CAL = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-  var calYear = menuMonth.getFullYear();
-  var calMonthIdx = menuMonth.getMonth();
-  var calMonthLabel = MESES_CAL[calMonthIdx] + ' ' + calYear;
-  var calDaysInMonth = new Date(calYear, calMonthIdx + 1, 0).getDate();
-  var calFirstDow = new Date(calYear, calMonthIdx, 1).getDay();
-  var calFirstDowMon = (calFirstDow + 6) % 7;
-  // Constrói as semanas (Seg-Dom) do mês escolhido, com células vazias
-  // (null) antes do dia 1 e depois do último dia, para alinhar a grelha.
-  var calWeeks = [];
-  var calDayCounter = 1 - calFirstDowMon;
-  while (calDayCounter <= calDaysInMonth) {
-    var calWeekDays = [];
-    for (var calWdi = 0; calWdi < 7; calWdi++) {
-      calWeekDays.push(calDayCounter >= 1 && calDayCounter <= calDaysInMonth ? calDayCounter : null);
-      calDayCounter++;
-    }
-    calWeeks.push(calWeekDays);
-  }
   var _useState1 = (0, _react.useState)(false),
     _useState10 = _slicedToArray(_useState1, 2),
     showAdd = _useState10[0],
@@ -804,21 +785,18 @@ function HorasProApp(_ref9) {
       setSaldoJanAbrErr('Abril j\xE1 tem ' + horasAbril2026.toFixed(1) + 'h reais \u2014 o total tem de ser maior que isso.');
       return;
     }
-    setSaldoJanAbrSaving(true);
+    // Fecha já (otimista) — não espera pela resposta do servidor, tal como
+    // os outros cartões de quota. A gravação continua em segundo plano.
+    setSaldoJanAbrSaving(false);
     setSaldoJanAbrErr('');
-    if (!window.supabaseClient) {
-      setSaldoJanAbrSaving(false);
-      return;
-    }
+    setEditandoSaldoJanAbr(false);
+    if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').update({
       hours: novoJanMar
     }).eq('tipo', 'Saldo Jan-Mar (Abaclick)').gte('data', '2026-01-01').lte('data', '2026-03-31').then(function () {
-      setSaldoJanAbrSaving(false);
-      setEditandoSaldoJanAbr(false);
       loadEntries();
     }).catch(function () {
-      setSaldoJanAbrSaving(false);
-      setSaldoJanAbrErr('Erro ao guardar. Tenta outra vez.');
+      console.warn('[horaspro] Erro ao guardar Saldo Abaclick — tenta outra vez.');
     });
   };
   var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMes;
@@ -4447,54 +4425,15 @@ function HorasProApp(_ref9) {
       letterSpacing: '1.5px',
       textTransform: 'uppercase'
     }
-  }, "Calend\xE1rio & Stats")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 14
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setMenuMonth(function (m) {
-        return new Date(m.getFullYear(), m.getMonth() - 1, 1);
-      });
-    },
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: '50%',
-      border: "1px solid ".concat(H.border),
-      background: H.surface2,
-      color: H.gold,
-      fontSize: 16,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\u2039"), /*#__PURE__*/React.createElement("p", {
+  }, "Calend\xE1rio & Stats")), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.gold,
       fontWeight: 800,
-      fontSize: 16
-    }
-  }, calMonthLabel), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setMenuMonth(function (m) {
-        return new Date(m.getFullYear(), m.getMonth() + 1, 1);
-      });
-    },
-    style: {
-      width: 32,
-      height: 32,
-      borderRadius: '50%',
-      border: "1px solid ".concat(H.border),
-      background: H.surface2,
-      color: H.gold,
       fontSize: 16,
-      fontWeight: 700,
-      cursor: 'pointer'
+      textAlign: 'center',
+      marginBottom: 14
     }
-  }, "\u203A")), /*#__PURE__*/React.createElement("div", {
+  }, "Junho 2026"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 16
     }
@@ -4515,13 +4454,12 @@ function HorasProApp(_ref9) {
         color: H.gold
       }
     }, d);
-  })), calWeeks.map(function (week, wi) {
-    var firstRealDay = week.find(function (d) {
-      return d !== null;
-    });
-    var weekKw = getKW(new Date(calYear, calMonthIdx, firstRealDay, 12));
+  })), [[23, [1, 2, 3, 4, 5, 6, 7]], [24, [8, 9, 10, 11, 12, 13, 14]], [25, [15, 16, 17, 18, 19, 20, 21]], [26, [22, 23, 24, 25, 26, 27, 28]], [27, [29, 30]]].map(function (_ref11) {
+    var _ref12 = _slicedToArray(_ref11, 2),
+      kw2 = _ref12[0],
+      ds = _ref12[1];
     return /*#__PURE__*/React.createElement("div", {
-      key: wi,
+      key: kw2,
       style: {
         display: 'grid',
         gridTemplateColumns: '36px repeat(7,1fr)',
@@ -4540,11 +4478,8 @@ function HorasProApp(_ref9) {
         color: H.muted,
         fontWeight: 600
       }
-    }, weekKw)), week.map(function (d, di) {
-      if (d === null) return /*#__PURE__*/React.createElement("div", {
-        key: 'e' + di
-      });
-      var dStr = "".concat(calYear, "-").concat(String(calMonthIdx + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
+    }, kw2)), ds.map(function (d) {
+      var dStr = "2026-06-".concat(String(d).padStart(2, '0'));
       var hasEntry = entries.some(function (e) {
         return e.date === dStr;
       });
@@ -4588,6 +4523,12 @@ function HorasProApp(_ref9) {
           margin: '2px auto 0'
         }
       }));
+    }), Array.from({
+      length: 7 - ds.length
+    }).map(function (_, i) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: 'e' + i
+      });
     }));
   })), /*#__PURE__*/React.createElement("p", {
     style: {
