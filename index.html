@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-29T22:21:38.679Z
+  Gerado em: 2026-06-29T22:29:51.241Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-18";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-19";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -4124,7 +4124,497 @@ function HorasProApp(_ref9) {
       boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
       transition: 'left 0.2s'
     }
-  })))), [{
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: H.surface2,
+      borderRadius: 14,
+      padding: '12px 14px',
+      border: "1px solid ".concat(H.border),
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px'
+    }
+  }, "Saldo Abaclick (Jan\u2013Abril)"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 20,
+      fontWeight: 900,
+      marginTop: 4
+    }
+  }, totalJanAbrSaldo.toFixed(2), "h")), !editandoSaldoJanAbr && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setSaldoJanAbrModo('ajuste');
+      setSaldoJanAbrInput('');
+      setSaldoJanAbrErr('');
+      setEditandoSaldoJanAbr(true);
+    },
+    style: {
+      background: 'none',
+      border: "1px solid ".concat(H.gold),
+      borderRadius: 10,
+      padding: '8px 12px',
+      color: H.gold,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\u270F\uFE0F Editar")), editandoSaldoJanAbr && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 8
+    }
+  }, [['ajuste', '\u2795\u2796 Ajustar'], ['absoluto', '123 Valor total']].map(function (opt) {
+    var key = opt[0],
+      lbl = opt[1];
+    return /*#__PURE__*/React.createElement("button", {
+      key: key,
+      onClick: function onClick() {
+        setSaldoJanAbrModo(key);
+        setSaldoJanAbrInput('');
+        setSaldoJanAbrErr('');
+      },
+      style: {
+        flex: 1,
+        background: saldoJanAbrModo === key ? H.gold : 'none',
+        border: "1px solid ".concat(H.gold),
+        borderRadius: 8,
+        padding: '6px 8px',
+        color: saldoJanAbrModo === key ? '#1a1410' : H.gold,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, lbl);
+  })), /*#__PURE__*/React.createElement("input", {
+    key: saldoJanAbrModo,
+    type: "text",
+    inputMode: "decimal",
+    defaultValue: saldoJanAbrInput,
+    onChange: function onChange(e) {
+      return setSaldoJanAbrInput(e.target.value);
+    },
+    placeholder: saldoJanAbrModo === 'ajuste' ? 'ex: +5 ou -3' : 'ex: 59.93',
+    style: {
+      width: '100%',
+      background: H.surface,
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '10px 12px',
+      color: H.text,
+      fontSize: 16,
+      marginBottom: 8
+    }
+  }), saldoJanAbrModo === 'ajuste' && saldoJanAbrInput.trim() !== '' && !isNaN(parseFloat(saldoJanAbrInput.replace(',', '.'))) && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, "Novo total: ", /*#__PURE__*/React.createElement("b", {
+    style: { color: H.gold }
+  }, (totalJanAbrSaldo + parseFloat(saldoJanAbrInput.replace(',', '.'))).toFixed(2), "h")), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.red,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, saldoJanAbrErr), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 11,
+      marginBottom: 8
+    }
+  }, "Fica tudo num \xFAnico registo em Jan\u2013Mar (Abril fica com as ", horasAbril2026.toFixed(1), "h reais que j\xE1 tem). Maio em diante nunca \xE9 tocado."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: guardarSaldoJanAbr,
+    disabled: saldoJanAbrSaving,
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '11px',
+      color: '#1a1410',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer',
+      opacity: saldoJanAbrSaving ? 0.6 : 1
+    }
+  }, saldoJanAbrSaving ? 'A guardar...' : '\u2713 Guardar'), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setEditandoSaldoJanAbr(false);
+      setSaldoJanAbrErr('');
+    },
+    disabled: saldoJanAbrSaving,
+    style: {
+      flex: 1,
+      background: 'none',
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '11px',
+      color: H.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: H.surface2,
+      borderRadius: 14,
+      padding: '12px 14px',
+      border: "1px solid ".concat(H.border),
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px'
+    }
+  }, "Dias de f\xE9rias dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 20,
+      fontWeight: 900,
+      marginTop: 4
+    }
+  }, feriasDisp)), !editandoFeriasDisp && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setFeriasDispInput(String(feriasDisp));
+      setEditandoFeriasDisp(true);
+    },
+    style: {
+      background: 'none',
+      border: "1px solid ".concat(H.gold),
+      borderRadius: 10,
+      padding: '8px 12px',
+      color: H.gold,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\u270F\uFE0F Editar")), editandoFeriasDisp && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "1",
+    min: "0",
+    value: feriasDispInput,
+    onChange: function onChange(e) {
+      return setFeriasDispInput(e.target.value);
+    },
+    style: {
+      width: '100%',
+      background: H.surface,
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '9px 12px',
+      color: H.text,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+      marginBottom: 8
+    }
+  }), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 11,
+      marginBottom: 8
+    }
+  }, "Cada dia de f\xE9rias marcado consome 1 desta quota e n\xE3o toca no saldo. Quando chegar a 0, os dias seguintes passam a descontar ", metaFerias, "h do saldo."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      var parsed = parseInt(feriasDispInput, 10);
+      if (isNaN(parsed) || parsed < 0) return;
+      salvarFeriasDisp(parsed);
+      setEditandoFeriasDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '11px',
+      color: '#1a1410',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setEditandoFeriasDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: 'none',
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '11px',
+      color: H.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: H.surface2,
+      borderRadius: 14,
+      padding: '12px 14px',
+      border: "1px solid ".concat(H.border),
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px'
+    }
+  }, "Horas de f\xE9rias dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 20,
+      fontWeight: 900,
+      marginTop: 4
+    }
+  }, horasFeriasDisp.toFixed(1), "h")), !editandoHorasFeriasDisp && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setHorasFeriasDispInput(String(horasFeriasDisp));
+      setEditandoHorasFeriasDisp(true);
+    },
+    style: {
+      background: 'none',
+      border: "1px solid ".concat(H.gold),
+      borderRadius: 10,
+      padding: '8px 12px',
+      color: H.gold,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\u270F\uFE0F Editar")), editandoHorasFeriasDisp && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.1",
+    min: "0",
+    value: horasFeriasDispInput,
+    onChange: function onChange(e) {
+      return setHorasFeriasDispInput(e.target.value);
+    },
+    style: {
+      width: '100%',
+      background: H.surface,
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '9px 12px',
+      color: H.text,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+      marginBottom: 8
+    }
+  }), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 11,
+      marginBottom: 8
+    }
+  }, "Usada quando escolhes \"Em horas\" no popup de F\xE9rias. Cada dia consome ", metaFerias, "h desta quota e n\xE3o toca no saldo. \xC9 independente da quota em dias."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      var parsed = parseFloat(horasFeriasDispInput.replace(',', '.'));
+      if (isNaN(parsed) || parsed < 0) return;
+      salvarHorasFeriasDisp(Math.round(parsed * 100) / 100);
+      setEditandoHorasFeriasDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '11px',
+      color: '#1a1410',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setEditandoHorasFeriasDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: 'none',
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '11px',
+      color: H.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: H.surface2,
+      borderRadius: 14,
+      padding: '12px 14px',
+      border: "1px solid ".concat(H.border),
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px'
+    }
+  }, "Horas de Komp. dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 20,
+      fontWeight: 900,
+      marginTop: 4
+    }
+  }, kompDisp.toFixed(1), "h")), !editandoKompDisp && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setKompDispInput(String(kompDisp));
+      setEditandoKompDisp(true);
+    },
+    style: {
+      background: 'none',
+      border: "1px solid ".concat(H.gold),
+      borderRadius: 10,
+      padding: '8px 12px',
+      color: H.gold,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\u270F\uFE0F Editar")), editandoKompDisp && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.1",
+    min: "0",
+    value: kompDispInput,
+    onChange: function onChange(e) {
+      return setKompDispInput(e.target.value);
+    },
+    style: {
+      width: '100%',
+      background: H.surface,
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '9px 12px',
+      color: H.text,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+      marginBottom: 8
+    }
+  }), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 11,
+      marginBottom: 8
+    }
+  }, "Cada dia marcado como Komp. consome ", metaDia, "h desta quota e n\xE3o toca no saldo. Quando n\xE3o houver horas suficientes para um dia completo, os dias seguintes passam a descontar ", metaDia, "h do saldo."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      var parsed = parseFloat(kompDispInput.replace(',', '.'));
+      if (isNaN(parsed) || parsed < 0) return;
+      salvarKompDisp(Math.round(parsed * 100) / 100);
+      setEditandoKompDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '11px',
+      color: '#1a1410',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setEditandoKompDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: 'none',
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '11px',
+      color: H.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar")))), [{
     icon: '⏱️',
     label: 'Meta diária',
     value: "".concat(metaDiaSegQui, "h"),
@@ -4689,497 +5179,7 @@ function HorasProApp(_ref9) {
         whiteSpace: 'nowrap'
       }
     }, s.v));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: H.surface2,
-      borderRadius: 14,
-      padding: '12px 14px',
-      border: "1px solid ".concat(H.border),
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.4px'
-    }
-  }, "Saldo Abaclick (Jan\u2013Abril)"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontSize: 20,
-      fontWeight: 900,
-      marginTop: 4
-    }
-  }, totalJanAbrSaldo.toFixed(2), "h")), !editandoSaldoJanAbr && /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setSaldoJanAbrModo('ajuste');
-      setSaldoJanAbrInput('');
-      setSaldoJanAbrErr('');
-      setEditandoSaldoJanAbr(true);
-    },
-    style: {
-      background: 'none',
-      border: "1px solid ".concat(H.gold),
-      borderRadius: 10,
-      padding: '8px 12px',
-      color: H.gold,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\u270F\uFE0F Editar")), editandoSaldoJanAbr && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      marginBottom: 8
-    }
-  }, [['ajuste', '\u2795\u2796 Ajustar'], ['absoluto', '123 Valor total']].map(function (opt) {
-    var key = opt[0],
-      lbl = opt[1];
-    return /*#__PURE__*/React.createElement("button", {
-      key: key,
-      onClick: function onClick() {
-        setSaldoJanAbrModo(key);
-        setSaldoJanAbrInput('');
-        setSaldoJanAbrErr('');
-      },
-      style: {
-        flex: 1,
-        background: saldoJanAbrModo === key ? H.gold : 'none',
-        border: "1px solid ".concat(H.gold),
-        borderRadius: 8,
-        padding: '6px 8px',
-        color: saldoJanAbrModo === key ? '#1a1410' : H.gold,
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: 'pointer'
-      }
-    }, lbl);
-  })), /*#__PURE__*/React.createElement("input", {
-    key: saldoJanAbrModo,
-    type: "text",
-    inputMode: "decimal",
-    defaultValue: saldoJanAbrInput,
-    onChange: function onChange(e) {
-      return setSaldoJanAbrInput(e.target.value);
-    },
-    placeholder: saldoJanAbrModo === 'ajuste' ? 'ex: +5 ou -3' : 'ex: 59.93',
-    style: {
-      width: '100%',
-      background: H.surface,
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '10px 12px',
-      color: H.text,
-      fontSize: 16,
-      marginBottom: 8
-    }
-  }), saldoJanAbrModo === 'ajuste' && saldoJanAbrInput.trim() !== '' && !isNaN(parseFloat(saldoJanAbrInput.replace(',', '.'))) && /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 12,
-      marginBottom: 8
-    }
-  }, "Novo total: ", /*#__PURE__*/React.createElement("b", {
-    style: { color: H.gold }
-  }, (totalJanAbrSaldo + parseFloat(saldoJanAbrInput.replace(',', '.'))).toFixed(2), "h")), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.red,
-      fontSize: 12,
-      marginBottom: 8
-    }
-  }, saldoJanAbrErr), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 11,
-      marginBottom: 8
-    }
-  }, "Fica tudo num \xFAnico registo em Jan\u2013Mar (Abril fica com as ", horasAbril2026.toFixed(1), "h reais que j\xE1 tem). Maio em diante nunca \xE9 tocado."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: guardarSaldoJanAbr,
-    disabled: saldoJanAbrSaving,
-    style: {
-      flex: 1,
-      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
-      border: 'none',
-      borderRadius: 10,
-      padding: '11px',
-      color: '#1a1410',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer',
-      opacity: saldoJanAbrSaving ? 0.6 : 1
-    }
-  }, saldoJanAbrSaving ? 'A guardar...' : '\u2713 Guardar'), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setEditandoSaldoJanAbr(false);
-      setSaldoJanAbrErr('');
-    },
-    disabled: saldoJanAbrSaving,
-    style: {
-      flex: 1,
-      background: 'none',
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '11px',
-      color: H.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: H.surface2,
-      borderRadius: 14,
-      padding: '12px 14px',
-      border: "1px solid ".concat(H.border),
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.4px'
-    }
-  }, "Dias de f\xE9rias dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontSize: 20,
-      fontWeight: 900,
-      marginTop: 4
-    }
-  }, feriasDisp)), !editandoFeriasDisp && /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setFeriasDispInput(String(feriasDisp));
-      setEditandoFeriasDisp(true);
-    },
-    style: {
-      background: 'none',
-      border: "1px solid ".concat(H.gold),
-      borderRadius: 10,
-      padding: '8px 12px',
-      color: H.gold,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\u270F\uFE0F Editar")), editandoFeriasDisp && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "1",
-    min: "0",
-    value: feriasDispInput,
-    onChange: function onChange(e) {
-      return setFeriasDispInput(e.target.value);
-    },
-    style: {
-      width: '100%',
-      background: H.surface,
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '9px 12px',
-      color: H.text,
-      fontSize: 14,
-      outline: 'none',
-      boxSizing: 'border-box',
-      marginBottom: 8
-    }
-  }), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 11,
-      marginBottom: 8
-    }
-  }, "Cada dia de f\xE9rias marcado consome 1 desta quota e n\xE3o toca no saldo. Quando chegar a 0, os dias seguintes passam a descontar ", metaFerias, "h do saldo."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var parsed = parseInt(feriasDispInput, 10);
-      if (isNaN(parsed) || parsed < 0) return;
-      salvarFeriasDisp(parsed);
-      setEditandoFeriasDisp(false);
-    },
-    style: {
-      flex: 1,
-      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
-      border: 'none',
-      borderRadius: 10,
-      padding: '11px',
-      color: '#1a1410',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setEditandoFeriasDisp(false);
-    },
-    style: {
-      flex: 1,
-      background: 'none',
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '11px',
-      color: H.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: H.surface2,
-      borderRadius: 14,
-      padding: '12px 14px',
-      border: "1px solid ".concat(H.border),
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.4px'
-    }
-  }, "Horas de f\xE9rias dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontSize: 20,
-      fontWeight: 900,
-      marginTop: 4
-    }
-  }, horasFeriasDisp.toFixed(1), "h")), !editandoHorasFeriasDisp && /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setHorasFeriasDispInput(String(horasFeriasDisp));
-      setEditandoHorasFeriasDisp(true);
-    },
-    style: {
-      background: 'none',
-      border: "1px solid ".concat(H.gold),
-      borderRadius: 10,
-      padding: '8px 12px',
-      color: H.gold,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\u270F\uFE0F Editar")), editandoHorasFeriasDisp && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.1",
-    min: "0",
-    value: horasFeriasDispInput,
-    onChange: function onChange(e) {
-      return setHorasFeriasDispInput(e.target.value);
-    },
-    style: {
-      width: '100%',
-      background: H.surface,
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '9px 12px',
-      color: H.text,
-      fontSize: 14,
-      outline: 'none',
-      boxSizing: 'border-box',
-      marginBottom: 8
-    }
-  }), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 11,
-      marginBottom: 8
-    }
-  }, "Usada quando escolhes \"Em horas\" no popup de F\xE9rias. Cada dia consome ", metaFerias, "h desta quota e n\xE3o toca no saldo. \xC9 independente da quota em dias."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var parsed = parseFloat(horasFeriasDispInput.replace(',', '.'));
-      if (isNaN(parsed) || parsed < 0) return;
-      salvarHorasFeriasDisp(Math.round(parsed * 100) / 100);
-      setEditandoHorasFeriasDisp(false);
-    },
-    style: {
-      flex: 1,
-      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
-      border: 'none',
-      borderRadius: 10,
-      padding: '11px',
-      color: '#1a1410',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setEditandoHorasFeriasDisp(false);
-    },
-    style: {
-      flex: 1,
-      background: 'none',
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '11px',
-      color: H.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: H.surface2,
-      borderRadius: 14,
-      padding: '12px 14px',
-      border: "1px solid ".concat(H.border),
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.4px'
-    }
-  }, "Horas de Komp. dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontSize: 20,
-      fontWeight: 900,
-      marginTop: 4
-    }
-  }, kompDisp.toFixed(1), "h")), !editandoKompDisp && /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setKompDispInput(String(kompDisp));
-      setEditandoKompDisp(true);
-    },
-    style: {
-      background: 'none',
-      border: "1px solid ".concat(H.gold),
-      borderRadius: 10,
-      padding: '8px 12px',
-      color: H.gold,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\u270F\uFE0F Editar")), editandoKompDisp && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 10
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    step: "0.1",
-    min: "0",
-    value: kompDispInput,
-    onChange: function onChange(e) {
-      return setKompDispInput(e.target.value);
-    },
-    style: {
-      width: '100%',
-      background: H.surface,
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '9px 12px',
-      color: H.text,
-      fontSize: 14,
-      outline: 'none',
-      boxSizing: 'border-box',
-      marginBottom: 8
-    }
-  }), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.muted,
-      fontSize: 11,
-      marginBottom: 8
-    }
-  }, "Cada dia marcado como Komp. consome ", metaDia, "h desta quota e n\xE3o toca no saldo. Quando n\xE3o houver horas suficientes para um dia completo, os dias seguintes passam a descontar ", metaDia, "h do saldo."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var parsed = parseFloat(kompDispInput.replace(',', '.'));
-      if (isNaN(parsed) || parsed < 0) return;
-      salvarKompDisp(Math.round(parsed * 100) / 100);
-      setEditandoKompDisp(false);
-    },
-    style: {
-      flex: 1,
-      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
-      border: 'none',
-      borderRadius: 10,
-      padding: '11px',
-      color: '#1a1410',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setEditandoKompDisp(false);
-    },
-    style: {
-      flex: 1,
-      background: 'none',
-      border: "1px solid ".concat(H.border),
-      borderRadius: 10,
-      padding: '11px',
-      color: H.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "Cancelar")))), /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setShowMenu(false);
     },
