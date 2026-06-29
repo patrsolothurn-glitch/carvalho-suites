@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-26T15:48:29.936Z
+  Gerado em: 2026-06-29T14:54:09.143Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-05";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-07";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -1070,77 +1070,6 @@ function HorasProApp(_ref9) {
       } catch (e) {}
     };
   }, []);
-  var _useStateSugg = (0, _react.useState)([]),
-    _useStateSugg2 = _slicedToArray(_useStateSugg, 2),
-    sugestoes = _useStateSugg2[0],
-    setSugestoes = _useStateSugg2[1];
-  var _useStateSuggDismiss = (0, _react.useState)(function () {
-      try {
-        return JSON.parse(localStorage.getItem('horaspro_sug_ignoradas') || '[]');
-      } catch (e) {
-        return [];
-      }
-    }),
-    _useStateSuggDismiss2 = _slicedToArray(_useStateSuggDismiss, 2),
-    sugIgnoradas = _useStateSuggDismiss2[0],
-    setSugIgnoradas = _useStateSuggDismiss2[1];
-  var loadSugestoes = function loadSugestoes() {
-    if (!window.supabaseClient) return;
-    Promise.all([window.supabaseClient.from('agenda_pro_jobs').select('*'), window.supabaseClient.from('horas_entries').select('source_id').eq('source', 'agenda_pro')]).then(function (resArr) {
-      var jobsRes = resArr[0],
-        convertedRes = resArr[1];
-      if (!jobsRes.data) return;
-      var convertedIds = (convertedRes.data || []).map(function (r) {
-        return r.source_id;
-      });
-      var pend = jobsRes.data.filter(function (j) {
-        return convertedIds.indexOf(j.id) === -1;
-      }).sort(function (a, b) {
-        return (b.job_date || '').localeCompare(a.job_date || '');
-      });
-      setSugestoes(pend);
-    }).catch(function () {});
-  };
-  var aprovarSugestao = function aprovarSugestao(job) {
-    if (!window.supabaseClient) return;
-    var hi = job.start_time || '08:00';
-    var hf = job.end_time || '17:00';
-    var horas = 0;
-    try {
-      horas = calcHoras(hi, hf);
-    } catch (e) {
-      horas = 0;
-    }
-    window.supabaseClient.from('horas_entries').insert({
-      data: job.job_date,
-      tipo: 'Trabalho',
-      project: job.project || 'Patricio Work',
-      start_time: hi,
-      end_time: hf,
-      hours: horas,
-      address: job.address || null,
-      source: 'agenda_pro',
-      source_id: job.id
-    }).then(function () {
-      loadEntries();
-      loadSugestoes();
-    }).catch(function () {});
-  };
-  var ignorarSugestao = function ignorarSugestao(jobId) {
-    setSugIgnoradas(function (p) {
-      var next = [].concat(_toConsumableArray(p), [jobId]);
-      try {
-        localStorage.setItem('horaspro_sug_ignoradas', JSON.stringify(next));
-      } catch (e) {}
-      return next;
-    });
-  };
-  (0, _react.useEffect)(function () {
-    loadSugestoes();
-  }, []);
-  var sugestoesVisiveis = sugestoes.filter(function (j) {
-    return sugIgnoradas.indexOf(j.id) === -1;
-  });
   var pushEntryToSupabase = function pushEntryToSupabase(e) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').insert({
@@ -1371,7 +1300,7 @@ function HorasProApp(_ref9) {
     setProjList = _useState30[1];
   var loadProjects = function loadProjects() {
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
+    window.supabaseClient.from('horaspro_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
       if (res.error || !res.data) return;
       setProjList(res.data.map(function (row) {
         return {
@@ -1386,10 +1315,10 @@ function HorasProApp(_ref9) {
   (0, _react.useEffect)(function () {
     loadProjects();
     if (!window.supabaseClient) return;
-    var projChannel = window.supabaseClient.channel('horas_projects_changes').on('postgres_changes', {
+    var projChannel = window.supabaseClient.channel('horaspro_projects_changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
-      table: 'horas_projects'
+      table: 'horaspro_projects'
     }, function () {
       loadProjects();
     }).subscribe();
@@ -1435,7 +1364,7 @@ function HorasProApp(_ref9) {
           }) : x;
         });
       });
-      window.supabaseClient.from('horas_projects').update({
+      window.supabaseClient.from('horaspro_projects').update({
         name: name,
         description: desc,
         color: newProjColor
@@ -1478,7 +1407,7 @@ function HorasProApp(_ref9) {
           color: newProjColor
         }]);
       });
-      window.supabaseClient.from('horas_projects').insert({
+      window.supabaseClient.from('horaspro_projects').insert({
         name: name,
         description: desc,
         color: newProjColor
@@ -1517,7 +1446,7 @@ function HorasProApp(_ref9) {
       });
     });
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) {
+    window.supabaseClient.from('horaspro_projects').delete().eq('id', projId).then(function (res) {
       if (res.error) {
         setProjList(prevList);
         setProjSaveErr('Erro ao apagar: ' + res.error.message);
@@ -2694,67 +2623,7 @@ function HorasProApp(_ref9) {
       fontSize: 10,
       marginTop: 2
     }
-  }, saldo >= 0 ? 'positivo' : 'acumulado'))), sugestoesVisiveis.length > 0 && subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 16px 16px'
-    }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '1.5px',
-      textTransform: 'uppercase',
-      marginBottom: 10
-    }
-  }, "\uD83D\uDCC5 Sugest\xF5es do Patricio Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: job.id,
-      style: {
-        background: H.surface,
-        border: "1px solid ".concat(H.gold, "33"),
-        borderRadius: 14,
-        padding: '12px 14px',
-        marginBottom: 8,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: { flex: 1, minWidth: 0 }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: { fontWeight: 700, fontSize: 13, color: H.text }
-    }, job.project || 'Marcação'), /*#__PURE__*/React.createElement("p", {
-      style: { fontSize: 11, color: H.muted, marginTop: 2 }
-    }, job.job_date, job.start_time ? " \xB7 ".concat(job.start_time, "\u2013").concat(job.end_time || '') : '')), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return ignorarSugestao(job.id);
-      },
-      style: {
-        background: H.surface2,
-        border: "1px solid ".concat(H.border),
-        borderRadius: 8,
-        padding: '7px 9px',
-        color: H.muted,
-        fontSize: 12,
-        cursor: 'pointer'
-      }
-    }, "\u2715"), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return aprovarSugestao(job);
-      },
-      style: {
-        background: H.gold,
-        border: 'none',
-        borderRadius: 8,
-        padding: '7px 12px',
-        color: '#09090E',
-        fontSize: 12,
-        fontWeight: 800,
-        cursor: 'pointer'
-      }
-    }, "\u2713 Aprovar"));
-  })), subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
+  }, saldo >= 0 ? 'positivo' : 'acumulado'))), subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
@@ -4956,6 +4825,10 @@ function AgendaProApp(_ref13) {
     _useStateGanhoOffset2 = _slicedToArray(_useStateGanhoOffset, 2),
     ganhoWeekOffset = _useStateGanhoOffset2[0],
     setGanhoWeekOffset = _useStateGanhoOffset2[1];
+  var _useStateHorasDiaOffset = (0, _react.useState)(0),
+    _useStateHorasDiaOffset2 = _slicedToArray(_useStateHorasDiaOffset, 2),
+    horasDiaOffset = _useStateHorasDiaOffset2[0],
+    setHorasDiaOffset = _useStateHorasDiaOffset2[1];
   var _useStateSaveErr = (0, _react.useState)(''),
     _useStateSaveErr2 = _slicedToArray(_useStateSaveErr, 2),
     saveErr = _useStateSaveErr2[0],
@@ -8239,43 +8112,40 @@ function AgendaProApp(_ref13) {
     });
     var maxCat = Math.max.apply(Math, Object.values(porCategoria).concat([1]));
     var maxEscola = Math.max.apply(Math, escolaSemana.concat([1]));
-    var weekRangeHoras = function () {
-      var today = new Date();
-      var dow = today.getDay();
-      var diff = dow === 0 ? -6 : 1 - dow;
-      var thisMonday = new Date(today);
-      thisMonday.setDate(thisMonday.getDate() + diff);
-      thisMonday.setHours(0, 0, 0, 0);
-      var weeks = [];
-      for (var i = -4; i <= 4; i++) {
-        var monday = new Date(thisMonday);
-        monday.setDate(monday.getDate() + i * 7);
-        var sunday = new Date(monday);
-        sunday.setDate(sunday.getDate() + 6);
-        weeks.push({
-          monday: monday,
-          sunday: sunday,
+    var dayRangeHoras = function () {
+      var todayKey0 = new Date();
+      todayKey0.setHours(0, 0, 0, 0);
+      var windowEnd = new Date(todayKey0);
+      windowEnd.setDate(windowEnd.getDate() + horasDiaOffset);
+      var days = [];
+      for (var i = 6; i >= 0; i--) {
+        var d = new Date(windowEnd);
+        d.setDate(d.getDate() - i);
+        days.push({
+          date: d,
+          dateKey: fmt(d),
           horas: 0,
-          isCurrent: i === 0
+          isToday: fmt(d) === fmt(todayKey0)
         });
       }
       appts.forEach(function (a) {
         if ((a.categoria || 'trabalho') !== 'trabalho' || !a.hi || !a.hf) return;
-        var d = new Date(a.date + 'T12:00:00');
-        for (var j = 0; j < weeks.length; j++) {
-          if (d >= weeks[j].monday && d <= weeks[j].sunday) {
-            try {
-              weeks[j].horas += calcHoras(a.hi, a.hf);
-            } catch (e) {}
-            break;
-          }
+        var match = days.find(function (dd) {
+          return dd.dateKey === a.date;
+        });
+        if (match) {
+          try {
+            match.horas += calcHoras(a.hi, a.hf);
+          } catch (e) {}
         }
       });
-      return weeks;
+      return days;
     }();
-    var maxHoras = Math.max.apply(Math, weekRangeHoras.map(function (w) {
+    var maxHoras = Math.max.apply(Math, dayRangeHoras.map(function (w) {
       return w.horas;
     }).concat([1]));
+    var diaSemanaAbbr = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S\xE1b'];
+    var rangeLabel = "".concat(dayRangeHoras[0].date.getDate(), "/").concat(dayRangeHoras[0].date.getMonth() + 1, " \u2013 ").concat(dayRangeHoras[6].date.getDate(), "/").concat(dayRangeHoras[6].date.getMonth() + 1);
     return /*#__PURE__*/React.createElement("div", {
       style: { padding: '0 16px 20px' }
     }, /*#__PURE__*/React.createElement(ACard, {
@@ -8304,22 +8174,57 @@ function AgendaProApp(_ref13) {
       style: { padding: '16px', marginBottom: 12 }
     }, /*#__PURE__*/React.createElement("p", {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
-    }, "\uD83D\uDCBC Horas de trabalho por semana"), /*#__PURE__*/React.createElement("p", {
-      style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "4 semanas antes e depois de hoje"), /*#__PURE__*/React.createElement("div", {
-      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90, overflowX: 'auto', paddingBottom: 2 }
-    }, weekRangeHoras.map(function (w, wi) {
+    }, "\uD83D\uDCBC Marca\xE7\xF5es por dia (dura\xE7\xE3o)"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setHorasDiaOffset(function (o) {
+          return o - 1;
+        });
+      },
+      style: {
+        background: A.surface2,
+        border: "1px solid ".concat(A.border),
+        borderRadius: 8,
+        padding: '4px 10px',
+        color: A.text,
+        fontSize: 14,
+        cursor: 'pointer'
+      }
+    }, "\u2039"), /*#__PURE__*/React.createElement("p", {
+      onClick: function onClick() {
+        return setHorasDiaOffset(0);
+      },
+      style: { color: A.muted, fontSize: 11, cursor: 'pointer' }
+    }, rangeLabel, horasDiaOffset !== 0 ? ' · toca para hoje' : ''), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setHorasDiaOffset(function (o) {
+          return o + 1;
+        });
+      },
+      style: {
+        background: A.surface2,
+        border: "1px solid ".concat(A.border),
+        borderRadius: 8,
+        padding: '4px 10px',
+        color: A.text,
+        fontSize: 14,
+        cursor: 'pointer'
+      }
+    }, "\u203A")), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90, paddingBottom: 2 }
+    }, dayRangeHoras.map(function (w, wi) {
       var h = Math.max(4, w.horas / maxHoras * 70);
-      var label = "".concat(w.monday.getDate(), "/").concat(w.monday.getMonth() + 1);
+      var label = diaSemanaAbbr[w.date.getDay()];
       return /*#__PURE__*/React.createElement("div", {
         key: wi,
-        style: { flex: '0 0 auto', minWidth: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
+        style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
       }, /*#__PURE__*/React.createElement("p", {
-        style: { fontSize: 11, fontWeight: 800, color: w.isCurrent ? A.orange : CATEGORIAS.trabalho.color }
-      }, w.horas.toFixed(1), "h"), /*#__PURE__*/React.createElement("div", {
-        style: { width: '100%', maxWidth: 30, height: h, background: w.isCurrent ? A.orange : CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
+        style: { fontSize: 11, fontWeight: 800, color: w.isToday ? A.orange : CATEGORIAS.trabalho.color }
+      }, w.horas > 0 ? w.horas.toFixed(1) + 'h' : '\u2013'), /*#__PURE__*/React.createElement("div", {
+        style: { width: '100%', maxWidth: 30, height: h, background: w.isToday ? A.orange : CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
       }), /*#__PURE__*/React.createElement("span", {
-        style: { fontSize: 10, color: w.isCurrent ? A.orange : A.muted, fontWeight: w.isCurrent ? 800 : 700 }
+        style: { fontSize: 10, color: w.isToday ? A.orange : A.muted, fontWeight: w.isToday ? 800 : 700 }
       }, label));
     }))), /*#__PURE__*/React.createElement(ACard, {
       style: { padding: '16px' }
