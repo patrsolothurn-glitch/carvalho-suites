@@ -414,6 +414,10 @@ function HorasProApp(_ref9) {
     _useStateSaldoSaving2 = _slicedToArray(_useStateSaldoSaving, 2),
     saldoJanAbrSaving = _useStateSaldoSaving2[0],
     setSaldoJanAbrSaving = _useStateSaldoSaving2[1];
+  var _useStateSaldoMode = (0, _react.useState)('ajuste'),
+    _useStateSaldoMode2 = _slicedToArray(_useStateSaldoMode, 2),
+    saldoJanAbrModo = _useStateSaldoMode2[0],
+    setSaldoJanAbrModo = _useStateSaldoMode2[1];
   var _useState17 = (0, _react.useState)(''),
     _useState18 = _slicedToArray(_useState17, 2),
     feriasAte = _useState18[0],
@@ -659,11 +663,12 @@ function HorasProApp(_ref9) {
   }, 0);
   var totalJanAbrSaldo = Math.round((horasJanFevMar + horasAbril2026) * 100) / 100;
   var guardarSaldoJanAbr = function guardarSaldoJanAbr() {
-    var novoTotal = parseFloat(saldoJanAbrInput.replace(',', '.'));
-    if (isNaN(novoTotal)) {
+    var parsed = parseFloat(saldoJanAbrInput.replace(',', '.'));
+    if (isNaN(parsed)) {
       setSaldoJanAbrErr('Número inválido.');
       return;
     }
+    var novoTotal = saldoJanAbrModo === 'ajuste' ? Math.round((totalJanAbrSaldo + parsed) * 100) / 100 : parsed;
     var novoJanMar = Math.round((novoTotal - horasAbril2026) * 100) / 100;
     if (novoJanMar < 0) {
       setSaldoJanAbrErr('Abril j\xE1 tem ' + horasAbril2026.toFixed(1) + 'h reais \u2014 o total tem de ser maior que isso.');
@@ -2585,10 +2590,11 @@ function HorasProApp(_ref9) {
   }, "Cor"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
+      flexWrap: 'wrap',
       gap: 8,
       marginBottom: 14
     }
-  }, [H.blue, H.orange, H.green, H.gold, '#A855F7', '#EF4444'].map(function (c) {
+  }, [H.blue, H.orange, H.green, H.gold, '#A855F7', '#EF4444', '#EC4899', '#06B6D4', '#6366F1', '#84CC16', '#14B8A6', '#F59E0B', '#78716C', '#64748B'].map(function (c) {
     return /*#__PURE__*/React.createElement("div", {
       key: c,
       onClick: function onClick() {
@@ -4007,7 +4013,8 @@ function HorasProApp(_ref9) {
     }
   }, totalJanAbrSaldo.toFixed(2), "h")), !editandoSaldoJanAbr && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      setSaldoJanAbrInput(String(totalJanAbrSaldo));
+      setSaldoJanAbrModo('ajuste');
+      setSaldoJanAbrInput('');
       setSaldoJanAbrErr('');
       setEditandoSaldoJanAbr(true);
     },
@@ -4025,14 +4032,43 @@ function HorasProApp(_ref9) {
     style: {
       marginTop: 10
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 8
+    }
+  }, [['ajuste', '\u2795\u2796 Ajustar'], ['absoluto', '123 Valor total']].map(function (opt) {
+    var key = opt[0],
+      lbl = opt[1];
+    return /*#__PURE__*/React.createElement("button", {
+      key: key,
+      onClick: function onClick() {
+        setSaldoJanAbrModo(key);
+        setSaldoJanAbrInput('');
+        setSaldoJanAbrErr('');
+      },
+      style: {
+        flex: 1,
+        background: saldoJanAbrModo === key ? H.gold : 'none',
+        border: "1px solid ".concat(H.gold),
+        borderRadius: 8,
+        padding: '6px 8px',
+        color: saldoJanAbrModo === key ? '#1a1410' : H.gold,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, lbl);
+  })), /*#__PURE__*/React.createElement("input", {
+    key: saldoJanAbrModo,
     type: "text",
     inputMode: "decimal",
     defaultValue: saldoJanAbrInput,
     onChange: function onChange(e) {
       return setSaldoJanAbrInput(e.target.value);
     },
-    placeholder: "ex: 59.93",
+    placeholder: saldoJanAbrModo === 'ajuste' ? 'ex: +5 ou -3' : 'ex: 59.93',
     style: {
       width: '100%',
       background: H.surface,
@@ -4043,7 +4079,15 @@ function HorasProApp(_ref9) {
       fontSize: 16,
       marginBottom: 8
     }
-  }), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
+  }), saldoJanAbrModo === 'ajuste' && saldoJanAbrInput.trim() !== '' && !isNaN(parseFloat(saldoJanAbrInput.replace(',', '.'))) && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, "Novo total: ", /*#__PURE__*/React.createElement("b", {
+    style: { color: H.gold }
+  }, (totalJanAbrSaldo + parseFloat(saldoJanAbrInput.replace(',', '.'))).toFixed(2), "h")), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.red,
       fontSize: 12,
