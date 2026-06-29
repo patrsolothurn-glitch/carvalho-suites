@@ -152,6 +152,10 @@ function AgendaProApp(_ref13) {
     _useStateGanhoOffset2 = _slicedToArray(_useStateGanhoOffset, 2),
     ganhoWeekOffset = _useStateGanhoOffset2[0],
     setGanhoWeekOffset = _useStateGanhoOffset2[1];
+  var _useStateHorasDiaOffset = (0, _react.useState)(0),
+    _useStateHorasDiaOffset2 = _slicedToArray(_useStateHorasDiaOffset, 2),
+    horasDiaOffset = _useStateHorasDiaOffset2[0],
+    setHorasDiaOffset = _useStateHorasDiaOffset2[1];
   var _useStateSaveErr = (0, _react.useState)(''),
     _useStateSaveErr2 = _slicedToArray(_useStateSaveErr, 2),
     saveErr = _useStateSaveErr2[0],
@@ -3435,43 +3439,40 @@ function AgendaProApp(_ref13) {
     });
     var maxCat = Math.max.apply(Math, Object.values(porCategoria).concat([1]));
     var maxEscola = Math.max.apply(Math, escolaSemana.concat([1]));
-    var weekRangeHoras = function () {
-      var today = new Date();
-      var dow = today.getDay();
-      var diff = dow === 0 ? -6 : 1 - dow;
-      var thisMonday = new Date(today);
-      thisMonday.setDate(thisMonday.getDate() + diff);
-      thisMonday.setHours(0, 0, 0, 0);
-      var weeks = [];
-      for (var i = -4; i <= 4; i++) {
-        var monday = new Date(thisMonday);
-        monday.setDate(monday.getDate() + i * 7);
-        var sunday = new Date(monday);
-        sunday.setDate(sunday.getDate() + 6);
-        weeks.push({
-          monday: monday,
-          sunday: sunday,
+    var dayRangeHoras = function () {
+      var todayKey0 = new Date();
+      todayKey0.setHours(0, 0, 0, 0);
+      var windowEnd = new Date(todayKey0);
+      windowEnd.setDate(windowEnd.getDate() + horasDiaOffset);
+      var days = [];
+      for (var i = 6; i >= 0; i--) {
+        var d = new Date(windowEnd);
+        d.setDate(d.getDate() - i);
+        days.push({
+          date: d,
+          dateKey: fmt(d),
           horas: 0,
-          isCurrent: i === 0
+          isToday: fmt(d) === fmt(todayKey0)
         });
       }
       appts.forEach(function (a) {
         if ((a.categoria || 'trabalho') !== 'trabalho' || !a.hi || !a.hf) return;
-        var d = new Date(a.date + 'T12:00:00');
-        for (var j = 0; j < weeks.length; j++) {
-          if (d >= weeks[j].monday && d <= weeks[j].sunday) {
-            try {
-              weeks[j].horas += calcHoras(a.hi, a.hf);
-            } catch (e) {}
-            break;
-          }
+        var match = days.find(function (dd) {
+          return dd.dateKey === a.date;
+        });
+        if (match) {
+          try {
+            match.horas += calcHoras(a.hi, a.hf);
+          } catch (e) {}
         }
       });
-      return weeks;
+      return days;
     }();
-    var maxHoras = Math.max.apply(Math, weekRangeHoras.map(function (w) {
+    var maxHoras = Math.max.apply(Math, dayRangeHoras.map(function (w) {
       return w.horas;
     }).concat([1]));
+    var diaSemanaAbbr = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S\xE1b'];
+    var rangeLabel = "".concat(dayRangeHoras[0].date.getDate(), "/").concat(dayRangeHoras[0].date.getMonth() + 1, " \u2013 ").concat(dayRangeHoras[6].date.getDate(), "/").concat(dayRangeHoras[6].date.getMonth() + 1);
     return /*#__PURE__*/React.createElement("div", {
       style: { padding: '0 16px 20px' }
     }, /*#__PURE__*/React.createElement(ACard, {
@@ -3500,22 +3501,57 @@ function AgendaProApp(_ref13) {
       style: { padding: '16px', marginBottom: 12 }
     }, /*#__PURE__*/React.createElement("p", {
       style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
-    }, "\uD83D\uDCBC Horas de trabalho por semana"), /*#__PURE__*/React.createElement("p", {
-      style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "4 semanas antes e depois de hoje"), /*#__PURE__*/React.createElement("div", {
-      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90, overflowX: 'auto', paddingBottom: 2 }
-    }, weekRangeHoras.map(function (w, wi) {
+    }, "\uD83D\uDCBC Marca\xE7\xF5es por dia (dura\xE7\xE3o)"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setHorasDiaOffset(function (o) {
+          return o - 1;
+        });
+      },
+      style: {
+        background: A.surface2,
+        border: "1px solid ".concat(A.border),
+        borderRadius: 8,
+        padding: '4px 10px',
+        color: A.text,
+        fontSize: 14,
+        cursor: 'pointer'
+      }
+    }, "\u2039"), /*#__PURE__*/React.createElement("p", {
+      onClick: function onClick() {
+        return setHorasDiaOffset(0);
+      },
+      style: { color: A.muted, fontSize: 11, cursor: 'pointer' }
+    }, rangeLabel, horasDiaOffset !== 0 ? ' · toca para hoje' : ''), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setHorasDiaOffset(function (o) {
+          return o + 1;
+        });
+      },
+      style: {
+        background: A.surface2,
+        border: "1px solid ".concat(A.border),
+        borderRadius: 8,
+        padding: '4px 10px',
+        color: A.text,
+        fontSize: 14,
+        cursor: 'pointer'
+      }
+    }, "\u203A")), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90, paddingBottom: 2 }
+    }, dayRangeHoras.map(function (w, wi) {
       var h = Math.max(4, w.horas / maxHoras * 70);
-      var label = "".concat(w.monday.getDate(), "/").concat(w.monday.getMonth() + 1);
+      var label = diaSemanaAbbr[w.date.getDay()];
       return /*#__PURE__*/React.createElement("div", {
         key: wi,
-        style: { flex: '0 0 auto', minWidth: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
+        style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
       }, /*#__PURE__*/React.createElement("p", {
-        style: { fontSize: 11, fontWeight: 800, color: w.isCurrent ? A.orange : CATEGORIAS.trabalho.color }
-      }, w.horas.toFixed(1), "h"), /*#__PURE__*/React.createElement("div", {
-        style: { width: '100%', maxWidth: 30, height: h, background: w.isCurrent ? A.orange : CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
+        style: { fontSize: 11, fontWeight: 800, color: w.isToday ? A.orange : CATEGORIAS.trabalho.color }
+      }, w.horas > 0 ? w.horas.toFixed(1) + 'h' : '\u2013'), /*#__PURE__*/React.createElement("div", {
+        style: { width: '100%', maxWidth: 30, height: h, background: w.isToday ? A.orange : CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
       }), /*#__PURE__*/React.createElement("span", {
-        style: { fontSize: 10, color: w.isCurrent ? A.orange : A.muted, fontWeight: w.isCurrent ? 800 : 700 }
+        style: { fontSize: 10, color: w.isToday ? A.orange : A.muted, fontWeight: w.isToday ? 800 : 700 }
       }, label));
     }))), /*#__PURE__*/React.createElement(ACard, {
       style: { padding: '16px' }
