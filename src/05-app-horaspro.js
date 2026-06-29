@@ -673,6 +673,16 @@ function HorasProApp(_ref9) {
   var metaFerias = 5.7;
   var metaSem = Math.round(metaDia * 5 * 10) / 10;
   var metaMes = Math.round(metaSem * 52 / 12 * 10) / 10;
+  // Meta diária "real": como a Sexta é livre (creditada automaticamente,
+  // ver sextaLivre), a meta de 5.9h/dia × 5 dias não faz sentido para
+  // mostrar Segunda-Quinta — esses 4 dias têm de somar a meta semanal
+  // inteira (29.5h), logo a meta de cada um é 29.5/4 = 7.4h. A Sexta não
+  // tem meta própria (0h) porque já está cumprida pelo crédito automático.
+  var metaDiaSegQui = Math.round(metaSem / 4 * 10) / 10;
+  var metaDiaPara = function metaDiaPara(d) {
+    var dow = (typeof d === 'string' ? new Date(d + 'T12:00:00') : d).getDay();
+    return dow === 5 ? 0 : metaDiaSegQui;
+  };
   var getKW = function getKW(d) {
     var s = new Date(d.getFullYear(), 0, 1);
     return Math.ceil(((d - s) / 86400000 + s.getDay() + 1) / 7);
@@ -793,7 +803,7 @@ function HorasProApp(_ref9) {
     });
   };
   var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMes;
-  var metaTab = tab === 'Dia' ? metaDia : tab === 'Semana' ? metaSem : metaMes;
+  var metaTab = tab === 'Dia' ? metaDiaPara(curDate) : tab === 'Semana' ? metaSem : metaMes;
   var pct = Math.min(100, Math.round(horasTab / metaTab * 100));
   var prevDay = function prevDay() {
     var d = new Date(curDate);
@@ -1632,7 +1642,7 @@ function HorasProApp(_ref9) {
       fontSize: 11,
       color: H.muted
     }
-  }, "meta ", metaDia, "h"))), showDiaLivre && /*#__PURE__*/React.createElement("div", {
+  }, "meta ", metaDiaPara(curDate), "h"))), showDiaLivre && /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '0 16px 12px',
       background: H.surface,
@@ -2206,7 +2216,7 @@ function HorasProApp(_ref9) {
       fontSize: 10,
       marginTop: 2
     }
-  }, "meta ", metaDia, "h")), /*#__PURE__*/React.createElement(LCard, {
+  }, "meta ", metaDiaPara(curDate), "h")), /*#__PURE__*/React.createElement(LCard, {
     style: {
       padding: '12px 14px',
       minWidth: 130,
@@ -3045,9 +3055,10 @@ function HorasProApp(_ref9) {
     var h = grouped[date].reduce(function (s, e) {
       return s + e.horas;
     }, 0);
-    var over = h > metaDia;
-    var redPct = Math.min(100, metaDia / h * 100);
-    var pctBar = Math.min(100, h / metaDia * 100);
+    var metaDoDia = metaDiaPara(date);
+    var over = h > metaDoDia;
+    var redPct = metaDoDia > 0 ? Math.min(100, metaDoDia / h * 100) : 0;
+    var pctBar = metaDoDia > 0 ? Math.min(100, h / metaDoDia * 100) : 100;
     return /*#__PURE__*/React.createElement("div", {
       key: date,
       style: {
@@ -3611,7 +3622,7 @@ function HorasProApp(_ref9) {
   })))), [{
     icon: '⏱️',
     label: 'Meta diária',
-    value: "".concat(metaDia, "h"),
+    value: "".concat(metaDiaSegQui, "h"),
     sub: 'horas por dia (seg–qui)'
   }, {
     icon: '📅',
@@ -4049,9 +4060,10 @@ function HorasProApp(_ref9) {
     var h = grouped[date].reduce(function (s, e) {
       return s + e.horas;
     }, 0);
-    var over = h > metaDia;
-    var redPct = Math.min(100, metaDia / h * 100);
-    var pctBar = Math.min(100, h / metaDia * 100);
+    var metaDoDia = metaDiaPara(date);
+    var over = h > metaDoDia;
+    var redPct = metaDoDia > 0 ? Math.min(100, metaDoDia / h * 100) : 0;
+    var pctBar = metaDoDia > 0 ? Math.min(100, h / metaDoDia * 100) : 100;
     return /*#__PURE__*/React.createElement("div", {
       key: date,
       style: {
