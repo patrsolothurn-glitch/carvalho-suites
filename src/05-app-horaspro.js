@@ -638,8 +638,13 @@ function HorasProApp(_ref9) {
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
+  // No Mês (e no saldo), sexta/feriado automáticos não contam como horas —
+  // só entram horas realmente trabalhadas e dias de férias.
+  var contaNoMes = function contaNoMes(e) {
+    return !e.isAuto || e.dlTipo === 'ferias';
+  };
   var horasMes = dedupedEntries.filter(function (e) {
-    return e.date.startsWith(curDate.toISOString().slice(0, 7));
+    return e.date.startsWith(curDate.toISOString().slice(0, 7)) && contaNoMes(e);
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
@@ -647,7 +652,7 @@ function HorasProApp(_ref9) {
   // dias do mês que ainda estão "no futuro" em relação a esse dia, mesmo que
   // já existam pré-criados na base de dados — ex: sextas/feriados futuros).
   var horasAteHoje = dedupedEntries.filter(function (e) {
-    return e.date.startsWith(curDate.toISOString().slice(0, 7)) && e.date <= todayStr;
+    return e.date.startsWith(curDate.toISOString().slice(0, 7)) && e.date <= todayStr && contaNoMes(e);
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
