@@ -751,32 +751,35 @@ function AgendaProApp(_ref13) {
   var fmtLocalDate = function fmtLocalDate(d) {
     return "".concat(d.getFullYear(), "-").concat(String(d.getMonth() + 1).padStart(2, '0'), "-").concat(String(d.getDate()).padStart(2, '0'));
   };
-  var weeklyChart = function () {
-    var weeksData = {};
-    appts.filter(function (a) {
-      return projContaEstatisticas(a.proj);
-    }).forEach(function (a) {
-      var d = new Date(a.date + 'T12:00:00');
-      var monday = new Date(d);
-      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-      var key = fmtLocalDate(monday);
-      weeksData[key] = (weeksData[key] || 0) + a.chf;
-    });
+  var diaSemanaAbbrGanho = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S\xE1b'];
+  var ganhoDiasSemana = function () {
     var today = new Date();
     var dow = today.getDay();
     var diff = dow === 0 ? -6 : 1 - dow;
     var thisMonday = new Date(today);
     thisMonday.setDate(thisMonday.getDate() + diff);
     thisMonday.setHours(0, 0, 0, 0);
+    var monday = new Date(thisMonday);
+    monday.setDate(monday.getDate() + ganhoWeekOffset * 7);
+    var todayKey = fmtLocalDate(today);
+    var diasContados = appts.filter(function (a) {
+      return projContaEstatisticas(a.proj);
+    });
     var result = [];
-    for (var i = -2; i <= 2; i++) {
-      var monday = new Date(thisMonday);
-      monday.setDate(monday.getDate() + (i + ganhoWeekOffset) * 7);
-      var key = fmtLocalDate(monday);
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(monday);
+      d.setDate(d.getDate() + i);
+      var key = fmtLocalDate(d);
+      var chf = diasContados.filter(function (a) {
+        return a.date === key;
+      }).reduce(function (s, a) {
+        return s + a.chf;
+      }, 0);
       result.push({
+        date: d,
         week: key,
-        chf: weeksData[key] || 0,
-        isCurrent: i + ganhoWeekOffset === 0
+        chf: Math.round(chf * 100) / 100,
+        isCurrent: key === todayKey
       });
     }
     return result;
@@ -1727,7 +1730,7 @@ function AgendaProApp(_ref13) {
         marginTop: 3
       }
     }, s.v));
-  })), weeklyChart.length > 0 && /*#__PURE__*/React.createElement(ACard, {
+  })), ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
     style: {
       padding: '14px 12px',
       marginTop: 10
@@ -1747,7 +1750,7 @@ function AgendaProApp(_ref13) {
       textTransform: 'uppercase',
       letterSpacing: '0.5px'
     }
-  }, "\uD83D\uDCC8 Ganhos por semana (CHF)"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCC8 Ganhos por dia (CHF) \xB7 ", "".concat(ganhoDiasSemana[0].date.getDate(), "/").concat(ganhoDiasSemana[0].date.getMonth() + 1, "\u2013").concat(ganhoDiasSemana[6].date.getDate(), "/").concat(ganhoDiasSemana[6].date.getMonth() + 1)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -1805,12 +1808,11 @@ function AgendaProApp(_ref13) {
       height: 90
     }
   }, function () {
-    var maxChf = Math.max.apply(Math, weeklyChart.map(function (w) {
+    var maxChf = Math.max.apply(Math, ganhoDiasSemana.map(function (w) {
       return w.chf;
     }).concat([1]));
-    return weeklyChart.map(function (w) {
-      var d = new Date(w.week + 'T12:00:00');
-      var label = "".concat(d.getDate(), "/").concat(d.getMonth() + 1);
+    return ganhoDiasSemana.map(function (w) {
+      var label = diaSemanaAbbrGanho[w.date.getDay()];
       var h = Math.max(4, w.chf / maxChf * 70);
       return /*#__PURE__*/React.createElement("div", {
         key: w.week,
