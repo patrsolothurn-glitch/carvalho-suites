@@ -627,7 +627,12 @@ function HorasProApp(_ref9) {
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
+  var hojeRealStr = fmt(new Date());
   var horasSem = dedupedEntries.filter(function (e) {
+    // Entradas automáticas (sexta/feriado/férias) só entram na soma da
+    // semana a partir do dia em que realmente acontecem — nunca antes,
+    // mesmo que já existam pré-criadas para um dia futuro da mesma semana.
+    if (e.isAuto && e.date > hojeRealStr) return false;
     var d = new Date(e.date);
     return getKW(d) === kw && d.getFullYear() === curDate.getFullYear();
   }).reduce(function (s, e) {
@@ -1156,9 +1161,13 @@ function HorasProApp(_ref9) {
     })) === null || _diasLivres$find === void 0 ? void 0 : _diasLivres$find.tipo) || null;
   };
 
-  // Add 5.9h auto for day-off weekdays
+  // Dias úteis recebem metaDia automaticamente (neutro). Férias são a
+  // excepção: creditam menos (metaFerias) porque não equivalem a um dia
+  // de trabalho normal — isto reflecte-se ligeiramente no saldo.
+  var metaFerias = 5.7;
   var addDiasLivresRange = function addDiasLivresRange(de, ate, tipo) {
     var nome = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : '';
+    var horasTipo = tipo === 'ferias' ? metaFerias : metaDia;
     var newDias = [];
     var cur = new Date(de + 'T12:00:00');
     var end = new Date(ate + 'T12:00:00');
@@ -1187,10 +1196,10 @@ function HorasProApp(_ref9) {
         tipo: tipo,
         nome: nome || (tipo === 'ferias' ? 'Férias' : tipo === 'feriado' ? nome : 'Dia livre'),
         addedBy: 'patricio',
-        horas: metaDia
+        horas: horasTipo
       });
     });
-    // Auto-add 5.9h entry
+    // Auto-add entrada (5.9h normal, ou 5.7h se for ferias)
     var autoEntries = newDias.map(function (d) {
       return {
         id: Date.now() + Math.random(),
@@ -1199,7 +1208,7 @@ function HorasProApp(_ref9) {
         proj: nome || '—',
         hi: '00:00',
         hf: '00:00',
-        horas: metaDia,
+        horas: horasTipo,
         isAuto: true,
         dlTipo: tipo,
         validado: isOwnWeekDue(d.date)
