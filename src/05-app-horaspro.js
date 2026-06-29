@@ -434,6 +434,18 @@ function HorasProApp(_ref9) {
     _useStateKompInput2 = _slicedToArray(_useStateKompInput, 2),
     kompDispInput = _useStateKompInput2[0],
     setKompDispInput = _useStateKompInput2[1];
+  var _useStateFeriasUnidade = (0, _react.useState)('dias'),
+    _useStateFeriasUnidade2 = _slicedToArray(_useStateFeriasUnidade, 2),
+    feriasUnidade = _useStateFeriasUnidade2[0],
+    setFeriasUnidade = _useStateFeriasUnidade2[1];
+  var _useStateEditHFerias = (0, _react.useState)(false),
+    _useStateEditHFerias2 = _slicedToArray(_useStateEditHFerias, 2),
+    editandoHorasFeriasDisp = _useStateEditHFerias2[0],
+    setEditandoHorasFeriasDisp = _useStateEditHFerias2[1];
+  var _useStateHFeriasInput = (0, _react.useState)(''),
+    _useStateHFeriasInput2 = _slicedToArray(_useStateHFeriasInput, 2),
+    horasFeriasDispInput = _useStateHFeriasInput2[0],
+    setHorasFeriasDispInput = _useStateHFeriasInput2[1];
   var _useState17 = (0, _react.useState)(''),
     _useState18 = _slicedToArray(_useState17, 2),
     feriasAte = _useState18[0],
@@ -586,6 +598,7 @@ function HorasProApp(_ref9) {
       if (res.error || !res.data || !res.data[0]) return;
       setFeriasDisp(Number(res.data[0].ferias_disponiveis) || 0);
       setKompDisp(Number(res.data[0].komp_disponivel) || 0);
+      setHorasFeriasDisp(Number(res.data[0].horas_ferias_disponivel) || 0);
       setFeriasDispLoaded(true);
     }).catch(function () {});
   };
@@ -605,6 +618,17 @@ function HorasProApp(_ref9) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horaspro_settings').update({
       komp_disponivel: novoValor
+    }).eq('id', 1).catch(function () {});
+  };
+  var _useStateHorasFeriasDisp = (0, _react.useState)(0),
+    _useStateHorasFeriasDisp2 = _slicedToArray(_useStateHorasFeriasDisp, 2),
+    horasFeriasDisp = _useStateHorasFeriasDisp2[0],
+    setHorasFeriasDisp = _useStateHorasFeriasDisp2[1];
+  var salvarHorasFeriasDisp = function salvarHorasFeriasDisp(novoValor) {
+    setHorasFeriasDisp(novoValor);
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('horaspro_settings').update({
+      horas_ferias_disponivel: novoValor
     }).eq('id', 1).catch(function () {});
   };
   (0, _react.useEffect)(function () {
@@ -1271,19 +1295,22 @@ function HorasProApp(_ref9) {
       });
     });
     // Auto-add entrada. Cada tipo consome primeiro a SUA PRÓPRIA quota —
-    // férias consome dias de feriasDisp, Komp. consome horas de kompDisp
-    // (metaDia por dia). Só quando a quota desse tipo chega a 0 é que os
-    // dias seguintes desse tipo passam a "_extra" e descontam do saldo
-    // (ver cálculo do saldo mais acima). Um tipo nunca consome a quota do
-    // outro.
-    var quotaFeriasRestante = feriasDisp;
+    // férias consome dias de feriasDisp OU horas de horasFeriasDisp
+    // (conforme feriasUnidade escolhida no popup); Komp. consome sempre
+    // horas de kompDisp (metaDia por dia). Só quando a quota escolhida
+    // chega a 0 é que os dias seguintes desse tipo passam a "_extra" e
+    // descontam do saldo (ver cálculo do saldo mais acima). Um tipo nunca
+    // consome a quota do outro.
+    var feriasEmHoras = tipo === 'ferias' && feriasUnidade === 'horas';
+    var quotaFeriasRestante = feriasEmHoras ? horasFeriasDisp : feriasDisp;
     var quotaKompRestante = kompDisp;
     var autoEntries = newDias.map(function (d) {
       var dlTipoFinal = d.tipo;
       if (d.tipo === 'ferias') {
-        if (quotaFeriasRestante > 0) {
+        var custoFerias = feriasEmHoras ? metaFerias : 1;
+        if (quotaFeriasRestante >= custoFerias) {
           dlTipoFinal = 'ferias';
-          quotaFeriasRestante -= 1;
+          quotaFeriasRestante -= custoFerias;
         } else {
           dlTipoFinal = 'ferias_extra';
         }
@@ -1308,7 +1335,10 @@ function HorasProApp(_ref9) {
         validado: isOwnWeekDue(d.date)
       };
     });
-    if (tipo === 'ferias' && quotaFeriasRestante !== feriasDisp) {
+    if (tipo === 'ferias' && feriasEmHoras && quotaFeriasRestante !== horasFeriasDisp) {
+      salvarHorasFeriasDisp(Math.max(0, Math.round(quotaFeriasRestante * 100) / 100));
+    }
+    if (tipo === 'ferias' && !feriasEmHoras && quotaFeriasRestante !== feriasDisp) {
       salvarFeriasDisp(Math.max(0, quotaFeriasRestante));
     }
     if (tipo === 'komp' && quotaKompRestante !== kompDisp) {
@@ -1722,7 +1752,37 @@ function HorasProApp(_ref9) {
       outline: 'none',
       boxSizing: 'border-box'
     }
-  }))), /*#__PURE__*/React.createElement("div", {
+  }))), dlTipo === 'ferias' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 7,
+      marginBottom: 12
+    }
+  }, [{
+    v: 'dias',
+    l: 'Em dias'
+  }, {
+    v: 'horas',
+    l: 'Em horas'
+  }].map(function (u) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: u.v,
+      onClick: function onClick() {
+        return setFeriasUnidade(u.v);
+      },
+      style: {
+        flex: 1,
+        background: feriasUnidade === u.v ? H.gold : H.surface2,
+        border: "1px solid ".concat(feriasUnidade === u.v ? H.gold : H.border),
+        borderRadius: 10,
+        padding: '7px 4px',
+        color: feriasUnidade === u.v ? '#fff' : H.muted,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, u.l);
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       background: 'rgba(184,150,46,0.08)',
       borderRadius: 10,
@@ -1735,13 +1795,19 @@ function HorasProApp(_ref9) {
       fontSize: 12,
       color: H.gold
     }
-  }, "\u2139\uFE0F Dias \xFAteis recebem automaticamente ", metaDia, "h"), dlTipo === 'ferias' && /*#__PURE__*/React.createElement("p", {
+  }, "\u2139\uFE0F Dias \xFAteis recebem automaticamente ", metaDia, "h"), dlTipo === 'ferias' && feriasUnidade === 'dias' && /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
       color: H.gold,
       marginTop: 4
     }
-  }, "\uD83C\uDFD6 Tens ", feriasDisp, " dia", feriasDisp === 1 ? '' : 's', " de f\xE9rias dispon\xEDve", feriasDisp === 1 ? 'l' : 'is', ". ", feriasDisp === 0 ? 'Os próximos dias vão descontar ' + metaFerias + 'h do saldo.' : ''), dlTipo === 'komp' && /*#__PURE__*/React.createElement("p", {
+  }, "\uD83C\uDFD6 Tens ", feriasDisp, " dia", feriasDisp === 1 ? '' : 's', " de f\xE9rias dispon\xEDve", feriasDisp === 1 ? 'l' : 'is', ". ", feriasDisp === 0 ? 'Os próximos dias vão descontar ' + metaFerias + 'h do saldo.' : ''), dlTipo === 'ferias' && feriasUnidade === 'horas' && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: H.gold,
+      marginTop: 4
+    }
+  }, "\uD83C\uDFD6 Tens ", horasFeriasDisp.toFixed(1), "h de f\xE9rias dispon\xEDveis. ", horasFeriasDisp < metaFerias ? 'Sem horas suficientes para um dia completo — os próximos vão descontar ' + metaFerias + 'h do saldo.' : ''), dlTipo === 'komp' && /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 12,
       color: H.gold,
@@ -4360,6 +4426,118 @@ function HorasProApp(_ref9) {
   }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setEditandoFeriasDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: 'none',
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '11px',
+      color: H.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "Cancelar")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: H.surface2,
+      borderRadius: 14,
+      padding: '12px 14px',
+      border: "1px solid ".concat(H.border),
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 10,
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.4px'
+    }
+  }, "Horas de f\xE9rias dispon\xEDveis"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.gold,
+      fontSize: 20,
+      fontWeight: 900,
+      marginTop: 4
+    }
+  }, horasFeriasDisp.toFixed(1), "h")), !editandoHorasFeriasDisp && /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setHorasFeriasDispInput(String(horasFeriasDisp));
+      setEditandoHorasFeriasDisp(true);
+    },
+    style: {
+      background: 'none',
+      border: "1px solid ".concat(H.gold),
+      borderRadius: 10,
+      padding: '8px 12px',
+      color: H.gold,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\u270F\uFE0F Editar")), editandoHorasFeriasDisp && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: "0.1",
+    min: "0",
+    value: horasFeriasDispInput,
+    onChange: function onChange(e) {
+      return setHorasFeriasDispInput(e.target.value);
+    },
+    style: {
+      width: '100%',
+      background: H.surface,
+      border: "1px solid ".concat(H.border),
+      borderRadius: 10,
+      padding: '9px 12px',
+      color: H.text,
+      fontSize: 14,
+      outline: 'none',
+      boxSizing: 'border-box',
+      marginBottom: 8
+    }
+  }), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 11,
+      marginBottom: 8
+    }
+  }, "Usada quando escolhes \"Em horas\" no popup de F\xE9rias. Cada dia consome ", metaFerias, "h desta quota e n\xE3o toca no saldo. \xC9 independente da quota em dias."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      var parsed = parseFloat(horasFeriasDispInput.replace(',', '.'));
+      if (isNaN(parsed) || parsed < 0) return;
+      salvarHorasFeriasDisp(Math.round(parsed * 100) / 100);
+      setEditandoHorasFeriasDisp(false);
+    },
+    style: {
+      flex: 1,
+      background: "linear-gradient(135deg,".concat(H.gold, ",").concat(H.goldL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '11px',
+      color: '#1a1410',
+      fontSize: 13,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setEditandoHorasFeriasDisp(false);
     },
     style: {
       flex: 1,
