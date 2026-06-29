@@ -2101,18 +2101,18 @@ function HorasProApp(_ref9) {
     }
   }, "At\xE9 Hoje"), /*#__PURE__*/React.createElement("p", {
     style: {
-      color: H.gold,
+      color: saldo >= 0 ? H.green : H.red,
       fontSize: 22,
       fontWeight: 900,
       marginTop: 3
     }
-  }, horasAteHoje.toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
+  }, saldo >= 0 ? '+' : '', saldo.toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.muted,
       fontSize: 10,
       marginTop: 2
     }
-  }, "m\xEAs corrente")), /*#__PURE__*/React.createElement(LCard, {
+  }, "horas a mais")), /*#__PURE__*/React.createElement(LCard, {
     style: {
       padding: '12px 14px',
       minWidth: 120,
@@ -2126,18 +2126,18 @@ function HorasProApp(_ref9) {
     }
   }, "Saldo"), /*#__PURE__*/React.createElement("p", {
     style: {
-      color: saldo >= 0 ? H.green : H.red,
+      color: saldo + totalJanAbrSaldo >= 0 ? H.green : H.red,
       fontSize: 22,
       fontWeight: 900,
       marginTop: 3
     }
-  }, saldo >= 0 ? '+' : '', saldo.toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
+  }, saldo + totalJanAbrSaldo >= 0 ? '+' : '', (saldo + totalJanAbrSaldo).toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.muted,
       fontSize: 10,
       marginTop: 2
     }
-  }, saldo >= 0 ? 'positivo' : 'acumulado'))), subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
+  }, "at\xE9 hoje + Abaclick"))), subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
