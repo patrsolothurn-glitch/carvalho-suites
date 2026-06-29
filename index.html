@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-29T14:54:09.143Z
+  Gerado em: 2026-06-29T15:46:38.688Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-07";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-10";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -919,6 +919,10 @@ function HorasProApp(_ref9) {
     _useStateSaldoSaving2 = _slicedToArray(_useStateSaldoSaving, 2),
     saldoJanAbrSaving = _useStateSaldoSaving2[0],
     setSaldoJanAbrSaving = _useStateSaldoSaving2[1];
+  var _useStateSaldoMode = (0, _react.useState)('ajuste'),
+    _useStateSaldoMode2 = _slicedToArray(_useStateSaldoMode, 2),
+    saldoJanAbrModo = _useStateSaldoMode2[0],
+    setSaldoJanAbrModo = _useStateSaldoMode2[1];
   var _useState17 = (0, _react.useState)(''),
     _useState18 = _slicedToArray(_useState17, 2),
     feriasAte = _useState18[0],
@@ -1164,11 +1168,12 @@ function HorasProApp(_ref9) {
   }, 0);
   var totalJanAbrSaldo = Math.round((horasJanFevMar + horasAbril2026) * 100) / 100;
   var guardarSaldoJanAbr = function guardarSaldoJanAbr() {
-    var novoTotal = parseFloat(saldoJanAbrInput.replace(',', '.'));
-    if (isNaN(novoTotal)) {
+    var parsed = parseFloat(saldoJanAbrInput.replace(',', '.'));
+    if (isNaN(parsed)) {
       setSaldoJanAbrErr('Número inválido.');
       return;
     }
+    var novoTotal = saldoJanAbrModo === 'ajuste' ? Math.round((totalJanAbrSaldo + parsed) * 100) / 100 : parsed;
     var novoJanMar = Math.round((novoTotal - horasAbril2026) * 100) / 100;
     if (novoJanMar < 0) {
       setSaldoJanAbrErr('Abril j\xE1 tem ' + horasAbril2026.toFixed(1) + 'h reais \u2014 o total tem de ser maior que isso.');
@@ -3090,10 +3095,11 @@ function HorasProApp(_ref9) {
   }, "Cor"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
+      flexWrap: 'wrap',
       gap: 8,
       marginBottom: 14
     }
-  }, [H.blue, H.orange, H.green, H.gold, '#A855F7', '#EF4444'].map(function (c) {
+  }, [H.blue, H.orange, H.green, H.gold, '#A855F7', '#EF4444', '#EC4899', '#06B6D4', '#6366F1', '#84CC16', '#14B8A6', '#F59E0B', '#78716C', '#64748B'].map(function (c) {
     return /*#__PURE__*/React.createElement("div", {
       key: c,
       onClick: function onClick() {
@@ -4512,7 +4518,8 @@ function HorasProApp(_ref9) {
     }
   }, totalJanAbrSaldo.toFixed(2), "h")), !editandoSaldoJanAbr && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      setSaldoJanAbrInput(String(totalJanAbrSaldo));
+      setSaldoJanAbrModo('ajuste');
+      setSaldoJanAbrInput('');
       setSaldoJanAbrErr('');
       setEditandoSaldoJanAbr(true);
     },
@@ -4530,14 +4537,43 @@ function HorasProApp(_ref9) {
     style: {
       marginTop: 10
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 8
+    }
+  }, [['ajuste', '\u2795\u2796 Ajustar'], ['absoluto', '123 Valor total']].map(function (opt) {
+    var key = opt[0],
+      lbl = opt[1];
+    return /*#__PURE__*/React.createElement("button", {
+      key: key,
+      onClick: function onClick() {
+        setSaldoJanAbrModo(key);
+        setSaldoJanAbrInput('');
+        setSaldoJanAbrErr('');
+      },
+      style: {
+        flex: 1,
+        background: saldoJanAbrModo === key ? H.gold : 'none',
+        border: "1px solid ".concat(H.gold),
+        borderRadius: 8,
+        padding: '6px 8px',
+        color: saldoJanAbrModo === key ? '#1a1410' : H.gold,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, lbl);
+  })), /*#__PURE__*/React.createElement("input", {
+    key: saldoJanAbrModo,
     type: "text",
     inputMode: "decimal",
     defaultValue: saldoJanAbrInput,
     onChange: function onChange(e) {
       return setSaldoJanAbrInput(e.target.value);
     },
-    placeholder: "ex: 59.93",
+    placeholder: saldoJanAbrModo === 'ajuste' ? 'ex: +5 ou -3' : 'ex: 59.93',
     style: {
       width: '100%',
       background: H.surface,
@@ -4548,7 +4584,15 @@ function HorasProApp(_ref9) {
       fontSize: 16,
       marginBottom: 8
     }
-  }), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
+  }), saldoJanAbrModo === 'ajuste' && saldoJanAbrInput.trim() !== '' && !isNaN(parseFloat(saldoJanAbrInput.replace(',', '.'))) && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, "Novo total: ", /*#__PURE__*/React.createElement("b", {
+    style: { color: H.gold }
+  }, (totalJanAbrSaldo + parseFloat(saldoJanAbrInput.replace(',', '.'))).toFixed(2), "h")), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.red,
       fontSize: 12,
@@ -5424,32 +5468,35 @@ function AgendaProApp(_ref13) {
   var fmtLocalDate = function fmtLocalDate(d) {
     return "".concat(d.getFullYear(), "-").concat(String(d.getMonth() + 1).padStart(2, '0'), "-").concat(String(d.getDate()).padStart(2, '0'));
   };
-  var weeklyChart = function () {
-    var weeksData = {};
-    appts.filter(function (a) {
-      return projContaEstatisticas(a.proj);
-    }).forEach(function (a) {
-      var d = new Date(a.date + 'T12:00:00');
-      var monday = new Date(d);
-      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-      var key = fmtLocalDate(monday);
-      weeksData[key] = (weeksData[key] || 0) + a.chf;
-    });
+  var diaSemanaAbbrGanho = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S\xE1b'];
+  var ganhoDiasSemana = function () {
     var today = new Date();
     var dow = today.getDay();
     var diff = dow === 0 ? -6 : 1 - dow;
     var thisMonday = new Date(today);
     thisMonday.setDate(thisMonday.getDate() + diff);
     thisMonday.setHours(0, 0, 0, 0);
+    var monday = new Date(thisMonday);
+    monday.setDate(monday.getDate() + ganhoWeekOffset * 7);
+    var todayKey = fmtLocalDate(today);
+    var diasContados = appts.filter(function (a) {
+      return projContaEstatisticas(a.proj);
+    });
     var result = [];
-    for (var i = -2; i <= 2; i++) {
-      var monday = new Date(thisMonday);
-      monday.setDate(monday.getDate() + (i + ganhoWeekOffset) * 7);
-      var key = fmtLocalDate(monday);
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(monday);
+      d.setDate(d.getDate() + i);
+      var key = fmtLocalDate(d);
+      var chf = diasContados.filter(function (a) {
+        return a.date === key;
+      }).reduce(function (s, a) {
+        return s + a.chf;
+      }, 0);
       result.push({
+        date: d,
         week: key,
-        chf: weeksData[key] || 0,
-        isCurrent: i + ganhoWeekOffset === 0
+        chf: Math.round(chf * 100) / 100,
+        isCurrent: key === todayKey
       });
     }
     return result;
@@ -6400,7 +6447,7 @@ function AgendaProApp(_ref13) {
         marginTop: 3
       }
     }, s.v));
-  })), weeklyChart.length > 0 && /*#__PURE__*/React.createElement(ACard, {
+  })), ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
     style: {
       padding: '14px 12px',
       marginTop: 10
@@ -6420,7 +6467,7 @@ function AgendaProApp(_ref13) {
       textTransform: 'uppercase',
       letterSpacing: '0.5px'
     }
-  }, "\uD83D\uDCC8 Ganhos por semana (CHF)"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCC8 Ganhos por dia (CHF) \xB7 ", "".concat(ganhoDiasSemana[0].date.getDate(), "/").concat(ganhoDiasSemana[0].date.getMonth() + 1, "\u2013").concat(ganhoDiasSemana[6].date.getDate(), "/").concat(ganhoDiasSemana[6].date.getMonth() + 1)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -6478,12 +6525,11 @@ function AgendaProApp(_ref13) {
       height: 90
     }
   }, function () {
-    var maxChf = Math.max.apply(Math, weeklyChart.map(function (w) {
+    var maxChf = Math.max.apply(Math, ganhoDiasSemana.map(function (w) {
       return w.chf;
     }).concat([1]));
-    return weeklyChart.map(function (w) {
-      var d = new Date(w.week + 'T12:00:00');
-      var label = "".concat(d.getDate(), "/").concat(d.getMonth() + 1);
+    return ganhoDiasSemana.map(function (w) {
+      var label = diaSemanaAbbrGanho[w.date.getDay()];
       var h = Math.max(4, w.chf / maxChf * 70);
       return /*#__PURE__*/React.createElement("div", {
         key: w.week,
