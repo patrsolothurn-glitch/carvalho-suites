@@ -565,77 +565,6 @@ function HorasProApp(_ref9) {
       } catch (e) {}
     };
   }, []);
-  var _useStateSugg = (0, _react.useState)([]),
-    _useStateSugg2 = _slicedToArray(_useStateSugg, 2),
-    sugestoes = _useStateSugg2[0],
-    setSugestoes = _useStateSugg2[1];
-  var _useStateSuggDismiss = (0, _react.useState)(function () {
-      try {
-        return JSON.parse(localStorage.getItem('horaspro_sug_ignoradas') || '[]');
-      } catch (e) {
-        return [];
-      }
-    }),
-    _useStateSuggDismiss2 = _slicedToArray(_useStateSuggDismiss, 2),
-    sugIgnoradas = _useStateSuggDismiss2[0],
-    setSugIgnoradas = _useStateSuggDismiss2[1];
-  var loadSugestoes = function loadSugestoes() {
-    if (!window.supabaseClient) return;
-    Promise.all([window.supabaseClient.from('agenda_pro_jobs').select('*'), window.supabaseClient.from('horas_entries').select('source_id').eq('source', 'agenda_pro')]).then(function (resArr) {
-      var jobsRes = resArr[0],
-        convertedRes = resArr[1];
-      if (!jobsRes.data) return;
-      var convertedIds = (convertedRes.data || []).map(function (r) {
-        return r.source_id;
-      });
-      var pend = jobsRes.data.filter(function (j) {
-        return convertedIds.indexOf(j.id) === -1;
-      }).sort(function (a, b) {
-        return (b.job_date || '').localeCompare(a.job_date || '');
-      });
-      setSugestoes(pend);
-    }).catch(function () {});
-  };
-  var aprovarSugestao = function aprovarSugestao(job) {
-    if (!window.supabaseClient) return;
-    var hi = job.start_time || '08:00';
-    var hf = job.end_time || '17:00';
-    var horas = 0;
-    try {
-      horas = calcHoras(hi, hf);
-    } catch (e) {
-      horas = 0;
-    }
-    window.supabaseClient.from('horas_entries').insert({
-      data: job.job_date,
-      tipo: 'Trabalho',
-      project: job.project || 'Patricio Work',
-      start_time: hi,
-      end_time: hf,
-      hours: horas,
-      address: job.address || null,
-      source: 'agenda_pro',
-      source_id: job.id
-    }).then(function () {
-      loadEntries();
-      loadSugestoes();
-    }).catch(function () {});
-  };
-  var ignorarSugestao = function ignorarSugestao(jobId) {
-    setSugIgnoradas(function (p) {
-      var next = [].concat(_toConsumableArray(p), [jobId]);
-      try {
-        localStorage.setItem('horaspro_sug_ignoradas', JSON.stringify(next));
-      } catch (e) {}
-      return next;
-    });
-  };
-  (0, _react.useEffect)(function () {
-    loadSugestoes();
-  }, []);
-  var sugestoesVisiveis = sugestoes.filter(function (j) {
-    return sugIgnoradas.indexOf(j.id) === -1;
-  });
   var pushEntryToSupabase = function pushEntryToSupabase(e) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').insert({
@@ -866,7 +795,7 @@ function HorasProApp(_ref9) {
     setProjList = _useState30[1];
   var loadProjects = function loadProjects() {
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
+    window.supabaseClient.from('horaspro_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
       if (res.error || !res.data) return;
       setProjList(res.data.map(function (row) {
         return {
@@ -881,10 +810,10 @@ function HorasProApp(_ref9) {
   (0, _react.useEffect)(function () {
     loadProjects();
     if (!window.supabaseClient) return;
-    var projChannel = window.supabaseClient.channel('horas_projects_changes').on('postgres_changes', {
+    var projChannel = window.supabaseClient.channel('horaspro_projects_changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
-      table: 'horas_projects'
+      table: 'horaspro_projects'
     }, function () {
       loadProjects();
     }).subscribe();
@@ -930,7 +859,7 @@ function HorasProApp(_ref9) {
           }) : x;
         });
       });
-      window.supabaseClient.from('horas_projects').update({
+      window.supabaseClient.from('horaspro_projects').update({
         name: name,
         description: desc,
         color: newProjColor
@@ -973,7 +902,7 @@ function HorasProApp(_ref9) {
           color: newProjColor
         }]);
       });
-      window.supabaseClient.from('horas_projects').insert({
+      window.supabaseClient.from('horaspro_projects').insert({
         name: name,
         description: desc,
         color: newProjColor
@@ -1012,7 +941,7 @@ function HorasProApp(_ref9) {
       });
     });
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) {
+    window.supabaseClient.from('horaspro_projects').delete().eq('id', projId).then(function (res) {
       if (res.error) {
         setProjList(prevList);
         setProjSaveErr('Erro ao apagar: ' + res.error.message);
@@ -2189,67 +2118,7 @@ function HorasProApp(_ref9) {
       fontSize: 10,
       marginTop: 2
     }
-  }, saldo >= 0 ? 'positivo' : 'acumulado'))), sugestoesVisiveis.length > 0 && subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 16px 16px'
-    }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '1.5px',
-      textTransform: 'uppercase',
-      marginBottom: 10
-    }
-  }, "\uD83D\uDCC5 Sugest\xF5es do Patricio Work (", sugestoesVisiveis.length, ")"), sugestoesVisiveis.map(function (job) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: job.id,
-      style: {
-        background: H.surface,
-        border: "1px solid ".concat(H.gold, "33"),
-        borderRadius: 14,
-        padding: '12px 14px',
-        marginBottom: 8,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: { flex: 1, minWidth: 0 }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: { fontWeight: 700, fontSize: 13, color: H.text }
-    }, job.project || 'Marcação'), /*#__PURE__*/React.createElement("p", {
-      style: { fontSize: 11, color: H.muted, marginTop: 2 }
-    }, job.job_date, job.start_time ? " \xB7 ".concat(job.start_time, "\u2013").concat(job.end_time || '') : '')), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return ignorarSugestao(job.id);
-      },
-      style: {
-        background: H.surface2,
-        border: "1px solid ".concat(H.border),
-        borderRadius: 8,
-        padding: '7px 9px',
-        color: H.muted,
-        fontSize: 12,
-        cursor: 'pointer'
-      }
-    }, "\u2715"), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return aprovarSugestao(job);
-      },
-      style: {
-        background: H.gold,
-        border: 'none',
-        borderRadius: 8,
-        padding: '7px 12px',
-        color: '#09090E',
-        fontSize: 12,
-        fontWeight: 800,
-        cursor: 'pointer'
-      }
-    }, "\u2713 Aprovar"));
-  })), subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
+  }, saldo >= 0 ? 'positivo' : 'acumulado'))), subNav === 'Registo' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
