@@ -50,7 +50,12 @@ function FamiliaApp(_ref19) {
     _useState98 = _slicedToArray(_useState97, 2),
     selDay = _useState98[0],
     setSelDay = _useState98[1];
+  var skipDayResetRef = (0, _react.useRef)(false);
   (0, _react.useEffect)(function () {
+    if (skipDayResetRef.current) {
+      skipDayResetRef.current = false;
+      return;
+    }
     var today = new Date();
     var isRealCurrentMonth = curMonth.getFullYear() === today.getFullYear() && curMonth.getMonth() === today.getMonth();
     setSelDay(isRealCurrentMonth ? today.getDate() : 1);
@@ -1192,6 +1197,8 @@ function FamiliaApp(_ref19) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           onClick: function onClick() {
+            skipDayResetRef.current = true;
+            setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
             setSelDay(date.getDate());
             setMainView('mes');
           },
