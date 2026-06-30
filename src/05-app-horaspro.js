@@ -605,9 +605,18 @@ function HorasProApp(_ref9) {
   var salvarFeriasDisp = function salvarFeriasDisp(novoValor) {
     setFeriasDisp(novoValor);
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horaspro_settings').update({
-      ferias_disponiveis: novoValor
-    }).eq('id', 1).catch(function () {});
+    window.supabaseClient.from('horaspro_settings').upsert({
+      id: 1,
+      ferias_disponiveis: novoValor,
+      komp_disponivel: kompDisp,
+      horas_ferias_disponivel: horasFeriasDisp
+    }, {
+      onConflict: 'id'
+    }).then(function (res) {
+      if (res.error) console.warn('[horaspro] Erro ao guardar dias de f\xE9rias dispon\xEDveis:', res.error.message);
+    }).catch(function (e) {
+      console.warn('[horaspro] Erro ao guardar dias de f\xE9rias dispon\xEDveis:', e);
+    });
   };
   var _useStateKompDisp = (0, _react.useState)(0),
     _useStateKompDisp2 = _slicedToArray(_useStateKompDisp, 2),
@@ -616,9 +625,18 @@ function HorasProApp(_ref9) {
   var salvarKompDisp = function salvarKompDisp(novoValor) {
     setKompDisp(novoValor);
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horaspro_settings').update({
-      komp_disponivel: novoValor
-    }).eq('id', 1).catch(function () {});
+    window.supabaseClient.from('horaspro_settings').upsert({
+      id: 1,
+      ferias_disponiveis: feriasDisp,
+      komp_disponivel: novoValor,
+      horas_ferias_disponivel: horasFeriasDisp
+    }, {
+      onConflict: 'id'
+    }).then(function (res) {
+      if (res.error) console.warn('[horaspro] Erro ao guardar horas de Komp. dispon\xEDveis:', res.error.message);
+    }).catch(function (e) {
+      console.warn('[horaspro] Erro ao guardar horas de Komp. dispon\xEDveis:', e);
+    });
   };
   var _useStateHorasFeriasDisp = (0, _react.useState)(0),
     _useStateHorasFeriasDisp2 = _slicedToArray(_useStateHorasFeriasDisp, 2),
@@ -627,9 +645,18 @@ function HorasProApp(_ref9) {
   var salvarHorasFeriasDisp = function salvarHorasFeriasDisp(novoValor) {
     setHorasFeriasDisp(novoValor);
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('horaspro_settings').update({
+    window.supabaseClient.from('horaspro_settings').upsert({
+      id: 1,
+      ferias_disponiveis: feriasDisp,
+      komp_disponivel: kompDisp,
       horas_ferias_disponivel: novoValor
-    }).eq('id', 1).catch(function () {});
+    }, {
+      onConflict: 'id'
+    }).then(function (res) {
+      if (res.error) console.warn('[horaspro] Erro ao guardar horas de f\xE9rias dispon\xEDveis:', res.error.message);
+    }).catch(function (e) {
+      console.warn('[horaspro] Erro ao guardar horas de f\xE9rias dispon\xEDveis:', e);
+    });
   };
   (0, _react.useEffect)(function () {
     loadEntries();
