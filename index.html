@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-06-30T15:54:54.849Z
+  Gerado em: 2026-06-30T16:20:33.251Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-25";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-26";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -9222,7 +9222,12 @@ function FamiliaApp(_ref19) {
     _useState98 = _slicedToArray(_useState97, 2),
     selDay = _useState98[0],
     setSelDay = _useState98[1];
+  var skipDayResetRef = (0, _react.useRef)(false);
   (0, _react.useEffect)(function () {
+    if (skipDayResetRef.current) {
+      skipDayResetRef.current = false;
+      return;
+    }
     var today = new Date();
     var isRealCurrentMonth = curMonth.getFullYear() === today.getFullYear() && curMonth.getMonth() === today.getMonth();
     setSelDay(isRealCurrentMonth ? today.getDate() : 1);
@@ -10364,6 +10369,8 @@ function FamiliaApp(_ref19) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           onClick: function onClick() {
+            skipDayResetRef.current = true;
+            setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
             setSelDay(date.getDate());
             setMainView('mes');
           },
