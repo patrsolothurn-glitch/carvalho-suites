@@ -779,7 +779,16 @@ function HorasProApp(_ref9) {
       setSaldoJanAbrErr('Número inválido.');
       return;
     }
-    var novoTotal = saldoJanAbrModo === 'ajuste' ? Math.round((totalJanAbrSaldo + parsed) * 100) / 100 : parsed;
+    var novoTotal;
+    if (saldoJanAbrModo === 'ajuste') {
+      novoTotal = Math.round((totalJanAbrSaldo + parsed) * 100) / 100;
+    } else if (saldoJanAbrModo === 'saldototal') {
+      // Saldo geral = saldo (mês corrente) + totalJanAbrSaldo.
+      // Para o Saldo geral dar o valor pedido, reparte-se o Jan-Abril.
+      novoTotal = Math.round((parsed - saldo) * 100) / 100;
+    } else {
+      novoTotal = parsed;
+    }
     var novoJanMar = Math.round((novoTotal - horasAbril2026) * 100) / 100;
     if (novoJanMar < 0) {
       setSaldoJanAbrErr('Abril j\xE1 tem ' + horasAbril2026.toFixed(1) + 'h reais \u2014 o total tem de ser maior que isso.');
@@ -3672,7 +3681,7 @@ function HorasProApp(_ref9) {
       gap: 8,
       marginBottom: 8
     }
-  }, [['ajuste', '\u2795\u2796 Ajustar'], ['absoluto', '123 Valor total']].map(function (opt) {
+  }, [['ajuste', '\u2795\u2796 Ajustar'], ['saldototal', '\uD83C\uDFAF Saldo total'], ['absoluto', '123 Valor total']].map(function (opt) {
     var key = opt[0],
       lbl = opt[1];
     return /*#__PURE__*/React.createElement("button", {
@@ -3702,7 +3711,7 @@ function HorasProApp(_ref9) {
     onChange: function onChange(e) {
       return setSaldoJanAbrInput(e.target.value);
     },
-    placeholder: saldoJanAbrModo === 'ajuste' ? 'ex: +5 ou -3' : 'ex: 59.93',
+    placeholder: saldoJanAbrModo === 'ajuste' ? 'ex: +5 ou -3' : saldoJanAbrModo === 'saldototal' ? 'ex: 63.67' : 'ex: 59.93',
     style: {
       width: '100%',
       background: H.surface,
@@ -3719,9 +3728,17 @@ function HorasProApp(_ref9) {
       fontSize: 12,
       marginBottom: 8
     }
-  }, "Novo total: ", /*#__PURE__*/React.createElement("b", {
+  }, "Novo total Jan\u2013Abril: ", /*#__PURE__*/React.createElement("b", {
     style: { color: H.gold }
-  }, (totalJanAbrSaldo + parseFloat(saldoJanAbrInput.replace(',', '.'))).toFixed(2), "h")), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
+  }, (totalJanAbrSaldo + parseFloat(saldoJanAbrInput.replace(',', '.'))).toFixed(2), "h")), saldoJanAbrModo === 'saldototal' && saldoJanAbrInput.trim() !== '' && !isNaN(parseFloat(saldoJanAbrInput.replace(',', '.'))) && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: H.muted,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, "Saldo geral vai passar a mostrar: ", /*#__PURE__*/React.createElement("b", {
+    style: { color: H.gold }
+  }, parseFloat(saldoJanAbrInput.replace(',', '.')) >= 0 ? '+' : '', parseFloat(saldoJanAbrInput.replace(',', '.')).toFixed(2), "h")), saldoJanAbrErr && /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.red,
       fontSize: 12,
