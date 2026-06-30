@@ -1151,7 +1151,7 @@ function FamiliaApp(_ref19) {
       var isEmptyCell = mEvs.length === 0 && !mShared;
       return /*#__PURE__*/React.createElement("div", {
         key: m.id,
-        onClick: isEmptyCell ? function () {
+        onClick: function () {
           setForm(function (p) {
             return _objectSpread(_objectSpread({}, p), {}, {
               dataDE: dStr,
@@ -1160,7 +1160,7 @@ function FamiliaApp(_ref19) {
             });
           });
           setShowAdd(true);
-        } : undefined,
+        },
         style: {
           padding: '3px 3px',
           borderLeft: "1px solid ".concat(F.border),
@@ -1170,11 +1170,14 @@ function FamiliaApp(_ref19) {
           gap: 2,
           overflow: 'hidden',
           boxSizing: 'border-box',
-          cursor: isEmptyCell ? 'pointer' : 'default'
+          cursor: 'pointer'
         }
       }, mShared && dayShared.map(function (s, si) {
         return /*#__PURE__*/React.createElement("div", {
           key: si,
+          onClick: function onClick(e) {
+            e.stopPropagation();
+          },
           style: {
             background: "".concat(F.purple, "15"),
             borderRadius: 5,
@@ -1196,7 +1199,8 @@ function FamiliaApp(_ref19) {
       }), mEvs.map(function (ev, ei) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
-          onClick: function onClick() {
+          onClick: function onClick(e) {
+            e.stopPropagation();
             skipDayResetRef.current = true;
             setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
             setSelDay(date.getDate());
