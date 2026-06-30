@@ -1457,7 +1457,21 @@ function FamiliaApp(_ref19) {
       fontWeight: 700,
       color: showArchived ? F.green : F.muted
     }
-  }, showArchived ? 'Ativos' : 'Arquivados'))), !showArchived && sharedForDay.map(function (d, i) {
+  }, showArchived ? 'Ativos' : 'Arquivados'))), editEvErr && !editEvKey && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'rgba(220,38,38,0.08)',
+      border: '1px solid rgba(220,38,38,0.2)',
+      borderRadius: 10,
+      padding: '8px 12px',
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.red,
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, "\u26A0\uFE0F ", editEvErr)), !showArchived && sharedForDay.map(function (d, i) {
     return /*#__PURE__*/React.createElement(FCard, {
       key: 'sd' + i,
       style: {
@@ -1600,21 +1614,38 @@ function FamiliaApp(_ref19) {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        setEditEvErr('');
         var novoConcluido = !ev.concluido;
+        var prevEv2 = ev;
+        var applyLocalConcluido = function applyLocalConcluido(val) {
+          setEvents(function (p) {
+            var d = _objectSpread({}, p);
+            var arr = _toConsumableArray(d[selDateStr] || []);
+            var realIdx = arr.findIndex(function (x) {
+              return x.id === prevEv2.id;
+            });
+            if (realIdx === -1) return p;
+            arr[realIdx] = _objectSpread(_objectSpread({}, arr[realIdx]), {}, {
+              concluido: val
+            });
+            d[selDateStr] = arr;
+            return d;
+          });
+        };
+        applyLocalConcluido(novoConcluido);
         if (window.supabaseClient && ev.id) {
           window.supabaseClient.from('family_events').update({
             concluido: novoConcluido
-          }).eq('id', ev.id).then(function () {}).catch(function () {});
-        }
-        setEvents(function (p) {
-          var d = _objectSpread({}, p);
-          var arr = _toConsumableArray(d[selDateStr] || []);
-          arr[i] = _objectSpread(_objectSpread({}, arr[i]), {}, {
-            concluido: novoConcluido
+          }).eq('id', ev.id).then(function (res) {
+            if (res.error) {
+              applyLocalConcluido(prevEv2.concluido);
+              setEditEvErr('Erro ao guardar: ' + res.error.message);
+            }
+          }).catch(function (e) {
+            applyLocalConcluido(prevEv2.concluido);
+            setEditEvErr('Erro de ligação: ' + (e && e.message || String(e)));
           });
-          d[selDateStr] = arr;
-          return d;
-        });
+        }
       },
       title: ev.concluido ? 'Restaurar evento' : 'Marcar como concluído',
       style: {
@@ -1681,8 +1712,8 @@ function FamiliaApp(_ref19) {
         }
         return setEvents(function (p) {
           var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (_, j) {
-            return j !== i;
+          d[selDateStr] = (d[selDateStr] || []).filter(function (x) {
+            return x.id !== ev.id;
           });
           return d;
         });
@@ -1931,7 +1962,11 @@ function FamiliaApp(_ref19) {
           setEvents(function (p) {
             var d = _objectSpread({}, p);
             var arr = _toConsumableArray(d[selDateStr] || []);
-            arr[i] = novo ? _objectSpread(_objectSpread({}, arr[i]), novo) : prevEv;
+            var realIdx = arr.findIndex(function (x) {
+              return x.id === prevEv.id;
+            });
+            if (realIdx === -1) return p;
+            arr[realIdx] = novo ? _objectSpread(_objectSpread({}, arr[realIdx]), novo) : prevEv;
             d[selDateStr] = arr;
             return d;
           });
