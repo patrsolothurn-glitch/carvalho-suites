@@ -12,6 +12,12 @@ function SubbyApp(_ref) {
     green: '#16A34A',
     red: '#DC2626'
   };
+  var flagFromPais = function flagFromPais(codigo) {
+    if (!codigo || codigo.length !== 2) return '';
+    var c = codigo.toUpperCase();
+    var codePoints = [c.charCodeAt(0) + 127397, c.charCodeAt(1) + 127397];
+    return String.fromCodePoint.apply(String, codePoints);
+  };
   var useState = React.useState;
   var useEffect = React.useEffect;
   var _useState = useState([]),
@@ -39,7 +45,8 @@ function SubbyApp(_ref) {
     ativa: true,
     metodo_pagamento: 'debito',
     banco: '',
-    cartao_ultimos4: ''
+    cartao_ultimos4: '',
+    pais: ''
   };
   var _useState5 = useState(emptyForm),
     form = _useState5[0],
@@ -121,7 +128,8 @@ function SubbyApp(_ref) {
       ativa: sub.ativa !== false,
       metodo_pagamento: sub.metodo_pagamento || 'debito',
       banco: sub.banco || '',
-      cartao_ultimos4: sub.cartao_ultimos4 || ''
+      cartao_ultimos4: sub.cartao_ultimos4 || '',
+      pais: sub.pais || ''
     });
     setShowForm(true);
   };
@@ -152,7 +160,8 @@ function SubbyApp(_ref) {
       ativa: !!form.ativa,
       metodo_pagamento: form.metodo_pagamento,
       banco: form.banco.trim(),
-      cartao_ultimos4: form.cartao_ultimos4.trim()
+      cartao_ultimos4: form.cartao_ultimos4.trim(),
+      pais: form.pais.trim().toUpperCase()
     };
     if (editing) {
       payload.updated_at = new Date().toISOString();
@@ -350,6 +359,26 @@ function SubbyApp(_ref) {
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: form.pais,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        pais: e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase()
+      }));
+    },
+    placeholder: "PT",
+    maxLength: 2,
+    style: {
+      width: 54,
+      textAlign: 'center',
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text,
+      textTransform: 'uppercase'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -693,7 +722,7 @@ function SubbyApp(_ref) {
         fontWeight: 700,
         fontSize: 15
       }
-    }, sub.nome), /*#__PURE__*/React.createElement("div", {
+    }, sub.nome, " ", flagFromPais(sub.pais)), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
         color: S.muted,
