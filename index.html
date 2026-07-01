@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T19:23:35.049Z
+  Gerado em: 2026-07-01T19:36:53.995Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-38";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-39";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18530,6 +18530,18 @@ function SubbyApp(_ref) {
       });
     }
   };
+  var marcarVisto = function marcarVisto(sub) {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('subscriptions').update({
+      visto_ate_data: sub.proxima_cobranca
+    }).eq('id', sub.id).then(function (res) {
+      if (res.error) {
+        console.error(res.error);
+        return;
+      }
+      loadSubs();
+    });
+  };
   var apagar = function apagar(sub) {
     if (!window.confirm('Apagar "' + sub.nome + '"?')) return;
     window.supabaseClient.from('subscriptions').delete().eq('id', sub.id).then(function (res) {
@@ -19021,7 +19033,9 @@ function SubbyApp(_ref) {
   }, "Sem subscrições ainda."), !loading && ordered.map(function (sub) {
     var dias = diasAte(sub.proxima_cobranca);
     var diasTxt = dias < 0 ? 'atrasada' : dias === 0 ? 'hoje' : 'em ' + dias + 'd';
-    var cor = dias <= (sub.lembrete_dias || 3) ? S.red : S.muted;
+    var devida = dias <= (sub.lembrete_dias || 3);
+    var jaVisto = sub.visto_ate_data === sub.proxima_cobranca;
+    var cor = devida && !jaVisto ? S.red : S.muted;
     return /*#__PURE__*/React.createElement("div", {
       key: sub.id,
       style: {
@@ -19083,9 +19097,25 @@ function SubbyApp(_ref) {
       style: {
         fontSize: 12,
         color: cor,
-        marginTop: 2
+        marginTop: 2,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
       }
-    }, "Próx: ", sub.proxima_cobranca, " (", diasTxt, ")")), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", null, "Próx: ", sub.proxima_cobranca, " (", diasTxt, ")"), devida && !jaVisto && /*#__PURE__*/React.createElement("button", {
+      onClick: function () {
+        marcarVisto(sub);
+      },
+      style: {
+        border: 'none',
+        borderRadius: 6,
+        padding: '2px 7px',
+        background: 'rgba(34,197,94,0.15)',
+        color: '#22C55E',
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, "✓ Vi"))), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'right'
       }
@@ -19442,11 +19472,12 @@ function CarvalhoSuite() {
     setAbosPendentes = _useStateAbosPendentes2[1];
   (0, _react.useEffect)(function () {
     if (!window.supabaseClient) { setAbosPendentes(0); return; }
-    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa').eq('ativa', true).then(function (res) {
+    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa,visto_ate_data').eq('ativa', true).then(function (res) {
       if (res.error || !res.data) return;
       var hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       var pendentes = res.data.filter(function (s) {
+        if (s.visto_ate_data === s.proxima_cobranca) return false;
         var alvo = new Date(s.proxima_cobranca);
         var dias = Math.ceil((alvo - hoje) / 86400000);
         return dias <= (s.lembrete_dias != null ? s.lembrete_dias : 3);
