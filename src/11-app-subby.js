@@ -365,12 +365,14 @@ function SubbyApp(_ref) {
     placeholder: "Nome (Netflix...)",
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -390,12 +392,14 @@ function SubbyApp(_ref) {
     placeholder: "Valor",
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
     value: form.moeda,
@@ -406,13 +410,14 @@ function SubbyApp(_ref) {
     },
     placeholder: "CHF",
     style: {
-      width: 72,
+      width: 62,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -429,12 +434,14 @@ function SubbyApp(_ref) {
     },
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "mensal"
@@ -454,13 +461,14 @@ function SubbyApp(_ref) {
     },
     placeholder: "dias",
     style: {
-      width: 72,
+      width: 62,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -478,12 +486,14 @@ function SubbyApp(_ref) {
     placeholder: "Categoria (streaming, ginásio...)",
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
     value: form.pais,
@@ -495,7 +505,7 @@ function SubbyApp(_ref) {
     placeholder: "PT",
     maxLength: 2,
     style: {
-      width: 54,
+      width: 50,
       textAlign: 'center',
       fontSize: 16,
       padding: 11,
@@ -503,7 +513,8 @@ function SubbyApp(_ref) {
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text,
-      textTransform: 'uppercase'
+      textTransform: 'uppercase',
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -520,12 +531,14 @@ function SubbyApp(_ref) {
     },
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "twint"
@@ -542,23 +555,6 @@ function SubbyApp(_ref) {
   }, "Apple Pay"), /*#__PURE__*/React.createElement("option", {
     value: "cash"
   }, "Cash")), /*#__PURE__*/React.createElement("input", {
-    value: form.banco,
-    onChange: function (e) {
-      setForm(Object.assign({}, form, {
-        banco: e.target.value
-      }));
-    },
-    placeholder: "Banco",
-    style: {
-      flex: 1,
-      fontSize: 16,
-      padding: 11,
-      borderRadius: 10,
-      border: '1px solid ' + S.border,
-      background: S.surface2,
-      color: S.text
-    }
-  }), /*#__PURE__*/React.createElement("input", {
     value: form.cartao_ultimos4,
     onChange: function (e) {
       setForm(Object.assign({}, form, {
@@ -569,16 +565,36 @@ function SubbyApp(_ref) {
     inputMode: "numeric",
     maxLength: 4,
     style: {
-      width: 72,
+      width: 62,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text,
-      textAlign: 'center'
+      textAlign: 'center',
+      boxSizing: 'border-box'
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("input", {
+    value: form.banco,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        banco: e.target.value
+      }));
+    },
+    placeholder: "Banco",
+    style: {
+      width: '100%',
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text,
+      marginBottom: 10,
+      boxSizing: 'border-box'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
