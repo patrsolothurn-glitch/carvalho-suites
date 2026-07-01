@@ -223,7 +223,7 @@ function SubbyApp(_ref) {
       fontWeight: 900,
       fontSize: 18
     }
-  }, "💳 Subby")), /*#__PURE__*/React.createElement("div", {
+  }, "💳 Abo Kontrolle")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 16
     }
