@@ -36,7 +36,10 @@ function SubbyApp(_ref) {
     categoria: '',
     proxima_cobranca: '',
     lembrete_dias: 3,
-    ativa: true
+    ativa: true,
+    metodo_pagamento: 'debito',
+    banco: '',
+    cartao_ultimos4: ''
   };
   var _useState5 = useState(emptyForm),
     form = _useState5[0],
@@ -102,7 +105,10 @@ function SubbyApp(_ref) {
       categoria: sub.categoria || '',
       proxima_cobranca: sub.proxima_cobranca || '',
       lembrete_dias: sub.lembrete_dias != null ? sub.lembrete_dias : 3,
-      ativa: sub.ativa !== false
+      ativa: sub.ativa !== false,
+      metodo_pagamento: sub.metodo_pagamento || 'debito',
+      banco: sub.banco || '',
+      cartao_ultimos4: sub.cartao_ultimos4 || ''
     });
     setShowForm(true);
   };
@@ -113,6 +119,10 @@ function SubbyApp(_ref) {
   var salvar = function salvar() {
     if (!form.nome.trim() || !form.proxima_cobranca) {
       window.alert('Preenche pelo menos Nome e Próxima cobrança.');
+      return;
+    }
+    if (form.cartao_ultimos4 && !/^\d{4}$/.test(form.cartao_ultimos4.trim())) {
+      window.alert('Os últimos dígitos do cartão devem ter exatamente 4 números.');
       return;
     }
     if (!window.supabaseClient) return;
@@ -126,7 +136,10 @@ function SubbyApp(_ref) {
       categoria: form.categoria.trim(),
       proxima_cobranca: form.proxima_cobranca,
       lembrete_dias: parseInt(form.lembrete_dias, 10) || 3,
-      ativa: !!form.ativa
+      ativa: !!form.ativa,
+      metodo_pagamento: form.metodo_pagamento,
+      banco: form.banco.trim(),
+      cartao_ultimos4: form.cartao_ultimos4.trim()
     };
     if (editing) {
       payload.updated_at = new Date().toISOString();
@@ -437,6 +450,71 @@ function SubbyApp(_ref) {
       gap: 8,
       marginBottom: 10
     }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: form.metodo_pagamento,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        metodo_pagamento: e.target.value
+      }));
+    },
+    style: {
+      flex: 1,
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "twint"
+  }, "Twint"), /*#__PURE__*/React.createElement("option", {
+    value: "debito"
+  }, "Débito"), /*#__PURE__*/React.createElement("option", {
+    value: "credito"
+  }, "Crédito")), /*#__PURE__*/React.createElement("input", {
+    value: form.banco,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        banco: e.target.value
+      }));
+    },
+    placeholder: "Banco",
+    style: {
+      flex: 1,
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: form.cartao_ultimos4,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        cartao_ultimos4: e.target.value.replace(/\D/g, '').slice(0, 4)
+      }));
+    },
+    placeholder: "0000",
+    inputMode: "numeric",
+    maxLength: 4,
+    style: {
+      width: 72,
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text,
+      textAlign: 'center'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 10
+    }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
@@ -589,7 +667,13 @@ function SubbyApp(_ref) {
         color: S.muted,
         marginTop: 2
       }
-    }, sub.categoria || '', " · ", sub.ciclo), /*#__PURE__*/React.createElement("div", {
+    }, sub.categoria || '', " · ", sub.ciclo), (sub.metodo_pagamento || sub.cartao_ultimos4) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: S.muted,
+        marginTop: 2
+      }
+    }, sub.metodo_pagamento === 'twint' ? 'Twint' : sub.metodo_pagamento === 'credito' ? 'Crédito' : sub.metodo_pagamento === 'debito' ? 'Débito' : '', sub.banco ? ' · ' + sub.banco : '', sub.cartao_ultimos4 ? ' •••• ' + sub.cartao_ultimos4 : ''), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
         color: cor,
