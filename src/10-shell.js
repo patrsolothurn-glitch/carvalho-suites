@@ -1315,6 +1315,9 @@ function CarvalhoSuite() {
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
     }, sharedProps));
+    if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, {
+      onBack: goBack
+    });
   }
 
   // ── LOGIN ──
