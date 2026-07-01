@@ -73,9 +73,21 @@ function SubbyApp(_ref) {
   var _useState4 = useState(null),
     editing = _useState4[0],
     setEditing = _useState4[1];
-  var _useState4b = useState('data'),
+  var _useState4b = useState(function () {
+      try {
+        return localStorage.getItem('subby_sort_by') || 'data';
+      } catch (e) {
+        return 'data';
+      }
+    }),
     sortBy = _useState4b[0],
     setSortBy = _useState4b[1];
+  var setSortByPersist = function setSortByPersist(v) {
+    setSortBy(v);
+    try {
+      localStorage.setItem('subby_sort_by', v);
+    } catch (e) {}
+  };
   var emptyForm = {
     icone: '🔔',
     iconeManual: false,
@@ -380,7 +392,7 @@ function SubbyApp(_ref) {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function () {
-      setSortBy('data');
+      setSortByPersist('data');
     },
     style: {
       fontSize: 12,
@@ -392,7 +404,7 @@ function SubbyApp(_ref) {
     }
   }, "📅 Data"), /*#__PURE__*/React.createElement("button", {
     onClick: function () {
-      setSortBy('nome');
+      setSortByPersist('nome');
     },
     style: {
       fontSize: 12,
