@@ -306,6 +306,24 @@ function CarvalhoSuite() {
       setEscolarPendentes(pendentes);
     }).catch(function () {});
   }, [isAdmin, profile && profile.member_id]);
+  var _useStateAbosPendentes = (0, _react.useState)(0),
+    _useStateAbosPendentes2 = _slicedToArray(_useStateAbosPendentes, 2),
+    abosPendentes = _useStateAbosPendentes2[0],
+    setAbosPendentes = _useStateAbosPendentes2[1];
+  (0, _react.useEffect)(function () {
+    if (!window.supabaseClient) { setAbosPendentes(0); return; }
+    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa').eq('ativa', true).then(function (res) {
+      if (res.error || !res.data) return;
+      var hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      var pendentes = res.data.filter(function (s) {
+        var alvo = new Date(s.proxima_cobranca);
+        var dias = Math.ceil((alvo - hoje) / 86400000);
+        return dias <= (s.lembrete_dias != null ? s.lembrete_dias : 3);
+      }).length;
+      setAbosPendentes(pendentes);
+    }).catch(function () {});
+  }, [isAdmin]);
   var _useStateNotifData = (0, _react.useState)([]),
     _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
     notifItems = _useStateNotifData2[0],
@@ -515,6 +533,7 @@ function CarvalhoSuite() {
   var totalBadge = unreadNotifs.length;
   var dynamicBadgeFor = function dynamicBadgeFor(appId) {
     if (appId === 'escolar') return escolarPendentes > 0 ? String(escolarPendentes) : null;
+    if (appId === 'subby') return abosPendentes > 0 ? String(abosPendentes) : null;
     if (appId === 'agenda' || appId === 'familia') {
       var n = unreadNotifs.filter(function (it) {
         return it.appId === appId;
