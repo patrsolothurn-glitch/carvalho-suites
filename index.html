@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T19:44:45.538Z
+  Gerado em: 2026-07-01T19:50:56.454Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-40";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-41";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18702,12 +18702,14 @@ function SubbyApp(_ref) {
     placeholder: "Nome (Netflix...)",
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -18727,12 +18729,14 @@ function SubbyApp(_ref) {
     placeholder: "Valor",
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
     value: form.moeda,
@@ -18743,13 +18747,14 @@ function SubbyApp(_ref) {
     },
     placeholder: "CHF",
     style: {
-      width: 72,
+      width: 62,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -18766,12 +18771,14 @@ function SubbyApp(_ref) {
     },
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "mensal"
@@ -18791,13 +18798,14 @@ function SubbyApp(_ref) {
     },
     placeholder: "dias",
     style: {
-      width: 72,
+      width: 62,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -18815,12 +18823,14 @@ function SubbyApp(_ref) {
     placeholder: "Categoria (streaming, ginásio...)",
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
     value: form.pais,
@@ -18832,7 +18842,7 @@ function SubbyApp(_ref) {
     placeholder: "PT",
     maxLength: 2,
     style: {
-      width: 54,
+      width: 50,
       textAlign: 'center',
       fontSize: 16,
       padding: 11,
@@ -18840,7 +18850,8 @@ function SubbyApp(_ref) {
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text,
-      textTransform: 'uppercase'
+      textTransform: 'uppercase',
+      boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -18857,12 +18868,14 @@ function SubbyApp(_ref) {
     },
     style: {
       flex: 1,
+      minWidth: 0,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
-      color: S.text
+      color: S.text,
+      boxSizing: 'border-box'
     }
   }, /*#__PURE__*/React.createElement("option", {
     value: "twint"
@@ -18879,23 +18892,6 @@ function SubbyApp(_ref) {
   }, "Apple Pay"), /*#__PURE__*/React.createElement("option", {
     value: "cash"
   }, "Cash")), /*#__PURE__*/React.createElement("input", {
-    value: form.banco,
-    onChange: function (e) {
-      setForm(Object.assign({}, form, {
-        banco: e.target.value
-      }));
-    },
-    placeholder: "Banco",
-    style: {
-      flex: 1,
-      fontSize: 16,
-      padding: 11,
-      borderRadius: 10,
-      border: '1px solid ' + S.border,
-      background: S.surface2,
-      color: S.text
-    }
-  }), /*#__PURE__*/React.createElement("input", {
     value: form.cartao_ultimos4,
     onChange: function (e) {
       setForm(Object.assign({}, form, {
@@ -18906,16 +18902,36 @@ function SubbyApp(_ref) {
     inputMode: "numeric",
     maxLength: 4,
     style: {
-      width: 72,
+      width: 62,
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text,
-      textAlign: 'center'
+      textAlign: 'center',
+      boxSizing: 'border-box'
     }
-  })), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("input", {
+    value: form.banco,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        banco: e.target.value
+      }));
+    },
+    placeholder: "Banco",
+    style: {
+      width: '100%',
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text,
+      marginBottom: 10,
+      boxSizing: 'border-box'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
