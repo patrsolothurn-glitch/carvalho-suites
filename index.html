@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T20:48:49.632Z
+  Gerado em: 2026-07-01T21:21:34.391Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-48";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-49";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18410,6 +18410,9 @@ function SubbyApp(_ref) {
   var _useState4 = useState(null),
     editing = _useState4[0],
     setEditing = _useState4[1];
+  var _useState4b = useState('data'),
+    sortBy = _useState4b[0],
+    setSortBy = _useState4b[1];
   var emptyForm = {
     icone: '🔔',
     iconeManual: false,
@@ -18599,6 +18602,7 @@ function SubbyApp(_ref) {
     });
   };
   var ordered = subs.slice().sort(function (a, b) {
+    if (sortBy === 'nome') return (a.nome || '').localeCompare(b.nome || '');
     return (a.proxima_cobranca || '').localeCompare(b.proxima_cobranca || '');
   });
   return /*#__PURE__*/React.createElement("div", {
@@ -18704,7 +18708,38 @@ function SubbyApp(_ref) {
       fontWeight: 700,
       marginBottom: 16
     }
-  }, "+ Nova Subscrição"), showForm && /*#__PURE__*/React.createElement("div", {
+  }, "+ Nova Subscrição"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 12,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      setSortBy('data');
+    },
+    style: {
+      fontSize: 12,
+      padding: '5px 10px',
+      borderRadius: 8,
+      border: '1px solid ' + S.border,
+      background: sortBy === 'data' ? S.accent : S.surface2,
+      color: sortBy === 'data' ? '#fff' : S.muted
+    }
+  }, "📅 Data"), /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      setSortBy('nome');
+    },
+    style: {
+      fontSize: 12,
+      padding: '5px 10px',
+      borderRadius: 8,
+      border: '1px solid ' + S.border,
+      background: sortBy === 'nome' ? S.accent : S.surface2,
+      color: sortBy === 'nome' ? '#fff' : S.muted
+    }
+  }, "🔤 Nome A-Z")), showForm && /*#__PURE__*/React.createElement("div", {
     style: {
       background: S.surface,
       border: '1px solid ' + S.border,
