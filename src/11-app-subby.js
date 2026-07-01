@@ -73,6 +73,9 @@ function SubbyApp(_ref) {
   var _useState4 = useState(null),
     editing = _useState4[0],
     setEditing = _useState4[1];
+  var _useState4b = useState('data'),
+    sortBy = _useState4b[0],
+    setSortBy = _useState4b[1];
   var emptyForm = {
     icone: '🔔',
     iconeManual: false,
@@ -262,6 +265,7 @@ function SubbyApp(_ref) {
     });
   };
   var ordered = subs.slice().sort(function (a, b) {
+    if (sortBy === 'nome') return (a.nome || '').localeCompare(b.nome || '');
     return (a.proxima_cobranca || '').localeCompare(b.proxima_cobranca || '');
   });
   return /*#__PURE__*/React.createElement("div", {
@@ -367,7 +371,38 @@ function SubbyApp(_ref) {
       fontWeight: 700,
       marginBottom: 16
     }
-  }, "+ Nova Subscrição"), showForm && /*#__PURE__*/React.createElement("div", {
+  }, "+ Nova Subscrição"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      marginBottom: 12,
+      justifyContent: 'flex-end'
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      setSortBy('data');
+    },
+    style: {
+      fontSize: 12,
+      padding: '5px 10px',
+      borderRadius: 8,
+      border: '1px solid ' + S.border,
+      background: sortBy === 'data' ? S.accent : S.surface2,
+      color: sortBy === 'data' ? '#fff' : S.muted
+    }
+  }, "📅 Data"), /*#__PURE__*/React.createElement("button", {
+    onClick: function () {
+      setSortBy('nome');
+    },
+    style: {
+      fontSize: 12,
+      padding: '5px 10px',
+      borderRadius: 8,
+      border: '1px solid ' + S.border,
+      background: sortBy === 'nome' ? S.accent : S.surface2,
+      color: sortBy === 'nome' ? '#fff' : S.muted
+    }
+  }, "🔤 Nome A-Z")), showForm && /*#__PURE__*/React.createElement("div", {
     style: {
       background: S.surface,
       border: '1px solid ' + S.border,
