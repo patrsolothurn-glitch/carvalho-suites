@@ -603,7 +603,9 @@ function SubbyApp(_ref) {
     value: "apple_pay"
   }, "Apple Pay"), /*#__PURE__*/React.createElement("option", {
     value: "cash"
-  }, "Cash")), /*#__PURE__*/React.createElement("input", {
+  }, "Cash"), /*#__PURE__*/React.createElement("option", {
+    value: "rechnung"
+  }, "Rechnung")), /*#__PURE__*/React.createElement("input", {
     value: form.cartao_ultimos4,
     onChange: function (e) {
       setForm(Object.assign({}, form, {
@@ -831,7 +833,8 @@ function SubbyApp(_ref) {
       credito: 'Crédito',
       google_pay: 'Google Pay',
       apple_pay: 'Apple Pay',
-      cash: 'Cash'
+      cash: 'Cash',
+      rechnung: 'Rechnung'
     }[sub.metodo_pagamento] || '', sub.banco ? ' · ' + sub.banco : '', sub.cartao_ultimos4 ? ' •••• ' + sub.cartao_ultimos4 : ''), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 12,
