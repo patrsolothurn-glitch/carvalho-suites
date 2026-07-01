@@ -73,20 +73,32 @@ function SubbyApp(_ref) {
   var _useState4 = useState(null),
     editing = _useState4[0],
     setEditing = _useState4[1];
-  var _useState4b = useState(function () {
-      try {
-        return localStorage.getItem('subby_sort_by') || 'data';
-      } catch (e) {
-        return 'data';
-      }
-    }),
+  var _useState4b = useState('data'),
     sortBy = _useState4b[0],
     setSortBy = _useState4b[1];
+  var _useStateUid = useState(null),
+    myUid = _useStateUid[0],
+    setMyUid = _useStateUid[1];
+  var loadSortPref = function loadSortPref() {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.auth.getUser().then(function (authRes) {
+      var uid = authRes && authRes.data && authRes.data.user && authRes.data.user.id;
+      if (!uid) return;
+      setMyUid(uid);
+      window.supabaseClient.from('profiles').select('subby_prefs').eq('id', uid).single().then(function (res) {
+        var pref = res.data && res.data.subby_prefs && res.data.subby_prefs.sortBy;
+        if (pref === 'nome' || pref === 'data') setSortBy(pref);
+      });
+    });
+  };
   var setSortByPersist = function setSortByPersist(v) {
     setSortBy(v);
-    try {
-      localStorage.setItem('subby_sort_by', v);
-    } catch (e) {}
+    if (!window.supabaseClient || !myUid) return;
+    window.supabaseClient.from('profiles').update({
+      subby_prefs: {
+        sortBy: v
+      }
+    }).eq('id', myUid).then(function () {});
   };
   var emptyForm = {
     icone: '🔔',
@@ -139,6 +151,7 @@ function SubbyApp(_ref) {
   };
   useEffect(function () {
     loadSubs();
+    loadSortPref();
   }, []);
   var calcMensal = function calcMensal(sub) {
     var v = Number(sub.valor) || 0;
