@@ -372,26 +372,6 @@ function SubbyApp(_ref) {
       background: S.surface2,
       color: S.text
     }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: form.pais,
-    onChange: function (e) {
-      setForm(Object.assign({}, form, {
-        pais: e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase()
-      }));
-    },
-    placeholder: "PT",
-    maxLength: 2,
-    style: {
-      width: 54,
-      textAlign: 'center',
-      fontSize: 16,
-      padding: 11,
-      borderRadius: 10,
-      border: '1px solid ' + S.border,
-      background: S.surface2,
-      color: S.text,
-      textTransform: 'uppercase'
-    }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -482,7 +462,13 @@ function SubbyApp(_ref) {
       background: S.surface2,
       color: S.text
     }
-  })), /*#__PURE__*/React.createElement("input", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
     value: form.categoria,
     onChange: function (e) {
       setForm(Object.assign({}, form, {
@@ -491,17 +477,35 @@ function SubbyApp(_ref) {
     },
     placeholder: "Categoria (streaming, ginásio...)",
     style: {
-      width: '100%',
+      flex: 1,
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: form.pais,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        pais: e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase()
+      }));
+    },
+    placeholder: "PT",
+    maxLength: 2,
+    style: {
+      width: 54,
+      textAlign: 'center',
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text,
-      marginBottom: 10,
-      boxSizing: 'border-box'
+      textTransform: 'uppercase'
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
