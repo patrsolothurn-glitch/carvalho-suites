@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T19:36:53.995Z
+  Gerado em: 2026-07-01T19:44:45.538Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-39";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-40";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18709,26 +18709,6 @@ function SubbyApp(_ref) {
       background: S.surface2,
       color: S.text
     }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: form.pais,
-    onChange: function (e) {
-      setForm(Object.assign({}, form, {
-        pais: e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase()
-      }));
-    },
-    placeholder: "PT",
-    maxLength: 2,
-    style: {
-      width: 54,
-      textAlign: 'center',
-      fontSize: 16,
-      padding: 11,
-      borderRadius: 10,
-      border: '1px solid ' + S.border,
-      background: S.surface2,
-      color: S.text,
-      textTransform: 'uppercase'
-    }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -18819,7 +18799,13 @@ function SubbyApp(_ref) {
       background: S.surface2,
       color: S.text
     }
-  })), /*#__PURE__*/React.createElement("input", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("input", {
     value: form.categoria,
     onChange: function (e) {
       setForm(Object.assign({}, form, {
@@ -18828,17 +18814,35 @@ function SubbyApp(_ref) {
     },
     placeholder: "Categoria (streaming, ginásio...)",
     style: {
-      width: '100%',
+      flex: 1,
+      fontSize: 16,
+      padding: 11,
+      borderRadius: 10,
+      border: '1px solid ' + S.border,
+      background: S.surface2,
+      color: S.text
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    value: form.pais,
+    onChange: function (e) {
+      setForm(Object.assign({}, form, {
+        pais: e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase()
+      }));
+    },
+    placeholder: "PT",
+    maxLength: 2,
+    style: {
+      width: 54,
+      textAlign: 'center',
       fontSize: 16,
       padding: 11,
       borderRadius: 10,
       border: '1px solid ' + S.border,
       background: S.surface2,
       color: S.text,
-      marginBottom: 10,
-      boxSizing: 'border-box'
+      textTransform: 'uppercase'
     }
-  }), /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
