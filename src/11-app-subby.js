@@ -44,6 +44,19 @@ function SubbyApp(_ref) {
   var _useState5 = useState(emptyForm),
     form = _useState5[0],
     setForm = _useState5[1];
+  var sendPush = function sendPush(title, body) {
+    if (!window.supabaseClient) return;
+    getEligibleProfileIds('subby', null).then(function (ids) {
+      if (!ids.length) return;
+      window.supabaseClient.functions.invoke('send-push', {
+        body: {
+          title: title,
+          body: body,
+          profileIds: ids
+        }
+      }).catch(function () {});
+    });
+  };
   var loadSubs = function loadSubs() {
     if (!window.supabaseClient) {
       setLoading(false);
@@ -149,6 +162,7 @@ function SubbyApp(_ref) {
           console.error(res.error);
           return;
         }
+        sendPush('💳 Abo Kontrolle', payload.nome + ' foi atualizada');
         closeForm();
         loadSubs();
       });
@@ -163,6 +177,7 @@ function SubbyApp(_ref) {
             console.error(res.error);
             return;
           }
+          sendPush('💳 Abo Kontrolle', payload.nome + ' adicionada — próx. cobrança ' + payload.proxima_cobranca);
           closeForm();
           loadSubs();
         });
@@ -177,6 +192,7 @@ function SubbyApp(_ref) {
         console.error(res.error);
         return;
       }
+      sendPush('💳 Abo Kontrolle', sub.nome + ' foi removida');
       loadSubs();
     });
   };
