@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T18:40:21.534Z
+  Gerado em: 2026-07-01T18:44:23.911Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-33";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-34";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -19379,6 +19379,24 @@ function CarvalhoSuite() {
       setEscolarPendentes(pendentes);
     }).catch(function () {});
   }, [isAdmin, profile && profile.member_id]);
+  var _useStateAbosPendentes = (0, _react.useState)(0),
+    _useStateAbosPendentes2 = _slicedToArray(_useStateAbosPendentes, 2),
+    abosPendentes = _useStateAbosPendentes2[0],
+    setAbosPendentes = _useStateAbosPendentes2[1];
+  (0, _react.useEffect)(function () {
+    if (!window.supabaseClient) { setAbosPendentes(0); return; }
+    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa').eq('ativa', true).then(function (res) {
+      if (res.error || !res.data) return;
+      var hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      var pendentes = res.data.filter(function (s) {
+        var alvo = new Date(s.proxima_cobranca);
+        var dias = Math.ceil((alvo - hoje) / 86400000);
+        return dias <= (s.lembrete_dias != null ? s.lembrete_dias : 3);
+      }).length;
+      setAbosPendentes(pendentes);
+    }).catch(function () {});
+  }, [isAdmin]);
   var _useStateNotifData = (0, _react.useState)([]),
     _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
     notifItems = _useStateNotifData2[0],
@@ -19588,6 +19606,7 @@ function CarvalhoSuite() {
   var totalBadge = unreadNotifs.length;
   var dynamicBadgeFor = function dynamicBadgeFor(appId) {
     if (appId === 'escolar') return escolarPendentes > 0 ? String(escolarPendentes) : null;
+    if (appId === 'subby') return abosPendentes > 0 ? String(abosPendentes) : null;
     if (appId === 'agenda' || appId === 'familia') {
       var n = unreadNotifs.filter(function (it) {
         return it.appId === appId;
