@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T19:17:11.724Z
+  Gerado em: 2026-07-01T19:23:35.049Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-37";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-38";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -136,14 +136,18 @@ function isInQuietHours(qs, qe) {
   if (s < e) return cur >= s && cur < e;
   return cur >= s || cur < e; // intervalo atravessa a meia-noite
 }
+var PUSH_APPID_TO_PERM = { agendapr: 'agenda' };
 function getEligibleProfileIds(appId, onlyMemberId) {
   if (!window.supabaseClient) return Promise.resolve([]);
-  var q = window.supabaseClient.from('profiles').select('id, notification_prefs, disabled, member_id');
+  var permId = PUSH_APPID_TO_PERM[appId] || appId;
+  var q = window.supabaseClient.from('profiles').select('id, notification_prefs, disabled, member_id, allowed_apps, is_admin');
   if (onlyMemberId) q = q.eq('member_id', onlyMemberId);
   return q.then(function (res) {
     var rows = res.data || [];
     return rows.filter(function (p) {
       if (p.disabled) return false;
+      var allowed = p.allowed_apps || [];
+      if (!p.is_admin && allowed.indexOf(permId) === -1) return false;
       var prefs = p.notification_prefs || {};
       var disabledApps = prefs.disabledApps || [];
       if (disabledApps.indexOf(appId) !== -1) return false;
