@@ -8,11 +8,12 @@ function detectarLogo(nome) {
 }
 function SubIcon(_ref2) {
   var nome = _ref2.nome,
-    icone = _ref2.icone;
+    icone = _ref2.icone,
+    manual = _ref2.manual;
   var _useStateFalhou = React.useState(false),
     falhou = _useStateFalhou[0],
     setFalhou = _useStateFalhou[1];
-  var dominio = detectarLogo(nome);
+  var dominio = manual ? null : detectarLogo(nome);
   if (dominio && !falhou) {
     return /*#__PURE__*/React.createElement("img", {
       src: 'https://logo.clearbit.com/' + dominio + '?size=64',
@@ -158,7 +159,7 @@ function SubbyApp(_ref) {
     setEditing(sub);
     setForm({
       icone: sub.icone || '🔔',
-      iconeManual: true,
+      iconeManual: !!sub.icone_manual,
       nome: sub.nome || '',
       valor: sub.valor || '',
       moeda: sub.moeda || 'CHF',
@@ -191,6 +192,7 @@ function SubbyApp(_ref) {
     if (!window.supabaseClient) return;
     var payload = {
       icone: form.icone.trim() || '🔔',
+      icone_manual: !!form.iconeManual,
       nome: form.nome.trim(),
       valor: parseFloat(form.valor) || 0,
       moeda: form.moeda.trim() || 'CHF',
@@ -798,7 +800,8 @@ function SubbyApp(_ref) {
       }
     }, /*#__PURE__*/React.createElement(SubIcon, {
       nome: sub.nome,
-      icone: sub.icone
+      icone: sub.icone,
+      manual: sub.icone_manual
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
