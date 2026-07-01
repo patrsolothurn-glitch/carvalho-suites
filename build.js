@@ -30,6 +30,7 @@ const JS_SECTIONS = [
   '07-app-familia.js', // app Família Carvalho
   '08-app-nutriguima.js', // app Nutriguima
   '09-app-escolar.js', // app Agenda Escolar
+  '11-app-subby.js', // app Subby — gestor de subscrições (independente, só Patricio)
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
