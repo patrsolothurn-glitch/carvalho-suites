@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T20:41:24.726Z
+  Gerado em: 2026-07-01T20:46:38.181Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-46";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-47";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18761,6 +18761,48 @@ function SubbyApp(_ref) {
       boxSizing: 'border-box'
     }
   })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 10,
+      alignItems: 'center'
+    }
+  }, ['🎬', '📺', '🎵', '💻', '☁️', '💡', '💧', '📡', '📱', '🏠', '🏋️', '🩺', '🚗', '🎮', '🎓', '🐶', '🔔'].map(function (emo) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: emo,
+      type: "button",
+      onClick: function () {
+        setForm(Object.assign({}, form, {
+          icone: emo,
+          iconeManual: true
+        }));
+      },
+      style: {
+        fontSize: 18,
+        padding: '4px 8px',
+        borderRadius: 8,
+        border: '1px solid ' + S.border,
+        background: form.icone === emo ? S.accent : S.surface2
+      }
+    }, emo);
+  }), form.iconeManual && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: function () {
+      setForm(Object.assign({}, form, {
+        iconeManual: false,
+        icone: detectarIcone(form.nome) || '🔔'
+      }));
+    },
+    style: {
+      fontSize: 12,
+      padding: '5px 9px',
+      borderRadius: 8,
+      border: 'none',
+      background: S.surface2,
+      color: S.muted
+    }
+  }, "↺ Automático")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 8,
