@@ -426,6 +426,48 @@ function SubbyApp(_ref) {
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginBottom: 10,
+      alignItems: 'center'
+    }
+  }, ['🎬', '📺', '🎵', '💻', '☁️', '💡', '💧', '📡', '📱', '🏠', '🏋️', '🩺', '🚗', '🎮', '🎓', '🐶', '🔔'].map(function (emo) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: emo,
+      type: "button",
+      onClick: function () {
+        setForm(Object.assign({}, form, {
+          icone: emo,
+          iconeManual: true
+        }));
+      },
+      style: {
+        fontSize: 18,
+        padding: '4px 8px',
+        borderRadius: 8,
+        border: '1px solid ' + S.border,
+        background: form.icone === emo ? S.accent : S.surface2
+      }
+    }, emo);
+  }), form.iconeManual && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: function () {
+      setForm(Object.assign({}, form, {
+        iconeManual: false,
+        icone: detectarIcone(form.nome) || '🔔'
+      }));
+    },
+    style: {
+      fontSize: 12,
+      padding: '5px 9px',
+      borderRadius: 8,
+      border: 'none',
+      background: S.surface2,
+      color: S.muted
+    }
+  }, "↺ Automático")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
       gap: 8,
       marginBottom: 10
     }
