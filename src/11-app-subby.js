@@ -1,3 +1,35 @@
+var LOGO_DOMAINS = [['netflix', 'netflix.com'], ['disney', 'disneyplus.com'], ['hbo', 'hbomax.com'], ['twitch', 'twitch.tv'], ['spotify', 'spotify.com'], ['apple music', 'apple.com'], ['deezer', 'deezer.com'], ['youtube', 'youtube.com'], ['microsoft', 'microsoft.com'], ['office 365', 'microsoft.com'], ['icloud', 'apple.com'], ['dropbox', 'dropbox.com'], ['chatgpt', 'openai.com'], ['openai', 'openai.com'], ['claude', 'anthropic.com'], ['notion', 'notion.so'], ['adobe', 'adobe.com'], ['canva', 'canva.com'], ['nordvpn', 'nordvpn.com'], ['swisscom', 'swisscom.ch'], ['sunrise', 'sunrise.ch'], ['salt', 'salt.ch'], ['vodafone', 'vodafone.com'], ['nos', 'nos.pt'], ['meo', 'meo.pt'], ['xbox', 'xbox.com'], ['playstation', 'playstation.com'], ['nintendo', 'nintendo.com'], ['steam', 'steampowered.com'], ['amazon prime', 'amazon.com'], ['prime video', 'amazon.com']];
+function detectarLogo(nome) {
+  var n = (nome || '').toLowerCase();
+  for (var i = 0; i < LOGO_DOMAINS.length; i++) {
+    if (n.indexOf(LOGO_DOMAINS[i][0]) !== -1) return LOGO_DOMAINS[i][1];
+  }
+  return null;
+}
+function SubIcon(_ref2) {
+  var nome = _ref2.nome,
+    icone = _ref2.icone;
+  var _useStateFalhou = React.useState(false),
+    falhou = _useStateFalhou[0],
+    setFalhou = _useStateFalhou[1];
+  var dominio = detectarLogo(nome);
+  if (dominio && !falhou) {
+    return /*#__PURE__*/React.createElement("img", {
+      src: 'https://logo.clearbit.com/' + dominio + '?size=64',
+      onError: function () {
+        setFalhou(true);
+      },
+      style: {
+        width: 26,
+        height: 26,
+        borderRadius: 6,
+        objectFit: 'contain',
+        background: '#fff'
+      }
+    });
+  }
+  return /*#__PURE__*/React.createElement("span", null, icone || '🔔');
+}
 function SubbyApp(_ref) {
   var onBack = _ref.onBack;
   var S = {
@@ -759,9 +791,15 @@ function SubbyApp(_ref) {
       style: {
         fontSize: 24,
         width: 32,
-        textAlign: 'center'
+        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }
-    }, sub.icone || '🔔'), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement(SubIcon, {
+      nome: sub.nome,
+      icone: sub.icone
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
