@@ -312,11 +312,12 @@ function CarvalhoSuite() {
     setAbosPendentes = _useStateAbosPendentes2[1];
   (0, _react.useEffect)(function () {
     if (!window.supabaseClient) { setAbosPendentes(0); return; }
-    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa').eq('ativa', true).then(function (res) {
+    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa,visto_ate_data').eq('ativa', true).then(function (res) {
       if (res.error || !res.data) return;
       var hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       var pendentes = res.data.filter(function (s) {
+        if (s.visto_ate_data === s.proxima_cobranca) return false;
         var alvo = new Date(s.proxima_cobranca);
         var dias = Math.ceil((alvo - hoje) / 86400000);
         return dias <= (s.lembrete_dias != null ? s.lembrete_dias : 3);
