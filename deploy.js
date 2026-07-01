@@ -90,7 +90,8 @@ const SRC_FILES = [
   'src/head.html', 'src/01-helpers.js', 'src/02-theme.js', 'src/03-data.js',
   'src/04-ui-components.js', 'src/05-app-horaspro.js', 'src/06-app-agendapro.js',
   'src/07-app-familia.js', 'src/08-app-nutriguima.js', 'src/09-app-escolar.js',
-  'src/10-shell.js', 'src/tail.html',
+  'src/11-app-subby.js', 'src/10-shell.js', 'src/tail.html',
+  'build.js', 'deploy.js',
 ];
 
 async function main() {
