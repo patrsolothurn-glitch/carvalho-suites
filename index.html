@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T19:50:56.454Z
+  Gerado em: 2026-07-01T19:55:23.401Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-41";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-42";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18349,6 +18349,14 @@ function SubbyApp(_ref) {
     green: '#16A34A',
     red: '#DC2626'
   };
+  var ICONE_KEYWORDS = [['netflix', '🎬'], ['disney', '📺'], ['prime video', '🎥'], ['amazon prime', '🎥'], ['hbo', '🎥'], ['twitch', '🟣'], ['spotify', '🎵'], ['apple music', '🎧'], ['deezer', '📻'], ['youtube', '▶️'], ['microsoft', '💻'], ['office', '💻'], ['icloud', '☁️'], ['google one', '☁️'], ['dropbox', '☁️'], ['chatgpt', '🤖'], ['claude', '🤖'], ['openai', '🤖'], ['notion', '📝'], ['adobe', '🎨'], ['canva', '🎨'], ['vpn', '🔐'], ['nordvpn', '🔐'], ['password', '🔐'], ['electr', '💡'], ['strom', '💡'], ['eletric', '💡'], ['agua', '💧'], ['wasser', '💧'], ['gas', '🔥'], ['internet', '📡'], ['swisscom', '📡'], ['sunrise', '📡'], ['salt', '📡'], ['upc', '📡'], ['meo', '📱'], ['nos', '📱'], ['vodafone', '📱'], ['telemovel', '📱'], ['mobile', '📱'], ['renda', '🏠'], ['seguro casa', '🏠'], ['hausrat', '🏠'], ['ginasio', '🏋️'], ['gym', '🏋️'], ['fitness', '🏋️'], ['saude', '🩺'], ['krankenkasse', '🩺'], ['seguro saude', '🩺'], ['farmacia', '💊'], ['suplemento', '💊'], ['yoga', '🧘'], ['meditat', '🧘'], ['headspace', '🧘'], ['calm', '🧘'], ['seguro carro', '🚗'], ['auto', '🚗'], ['carro', '🚗'], ['combustivel', '⛽'], ['carregamento', '⛽'], ['transporte', '🚌'], ['sbb', '🚌'], ['passe', '🚌'], ['parking', '🅿️'], ['parque', '🅿️'], ['xbox', '🎮'], ['playstation', '🎮'], ['nintendo', '🎮'], ['steam', '🎮'], ['jornal', '📰'], ['revista', '📰'], ['curso', '🎓'], ['formacao', '🎓'], ['udemy', '🎓'], ['escola', '🎓'], ['creche', '👶'], ['animal', '🐶'], ['pet', '🐶']];
+  var detectarIcone = function detectarIcone(nome) {
+    var n = nome.toLowerCase();
+    for (var i = 0; i < ICONE_KEYWORDS.length; i++) {
+      if (n.indexOf(ICONE_KEYWORDS[i][0]) !== -1) return ICONE_KEYWORDS[i][1];
+    }
+    return null;
+  };
   var flagFromPais = function flagFromPais(codigo) {
     if (!codigo || codigo.length !== 2) return '';
     var c = codigo.toUpperCase();
@@ -18371,6 +18379,7 @@ function SubbyApp(_ref) {
     setEditing = _useState4[1];
   var emptyForm = {
     icone: '🔔',
+    iconeManual: false,
     nome: '',
     valor: '',
     moeda: 'CHF',
@@ -18454,6 +18463,7 @@ function SubbyApp(_ref) {
     setEditing(sub);
     setForm({
       icone: sub.icone || '🔔',
+      iconeManual: true,
       nome: sub.nome || '',
       valor: sub.valor || '',
       moeda: sub.moeda || 'CHF',
@@ -18678,7 +18688,8 @@ function SubbyApp(_ref) {
     value: form.icone,
     onChange: function (e) {
       setForm(Object.assign({}, form, {
-        icone: e.target.value
+        icone: e.target.value,
+        iconeManual: true
       }));
     },
     placeholder: "🔔",
@@ -18695,9 +18706,13 @@ function SubbyApp(_ref) {
   }), /*#__PURE__*/React.createElement("input", {
     value: form.nome,
     onChange: function (e) {
+      var novoNome = e.target.value;
+      var sugestao = !form.iconeManual ? detectarIcone(novoNome) : null;
       setForm(Object.assign({}, form, {
-        nome: e.target.value
-      }));
+        nome: novoNome
+      }, sugestao ? {
+        icone: sugestao
+      } : {}));
     },
     placeholder: "Nome (Netflix...)",
     style: {
