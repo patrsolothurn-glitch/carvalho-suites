@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T20:29:18.752Z
+  Gerado em: 2026-07-01T20:41:24.726Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-45";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-46";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18335,7 +18335,7 @@ function EscolarApp(_ref31) {
 // MAIN HUB
 // ══════════════════════════════════════════════════════════════════
 
-var LOGO_DOMAINS = [['netflix', 'netflix.com'], ['disney', 'disneyplus.com'], ['hbo', 'hbomax.com'], ['twitch', 'twitch.tv'], ['spotify', 'spotify.com'], ['apple music', 'apple.com'], ['deezer', 'deezer.com'], ['youtube', 'youtube.com'], ['microsoft', 'microsoft.com'], ['office 365', 'microsoft.com'], ['icloud', 'apple.com'], ['dropbox', 'dropbox.com'], ['chatgpt', 'openai.com'], ['openai', 'openai.com'], ['claude', 'anthropic.com'], ['notion', 'notion.so'], ['adobe', 'adobe.com'], ['canva', 'canva.com'], ['nordvpn', 'nordvpn.com'], ['swisscom', 'swisscom.ch'], ['sunrise', 'sunrise.ch'], ['salt', 'salt.ch'], ['vodafone', 'vodafone.com'], ['nos', 'nos.pt'], ['meo', 'meo.pt'], ['xbox', 'xbox.com'], ['playstation', 'playstation.com'], ['nintendo', 'nintendo.com'], ['steam', 'steampowered.com'], ['amazon prime', 'amazon.com'], ['prime video', 'amazon.com']];
+var LOGO_DOMAINS = [['netflix', 'netflix.com'], ['disney', 'disneyplus.com'], ['hbo', 'hbomax.com'], ['twitch', 'twitch.tv'], ['spotify', 'spotify.com'], ['apple music', 'apple.com'], ['deezer', 'deezer.com'], ['youtube', 'youtube.com'], ['microsoft', 'microsoft.com'], ['office 365', 'microsoft.com'], ['icloud', 'apple.com'], ['dropbox', 'dropbox.com'], ['chatgpt', 'openai.com'], ['openai', 'openai.com'], ['claude', 'anthropic.com'], ['notion', 'notion.so'], ['adobe', 'adobe.com'], ['canva', 'canva.com'], ['nordvpn', 'nordvpn.com'], ['swisscom', 'swisscom.ch'], ['sunrise', 'sunrise.ch'], ['salt', 'salt.ch'], ['vodafone', 'vodafone.com'], ['nos', 'nos.pt'], ['meo', 'meo.pt'], ['xbox', 'xbox.com'], ['playstation', 'playstation.com'], ['nintendo', 'nintendo.com'], ['steam', 'steampowered.com'], ['amazon prime', 'amazon.com'], ['prime video', 'amazon.com'], ['apple', 'apple.com'], ['digital republik', 'salt.ch'], ['gagnet', 'gagnet.ch']];
 function detectarLogo(nome) {
   var n = (nome || '').toLowerCase();
   for (var i = 0; i < LOGO_DOMAINS.length; i++) {
@@ -18353,7 +18353,7 @@ function SubIcon(_ref2) {
   var dominio = manual ? null : detectarLogo(nome);
   if (dominio && !falhou) {
     return /*#__PURE__*/React.createElement("img", {
-      src: 'https://logo.clearbit.com/' + dominio + '?size=64',
+      src: 'https://www.google.com/s2/favicons?domain=' + dominio + '&sz=64',
       onError: function () {
         setFalhou(true);
       },
@@ -18382,7 +18382,7 @@ function SubbyApp(_ref) {
     green: '#16A34A',
     red: '#DC2626'
   };
-  var ICONE_KEYWORDS = [['netflix', '🎬'], ['disney', '📺'], ['prime video', '🎥'], ['amazon prime', '🎥'], ['hbo', '🎥'], ['twitch', '🟣'], ['spotify', '🎵'], ['apple music', '🎧'], ['deezer', '📻'], ['youtube', '▶️'], ['microsoft', '💻'], ['office', '💻'], ['icloud', '☁️'], ['google one', '☁️'], ['dropbox', '☁️'], ['chatgpt', '🤖'], ['claude', '🤖'], ['openai', '🤖'], ['notion', '📝'], ['adobe', '🎨'], ['canva', '🎨'], ['vpn', '🔐'], ['nordvpn', '🔐'], ['password', '🔐'], ['electr', '💡'], ['strom', '💡'], ['eletric', '💡'], ['agua', '💧'], ['wasser', '💧'], ['gas', '🔥'], ['internet', '📡'], ['swisscom', '📡'], ['sunrise', '📡'], ['salt', '📡'], ['upc', '📡'], ['meo', '📱'], ['nos', '📱'], ['vodafone', '📱'], ['telemovel', '📱'], ['mobile', '📱'], ['renda', '🏠'], ['seguro casa', '🏠'], ['hausrat', '🏠'], ['ginasio', '🏋️'], ['gym', '🏋️'], ['fitness', '🏋️'], ['saude', '🩺'], ['krankenkasse', '🩺'], ['seguro saude', '🩺'], ['farmacia', '💊'], ['suplemento', '💊'], ['yoga', '🧘'], ['meditat', '🧘'], ['headspace', '🧘'], ['calm', '🧘'], ['seguro carro', '🚗'], ['auto', '🚗'], ['carro', '🚗'], ['combustivel', '⛽'], ['carregamento', '⛽'], ['transporte', '🚌'], ['sbb', '🚌'], ['passe', '🚌'], ['parking', '🅿️'], ['parque', '🅿️'], ['xbox', '🎮'], ['playstation', '🎮'], ['nintendo', '🎮'], ['steam', '🎮'], ['jornal', '📰'], ['revista', '📰'], ['curso', '🎓'], ['formacao', '🎓'], ['udemy', '🎓'], ['escola', '🎓'], ['creche', '👶'], ['animal', '🐶'], ['pet', '🐶']];
+  var ICONE_KEYWORDS = [['netflix', '🎬'], ['disney', '📺'], ['prime video', '🎥'], ['amazon prime', '🎥'], ['hbo', '🎥'], ['twitch', '🟣'], ['spotify', '🎵'], ['apple music', '🎧'], ['deezer', '📻'], ['youtube', '▶️'], ['microsoft', '💻'], ['office', '💻'], ['icloud', '☁️'], ['google one', '☁️'], ['dropbox', '☁️'], ['chatgpt', '🤖'], ['claude', '🤖'], ['openai', '🤖'], ['notion', '📝'], ['adobe', '🎨'], ['canva', '🎨'], ['vpn', '🔐'], ['nordvpn', '🔐'], ['password', '🔐'], ['electr', '💡'], ['strom', '💡'], ['eletric', '💡'], ['agua', '💧'], ['wasser', '💧'], ['gas', '🔥'], ['internet', '📡'], ['swisscom', '📡'], ['sunrise', '📡'], ['salt', '📡'], ['upc', '📡'], ['digital republik', '📡'], ['gagnet', '📡'], ['apple', '🍎'], ['meo', '📱'], ['nos', '📱'], ['vodafone', '📱'], ['telemovel', '📱'], ['mobile', '📱'], ['renda', '🏠'], ['seguro casa', '🏠'], ['hausrat', '🏠'], ['ginasio', '🏋️'], ['gym', '🏋️'], ['fitness', '🏋️'], ['saude', '🩺'], ['krankenkasse', '🩺'], ['seguro saude', '🩺'], ['farmacia', '💊'], ['suplemento', '💊'], ['yoga', '🧘'], ['meditat', '🧘'], ['headspace', '🧘'], ['calm', '🧘'], ['seguro carro', '🚗'], ['auto', '🚗'], ['carro', '🚗'], ['combustivel', '⛽'], ['carregamento', '⛽'], ['transporte', '🚌'], ['sbb', '🚌'], ['passe', '🚌'], ['parking', '🅿️'], ['parque', '🅿️'], ['xbox', '🎮'], ['playstation', '🎮'], ['nintendo', '🎮'], ['steam', '🎮'], ['jornal', '📰'], ['revista', '📰'], ['curso', '🎓'], ['formacao', '🎓'], ['udemy', '🎓'], ['escola', '🎓'], ['creche', '👶'], ['animal', '🐶'], ['pet', '🐶']];
   var detectarIcone = function detectarIcone(nome) {
     var n = nome.toLowerCase();
     for (var i = 0; i < ICONE_KEYWORDS.length; i++) {
