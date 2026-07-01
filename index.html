@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T21:23:52.642Z
+  Gerado em: 2026-07-01T21:26:41.660Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-50";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-51";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18410,20 +18410,32 @@ function SubbyApp(_ref) {
   var _useState4 = useState(null),
     editing = _useState4[0],
     setEditing = _useState4[1];
-  var _useState4b = useState(function () {
-      try {
-        return localStorage.getItem('subby_sort_by') || 'data';
-      } catch (e) {
-        return 'data';
-      }
-    }),
+  var _useState4b = useState('data'),
     sortBy = _useState4b[0],
     setSortBy = _useState4b[1];
+  var _useStateUid = useState(null),
+    myUid = _useStateUid[0],
+    setMyUid = _useStateUid[1];
+  var loadSortPref = function loadSortPref() {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.auth.getUser().then(function (authRes) {
+      var uid = authRes && authRes.data && authRes.data.user && authRes.data.user.id;
+      if (!uid) return;
+      setMyUid(uid);
+      window.supabaseClient.from('profiles').select('subby_prefs').eq('id', uid).single().then(function (res) {
+        var pref = res.data && res.data.subby_prefs && res.data.subby_prefs.sortBy;
+        if (pref === 'nome' || pref === 'data') setSortBy(pref);
+      });
+    });
+  };
   var setSortByPersist = function setSortByPersist(v) {
     setSortBy(v);
-    try {
-      localStorage.setItem('subby_sort_by', v);
-    } catch (e) {}
+    if (!window.supabaseClient || !myUid) return;
+    window.supabaseClient.from('profiles').update({
+      subby_prefs: {
+        sortBy: v
+      }
+    }).eq('id', myUid).then(function () {});
   };
   var emptyForm = {
     icone: '🔔',
@@ -18476,6 +18488,7 @@ function SubbyApp(_ref) {
   };
   useEffect(function () {
     loadSubs();
+    loadSortPref();
   }, []);
   var calcMensal = function calcMensal(sub) {
     var v = Number(sub.valor) || 0;
