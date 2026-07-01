@@ -193,6 +193,18 @@ function SubbyApp(_ref) {
       });
     }
   };
+  var marcarVisto = function marcarVisto(sub) {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('subscriptions').update({
+      visto_ate_data: sub.proxima_cobranca
+    }).eq('id', sub.id).then(function (res) {
+      if (res.error) {
+        console.error(res.error);
+        return;
+      }
+      loadSubs();
+    });
+  };
   var apagar = function apagar(sub) {
     if (!window.confirm('Apagar "' + sub.nome + '"?')) return;
     window.supabaseClient.from('subscriptions').delete().eq('id', sub.id).then(function (res) {
@@ -684,7 +696,9 @@ function SubbyApp(_ref) {
   }, "Sem subscrições ainda."), !loading && ordered.map(function (sub) {
     var dias = diasAte(sub.proxima_cobranca);
     var diasTxt = dias < 0 ? 'atrasada' : dias === 0 ? 'hoje' : 'em ' + dias + 'd';
-    var cor = dias <= (sub.lembrete_dias || 3) ? S.red : S.muted;
+    var devida = dias <= (sub.lembrete_dias || 3);
+    var jaVisto = sub.visto_ate_data === sub.proxima_cobranca;
+    var cor = devida && !jaVisto ? S.red : S.muted;
     return /*#__PURE__*/React.createElement("div", {
       key: sub.id,
       style: {
@@ -746,9 +760,25 @@ function SubbyApp(_ref) {
       style: {
         fontSize: 12,
         color: cor,
-        marginTop: 2
+        marginTop: 2,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
       }
-    }, "Próx: ", sub.proxima_cobranca, " (", diasTxt, ")")), /*#__PURE__*/React.createElement("div", {
+    }, /*#__PURE__*/React.createElement("span", null, "Próx: ", sub.proxima_cobranca, " (", diasTxt, ")"), devida && !jaVisto && /*#__PURE__*/React.createElement("button", {
+      onClick: function () {
+        marcarVisto(sub);
+      },
+      style: {
+        border: 'none',
+        borderRadius: 6,
+        padding: '2px 7px',
+        background: 'rgba(34,197,94,0.15)',
+        color: '#22C55E',
+        fontSize: 11,
+        fontWeight: 700
+      }
+    }, "✓ Vi"))), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'right'
       }
