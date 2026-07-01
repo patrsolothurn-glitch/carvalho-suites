@@ -119,7 +119,7 @@ var APPS_DATA = [{
 }, {
   id: 'subby',
   emoji: '💳',
-  name: 'Subby',
+  name: 'Carvalho Abo Kontrolle',
   desc: 'Gestor de subscrições',
   badge: null,
   color: '#6C5CE7'
