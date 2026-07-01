@@ -663,6 +663,14 @@ function SubbyApp(_ref) {
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
+        width: 9,
+        height: 9,
+        borderRadius: '50%',
+        background: sub.ativa ? '#22C55E' : '#EF4444',
+        flexShrink: 0
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
         fontSize: 24,
         width: 32,
         textAlign: 'center'
