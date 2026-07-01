@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-01T19:58:31.912Z
+  Gerado em: 2026-07-01T20:01:09.281Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-43";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-44";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18345,11 +18345,12 @@ function detectarLogo(nome) {
 }
 function SubIcon(_ref2) {
   var nome = _ref2.nome,
-    icone = _ref2.icone;
+    icone = _ref2.icone,
+    manual = _ref2.manual;
   var _useStateFalhou = React.useState(false),
     falhou = _useStateFalhou[0],
     setFalhou = _useStateFalhou[1];
-  var dominio = detectarLogo(nome);
+  var dominio = manual ? null : detectarLogo(nome);
   if (dominio && !falhou) {
     return /*#__PURE__*/React.createElement("img", {
       src: 'https://logo.clearbit.com/' + dominio + '?size=64',
@@ -18495,7 +18496,7 @@ function SubbyApp(_ref) {
     setEditing(sub);
     setForm({
       icone: sub.icone || '🔔',
-      iconeManual: true,
+      iconeManual: !!sub.icone_manual,
       nome: sub.nome || '',
       valor: sub.valor || '',
       moeda: sub.moeda || 'CHF',
@@ -18528,6 +18529,7 @@ function SubbyApp(_ref) {
     if (!window.supabaseClient) return;
     var payload = {
       icone: form.icone.trim() || '🔔',
+      icone_manual: !!form.iconeManual,
       nome: form.nome.trim(),
       valor: parseFloat(form.valor) || 0,
       moeda: form.moeda.trim() || 'CHF',
@@ -19135,7 +19137,8 @@ function SubbyApp(_ref) {
       }
     }, /*#__PURE__*/React.createElement(SubIcon, {
       nome: sub.nome,
-      icone: sub.icone
+      icone: sub.icone,
+      manual: sub.icone_manual
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
