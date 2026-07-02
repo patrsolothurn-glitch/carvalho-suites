@@ -694,6 +694,10 @@ function HorasProApp(_ref9) {
       validated: !!e.validado
     }).then(function () {
       loadEntries();
+      // Backup automático
+      window.supabaseClient.from('horas_entries').select('*').then(function(r) {
+        if (r.data) backupParaDrive('horas_entries', r.data);
+      });
     }).catch(function () {});
   };
   var fmt = function fmt(d) {
