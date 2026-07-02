@@ -321,7 +321,7 @@ function AgendaProApp(_ref13) {
         return x.id !== monteurId;
       });
     });
-    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) {
+    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) { window.supabaseClient.from('agenda_monteurs').select('*').then(function(r){ if(r.data) backupParaDrive('agenda_monteurs', r.data); });
       if (res.error) {
         setMonteurs(prevList);
         setMonteurSaveErr('Erro ao apagar: ' + res.error.message);
@@ -607,7 +607,7 @@ function AgendaProApp(_ref13) {
         return x.id !== projId;
       });
     });
-    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) {
+    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) { window.supabaseClient.from('horas_projects').select('*').then(function(r){ if(r.data) backupParaDrive('horas_projects', r.data); });
       if (res.error) {
         setProjList(prevList);
         setProjManageErr('Erro ao apagar: ' + res.error.message);
