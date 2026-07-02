@@ -3001,7 +3001,7 @@ function CarvalhoSuite() {
     }
   }, [{
     l: 'Apps',
-    v: '5',
+    v: String(visApps.length),
     c: T.gold
   }, {
     l: 'Alertas',
