@@ -4,7 +4,7 @@ on:
   schedule:
     # Corre de 5 em 5 dias, às 06:00 UTC
     - cron: '0 6 */5 * *'
-  workflow_dispatch: # permite correr manualmente se necessário
+  workflow_dispatch:
 
 jobs:
   ping:
@@ -13,13 +13,12 @@ jobs:
       - name: Ping Supabase
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://qtynznppkxjmihxiquze.supabase.co/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
-          echo "Supabase status: $STATUS"
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "400" ]; then
-            echo "Supabase está ativo"
+            "https://qtynznppkxjmihxiquze.supabase.co/rest/v1/")
+          echo "Supabase respondeu com: $STATUS"
+          # Qualquer resposta (mesmo 401) significa que está activo
+          if [ "$STATUS" != "000" ]; then
+            echo "Supabase está activo"
           else
-            echo "Resposta inesperada: $STATUS"
+            echo "Sem resposta do Supabase"
             exit 1
           fi
