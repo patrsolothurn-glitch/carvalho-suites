@@ -1339,9 +1339,14 @@ function HorasProApp(_ref9) {
     var end = new Date(ate + 'T12:00:00');
     var _loop2 = function _loop2() {
       var dStr = fmt(cur);
-      if (isWeekday(dStr) && !isDiaLivre(dStr) && !entries.some(function (e) {
-        return e.date === dStr;
-      })) {
+      // Só impede se já existe entrada automática (dia livre, férias, komp,
+      // feriado, sexta). Entradas de horas trabalhadas não bloqueiam.
+      // Assim, férias e komp são sempre mutuamente exclusivos — o segundo
+      // marcado no mesmo dia é simplesmente ignorado.
+      var jaTemAuto = entries.some(function (e) {
+        return e.date === dStr && e.isAuto;
+      });
+      if (isWeekday(dStr) && !isDiaLivre(dStr) && !jaTemAuto) {
         newDias.push({
           date: dStr,
           tipo: tipo
@@ -4583,7 +4588,25 @@ function HorasProApp(_ref9) {
                   style: { position: 'absolute', top: '110%', left: '50%', transform: 'translateX(-50%)', zIndex: 99, background: H.surface, border: "1px solid ".concat(H.border), borderRadius: 12, padding: 8, minWidth: 130, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }
                 },
                   /*#__PURE__*/React.createElement("p", { style: { fontSize: 10, color: H.muted, fontWeight: 700, marginBottom: 6, textAlign: 'center' } }, dStr.slice(5).replace('-','/')),
-                  [
+                  autoEntry ? [
+                    { tipo: '_remover', label: '🗑 Remover ' + (autoEntry.tipo || '') },
+                    { tipo: '_ir',      label: '📅 Ver dia' }
+                  ].map(function (opt) {
+                    return /*#__PURE__*/React.createElement("button", {
+                      key: opt.tipo,
+                      onClick: function () {
+                        setCalPopupDate(null);
+                        if (opt.tipo === '_ir') { setCurDate(new Date(dStr+'T12:00:00')); setShowMenu(false); return; }
+                        // Remover a entrada automática deste dia
+                        setEntries(function (p) { return p.filter(function (e) { return !(e.date === dStr && e.isAuto); }); });
+                        setDiasLivres(function (p) { return p.filter(function (dl) { return dl.date !== dStr; }); });
+                        if (window.supabaseClient) {
+                          window.supabaseClient.from('horas_entries').delete().eq('data', dStr).eq('is_auto', true).then(function () { loadEntries(); }).catch(function () {});
+                        }
+                      },
+                      style: { display: 'block', width: '100%', background: 'none', border: 'none', color: opt.tipo === '_remover' ? H.red : H.text, fontSize: 12, padding: '5px 8px', textAlign: 'left', cursor: 'pointer', borderRadius: 7 }
+                    }, opt.label);
+                  }) : [
                     { tipo: 'ferias', label: '✈️ Férias' },
                     { tipo: 'komp',   label: '🔁 Komp.' },
                     { tipo: 'feriado',label: '🎌 Feriado' },
