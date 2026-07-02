@@ -72,6 +72,14 @@ function FamiliaApp(_ref19) {
     _useState104 = _slicedToArray(_useState103, 2),
     events = _useState104[0],
     setEvents = _useState104[1];
+  var _useStateArq = (0, _react.useState)({}),
+    _useStateArq2 = _slicedToArray(_useStateArq, 2),
+    eventsArquivados = _useStateArq2[0],
+    setEventsArquivados = _useStateArq2[1];
+  var _useStateVerArq = (0, _react.useState)(false),
+    _useStateVerArq2 = _slicedToArray(_useStateVerArq, 2),
+    verArquivados = _useStateVerArq2[0],
+    setVerArquivados = _useStateVerArq2[1];
   var _useState105 = (0, _react.useState)({
       titulo: '',
       emoji: '📅',
@@ -248,13 +256,15 @@ function FamiliaApp(_ref19) {
     window.supabaseClient.from('family_events').select('*').then(function (res) {
       if (res.error || !res.data) return;
       var built = {};
+      var builtArq = {};
       res.data.forEach(function (row) {
         var d = row.event_date;
-        if (!built[d]) built[d] = [];
-        built[d].push({
+        var alvo = row.arquivado ? (builtArq[d] || (builtArq[d] = [])) : (built[d] || (built[d] = []));
+        alvo.push({
           id: row.id,
           t: row.title,
           emoji: row.emoji || '📅',
+          arquivado: !!row.arquivado,
           participantes: row.participant_ids && row.participant_ids.length > 0 ? row.participant_ids : [row.member_id || 'todos'],
           categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
           color: row.color || F.coral,
@@ -263,6 +273,7 @@ function FamiliaApp(_ref19) {
         });
       });
       setEvents(built);
+      setEventsArquivados(builtArq);
     }).catch(function () {});
   };
   var loadMemberPhotos = function loadMemberPhotos() {
@@ -402,7 +413,8 @@ function FamiliaApp(_ref19) {
   })();
   var CATEGORIA_ORDEM = ['trabalho', 'escola', 'familia', 'pessoal'];
   var selEvents = (function() {
-    var raw = (events[selDateStr] || []).filter(function (e) {
+    var fonte = verArquivados ? eventsArquivados : events;
+    var raw = (fonte[selDateStr] || []).filter(function (e) {
       return eventVisibleTo(e, selMember);
     }).sort(function (a, b) {
       return CATEGORIA_ORDEM.indexOf(a.categoria || 'familia') - CATEGORIA_ORDEM.indexOf(b.categoria || 'familia');
@@ -1438,7 +1450,25 @@ function FamiliaApp(_ref19) {
     style: {
       padding: '14px 16px 20px'
     }
-  }, /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setVerArquivados(function (p) { return !p; });
+    },
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      background: verArquivados ? "".concat(F.green, "18") : 'transparent',
+      border: "1px solid ".concat(verArquivados ? F.green : F.border),
+      borderRadius: 16,
+      padding: '4px 10px',
+      marginBottom: 10,
+      cursor: 'pointer',
+      color: verArquivados ? F.green : F.muted,
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, verArquivados ? "\u2705 A ver arquivo \u2014 tocar para voltar" : "\uD83D\uDCE6 Ver arquivo deste dia"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 11,
@@ -1449,7 +1479,7 @@ function FamiliaApp(_ref19) {
     }
   }, selDay, " ", curMonth.toLocaleDateString('pt-PT', {
     month: 'long'
-  }), " \xB7 ", selEvents.length + sharedForDay.length, " evento(s)"), sharedForDay.map(function (d, i) {
+  }), " \xB7 ", selEvents.length + (verArquivados ? 0 : sharedForDay.length), " evento(s)"), !verArquivados && sharedForDay.map(function (d, i) {
     return /*#__PURE__*/React.createElement(FCard, {
       key: 'sd' + i,
       style: {
@@ -1591,6 +1621,41 @@ function FamiliaApp(_ref19) {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        if (!window.supabaseClient || !ev.id) return;
+        var novoArquivado = !verArquivados;
+        window.supabaseClient.from('family_events').update({ arquivado: novoArquivado }).eq('id', ev.id).then(function () {}).catch(function () {});
+        setEvents(function (p) {
+          var d = _objectSpread({}, p);
+          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
+            return item.id !== ev.id;
+          });
+          return d;
+        });
+        setEventsArquivados(function (p) {
+          var d = _objectSpread({}, p);
+          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
+            return item.id !== ev.id;
+          });
+          return d;
+        });
+        var alvoState = novoArquivado ? setEventsArquivados : setEvents;
+        alvoState(function (p) {
+          var d = _objectSpread({}, p);
+          d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: novoArquivado })]);
+          return d;
+        });
+      },
+      style: {
+        background: "".concat(F.green, "12"),
+        border: "1px solid ".concat(F.green, "33"),
+        borderRadius: 8,
+        padding: '6px 8px',
+        cursor: 'pointer',
+        color: F.green,
+        fontSize: 13
+      }
+    }, verArquivados ? "\u21A9\uFE0F" : "\u2705"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
         setForm({
           titulo: ev.t,
           emoji: ev.emoji,
@@ -1642,7 +1707,7 @@ function FamiliaApp(_ref19) {
             });
           } catch (e) {}
         }
-        return setEvents(function (p) {
+        return (verArquivados ? setEventsArquivados : setEvents)(function (p) {
           var d = _objectSpread({}, p);
           d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
             return item.id !== ev.id;
@@ -1891,7 +1956,7 @@ function FamiliaApp(_ref19) {
         })();
         var prevEv = ev;
         var applyLocal = function applyLocal(novo) {
-          setEvents(function (p) {
+          (verArquivados ? setEventsArquivados : setEvents)(function (p) {
             var d = _objectSpread({}, p);
             var arr = _toConsumableArray(d[selDateStr] || []);
             var idx = arr.findIndex(function (item) {
