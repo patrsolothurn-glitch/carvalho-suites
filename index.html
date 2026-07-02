@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T19:48:17.205Z
+  Gerado em: 2026-07-02T20:15:27.521Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-30";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-31";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -265,6 +265,24 @@ var PERMS_DEF = {
 };
 
 // ── FONT ────────────────────────────────────────────────────────────
+
+// ── BACKUP AUTOMÁTICO GOOGLE DRIVE ───────────────────────────────────
+var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbyHJqsrTjRL4ypgSv6822JCElhQz6WxN4HAz19fTd1YkVxjLvPgOmuYOt_bU1PLP4rd/exec';
+
+function backupParaDrive(tabela, dados) {
+  try {
+    fetch(BACKUP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tabela: tabela,
+        dados: dados,
+        data: new Date().toISOString(),
+        projeto: 'carvalho-suites'
+      })
+    }).catch(function() {});
+  } catch(e) {}
+}
 
 function useFont() {
   (0, _react.useEffect)(function () {
@@ -1213,6 +1231,10 @@ function HorasProApp(_ref9) {
       validated: !!e.validado
     }).then(function () {
       loadEntries();
+      // Backup automático
+      window.supabaseClient.from('horas_entries').select('*').then(function(r) {
+        if (r.data) backupParaDrive('horas_entries', r.data);
+      });
     }).catch(function () {});
   };
   var fmt = function fmt(d) {
@@ -18516,7 +18538,12 @@ var SubbyApp = function SubbyApp(_ref) {
       ? window.supabaseClient.from(TABLE).update(row).eq('id', editId)
       : window.supabaseClient.from(TABLE).insert(row);
     op.then(function() {
-      setShowForm(false); resetForm(); loadSubs();
+      setShowForm(false); resetForm();
+      // Backup automático para Google Drive
+      window.supabaseClient.from(TABLE).select('*').eq('owner', owner).then(function(r) {
+        if (r.data) backupParaDrive('subscriptions', r.data);
+      });
+      loadSubs();
       // Push notification
       var msg = editId ? 'Subscrição actualizada: ' + fNome.trim() : 'Nova subscrição: ' + fNome.trim();
       getEligibleProfileIds('subby', null).then(function(ids) {
@@ -18533,7 +18560,12 @@ var SubbyApp = function SubbyApp(_ref) {
   var apagar = function(id, nome) {
     if (!window.confirm('Apagar "' + nome + '"?')) return;
     window.supabaseClient.from(TABLE).delete().eq('id', id)
-      .then(function() { loadSubs(); }).catch(function(){});
+      .then(function() {
+        window.supabaseClient.from(TABLE).select('*').eq('owner', owner).then(function(r) {
+          if (r.data) backupParaDrive('subscriptions', r.data);
+        });
+        loadSubs();
+      }).catch(function(){});
   };
 
   var marcarVisto = function(sub) {
