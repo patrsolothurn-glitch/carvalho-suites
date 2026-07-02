@@ -60,17 +60,31 @@ var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbyHJqsrTjRL4ypgSv6822J
 
 function backupParaDrive(tabela, dados) {
   try {
-    // Usa text/plain para evitar preflight CORS (Google Apps Script aceita ambos)
-    var blob = new Blob([JSON.stringify({
+    // Envia via form POST oculto — sem restrições CORS
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = BACKUP_URL;
+    form.target = '_backup_iframe_' + tabela;
+    form.style.display = 'none';
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.value = JSON.stringify({
       tabela: tabela,
       dados: dados,
       data: new Date().toISOString(),
       projeto: 'carvalho-suites'
-    })], { type: 'text/plain' });
-    fetch(BACKUP_URL, {
-      method: 'POST',
-      body: blob,
-      mode: 'no-cors'
-    }).catch(function() {});
+    });
+    form.appendChild(input);
+    // iframe oculto para não abrir nova janela
+    var iframe = document.createElement('iframe');
+    iframe.name = form.target;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(function() {
+      try { document.body.removeChild(form); document.body.removeChild(iframe); } catch(e) {}
+    }, 5000);
   } catch(e) {}
 }
