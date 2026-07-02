@@ -50,12 +50,7 @@ function FamiliaApp(_ref19) {
     _useState98 = _slicedToArray(_useState97, 2),
     selDay = _useState98[0],
     setSelDay = _useState98[1];
-  var skipDayResetRef = (0, _react.useRef)(false);
   (0, _react.useEffect)(function () {
-    if (skipDayResetRef.current) {
-      skipDayResetRef.current = false;
-      return;
-    }
     var today = new Date();
     var isRealCurrentMonth = curMonth.getFullYear() === today.getFullYear() && curMonth.getMonth() === today.getMonth();
     setSelDay(isRealCurrentMonth ? today.getDate() : 1);
@@ -259,8 +254,7 @@ function FamiliaApp(_ref19) {
           categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
           color: row.color || F.coral,
           hora: row.event_time || '',
-          nota: row.description || '',
-          concluido: !!row.concluido
+          nota: row.description || ''
         });
       });
       setEvents(built);
@@ -325,10 +319,6 @@ function FamiliaApp(_ref19) {
     _useStateFiltros2 = _slicedToArray(_useStateFiltros, 2),
     filtrosAtivos = _useStateFiltros2[0],
     setFiltrosAtivos = _useStateFiltros2[1];
-  var _useStateShowArchived = (0, _react.useState)(false),
-    _useStateShowArchived2 = _slicedToArray(_useStateShowArchived, 2),
-    showArchived = _useStateShowArchived2[0],
-    setShowArchived = _useStateShowArchived2[1];
   var toggleFiltro = function toggleFiltro(catKey) {
     setFiltrosAtivos(function (p) {
       if (p.indexOf(catKey) !== -1) {
@@ -343,8 +333,7 @@ function FamiliaApp(_ref19) {
     var p = e.participantes || ['todos'];
     var memberOk = memberId === 'todos' || p.indexOf('todos') !== -1 || p.indexOf(memberId) !== -1;
     var catOk = filtrosAtivos.indexOf(e.categoria || 'familia') !== -1;
-    var archOk = showArchived ? !!e.concluido : !e.concluido;
-    return memberOk && catOk && archOk;
+    return memberOk && catOk;
   };
   var _useStateHorasMes = (0, _react.useState)([]),
     _useStateHorasMes2 = _slicedToArray(_useStateHorasMes, 2),
@@ -1151,7 +1140,7 @@ function FamiliaApp(_ref19) {
       var isEmptyCell = mEvs.length === 0 && !mShared;
       return /*#__PURE__*/React.createElement("div", {
         key: m.id,
-        onClick: function () {
+        onClick: isEmptyCell ? function () {
           setForm(function (p) {
             return _objectSpread(_objectSpread({}, p), {}, {
               dataDE: dStr,
@@ -1160,7 +1149,7 @@ function FamiliaApp(_ref19) {
             });
           });
           setShowAdd(true);
-        },
+        } : undefined,
         style: {
           padding: '3px 3px',
           borderLeft: "1px solid ".concat(F.border),
@@ -1170,14 +1159,11 @@ function FamiliaApp(_ref19) {
           gap: 2,
           overflow: 'hidden',
           boxSizing: 'border-box',
-          cursor: 'pointer'
+          cursor: isEmptyCell ? 'pointer' : 'default'
         }
       }, mShared && dayShared.map(function (s, si) {
         return /*#__PURE__*/React.createElement("div", {
           key: si,
-          onClick: function onClick(e) {
-            e.stopPropagation();
-          },
           style: {
             background: "".concat(F.purple, "15"),
             borderRadius: 5,
@@ -1199,10 +1185,7 @@ function FamiliaApp(_ref19) {
       }), mEvs.map(function (ev, ei) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
-          onClick: function onClick(e) {
-            e.stopPropagation();
-            skipDayResetRef.current = true;
-            setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+          onClick: function onClick() {
             setSelDay(date.getDate());
             setMainView('mes');
           },
@@ -1429,60 +1412,18 @@ function FamiliaApp(_ref19) {
     style: {
       padding: '14px 16px 20px'
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 10
-    }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 11,
       fontWeight: 700,
       textTransform: 'uppercase',
-      letterSpacing: '0.8px'
+      letterSpacing: '0.8px',
+      marginBottom: 10
     }
   }, selDay, " ", curMonth.toLocaleDateString('pt-PT', {
     month: 'long'
-  }), " \xB7 ", selEvents.length + sharedForDay.length, " evento(s)"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setShowArchived(!showArchived);
-    },
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4,
-      background: showArchived ? "".concat(F.green, "18") : F.surface2,
-      border: "1px solid ".concat(showArchived ? F.green : F.border),
-      borderRadius: 14,
-      padding: '5px 10px',
-      cursor: 'pointer'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: { fontSize: 11 }
-  }, showArchived ? '📋' : '🗄️'), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: showArchived ? F.green : F.muted
-    }
-  }, showArchived ? 'Ativos' : 'Arquivados'))), editEvErr && !editEvKey && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: 'rgba(220,38,38,0.08)',
-      border: '1px solid rgba(220,38,38,0.2)',
-      borderRadius: 10,
-      padding: '8px 12px',
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: F.red,
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, "\u26A0\uFE0F ", editEvErr)), !showArchived && sharedForDay.map(function (d, i) {
+  }), " \xB7 ", selEvents.length + sharedForDay.length, " evento(s)"), sharedForDay.map(function (d, i) {
     return /*#__PURE__*/React.createElement(FCard, {
       key: 'sd' + i,
       style: {
@@ -1570,8 +1511,7 @@ function FamiliaApp(_ref19) {
       style: {
         fontWeight: 800,
         fontSize: 15,
-        color: ev.concluido ? F.muted : F.text,
-        textDecoration: ev.concluido ? 'line-through' : 'none'
+        color: F.text
       }
     }, ev.t), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1624,51 +1564,6 @@ function FamiliaApp(_ref19) {
         flexShrink: 0
       }
     }, /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        setEditEvErr('');
-        var novoConcluido = !ev.concluido;
-        var prevEv2 = ev;
-        var applyLocalConcluido = function applyLocalConcluido(val) {
-          setEvents(function (p) {
-            var d = _objectSpread({}, p);
-            var arr = _toConsumableArray(d[selDateStr] || []);
-            var realIdx = arr.findIndex(function (x) {
-              return x.id === prevEv2.id;
-            });
-            if (realIdx === -1) return p;
-            arr[realIdx] = _objectSpread(_objectSpread({}, arr[realIdx]), {}, {
-              concluido: val
-            });
-            d[selDateStr] = arr;
-            return d;
-          });
-        };
-        applyLocalConcluido(novoConcluido);
-        if (window.supabaseClient && ev.id) {
-          window.supabaseClient.from('family_events').update({
-            concluido: novoConcluido
-          }).eq('id', ev.id).then(function (res) {
-            if (res.error) {
-              applyLocalConcluido(prevEv2.concluido);
-              setEditEvErr('Erro ao guardar: ' + res.error.message);
-            }
-          }).catch(function (e) {
-            applyLocalConcluido(prevEv2.concluido);
-            setEditEvErr('Erro de ligação: ' + (e && e.message || String(e)));
-          });
-        }
-      },
-      title: ev.concluido ? 'Restaurar evento' : 'Marcar como concluído',
-      style: {
-        background: ev.concluido ? "".concat(F.muted, "12") : "".concat(F.green, "12"),
-        border: "1px solid ".concat(ev.concluido ? F.muted : F.green, "33"),
-        borderRadius: 8,
-        padding: '6px 8px',
-        cursor: 'pointer',
-        color: ev.concluido ? F.muted : F.green,
-        fontSize: 13
-      }
-    }, ev.concluido ? "\u21A9\uFE0F" : "\u2713"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setForm({
           titulo: ev.t,
@@ -1723,8 +1618,8 @@ function FamiliaApp(_ref19) {
         }
         return setEvents(function (p) {
           var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (x) {
-            return x.id !== ev.id;
+          d[selDateStr] = (d[selDateStr] || []).filter(function (_, j) {
+            return j !== i;
           });
           return d;
         });
@@ -1973,11 +1868,7 @@ function FamiliaApp(_ref19) {
           setEvents(function (p) {
             var d = _objectSpread({}, p);
             var arr = _toConsumableArray(d[selDateStr] || []);
-            var realIdx = arr.findIndex(function (x) {
-              return x.id === prevEv.id;
-            });
-            if (realIdx === -1) return p;
-            arr[realIdx] = novo ? _objectSpread(_objectSpread({}, arr[realIdx]), novo) : prevEv;
+            arr[i] = novo ? _objectSpread(_objectSpread({}, arr[i]), novo) : prevEv;
             d[selDateStr] = arr;
             return d;
           });
@@ -2048,7 +1939,7 @@ function FamiliaApp(_ref19) {
         textAlign: 'center'
       }
     }, "\u26A0\uFE0F ", editEvErr)));
-  }), selEvents.length === 0 && (showArchived || sharedForDay.length === 0) && /*#__PURE__*/React.createElement(FCard, {
+  }), selEvents.length === 0 && sharedForDay.length === 0 && /*#__PURE__*/React.createElement(FCard, {
     style: {
       padding: '24px',
       textAlign: 'center'
@@ -2057,13 +1948,13 @@ function FamiliaApp(_ref19) {
     style: {
       fontSize: 32
     }
-  }, showArchived ? "\uD83D\uDDC4\uFE0F" : "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("p", {
+  }, "\uD83D\uDCC5"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 13,
       marginTop: 8
     }
-  }, showArchived ? "Nenhum evento conclu\xEDdo neste dia" : "Nenhum evento neste dia"), !showArchived && /*#__PURE__*/React.createElement("button", {
+  }, "Nenhum evento neste dia"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       setForm(function (p) {
         return _objectSpread(_objectSpread({}, p), {}, {
@@ -2312,7 +2203,6 @@ function FamiliaApp(_ref19) {
     })).filter(function (ev) {
       var d = new Date(ev.date + 'T12:00:00');
       var evIds = ev.participantes || (ev.who ? [ev.who] : ['todos']);
-      if (ev.concluido) return false;
       if (selMember !== 'todos' && evIds.indexOf('todos') === -1 && evIds.indexOf(selMember) === -1) return false;
       if (timeTab === 'Hoje') return ev.date === todayStr2;
       if (timeTab === 'Semana') return d >= now && d <= weekEnd;
