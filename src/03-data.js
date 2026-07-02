@@ -56,7 +56,7 @@ var PERMS_DEF = {
 // ── FONT ────────────────────────────────────────────────────────────
 
 // ── BACKUP AUTOMÁTICO GOOGLE DRIVE ───────────────────────────────────
-var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbyHJqsrTjRL4ypgSv6822JCElhQz6WxN4HAz19fTd1YkVxjLvPgOmuYOt_bU1PLP4rd/exec';
+var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbwAgEEVy6CoJRh97PGnUET6jrAffzl0ObKbs20K6oUWBK6hXi4i7YviBKm6_8Iq_m39/exec';
 
 function backupParaDrive(tabela, dados) {
   try {
