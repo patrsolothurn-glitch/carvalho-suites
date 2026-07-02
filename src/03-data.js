@@ -60,7 +60,10 @@ var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbwAgEEVy6CoJRh97PGnUET
 
 function backupParaDrive(tabela, dados) {
   try {
-    var body = 'payload=' + encodeURIComponent(JSON.stringify({
+    // URLSearchParams + no-cors: request simples sem preflight CORS,
+    // o servidor recebe e guarda — o browser nao le a resposta (opaca), que e OK
+    var params = new URLSearchParams();
+    params.append('payload', JSON.stringify({
       tabela: tabela,
       dados: dados,
       data: new Date().toISOString(),
@@ -68,8 +71,8 @@ function backupParaDrive(tabela, dados) {
     }));
     fetch(BACKUP_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body
+      mode: 'no-cors',
+      body: params
     }).catch(function() {});
   } catch(e) {}
 }
