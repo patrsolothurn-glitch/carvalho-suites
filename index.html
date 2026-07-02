@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T20:52:31.457Z
+  Gerado em: 2026-07-02T20:56:45.474Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-38";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-39";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -271,32 +271,17 @@ var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbwAgEEVy6CoJRh97PGnUET
 
 function backupParaDrive(tabela, dados) {
   try {
-    // Envia via form POST oculto — sem restrições CORS
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = BACKUP_URL;
-    form.target = '_backup_iframe_' + tabela;
-    form.style.display = 'none';
-    var input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'payload';
-    input.value = JSON.stringify({
+    var body = 'payload=' + encodeURIComponent(JSON.stringify({
       tabela: tabela,
       dados: dados,
       data: new Date().toISOString(),
       projeto: 'carvalho-suites'
-    });
-    form.appendChild(input);
-    // iframe oculto para não abrir nova janela
-    var iframe = document.createElement('iframe');
-    iframe.name = form.target;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(function() {
-      try { document.body.removeChild(form); document.body.removeChild(iframe); } catch(e) {}
-    }, 5000);
+    }));
+    fetch(BACKUP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body
+    }).catch(function() {});
   } catch(e) {}
 }
 
