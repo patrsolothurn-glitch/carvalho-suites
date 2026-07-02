@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T20:15:27.521Z
+  Gerado em: 2026-07-02T20:21:56.373Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-31";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-32";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -5709,7 +5709,7 @@ function AgendaProApp(_ref13) {
         return x.id !== monteurId;
       });
     });
-    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) {
+    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) { window.supabaseClient.from('agenda_monteurs').select('*').then(function(r){ if(r.data) backupParaDrive('agenda_monteurs', r.data); });
       if (res.error) {
         setMonteurs(prevList);
         setMonteurSaveErr('Erro ao apagar: ' + res.error.message);
@@ -5995,7 +5995,7 @@ function AgendaProApp(_ref13) {
         return x.id !== projId;
       });
     });
-    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) {
+    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) { window.supabaseClient.from('horas_projects').select('*').then(function(r){ if(r.data) backupParaDrive('horas_projects', r.data); });
       if (res.error) {
         setProjList(prevList);
         setProjManageErr('Erro ao apagar: ' + res.error.message);
@@ -9745,7 +9745,7 @@ function FamiliaApp(_ref19) {
           created_by: currentMemberId
         };
       });
-      window.supabaseClient.from('family_events').insert(rows).then(function () {
+      window.supabaseClient.from('family_events').insert(rows).then(function () { window.supabaseClient.from('family_events').select('*').then(function(r){ if(r.data) backupParaDrive('family_events', r.data); });
         loadFamilyEvents();
         try {
           getEligibleProfileIds('familia', null).then(function (ids) {
@@ -10866,7 +10866,7 @@ function FamiliaApp(_ref19) {
     }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (window.supabaseClient && ev.id) {
-          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () {}).catch(function () {});
+          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { window.supabaseClient.from('family_events').select('*').then(function(r){ if(r.data) backupParaDrive('family_events', r.data); }); }).catch(function () {});
           try {
             getEligibleProfileIds('familia', null).then(function (ids) {
               if (!ids.length) return;
@@ -14326,7 +14326,12 @@ function EscolarApp(_ref31) {
         resp_email: resp.email || ''
       }).then(logIns('perfil'));
     }).catch(function (e) { console.warn('[escolar] erro perfil:', e); }));
-    return Promise.all(ps);
+    return Promise.all(ps).then(function() {
+      // Backup automático Google Drive
+      ['escolar_horario','escolar_disciplinas','escolar_notas','escolar_tpc'].forEach(function(t) {
+        window.supabaseClient.from(t).select('*').then(function(r){ if(r.data && r.data.length) backupParaDrive(t, r.data); });
+      });
+    });
   };
   var savePerfilOnly = function savePerfilOnly(key, data) {
     if (!window.supabaseClient) return;
