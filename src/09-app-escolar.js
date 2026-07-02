@@ -862,7 +862,12 @@ function EscolarApp(_ref31) {
         resp_email: resp.email || ''
       }).then(logIns('perfil'));
     }).catch(function (e) { console.warn('[escolar] erro perfil:', e); }));
-    return Promise.all(ps);
+    return Promise.all(ps).then(function() {
+      // Backup automático Google Drive
+      ['escolar_horario','escolar_disciplinas','escolar_notas','escolar_tpc'].forEach(function(t) {
+        window.supabaseClient.from(t).select('*').then(function(r){ if(r.data && r.data.length) backupParaDrive(t, r.data); });
+      });
+    });
   };
   var savePerfilOnly = function savePerfilOnly(key, data) {
     if (!window.supabaseClient) return;
