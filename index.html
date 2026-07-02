@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T20:27:34.529Z
+  Gerado em: 2026-07-02T20:32:18.819Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-34";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-35";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -9660,11 +9660,31 @@ function FamiliaApp(_ref19) {
     };
   })();
   var CATEGORIA_ORDEM = ['trabalho', 'escola', 'familia', 'pessoal'];
-  var selEvents = (events[selDateStr] || []).filter(function (e) {
-    return eventVisibleTo(e, selMember);
-  }).sort(function (a, b) {
-    return CATEGORIA_ORDEM.indexOf(a.categoria || 'familia') - CATEGORIA_ORDEM.indexOf(b.categoria || 'familia');
-  });
+  var selEvents = (function() {
+    var raw = (events[selDateStr] || []).filter(function (e) {
+      return eventVisibleTo(e, selMember);
+    }).sort(function (a, b) {
+      return CATEGORIA_ORDEM.indexOf(a.categoria || 'familia') - CATEGORIA_ORDEM.indexOf(b.categoria || 'familia');
+    });
+    // Agrupar eventos com o mesmo nome (normalizado) no mesmo dia
+    var grouped = [];
+    var seen = {};
+    raw.forEach(function(ev) {
+      var key = (ev.titulo || ev.title || '').toLowerCase().trim().replace(/\s+/g,' ');
+      if (seen[key] !== undefined) {
+        // Juntar participantes no evento já existente
+        var existing = grouped[seen[key]];
+        var pExist = existing.participantes || [];
+        var pNew = ev.participantes || [];
+        var merged = _toConsumableArray(new Set(_toConsumableArray(pExist).concat(_toConsumableArray(pNew))));
+        grouped[seen[key]] = _objectSpread(_objectSpread({}, existing), {}, { participantes: merged, _merged: true });
+      } else {
+        seen[key] = grouped.length;
+        grouped.push(ev);
+      }
+    });
+    return grouped;
+  })();
   var sharedForDay = sharedDias.filter(function (d) {
     return d.date === selDateStr;
   });
