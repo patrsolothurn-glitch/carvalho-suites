@@ -1205,6 +1205,7 @@ function FamiliaApp(_ref19) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           onClick: function onClick() {
+            setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
             setSelDay(date.getDate());
             setMainView('mes');
           },
