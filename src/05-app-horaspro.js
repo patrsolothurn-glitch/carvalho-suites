@@ -438,6 +438,10 @@ function HorasProApp(_ref9) {
     _useStateFeriasUnidade2 = _slicedToArray(_useStateFeriasUnidade, 2),
     feriasUnidade = _useStateFeriasUnidade2[0],
     setFeriasUnidade = _useStateFeriasUnidade2[1];
+  var _useStateCalPopup = (0, _react.useState)(null),
+    _useStateCalPopup2 = _slicedToArray(_useStateCalPopup, 2),
+    calPopupDate = _useStateCalPopup2[0],
+    setCalPopupDate = _useStateCalPopup2[1];
   var _useStateEditHFerias = (0, _react.useState)(false),
     _useStateEditHFerias2 = _slicedToArray(_useStateEditHFerias, 2),
     editandoHorasFeriasDisp = _useStateEditHFerias2[0],
@@ -784,7 +788,31 @@ function HorasProApp(_ref9) {
   var diasKompExtraMes = dedupedEntries.filter(function (e) {
     return e.isAuto && e.dlTipo === 'komp_extra' && e.date.startsWith(curDate.toISOString().slice(0, 7));
   }).length;
-  var saldo = horasMes - metaMes - diasFeriasMes * metaFerias - diasKompExtraMes * metaDia;
+  // Meta acumulada até hoje: soma das metas de cada dia útil que já passou
+  // este mês. Dias marcados como dia livre (férias, komp, feriado, sexta)
+  // não contribuem — a sua meta já não é exigida.
+  var diasLivresSet = new Set(dedupedEntries.filter(function (e) {
+    return e.isAuto;
+  }).map(function (e) {
+    return e.date;
+  }));
+  var metaAteHojeCalc = (function () {
+    var mesStr = curDate.toISOString().slice(0, 7);
+    var total = 0;
+    var d = new Date(mesStr + '-01T12:00:00');
+    var limiteStr = todayStr;
+    while (fmt(d) <= limiteStr && fmt(d).startsWith(mesStr)) {
+      var dStr = fmt(d);
+      var dow = d.getDay();
+      // Apenas dias úteis (seg=1 a sex=5) que não estejam marcados como dia livre
+      if (dow >= 1 && dow <= 5 && !diasLivresSet.has(dStr)) {
+        total += metaDiaPara(dStr);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return total;
+  })();
+  var saldo = horasMes - metaAteHojeCalc - diasFeriasMes * metaFerias - diasKompExtraMes * metaDia;
   // Reconciliação Jan-Abril com a Abaclick: Jan/Fev/Mar são 3 registos
   // "Total X" só de saldo (sem detalhe diário); Abril já tem dados reais
   // (sextas). Editar aqui só reparte Jan/Fev/Mar — nunca toca em Abril,
@@ -4469,112 +4497,117 @@ function HorasProApp(_ref9) {
       letterSpacing: '1.5px',
       textTransform: 'uppercase'
     }
-  }, "Calend\xE1rio & Stats")), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: H.gold,
-      fontWeight: 800,
-      fontSize: 16,
-      textAlign: 'center',
-      marginBottom: 14
+  }, "Calend\xE1rio & Stats")), (function () {
+    var calYear = menuMonth.getFullYear();
+    var calMonthIdx = menuMonth.getMonth();
+    var MESES_CAL = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    var calMonthLabel = MESES_CAL[calMonthIdx] + ' ' + calYear;
+    var calDaysInMonth = new Date(calYear, calMonthIdx + 1, 0).getDate();
+    var calFirstDowMon = (new Date(calYear, calMonthIdx, 1).getDay() + 6) % 7;
+    var calWeeks = [];
+    var calDay = 1 - calFirstDowMon;
+    while (calDay <= calDaysInMonth) {
+      var week = [];
+      for (var wi = 0; wi < 7; wi++) {
+        week.push(calDay >= 1 && calDay <= calDaysInMonth ? calDay : null);
+        calDay++;
+      }
+      calWeeks.push(week);
     }
-  }, "Junho 2026"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'grid',
-      gridTemplateColumns: '36px repeat(7,1fr)',
-      gap: 2,
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("div", null), ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(function (d) {
-    return /*#__PURE__*/React.createElement("div", {
-      key: d,
-      style: {
-        textAlign: 'center',
-        fontSize: 10,
-        fontWeight: 700,
-        color: H.gold
-      }
-    }, d);
-  })), [[23, [1, 2, 3, 4, 5, 6, 7]], [24, [8, 9, 10, 11, 12, 13, 14]], [25, [15, 16, 17, 18, 19, 20, 21]], [26, [22, 23, 24, 25, 26, 27, 28]], [27, [29, 30]]].map(function (_ref11) {
-    var _ref12 = _slicedToArray(_ref11, 2),
-      kw2 = _ref12[0],
-      ds = _ref12[1];
-    return /*#__PURE__*/React.createElement("div", {
-      key: kw2,
-      style: {
-        display: 'grid',
-        gridTemplateColumns: '36px repeat(7,1fr)',
-        gap: 2,
-        marginBottom: 4
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 9,
-        color: H.muted,
-        fontWeight: 600
-      }
-    }, kw2)), ds.map(function (d) {
-      var dStr = "2026-06-".concat(String(d).padStart(2, '0'));
-      var hasEntry = entries.some(function (e) {
-        return e.date === dStr;
-      });
-      var isToday = dStr === fmt(today);
-      var shared = sharedDias.find(function (s) {
-        return s.date === dStr;
-      });
-      var isFerias = shared && (shared.tipo === 'ferias' || shared.tipo === 'livre');
-      return /*#__PURE__*/React.createElement("div", {
-        key: d,
-        onClick: function onClick() {
-          setCurDate(new Date(dStr + 'T12:00:00'));
-          setShowMenu(false);
-        },
-        style: {
-          textAlign: 'center',
-          padding: '5px 2px',
-          borderRadius: 8,
-          background: isToday ? H.gold : isFerias ? 'rgba(220,38,38,0.12)' : 'transparent',
-          cursor: 'pointer',
-          border: isFerias && !isToday ? "1px solid rgba(220,38,38,0.35)" : hasEntry && !isToday ? "1px solid rgba(184,150,46,0.4)" : 'none'
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 12,
-          fontWeight: isToday || isFerias ? 900 : 400,
-          color: isToday ? '#fff' : isFerias ? '#DC2626' : H.text
-        }
-      }, d), isFerias && !isToday && /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 7,
-          display: 'block',
-          color: '#DC2626'
-        }
-      }, shared.tipo === 'ferias' ? '✈' : '🌿'), hasEntry && !isToday && !isFerias && /*#__PURE__*/React.createElement("div", {
-        style: {
-          width: 4,
-          height: 4,
-          background: H.gold,
-          borderRadius: '50%',
-          margin: '2px auto 0'
-        }
-      }));
-    }), Array.from({
-      length: 7 - ds.length
-    }).map(function (_, i) {
-      return /*#__PURE__*/React.createElement("div", {
-        key: 'e' + i
-      });
-    }));
-  })), /*#__PURE__*/React.createElement("p", {
+    // Cores e ícones por tipo de dia livre
+    var tipoCores = {
+      ferias:      { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.4)', color: '#3B82F6', icon: '✈️' },
+      ferias_extra:{ bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)', color: '#EF4444', icon: '✈️' },
+      komp:        { bg: 'rgba(20,184,166,0.15)', border: 'rgba(20,184,166,0.4)', color: '#14B8A6', icon: '🔁' },
+      komp_extra:  { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)', color: '#EF4444', icon: '🔁' },
+      feriado:     { bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.4)', color: '#A855F7', icon: '🎌' },
+      livre:       { bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.4)',  color: '#22C55E', icon: '🌿' },
+      sexta:       { bg: 'rgba(184,150,46,0.1)',  border: 'rgba(184,150,46,0.3)', color: H.gold,    icon: '🗓' }
+    };
+    return /*#__PURE__*/React.createElement(React.Fragment, null,
+      /*#__PURE__*/React.createElement("div", {
+        style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }
+      },
+        /*#__PURE__*/React.createElement("button", {
+          onClick: function () { setMenuMonth(function (m) { return new Date(m.getFullYear(), m.getMonth() - 1, 1); }); },
+          style: { width: 32, height: 32, borderRadius: '50%', border: "1px solid ".concat(H.border), background: H.surface2, color: H.gold, fontSize: 16, fontWeight: 700, cursor: 'pointer' }
+        }, "‹"),
+        /*#__PURE__*/React.createElement("p", { style: { color: H.gold, fontWeight: 800, fontSize: 16 } }, calMonthLabel),
+        /*#__PURE__*/React.createElement("button", {
+          onClick: function () { setMenuMonth(function (m) { return new Date(m.getFullYear(), m.getMonth() + 1, 1); }); },
+          style: { width: 32, height: 32, borderRadius: '50%', border: "1px solid ".concat(H.border), background: H.surface2, color: H.gold, fontSize: 16, fontWeight: 700, cursor: 'pointer' }
+        }, "›")
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { marginBottom: 16 } },
+        /*#__PURE__*/React.createElement("div", { style: { display: 'grid', gridTemplateColumns: '28px repeat(7,1fr)', gap: 2, marginBottom: 6 } },
+          /*#__PURE__*/React.createElement("div", null),
+          ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(function (d) {
+            return /*#__PURE__*/React.createElement("div", { key: d, style: { textAlign: 'center', fontSize: 10, fontWeight: 700, color: H.gold } }, d);
+          })
+        ),
+        calWeeks.map(function (week, wi) {
+          var firstReal = week.find(function (d) { return d !== null; });
+          var kwN = getKW(new Date(calYear, calMonthIdx, firstReal, 12));
+          return /*#__PURE__*/React.createElement("div", { key: wi, style: { display: 'grid', gridTemplateColumns: '28px repeat(7,1fr)', gap: 2, marginBottom: 4 } },
+            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'center' } },
+              /*#__PURE__*/React.createElement("span", { style: { fontSize: 9, color: H.muted, fontWeight: 600 } }, kwN)
+            ),
+            week.map(function (d, di) {
+              if (d === null) return /*#__PURE__*/React.createElement("div", { key: 'e'+di });
+              var dStr = "".concat(calYear, "-").concat(String(calMonthIdx+1).padStart(2,'0'), "-").concat(String(d).padStart(2,'0'));
+              var isToday = dStr === fmt(today);
+              var autoEntry = dedupedEntries.find(function (e) { return e.date === dStr && e.isAuto; });
+              var dlTipoDay = autoEntry ? autoEntry.dlTipo : null;
+              var hasWork = dedupedEntries.some(function (e) { return e.date === dStr && !e.isAuto; });
+              var tc = dlTipoDay ? tipoCores[dlTipoDay] : null;
+              var isCalPopup = calPopupDate === dStr;
+              return /*#__PURE__*/React.createElement("div", { key: d, style: { position: 'relative' } },
+                /*#__PURE__*/React.createElement("div", {
+                  onClick: function () {
+                    if (isCalPopup) { setCalPopupDate(null); return; }
+                    var dow = new Date(dStr+'T12:00:00').getDay();
+                    if (dow === 0 || dow === 6) { setCurDate(new Date(dStr+'T12:00:00')); setShowMenu(false); return; }
+                    setCalPopupDate(dStr);
+                  },
+                  style: {
+                    textAlign: 'center', padding: '4px 1px', borderRadius: 7, cursor: 'pointer',
+                    background: isToday ? H.gold : tc ? tc.bg : 'transparent',
+                    border: isToday ? 'none' : tc ? "1px solid ".concat(tc.border) : hasWork ? "1px solid rgba(184,150,46,0.4)" : 'none'
+                  }
+                },
+                  /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: isToday || tc ? 800 : 400, color: isToday ? '#fff' : tc ? tc.color : H.text, display: 'block' } }, d),
+                  tc && !isToday && /*#__PURE__*/React.createElement("span", { style: { fontSize: 8, display: 'block', lineHeight: 1 } }, tc.icon),
+                  !tc && hasWork && !isToday && /*#__PURE__*/React.createElement("div", { style: { width: 4, height: 4, background: H.gold, borderRadius: '50%', margin: '1px auto 0' } })
+                ),
+                isCalPopup && /*#__PURE__*/React.createElement("div", {
+                  style: { position: 'absolute', top: '110%', left: '50%', transform: 'translateX(-50%)', zIndex: 99, background: H.surface, border: "1px solid ".concat(H.border), borderRadius: 12, padding: 8, minWidth: 130, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }
+                },
+                  /*#__PURE__*/React.createElement("p", { style: { fontSize: 10, color: H.muted, fontWeight: 700, marginBottom: 6, textAlign: 'center' } }, dStr.slice(5).replace('-','/')),
+                  [
+                    { tipo: 'ferias', label: '✈️ Férias' },
+                    { tipo: 'komp',   label: '🔁 Komp.' },
+                    { tipo: 'feriado',label: '🎌 Feriado' },
+                    { tipo: 'livre',  label: '🌿 Dia livre' },
+                    { tipo: '_ir',    label: '📅 Ver dia' }
+                  ].map(function (opt) {
+                    return /*#__PURE__*/React.createElement("button", {
+                      key: opt.tipo,
+                      onClick: function () {
+                        setCalPopupDate(null);
+                        if (opt.tipo === '_ir') { setCurDate(new Date(dStr+'T12:00:00')); setShowMenu(false); return; }
+                        addDiasLivresRange(dStr, dStr, opt.tipo);
+                      },
+                      style: { display: 'block', width: '100%', background: 'none', border: 'none', color: H.text, fontSize: 12, padding: '5px 8px', textAlign: 'left', cursor: 'pointer', borderRadius: 7 }
+                    }, opt.label);
+                  })
+                )
+              );
+            })
+          );
+        })
+      )
+    );
+  })(), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.gold,
       fontWeight: 800,
