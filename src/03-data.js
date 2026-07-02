@@ -60,15 +60,17 @@ var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbyHJqsrTjRL4ypgSv6822J
 
 function backupParaDrive(tabela, dados) {
   try {
+    // Usa text/plain para evitar preflight CORS (Google Apps Script aceita ambos)
+    var blob = new Blob([JSON.stringify({
+      tabela: tabela,
+      dados: dados,
+      data: new Date().toISOString(),
+      projeto: 'carvalho-suites'
+    })], { type: 'text/plain' });
     fetch(BACKUP_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tabela: tabela,
-        dados: dados,
-        data: new Date().toISOString(),
-        projeto: 'carvalho-suites'
-      })
+      body: blob,
+      mode: 'no-cors'
     }).catch(function() {});
   } catch(e) {}
 }
