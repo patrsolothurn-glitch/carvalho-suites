@@ -501,8 +501,7 @@ function FamiliaApp(_ref19) {
           created_by: currentMemberId
         };
       });
-      window.supabaseClient.from('family_events').insert(rows).then(function () { window.supabaseClient.from('family_events').select('*').then(function(r){ if(r.data) backupParaDrive('family_events', r.data); });
-        loadFamilyEvents();
+      window.supabaseClient.from('family_events').insert(rows).then(function () { loadFamilyEvents();
         try {
           getEligibleProfileIds('familia', null).then(function (ids) {
             if (!ids.length) return;
@@ -1622,7 +1621,7 @@ function FamiliaApp(_ref19) {
     }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (window.supabaseClient && ev.id) {
-          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { window.supabaseClient.from('family_events').select('*').then(function(r){ if(r.data) backupParaDrive('family_events', r.data); }); }).catch(function () {});
+          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { }).catch(function () {});
           try {
             getEligibleProfileIds('familia', null).then(function (ids) {
               if (!ids.length) return;
