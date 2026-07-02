@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T19:42:17.272Z
+  Gerado em: 2026-07-02T19:47:09.473Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-28";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-29";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18717,22 +18717,35 @@ var SubbyApp = function SubbyApp(_ref) {
           )
         ),
 
-        // Emoji rápido
-        /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 } },
-          ['🎬','🎵','📺','☁️','💻','📱','🎮','📰','💪','❤️','🛡️','🌐'].map(function(em) {
-            return /*#__PURE__*/React.createElement("button", {
-              key:em, onClick:function(){ setFIcone(em); setFIconeManual(true); },
-              style:{ background:fIcone===em?C+'33':'transparent', border:'1px solid '+(fIcone===em?C:H.border), borderRadius:8, padding:'4px 6px', fontSize:18, cursor:'pointer' }
-            }, em);
+        // Seletor de emojis por categoria
+        /*#__PURE__*/React.createElement("div", { style:{ marginBottom:12 } },
+          [
+            { label:'Media', emojis:['🎬','🎵','📺','📻','🎙️','🎧','🎼','🎭','📸','🎪'] },
+            { label:'Tech', emojis:['💻','📱','🖥️','☁️','🌐','📡','💾','🔌','🤖','⌨️'] },
+            { label:'Vida', emojis:['❤️','💪','🏃','🍕','🛒','✈️','🏠','🚗','📚','🎓'] },
+            { label:'Negócio', emojis:['💼','💳','🏦','💰','📊','🔒','🛡️','📧','📋','🔔'] },
+            { label:'Lazer', emojis:['🎮','⚽','🏋️','🎯','🧩','🌿','😀','🎸','♟️','🎲'] }
+          ].map(function(cat) {
+            return /*#__PURE__*/React.createElement("div", { key:cat.label, style:{ marginBottom:8 } },
+              /*#__PURE__*/React.createElement("p", { style:{ fontSize:10, color:H.muted, fontWeight:700, marginBottom:4, textTransform:'uppercase' } }, cat.label),
+              /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:4, flexWrap:'wrap' } },
+                cat.emojis.map(function(em) {
+                  return /*#__PURE__*/React.createElement("button", {
+                    key:em, onClick:function(){ setFIcone(em); setFIconeManual(true); },
+                    style:{ background:fIcone===em?C+'33':'transparent', border:'1px solid '+(fIcone===em?C:H.border), borderRadius:8, padding:'5px 7px', fontSize:20, cursor:'pointer' }
+                  }, em);
+                })
+              )
+            );
           }),
           fIconeManual && /*#__PURE__*/React.createElement("button", {
             onClick:function(){ setFIconeManual(false); handleNomeChange(fNome); },
-            style:{ background:'transparent', border:'1px solid '+H.border, borderRadius:8, padding:'4px 8px', color:H.muted, fontSize:11, cursor:'pointer' }
-          }, "↺ Auto")
+            style:{ background:'transparent', border:'1px solid '+H.border, borderRadius:8, padding:'5px 10px', color:H.muted, fontSize:12, cursor:'pointer', marginTop:4 }
+          }, "↺ Repor logo automático")
         ),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Emoji personalizado"),
-        /*#__PURE__*/React.createElement("input", { style:inputStyle, value:fIconeManual&&!fIcone.startsWith('__logo__')?fIcone:'', onChange:function(e){ setFIcone(e.target.value); setFIconeManual(true); }, placeholder:"Ou escreve um emoji aqui" }),
+        /*#__PURE__*/React.createElement("input", { style:inputStyle, value:fIconeManual&&!fIcone.startsWith('__logo__')?fIcone:'', onChange:function(e){ setFIcone(e.target.value); setFIconeManual(true); }, placeholder:"Ou escreve qualquer emoji aqui" }),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Categoria"),
         /*#__PURE__*/React.createElement("input", { style:inputStyle, value:fCat, onChange:function(e){setFCat(e.target.value);}, placeholder:"ex: Streaming, Cloud, Internet..." }),
