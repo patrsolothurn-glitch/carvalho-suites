@@ -116,4 +116,11 @@ var APPS_DATA = [{
   desc: 'Escola do Lucas / Liam',
   badge: null,
   color: '#A855F7'
+}, {
+  id: 'abo',
+  emoji: '💳',
+  name: 'Carvalho Abo Kontrolle',
+  desc: 'Gestor de subscrições',
+  badge: null,
+  color: '#7C3AED'
 }];
