@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T20:59:31.689Z
+  Gerado em: 2026-07-02T21:03:08.844Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-40";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-41";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -265,28 +265,6 @@ var PERMS_DEF = {
 };
 
 // ── FONT ────────────────────────────────────────────────────────────
-
-// ── BACKUP AUTOMÁTICO GOOGLE DRIVE ───────────────────────────────────
-var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbwAgEEVy6CoJRh97PGnUET6jrAffzl0ObKbs20K6oUWBK6hXi4i7YviBKm6_8Iq_m39/exec';
-
-function backupParaDrive(tabela, dados) {
-  try {
-    // URLSearchParams + no-cors: request simples sem preflight CORS,
-    // o servidor recebe e guarda — o browser nao le a resposta (opaca), que e OK
-    var params = new URLSearchParams();
-    params.append('payload', JSON.stringify({
-      tabela: tabela,
-      dados: dados,
-      data: new Date().toISOString(),
-      projeto: 'carvalho-suites'
-    }));
-    fetch(BACKUP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: params
-    }).catch(function() {});
-  } catch(e) {}
-}
 
 function useFont() {
   (0, _react.useEffect)(function () {
@@ -1235,11 +1213,7 @@ function HorasProApp(_ref9) {
       validated: !!e.validado
     }).then(function () {
       loadEntries();
-      // Backup automático
-      window.supabaseClient.from('horas_entries').select('*').then(function(r) {
-        if (r.data) backupParaDrive('horas_entries', r.data);
-      });
-    }).catch(function () {});
+      }).catch(function () {});
   };
   var fmt = function fmt(d) {
     return d.toISOString().split('T')[0];
@@ -5713,8 +5687,7 @@ function AgendaProApp(_ref13) {
         return x.id !== monteurId;
       });
     });
-    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) { window.supabaseClient.from('agenda_monteurs').select('*').then(function(r){ if(r.data) backupParaDrive('agenda_monteurs', r.data); });
-      if (res.error) {
+    window.supabaseClient.from('agenda_monteurs').delete().eq('id', monteurId).then(function (res) { if (res.error) {
         setMonteurs(prevList);
         setMonteurSaveErr('Erro ao apagar: ' + res.error.message);
       }
@@ -5999,8 +5972,7 @@ function AgendaProApp(_ref13) {
         return x.id !== projId;
       });
     });
-    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) { window.supabaseClient.from('horas_projects').select('*').then(function(r){ if(r.data) backupParaDrive('horas_projects', r.data); });
-      if (res.error) {
+    window.supabaseClient.from('horas_projects').delete().eq('id', projId).then(function (res) { if (res.error) {
         setProjList(prevList);
         setProjManageErr('Erro ao apagar: ' + res.error.message);
       }
@@ -9769,8 +9741,7 @@ function FamiliaApp(_ref19) {
           created_by: currentMemberId
         };
       });
-      window.supabaseClient.from('family_events').insert(rows).then(function () { window.supabaseClient.from('family_events').select('*').then(function(r){ if(r.data) backupParaDrive('family_events', r.data); });
-        loadFamilyEvents();
+      window.supabaseClient.from('family_events').insert(rows).then(function () { loadFamilyEvents();
         try {
           getEligibleProfileIds('familia', null).then(function (ids) {
             if (!ids.length) return;
@@ -10890,7 +10861,7 @@ function FamiliaApp(_ref19) {
     }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (window.supabaseClient && ev.id) {
-          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { window.supabaseClient.from('family_events').select('*').then(function(r){ if(r.data) backupParaDrive('family_events', r.data); }); }).catch(function () {});
+          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { }).catch(function () {});
           try {
             getEligibleProfileIds('familia', null).then(function (ids) {
               if (!ids.length) return;
@@ -12239,8 +12210,7 @@ function NutriguimaApp(_ref29) {
             emoji: p.emoji,
             cat: p.cat,
             stock: stock[p.id] || 0
-          }).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+          }).then(function () { }).catch(function () {});
         });
       }
     }).catch(function () {});
@@ -12274,8 +12244,7 @@ function NutriguimaApp(_ref29) {
         emoji: novoEmoji,
         cat: novoCat,
         stock: 0
-      }).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+      }).then(function () { }).catch(function () {});
     }
     setNovoEmoji('💊');
     setNovoCat('Proteína');
@@ -12295,8 +12264,7 @@ function NutriguimaApp(_ref29) {
       return c;
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () { }).catch(function () {});
     }
   };
   var filtered = products.filter(function (p) {
@@ -13378,8 +13346,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+            }).eq('id', p.id).then(function () { }).catch(function () {});
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -13413,8 +13380,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+            }).eq('id', p.id).then(function () { }).catch(function () {});
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -14355,12 +14321,7 @@ function EscolarApp(_ref31) {
         resp_email: resp.email || ''
       }).then(logIns('perfil'));
     }).catch(function (e) { console.warn('[escolar] erro perfil:', e); }));
-    return Promise.all(ps).then(function() {
-      // Backup automático Google Drive
-      ['escolar_horario','escolar_disciplinas','escolar_notas','escolar_tpc'].forEach(function(t) {
-        window.supabaseClient.from(t).select('*').then(function(r){ if(r.data && r.data.length) backupParaDrive(t, r.data); });
-      });
-    });
+    return Promise.all(ps);
   };
   var savePerfilOnly = function savePerfilOnly(key, data) {
     if (!window.supabaseClient) return;
@@ -18573,10 +18534,6 @@ var SubbyApp = function SubbyApp(_ref) {
       : window.supabaseClient.from(TABLE).insert(row);
     op.then(function() {
       setShowForm(false); resetForm();
-      // Backup automático para Google Drive
-      window.supabaseClient.from(TABLE).select('*').eq('owner', owner).then(function(r) {
-        if (r.data) backupParaDrive('subscriptions', r.data);
-      });
       loadSubs();
       // Push notification
       var msg = editId ? 'Subscrição actualizada: ' + fNome.trim() : 'Nova subscrição: ' + fNome.trim();
