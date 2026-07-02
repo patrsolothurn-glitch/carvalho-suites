@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T19:40:09.331Z
+  Gerado em: 2026-07-02T19:42:17.272Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-27";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-28";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18377,6 +18377,7 @@ function subbyValorMensalEUR(sub) {
 
 var SubbyApp = function SubbyApp(_ref) {
   var profile = _ref.profile;
+  var onBack = _ref.onBack || function() {};
   var H = T;
   var owner = (profile && profile.member_id) || 'patricio';
 
@@ -18583,6 +18584,13 @@ var SubbyApp = function SubbyApp(_ref) {
 
     // ── Cabeçalho totais ──
     /*#__PURE__*/React.createElement("div", { style: { padding:'16px 16px 0' } },
+      /*#__PURE__*/React.createElement("div", { style: { display:'flex', alignItems:'center', gap:10, marginBottom:14 } },
+        /*#__PURE__*/React.createElement("button", {
+          onClick: onBack,
+          style: { background:'none', border:'1px solid '+H.border, borderRadius:10, padding:'6px 12px', color:H.muted, fontSize:18, cursor:'pointer', flexShrink:0 }
+        }, "‹"),
+        /*#__PURE__*/React.createElement("p", { style: { fontWeight:800, fontSize:16, color:C } }, "💳 Abo Kontrolle")
+      ),
       /*#__PURE__*/React.createElement("div", { style: { display:'flex', gap:10, marginBottom:14 } },
         /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border } },
           /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:10, fontWeight:700, textTransform:'uppercase' } }, "Por mês"),
@@ -20130,7 +20138,7 @@ function CarvalhoSuite() {
     if (activeApp === 'nutri') return /*#__PURE__*/React.createElement(NutriguimaApp, {
       onBack: goBack
     });
-    if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile });
+    if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
