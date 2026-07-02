@@ -109,8 +109,7 @@ function NutriguimaApp(_ref29) {
             emoji: p.emoji,
             cat: p.cat,
             stock: stock[p.id] || 0
-          }).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+          }).then(function () { }).catch(function () {});
         });
       }
     }).catch(function () {});
@@ -144,8 +143,7 @@ function NutriguimaApp(_ref29) {
         emoji: novoEmoji,
         cat: novoCat,
         stock: 0
-      }).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+      }).then(function () { }).catch(function () {});
     }
     setNovoEmoji('💊');
     setNovoCat('Proteína');
@@ -165,8 +163,7 @@ function NutriguimaApp(_ref29) {
       return c;
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () { }).catch(function () {});
     }
   };
   var filtered = products.filter(function (p) {
@@ -1248,8 +1245,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+            }).eq('id', p.id).then(function () { }).catch(function () {});
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -1283,8 +1279,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () {
-        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
+            }).eq('id', p.id).then(function () { }).catch(function () {});
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
