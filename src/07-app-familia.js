@@ -1637,8 +1637,8 @@ function FamiliaApp(_ref19) {
         }
         return setEvents(function (p) {
           var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (_, j) {
-            return j !== i;
+          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
+            return item.id !== ev.id;
           });
           return d;
         });
@@ -1887,7 +1887,11 @@ function FamiliaApp(_ref19) {
           setEvents(function (p) {
             var d = _objectSpread({}, p);
             var arr = _toConsumableArray(d[selDateStr] || []);
-            arr[i] = novo ? _objectSpread(_objectSpread({}, arr[i]), novo) : prevEv;
+            var idx = arr.findIndex(function (item) {
+              return item.id === ev.id;
+            });
+            if (idx === -1) idx = i;
+            arr[idx] = novo ? _objectSpread(_objectSpread({}, arr[idx]), novo) : prevEv;
             d[selDateStr] = arr;
             return d;
           });
