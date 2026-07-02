@@ -59,14 +59,21 @@ function isInQuietHours(qs, qe) {
   if (s < e) return cur >= s && cur < e;
   return cur >= s || cur < e; // intervalo atravessa a meia-noite
 }
+// Mapa appId interno → permissão em allowed_apps (quando diferem)
+var PUSH_APPID_TO_PERM = { agendapr: 'agenda' };
+
 function getEligibleProfileIds(appId, onlyMemberId) {
   if (!window.supabaseClient) return Promise.resolve([]);
-  var q = window.supabaseClient.from('profiles').select('id, notification_prefs, disabled, member_id');
+  var permId = PUSH_APPID_TO_PERM[appId] || appId;
+  var q = window.supabaseClient.from('profiles').select('id, notification_prefs, disabled, member_id, allowed_apps, is_admin');
   if (onlyMemberId) q = q.eq('member_id', onlyMemberId);
   return q.then(function (res) {
     var rows = res.data || [];
     return rows.filter(function (p) {
       if (p.disabled) return false;
+      // Verificar acesso à app
+      var allowed = p.allowed_apps || [];
+      if (!p.is_admin && allowed.indexOf(permId) === -1) return false;
       var prefs = p.notification_prefs || {};
       var disabledApps = prefs.disabledApps || [];
       if (disabledApps.indexOf(appId) !== -1) return false;
@@ -117,10 +124,10 @@ var APPS_DATA = [{
   badge: null,
   color: '#A855F7'
 }, {
-  id: 'abo',
+  id: 'subby',
   emoji: '💳',
   name: 'Carvalho Abo Kontrolle',
   desc: 'Gestor de subscrições',
   badge: null,
-  color: '#7C3AED'
+  color: '#6C5CE7'
 }];
