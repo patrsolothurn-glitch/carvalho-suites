@@ -396,11 +396,31 @@ function FamiliaApp(_ref19) {
     };
   })();
   var CATEGORIA_ORDEM = ['trabalho', 'escola', 'familia', 'pessoal'];
-  var selEvents = (events[selDateStr] || []).filter(function (e) {
-    return eventVisibleTo(e, selMember);
-  }).sort(function (a, b) {
-    return CATEGORIA_ORDEM.indexOf(a.categoria || 'familia') - CATEGORIA_ORDEM.indexOf(b.categoria || 'familia');
-  });
+  var selEvents = (function() {
+    var raw = (events[selDateStr] || []).filter(function (e) {
+      return eventVisibleTo(e, selMember);
+    }).sort(function (a, b) {
+      return CATEGORIA_ORDEM.indexOf(a.categoria || 'familia') - CATEGORIA_ORDEM.indexOf(b.categoria || 'familia');
+    });
+    // Agrupar eventos com o mesmo nome (normalizado) no mesmo dia
+    var grouped = [];
+    var seen = {};
+    raw.forEach(function(ev) {
+      var key = (ev.titulo || ev.title || '').toLowerCase().trim().replace(/\s+/g,' ');
+      if (seen[key] !== undefined) {
+        // Juntar participantes no evento já existente
+        var existing = grouped[seen[key]];
+        var pExist = existing.participantes || [];
+        var pNew = ev.participantes || [];
+        var merged = _toConsumableArray(new Set(_toConsumableArray(pExist).concat(_toConsumableArray(pNew))));
+        grouped[seen[key]] = _objectSpread(_objectSpread({}, existing), {}, { participantes: merged, _merged: true });
+      } else {
+        seen[key] = grouped.length;
+        grouped.push(ev);
+      }
+    });
+    return grouped;
+  })();
   var sharedForDay = sharedDias.filter(function (d) {
     return d.date === selDateStr;
   });
