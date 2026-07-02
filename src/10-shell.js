@@ -306,25 +306,6 @@ function CarvalhoSuite() {
       setEscolarPendentes(pendentes);
     }).catch(function () {});
   }, [isAdmin, profile && profile.member_id]);
-  var _useStateAbosPendentes = (0, _react.useState)(0),
-    _useStateAbosPendentes2 = _slicedToArray(_useStateAbosPendentes, 2),
-    abosPendentes = _useStateAbosPendentes2[0],
-    setAbosPendentes = _useStateAbosPendentes2[1];
-  (0, _react.useEffect)(function () {
-    if (!window.supabaseClient) { setAbosPendentes(0); return; }
-    window.supabaseClient.from('subscriptions').select('proxima_cobranca,lembrete_dias,ativa,visto_ate_data').eq('ativa', true).then(function (res) {
-      if (res.error || !res.data) return;
-      var hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
-      var pendentes = res.data.filter(function (s) {
-        if (s.visto_ate_data === s.proxima_cobranca) return false;
-        var alvo = new Date(s.proxima_cobranca);
-        var dias = Math.ceil((alvo - hoje) / 86400000);
-        return dias <= (s.lembrete_dias != null ? s.lembrete_dias : 3);
-      }).length;
-      setAbosPendentes(pendentes);
-    }).catch(function () {});
-  }, [isAdmin]);
   var _useStateNotifData = (0, _react.useState)([]),
     _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
     notifItems = _useStateNotifData2[0],
@@ -534,7 +515,6 @@ function CarvalhoSuite() {
   var totalBadge = unreadNotifs.length;
   var dynamicBadgeFor = function dynamicBadgeFor(appId) {
     if (appId === 'escolar') return escolarPendentes > 0 ? String(escolarPendentes) : null;
-    if (appId === 'subby') return abosPendentes > 0 ? String(abosPendentes) : null;
     if (appId === 'agenda' || appId === 'familia') {
       var n = unreadNotifs.filter(function (it) {
         return it.appId === appId;
@@ -1335,9 +1315,6 @@ function CarvalhoSuite() {
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
     }, sharedProps));
-    if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, {
-      onBack: goBack
-    });
   }
 
   // ── LOGIN ──
@@ -1973,9 +1950,9 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }, { id: 'subby', permApp: 'subby', emoji: '💳', name: 'Carvalho Abo Kontrolle', active: true }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
-      return isAdmin || allowed.indexOf(app.permApp) !== -1;
+      return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
       var disabledApps = (profile && profile.notification_prefs && profile.notification_prefs.disabledApps) || [];
       var on = disabledApps.indexOf(app.id) === -1;
@@ -1997,9 +1974,9 @@ function CarvalhoSuite() {
           })
         )
       );
-    })), [{ id: 'agendapr', permApp: 'agenda' }, { id: 'familia', permApp: 'familia' }, { id: 'horaspr', permApp: 'horaspr' }, { id: 'nutri', permApp: 'nutri' }, { id: 'escolar', permApp: 'escolar' }, { id: 'subby', permApp: 'subby' }].filter(function (app) {
+    })), [{ id: 'agendapr', permApp: 'agenda' }, { id: 'familia', permApp: 'familia' }, { id: 'horaspr', permApp: 'horaspr' }, { id: 'nutri', permApp: 'nutri' }, { id: 'escolar', permApp: 'escolar' }].filter(function (app) {
       var allowed = (profile && profile.allowed_apps) || [];
-      return isAdmin || allowed.indexOf(app.permApp) !== -1;
+      return allowed.indexOf(app.permApp) !== -1;
     }).length === 0 && React.createElement("p", {
       style: { color: T.muted, fontSize: 12.5, textAlign: 'center', padding: '8px 0', marginBottom: 16 }
     }, "Não tens nenhuma app com avisos disponível."),
@@ -2073,7 +2050,7 @@ function CarvalhoSuite() {
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6 }
     }, [{ id: null, emoji: '🏠', name: 'Início (todas as apps)' }].concat(APPS_DATA.filter(function (app) {
-      return isAdmin || !profile || !profile.allowed_apps || profile.allowed_apps.indexOf(app.id) !== -1;
+      return !profile || !profile.allowed_apps || profile.allowed_apps.indexOf(app.id) !== -1;
     }).map(function (app) {
       return { id: app.id, emoji: app.emoji, name: app.name };
     })).map(function (opt, oi) {
