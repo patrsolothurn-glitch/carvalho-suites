@@ -47,7 +47,7 @@ var USERS_DEF = [{
   pwd: 'Liam123'
 }];
 var PERMS_DEF = {
-  patricio: ['horaspr', 'agenda', 'familia', 'nutri', 'escolar'],
+  patricio: ['horaspr', 'agenda', 'familia', 'nutri', 'escolar', 'abo'],
   esposa: ['familia'],
   lucas: ['familia', 'escolar'],
   liam: ['familia']
