@@ -54,25 +54,3 @@ var PERMS_DEF = {
 };
 
 // ── FONT ────────────────────────────────────────────────────────────
-
-// ── BACKUP AUTOMÁTICO GOOGLE DRIVE ───────────────────────────────────
-var BACKUP_URL = 'https://script.google.com/macros/s/AKfycbwAgEEVy6CoJRh97PGnUET6jrAffzl0ObKbs20K6oUWBK6hXi4i7YviBKm6_8Iq_m39/exec';
-
-function backupParaDrive(tabela, dados) {
-  try {
-    // URLSearchParams + no-cors: request simples sem preflight CORS,
-    // o servidor recebe e guarda — o browser nao le a resposta (opaca), que e OK
-    var params = new URLSearchParams();
-    params.append('payload', JSON.stringify({
-      tabela: tabela,
-      dados: dados,
-      data: new Date().toISOString(),
-      projeto: 'carvalho-suites'
-    }));
-    fetch(BACKUP_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: params
-    }).catch(function() {});
-  } catch(e) {}
-}
