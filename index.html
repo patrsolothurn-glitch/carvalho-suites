@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-02T20:26:07.290Z
+  Gerado em: 2026-07-02T20:27:34.529Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-33";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-34";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12215,7 +12215,8 @@ function NutriguimaApp(_ref29) {
             emoji: p.emoji,
             cat: p.cat,
             stock: stock[p.id] || 0
-          }).then(function () {}).catch(function () {});
+          }).then(function () {
+        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
         });
       }
     }).catch(function () {});
@@ -12249,7 +12250,8 @@ function NutriguimaApp(_ref29) {
         emoji: novoEmoji,
         cat: novoCat,
         stock: 0
-      }).then(function () {}).catch(function () {});
+      }).then(function () {
+        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
     }
     setNovoEmoji('💊');
     setNovoCat('Proteína');
@@ -12269,7 +12271,8 @@ function NutriguimaApp(_ref29) {
       return c;
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () {}).catch(function () {});
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () {
+        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
     }
   };
   var filtered = products.filter(function (p) {
@@ -13351,7 +13354,8 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () {}).catch(function () {});
+            }).eq('id', p.id).then(function () {
+        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -13385,7 +13389,8 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () {}).catch(function () {});
+            }).eq('id', p.id).then(function () {
+        window.supabaseClient.from('nutri_products').select('*').then(function(r){ if(r.data) backupParaDrive('nutri_products', r.data); });}).catch(function () {});
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
