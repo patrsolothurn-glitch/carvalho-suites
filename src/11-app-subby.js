@@ -345,7 +345,8 @@ var SubbyApp = function SubbyApp(_ref) {
 
         return /*#__PURE__*/React.createElement("div", {
           key: sub.id,
-          style:{ background:H.surface, borderRadius:14, padding:'12px 14px', marginBottom:10, border:'1px solid '+(urgente?'rgba(239,68,68,0.4)':H.border) }
+          onClick:function(){ abrirEditar(sub); },
+          style:{ background:H.surface, borderRadius:14, padding:'12px 14px', marginBottom:10, border:'1px solid '+(urgente?'rgba(239,68,68,0.4)':H.border), cursor:'pointer' }
         },
           /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:10, alignItems:'flex-start' } },
             // Ícone
@@ -371,7 +372,7 @@ var SubbyApp = function SubbyApp(_ref) {
                   sub.proxima_cobranca, " (em ", dias, "d)"
                 ),
                 urgente && /*#__PURE__*/React.createElement("button", {
-                  onClick:function(){ marcarVisto(sub); },
+                  onClick:function(e){ e.stopPropagation(); marcarVisto(sub); },
                   style:{ background:'rgba(34,197,94,0.15)', border:'1px solid rgba(34,197,94,0.4)', borderRadius:8, padding:'2px 8px', color:H.green, fontSize:11, fontWeight:700, cursor:'pointer' }
                 }, "✓ Vi")
               )
@@ -384,11 +385,11 @@ var SubbyApp = function SubbyApp(_ref) {
               ),
               /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:6, marginTop:6, justifyContent:'flex-end' } },
                 /*#__PURE__*/React.createElement("button", {
-                  onClick:function(){ abrirEditar(sub); },
+                  onClick:function(e){ e.stopPropagation(); abrirEditar(sub); },
                   style:{ background:H.surface2, border:'1px solid '+H.border, borderRadius:8, padding:'4px 8px', color:H.muted, fontSize:14, cursor:'pointer' }
                 }, "✏️"),
                 /*#__PURE__*/React.createElement("button", {
-                  onClick:function(){ apagar(sub.id, sub.nome); },
+                  onClick:function(e){ e.stopPropagation(); apagar(sub.id, sub.nome); },
                   style:{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:8, padding:'4px 8px', color:H.red, fontSize:14, cursor:'pointer' }
                 }, "🗑")
               )
