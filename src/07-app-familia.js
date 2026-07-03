@@ -668,7 +668,20 @@ function FamiliaApp(_ref19) {
       fontWeight: 700,
       cursor: 'pointer'
     }
-  }, "\uD83D\uDCCA")), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setMainView('arquivo');
+    },
+    style: {
+      background: mainView === 'arquivo' ? F.coral : 'transparent',
+      border: 'none',
+      padding: '7px 14px',
+      color: mainView === 'arquivo' ? '#fff' : F.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\uD83D\uDCE6")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setShowAdd(true);
     },
@@ -2493,7 +2506,110 @@ function FamiliaApp(_ref19) {
         }, "\xB7 ", ev.nota))));
       }));
     });
-  }()), showAdd && /*#__PURE__*/React.createElement("div", {
+  }()), mainView === 'arquivo' && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '14px 16px 20px'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: F.text,
+      fontWeight: 900,
+      fontSize: 16,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCE6 Arquivo \u2014 todos os eventos feitos"), (function () {
+    var todos = [];
+    Object.keys(eventsArquivados).sort().forEach(function (d) {
+      (eventsArquivados[d] || []).forEach(function (ev) {
+        todos.push({ d: d, ev: ev });
+      });
+    });
+    if (!todos.length) {
+      return /*#__PURE__*/React.createElement("p", {
+        style: {
+          color: F.muted,
+          fontSize: 13,
+          textAlign: 'center',
+          padding: '30px 0'
+        }
+      }, "Ainda n\xE3o h\xE1 eventos arquivados.");
+    }
+    return todos.map(function (item, i) {
+      var d = item.d, ev = item.ev;
+      var dataFmt = new Date(d + 'T00:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+      var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
+      var m = members.find(function (x) { return x.id === firstSpecific; });
+      var whoLabel = firstSpecific ? ((m === null || m === void 0 ? void 0 : m.name) || '') : 'Toda a fam\xEDlia';
+      return /*#__PURE__*/React.createElement(FCard, {
+        key: i,
+        style: {
+          padding: '12px 14px',
+          marginBottom: 8,
+          borderLeft: "4px solid ".concat(ev.color),
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 20, flexShrink: 0 }
+      }, ev.emoji), /*#__PURE__*/React.createElement("div", {
+        style: { flex: 1, minWidth: 0 }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: { fontWeight: 800, fontSize: 14, color: F.text, textDecoration: 'line-through', opacity: 0.75 }
+      }, ev.t), /*#__PURE__*/React.createElement("p", {
+        style: { fontSize: 11, color: F.muted, marginTop: 1 }
+      }, dataFmt, " \xB7 ", whoLabel)), /*#__PURE__*/React.createElement("div", {
+        style: { display: 'flex', gap: 6, flexShrink: 0 }
+      }, /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
+          if (window.supabaseClient && ev.id) {
+            window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
+          }
+          setEventsArquivados(function (p) {
+            var next = _objectSpread({}, p);
+            next[d] = (next[d] || []).filter(function (it) { return it.id !== ev.id; });
+            return next;
+          });
+          setEvents(function (p) {
+            var next = _objectSpread({}, p);
+            next[d] = [].concat(_toConsumableArray(next[d] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]);
+            return next;
+          });
+        },
+        title: 'Restaurar',
+        style: {
+          background: "".concat(F.green, "12"),
+          border: "1px solid ".concat(F.green, "33"),
+          borderRadius: 8,
+          padding: '6px 8px',
+          cursor: 'pointer',
+          color: F.green,
+          fontSize: 13
+        }
+      }, "\u21A9\uFE0F"), /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
+          if (window.supabaseClient && ev.id) {
+            window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () {}).catch(function () {});
+          }
+          setEventsArquivados(function (p) {
+            var next = _objectSpread({}, p);
+            next[d] = (next[d] || []).filter(function (it) { return it.id !== ev.id; });
+            return next;
+          });
+        },
+        title: 'Apagar definitivamente',
+        style: {
+          background: 'rgba(220,38,38,0.08)',
+          border: '1px solid rgba(220,38,38,0.15)',
+          borderRadius: 8,
+          padding: '6px 8px',
+          cursor: 'pointer',
+          color: F.red,
+          fontSize: 13
+        }
+      }, "\uD83D\uDDD1\uFE0F")));
+    });
+  })()), showAdd && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
       top: 0,
