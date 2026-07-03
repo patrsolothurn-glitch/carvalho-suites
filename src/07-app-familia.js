@@ -2278,7 +2278,7 @@ function FamiliaApp(_ref19) {
     }), /*#__PURE__*/React.createElement("span", {
       style: { fontSize: 10, color: F.muted, fontWeight: 700 }
     }, "S", wi + 1));
-  })))), /*#__PURE__*/React.createElement("div", {
+  })))), mainView !== 'arquivo' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
