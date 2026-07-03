@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-03T12:32:15.776Z
+  Gerado em: 2026-07-03T15:06:48.279Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-52";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-53";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18709,6 +18709,8 @@ var SubbyApp = function SubbyApp(_ref) {
 
   var totalMensalEUR = subs.filter(function(s){return s.ativa;}).reduce(function(acc,s){return acc+subbyValorMensalEUR(s);},0);
   var totalAnualEUR  = totalMensalEUR * 12;
+  var totalMensalCHF = totalMensalEUR / (FX.CHF || 1.03);
+  var totalAnualCHF  = totalMensalCHF * 12;
 
   var subsOrdenadas = _toConsumableArray(subs).sort(function(a,b){
     if (ordem==='nome') return (a.nome||'').localeCompare(b.nome||'');
@@ -18850,13 +18852,15 @@ var SubbyApp = function SubbyApp(_ref) {
         /*#__PURE__*/React.createElement("div", { style: { width:40 } })
       ),
       /*#__PURE__*/React.createElement("div", { style: { display:'flex', gap:10, marginBottom:14 } },
-        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border } },
+        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border, textAlign:'center' } },
           /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:10, fontWeight:700, textTransform:'uppercase' } }, "Por mês"),
-          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalMensalEUR.toFixed(2), " EUR")
+          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalMensalCHF.toFixed(2), " CHF"),
+          /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:13, fontWeight:700, marginTop:2 } }, totalMensalEUR.toFixed(2), " EUR")
         ),
-        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border } },
+        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border, textAlign:'center' } },
           /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:10, fontWeight:700, textTransform:'uppercase' } }, "Por ano"),
-          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalAnualEUR.toFixed(2), " EUR")
+          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalAnualCHF.toFixed(2), " CHF"),
+          /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:13, fontWeight:700, marginTop:2 } }, totalAnualEUR.toFixed(2), " EUR")
         )
       ),
 
