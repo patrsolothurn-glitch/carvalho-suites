@@ -167,6 +167,8 @@ var SubbyApp = function SubbyApp(_ref) {
 
   var totalMensalEUR = subs.filter(function(s){return s.ativa;}).reduce(function(acc,s){return acc+subbyValorMensalEUR(s);},0);
   var totalAnualEUR  = totalMensalEUR * 12;
+  var totalMensalCHF = totalMensalEUR / (FX.CHF || 1.03);
+  var totalAnualCHF  = totalMensalCHF * 12;
 
   var subsOrdenadas = _toConsumableArray(subs).sort(function(a,b){
     if (ordem==='nome') return (a.nome||'').localeCompare(b.nome||'');
@@ -308,13 +310,15 @@ var SubbyApp = function SubbyApp(_ref) {
         /*#__PURE__*/React.createElement("div", { style: { width:40 } })
       ),
       /*#__PURE__*/React.createElement("div", { style: { display:'flex', gap:10, marginBottom:14 } },
-        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border } },
+        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border, textAlign:'center' } },
           /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:10, fontWeight:700, textTransform:'uppercase' } }, "Por mês"),
-          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalMensalEUR.toFixed(2), " EUR")
+          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalMensalCHF.toFixed(2), " CHF"),
+          /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:13, fontWeight:700, marginTop:2 } }, totalMensalEUR.toFixed(2), " EUR")
         ),
-        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border } },
+        /*#__PURE__*/React.createElement("div", { style: { flex:1, background:H.surface, borderRadius:14, padding:'12px 14px', border:'1px solid '+H.border, textAlign:'center' } },
           /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:10, fontWeight:700, textTransform:'uppercase' } }, "Por ano"),
-          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalAnualEUR.toFixed(2), " EUR")
+          /*#__PURE__*/React.createElement("p", { style: { color:C, fontSize:20, fontWeight:900, marginTop:4 } }, totalAnualCHF.toFixed(2), " CHF"),
+          /*#__PURE__*/React.createElement("p", { style: { color:H.muted, fontSize:13, fontWeight:700, marginTop:2 } }, totalAnualEUR.toFixed(2), " EUR")
         )
       ),
 
