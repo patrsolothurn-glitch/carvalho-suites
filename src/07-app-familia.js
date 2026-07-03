@@ -1221,6 +1221,19 @@ function FamiliaApp(_ref19) {
       }), mEvs.map(function (ev, ei) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
+          style: {
+            background: "".concat(ev.color, "18"),
+            borderRadius: 5,
+            padding: '3px 4px',
+            border: "1px solid ".concat(ev.color, "40"),
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 3
+          }
+        }, /*#__PURE__*/React.createElement("div", {
           onClick: function onClick() {
             skipDayResetRef.current = true;
             setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
@@ -1228,14 +1241,9 @@ function FamiliaApp(_ref19) {
             setMainView('mes');
           },
           style: {
-            background: "".concat(ev.color, "18"),
-            borderRadius: 5,
-            padding: '3px 4px',
-            border: "1px solid ".concat(ev.color, "40"),
-            cursor: 'pointer',
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-            width: '100%'
+            flex: 1,
+            minWidth: 0,
+            cursor: 'pointer'
           }
         }, /*#__PURE__*/React.createElement("p", {
           style: {
@@ -1257,7 +1265,36 @@ function FamiliaApp(_ref19) {
             margin: 0,
             lineHeight: 1.1
           }
-        }, "\uD83D\uDD50", ev.hora));
+        }, "\uD83D\uDD50", ev.hora)), /*#__PURE__*/React.createElement("button", {
+          onClick: function onClick(e) {
+            e.stopPropagation();
+            if (!window.supabaseClient || !ev.id) return;
+            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
+            setEvents(function (p) {
+              var d = _objectSpread({}, p);
+              d[dStr] = (d[dStr] || []).filter(function (item) {
+                return item.id !== ev.id;
+              });
+              return d;
+            });
+            setEventsArquivados(function (p) {
+              var d = _objectSpread({}, p);
+              d[dStr] = [].concat(_toConsumableArray(d[dStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: true })]);
+              return d;
+            });
+          },
+          title: 'Marcar como feito e arquivar',
+          style: {
+            flexShrink: 0,
+            background: 'transparent',
+            border: 'none',
+            padding: '0 1px',
+            cursor: 'pointer',
+            fontSize: 9,
+            lineHeight: 1,
+            opacity: 0.55
+          }
+        }, "\u2705"));
       }));
     }));
   })), /*#__PURE__*/React.createElement("div", {
