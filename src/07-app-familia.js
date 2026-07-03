@@ -423,7 +423,7 @@ function FamiliaApp(_ref19) {
     var grouped = [];
     var seen = {};
     raw.forEach(function(ev) {
-      var key = (ev.titulo || ev.title || '').toLowerCase().trim().replace(/\s+/g,' ');
+      var key = (ev.t || '').toLowerCase().trim().replace(/\s+/g,' ');
       if (seen[key] !== undefined) {
         // Juntar participantes no evento já existente
         var existing = grouped[seen[key]];
