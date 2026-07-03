@@ -2518,13 +2518,10 @@ function FamiliaApp(_ref19) {
       marginBottom: 12
     }
   }, "\uD83D\uDCE6 Arquivo \u2014 todos os eventos feitos"), (function () {
-    var todos = [];
-    Object.keys(eventsArquivados).sort().forEach(function (d) {
-      (eventsArquivados[d] || []).forEach(function (ev) {
-        todos.push({ d: d, ev: ev });
-      });
-    });
-    if (!todos.length) {
+    var datas = Object.keys(eventsArquivados).filter(function (d) {
+      return (eventsArquivados[d] || []).length > 0;
+    }).sort().reverse();
+    if (!datas.length) {
       return /*#__PURE__*/React.createElement("p", {
         style: {
           color: F.muted,
@@ -2534,9 +2531,21 @@ function FamiliaApp(_ref19) {
         }
       }, "Ainda n\xE3o h\xE1 eventos arquivados.");
     }
-    return todos.map(function (item, i) {
-      var d = item.d, ev = item.ev;
-      var dataFmt = new Date(d + 'T00:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+    return datas.map(function (d) {
+      var dataFmt = new Date(d + 'T00:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+      return /*#__PURE__*/React.createElement("div", {
+        key: d,
+        style: { marginBottom: 18 }
+      }, /*#__PURE__*/React.createElement("p", {
+        style: {
+          color: F.coral,
+          fontWeight: 800,
+          fontSize: 12,
+          textTransform: 'uppercase',
+          marginBottom: 6,
+          letterSpacing: 0.3
+        }
+      }, dataFmt), (eventsArquivados[d] || []).map(function (ev, i) {
       var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
       var m = members.find(function (x) { return x.id === firstSpecific; });
       var whoLabel = firstSpecific ? ((m === null || m === void 0 ? void 0 : m.name) || '') : 'Toda a fam\xEDlia';
@@ -2558,7 +2567,7 @@ function FamiliaApp(_ref19) {
         style: { fontWeight: 800, fontSize: 14, color: F.text, textDecoration: 'line-through', opacity: 0.75 }
       }, ev.t), /*#__PURE__*/React.createElement("p", {
         style: { fontSize: 11, color: F.muted, marginTop: 1 }
-      }, dataFmt, " \xB7 ", whoLabel)), /*#__PURE__*/React.createElement("div", {
+      }, whoLabel)), /*#__PURE__*/React.createElement("div", {
         style: { display: 'flex', gap: 6, flexShrink: 0 }
       }, /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
@@ -2608,6 +2617,7 @@ function FamiliaApp(_ref19) {
           fontSize: 13
         }
       }, "\uD83D\uDDD1\uFE0F")));
+    }));
     });
   })()), showAdd && /*#__PURE__*/React.createElement("div", {
     style: {
