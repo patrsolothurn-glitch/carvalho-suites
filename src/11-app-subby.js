@@ -101,6 +101,7 @@ var SubbyApp = function SubbyApp(_ref) {
   var _us4  = (0,_react.useState)(null),  editId     = _us4[0],  setEditId     = _us4[1];
   var _us5  = (0,_react.useState)(false), showForm   = _us5[0],  setShowForm   = _us5[1];
   var _us6  = (0,_react.useState)(null),  badgeSubs  = _us6[0],  setBadgeSubs  = _us6[1];
+  var _us7  = (0,_react.useState)(null),  detalheSub = _us7[0],  setDetalheSub = _us7[1];
 
   // Campos do formulário
   var _fn  = (0,_react.useState)(''),   fNome    = _fn[0],  setFNome    = _fn[1];
@@ -345,7 +346,7 @@ var SubbyApp = function SubbyApp(_ref) {
 
         return /*#__PURE__*/React.createElement("div", {
           key: sub.id,
-          onClick:function(){ abrirEditar(sub); },
+          onClick:function(){ setDetalheSub(sub); },
           style:{ background:H.surface, borderRadius:14, padding:'12px 14px', marginBottom:10, border:'1px solid '+(urgente?'rgba(239,68,68,0.4)':H.border), cursor:'pointer' }
         },
           /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:10, alignItems:'flex-start' } },
@@ -550,6 +551,69 @@ var SubbyApp = function SubbyApp(_ref) {
           }, "Cancelar")
         )
       )
-    )
+    ),
+
+    // ── Vista detalhada (overlay, sem emojis) ──
+    detalheSub && (function(){
+      var d = detalheSub;
+      var dCiclo = (CICLOS.find(function(c){return c.id===d.ciclo;})||CICLOS[1]);
+      var dDias  = subbyDiasAte(d.proxima_cobranca);
+      var linhas = [
+        ['Categoria',        d.categoria],
+        ['Ciclo',            dCiclo.label + (d.ciclo==='custom' && d.ciclo_dias ? ' ('+d.ciclo_dias+' dias)' : '')],
+        ['Valor',            parseFloat(d.valor||0).toFixed(2) + ' ' + d.moeda],
+        ['Equivalente/mes',  subbyValorMensalEUR(d).toFixed(2) + ' EUR'],
+        ['Metodo',           d.metodo_pagamento],
+        ['Banco',            d.banco],
+        ['Cartao',           d.cartao_ultimos4 ? '**** ' + d.cartao_ultimos4 : null],
+        ['Pais',             d.pais],
+        ['Proxima cobranca', d.proxima_cobranca ? d.proxima_cobranca + ' (em ' + dDias + 'd)' : null],
+        ['Inicio',           d.data_inicio],
+        ['Lembrete',         (d.lembrete_dias!=null) ? d.lembrete_dias + ' dias antes' : null],
+        ['Estado',           d.ativa!==false ? 'Ativa' : 'Inativa'],
+        ['Notas',            d.notas]
+      ].filter(function(l){ return l[1]; });
+
+      return /*#__PURE__*/React.createElement("div", {
+        onClick:function(){ setDetalheSub(null); },
+        style:{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:310, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }
+      },
+        /*#__PURE__*/React.createElement("div", {
+          onClick:function(e){ e.stopPropagation(); },
+          style:{ background:H.surface, borderRadius:18, padding:'20px 18px', width:'100%', maxWidth:420, maxHeight:'85vh', overflowY:'auto', border:'1px solid '+H.border }
+        },
+          /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:12, alignItems:'center', marginBottom:14 } },
+            /*#__PURE__*/React.createElement("div", { style:{ width:52, height:52, borderRadius:12, background:C+'22', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 } },
+              renderIcone(d, 42)
+            ),
+            /*#__PURE__*/React.createElement("div", { style:{ minWidth:0 } },
+              /*#__PURE__*/React.createElement("p", { style:{ fontWeight:800, fontSize:18 } }, d.nome),
+              /*#__PURE__*/React.createElement("p", { style:{ color:C, fontWeight:800, fontSize:15, marginTop:2 } },
+                parseFloat(d.valor||0).toFixed(2), " ", d.moeda, " / ", dCiclo.label.toLowerCase()
+              )
+            )
+          ),
+          linhas.map(function(l){
+            return /*#__PURE__*/React.createElement("div", {
+              key:l[0],
+              style:{ display:'flex', justifyContent:'space-between', gap:12, padding:'9px 0', borderBottom:'1px solid '+H.border }
+            },
+              /*#__PURE__*/React.createElement("span", { style:{ color:H.muted, fontSize:13, flexShrink:0 } }, l[0]),
+              /*#__PURE__*/React.createElement("span", { style:{ fontSize:13, fontWeight:600, textAlign:'right', wordBreak:'break-word' } }, String(l[1]))
+            );
+          }),
+          /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:10, marginTop:16 } },
+            /*#__PURE__*/React.createElement("button", {
+              onClick:function(){ var s = detalheSub; setDetalheSub(null); abrirEditar(s); },
+              style:{ flex:1, background:C, border:'none', borderRadius:12, padding:'12px', color:'#fff', fontSize:14, fontWeight:800, cursor:'pointer' }
+            }, "Editar"),
+            /*#__PURE__*/React.createElement("button", {
+              onClick:function(){ setDetalheSub(null); },
+              style:{ flex:1, background:'none', border:'1px solid '+H.border, borderRadius:12, padding:'12px', color:H.muted, fontSize:14, fontWeight:700, cursor:'pointer' }
+            }, "Fechar")
+          )
+        )
+      );
+    })()
   );
 };
