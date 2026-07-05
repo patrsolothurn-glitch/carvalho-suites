@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-05T14:19:12.669Z
+  Gerado em: 2026-07-05T14:26:36.667Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-54";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-55";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -44,6 +44,75 @@
       } catch (e) {
         console.error('Erro ao iniciar Supabase:', e);
       }
+    })();
+  </script>
+  <script>
+    // ── MONITOR GLOBAL DE ERROS ─────────────────────────────────────
+    // Mostra um cartão vermelho no ecrã com o erro exato (fácil de
+    // fotografar). Apanha erros do Supabase em TODAS as apps + crashes JS.
+    (function () {
+      var MAX_TOASTS = 3;
+      window.mostrarErro = function (origem, err) {
+        try {
+          var cont = document.getElementById('__err_toasts');
+          if (!cont) {
+            cont = document.createElement('div');
+            cont.id = '__err_toasts';
+            cont.style.cssText = 'position:fixed;bottom:80px;left:10px;right:10px;z-index:99999;display:flex;flex-direction:column;gap:8px;font-family:system-ui';
+            document.body.appendChild(cont);
+          }
+          while (cont.children.length >= MAX_TOASTS) cont.removeChild(cont.firstChild);
+          var msg = (err && (err.message || err.msg)) || String(err);
+          var det = [];
+          if (err && err.code) det.push('code: ' + err.code);
+          if (err && err.details) det.push(err.details);
+          if (err && err.hint) det.push('hint: ' + err.hint);
+          var agora = new Date().toTimeString().slice(0, 8);
+          var box = document.createElement('div');
+          box.style.cssText = 'background:#7f1d1d;border:1px solid #ef4444;border-radius:14px;padding:12px 14px;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.5)';
+          box.innerHTML =
+            '<div style="font-weight:800;font-size:14px;margin-bottom:4px">\u26a0\ufe0f Erro \u2014 ' + origem + '</div>' +
+            '<div style="font-size:13px;word-break:break-word">' + msg.replace(/</g, '&lt;') + '</div>' +
+            (det.length ? '<div style="font-size:11px;opacity:.85;margin-top:4px;word-break:break-word">' + det.join(' \u00b7 ').replace(/</g, '&lt;') + '</div>' : '') +
+            '<div style="font-size:10px;opacity:.6;margin-top:6px">' + agora + ' \u00b7 toca para fechar</div>';
+          box.onclick = function () { box.remove(); };
+          cont.appendChild(box);
+          console.error('[' + origem + ']', err);
+        } catch (e) { console.error(e); }
+      };
+
+      // Erros JS não tratados
+      window.addEventListener('error', function (ev) {
+        if (ev && ev.message) window.mostrarErro('JavaScript', { message: ev.message, details: (ev.filename || '') + ':' + (ev.lineno || '') });
+      });
+      window.addEventListener('unhandledrejection', function (ev) {
+        window.mostrarErro('Promise', ev.reason || { message: 'Promise rejeitada' });
+      });
+
+      // Intercetar TODOS os resultados do Supabase: se vier {error}, mostrar
+      function patchSupabase() {
+        try {
+          if (!window.supabaseClient || window.__sbErrPatched) return;
+          var qb = window.supabaseClient.from('__probe__').select('*');
+          var proto = qb;
+          while (proto && !Object.prototype.hasOwnProperty.call(proto, 'then')) proto = Object.getPrototypeOf(proto);
+          if (!proto || !proto.then) return;
+          var origThen = proto.then;
+          proto.then = function (onf, onr) {
+            return origThen.call(this, function (res) {
+              try {
+                if (res && res.error && res.error.code !== 'PGRST116') {
+                  window.mostrarErro('Supabase', res.error);
+                }
+              } catch (e) {}
+              return onf ? onf(res) : res;
+            }, onr);
+          };
+          window.__sbErrPatched = true;
+        } catch (e) { console.error('patchSupabase:', e); }
+      }
+      patchSupabase();
+      if (!window.__sbErrPatched) setTimeout(patchSupabase, 1000);
     })();
   </script>
   <script>
@@ -18775,11 +18844,7 @@ var SubbyApp = function SubbyApp(_ref) {
       ? window.supabaseClient.from(TABLE).update(row).eq('id', editId)
       : window.supabaseClient.from(TABLE).insert(row);
     op.then(function(res) {
-      if (res && res.error) {
-        window.alert('Erro ao guardar: ' + (res.error.message || JSON.stringify(res.error)));
-        console.error('Subby save error', res.error);
-        return;
-      }
+      if (res && res.error) { return; } // erro já mostrado pelo monitor global; formulário fica aberto
       setShowForm(false); resetForm(); loadSubs();
       // Push notification
       var msg = editId ? 'Subscrição actualizada: ' + fNome.trim() : 'Nova subscrição: ' + fNome.trim();
