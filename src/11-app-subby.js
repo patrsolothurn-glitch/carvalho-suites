@@ -232,7 +232,12 @@ var SubbyApp = function SubbyApp(_ref) {
     var op = editId
       ? window.supabaseClient.from(TABLE).update(row).eq('id', editId)
       : window.supabaseClient.from(TABLE).insert(row);
-    op.then(function() {
+    op.then(function(res) {
+      if (res && res.error) {
+        window.alert('Erro ao guardar: ' + (res.error.message || JSON.stringify(res.error)));
+        console.error('Subby save error', res.error);
+        return;
+      }
       setShowForm(false); resetForm(); loadSubs();
       // Push notification
       var msg = editId ? 'Subscrição actualizada: ' + fNome.trim() : 'Nova subscrição: ' + fNome.trim();
