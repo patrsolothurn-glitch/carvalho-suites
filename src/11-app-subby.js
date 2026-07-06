@@ -231,7 +231,11 @@ var SubbyApp = function SubbyApp(_ref) {
     };
     var op = editId
       ? window.supabaseClient.from(TABLE).update(row).eq('id', editId)
-      : window.supabaseClient.from(TABLE).insert(row);
+      : window.supabaseClient.auth.getSession().then(function(s) {
+          var uid = s && s.data && s.data.session && s.data.session.user && s.data.session.user.id;
+          if (uid) row.user_id = uid; // exigido pela política RLS (auth.uid() = user_id)
+          return window.supabaseClient.from(TABLE).insert(row);
+        });
     op.then(function(res) {
       if (res && res.error) { return; } // erro já mostrado pelo monitor global; formulário fica aberto
       setShowForm(false); resetForm(); loadSubs();
