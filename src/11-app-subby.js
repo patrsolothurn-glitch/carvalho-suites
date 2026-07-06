@@ -211,16 +211,24 @@ var SubbyApp = function SubbyApp(_ref) {
     var hoje = new Date().toISOString().slice(0,10);
     var ini = fDataIni || hoje;
     var prox = fProxima;
-    if (!prox) { // DB exige not-null: calcular a partir do ciclo
+    if (!prox) { // DB exige not-null: calcular a partir do ciclo, avançando até data futura
       var d = new Date(ini + 'T12:00:00');
-      var diaOrig = d.getDate();
-      var addMeses = function(m) { d.setMonth(d.getMonth() + m); if (d.getDate() < diaOrig) d.setDate(0); };
-      if (fCiclo === 'semanal') d.setDate(d.getDate() + 7);
-      else if (fCiclo === 'trimestral') addMeses(3);
-      else if (fCiclo === 'semestral') addMeses(6);
-      else if (fCiclo === 'anual') d.setFullYear(d.getFullYear() + 1);
-      else if (fCiclo === 'custom') d.setDate(d.getDate() + (parseInt(fCicloDias) || 30));
-      else addMeses(1); // mensal
+      var diaOrig = d.getDate(), anoOrig = d.getFullYear(), mesOrig = d.getMonth(), mesesTot = 0;
+      var addMeses = function(m) {
+        mesesTot += m;
+        var ultimo = new Date(anoOrig, mesOrig + mesesTot + 1, 0).getDate();
+        d = new Date(anoOrig, mesOrig + mesesTot, Math.min(diaOrig, ultimo), 12);
+      };
+      var avancar = function() {
+        if (fCiclo === 'semanal') d.setDate(d.getDate() + 7);
+        else if (fCiclo === 'trimestral') addMeses(3);
+        else if (fCiclo === 'semestral') addMeses(6);
+        else if (fCiclo === 'anual') addMeses(12);
+        else if (fCiclo === 'custom') d.setDate(d.getDate() + (parseInt(fCicloDias) || 30));
+        else addMeses(1); // mensal
+      };
+      var guard = 0;
+      do { avancar(); guard++; } while (d.toISOString().slice(0,10) < hoje && guard < 2000);
       prox = d.toISOString().slice(0,10);
     }
     var row = {
