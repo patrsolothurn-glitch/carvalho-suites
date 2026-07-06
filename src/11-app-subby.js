@@ -221,7 +221,7 @@ var SubbyApp = function SubbyApp(_ref) {
       cartao_ultimos4: fCartao.trim(),
       pais: fPais,
       proxima_cobranca: fProxima||null,
-      data_inicio: fDataIni||null,
+      data_inicio: fDataIni || new Date().toISOString().slice(0,10),
       lembrete_dias: parseInt(fLemb)||3,
       notas: fNotas.trim(),
       ativa: fAtiva,
