@@ -208,6 +208,21 @@ var SubbyApp = function SubbyApp(_ref) {
 
   var guardar = function() {
     if (!fNome.trim()) return;
+    var hoje = new Date().toISOString().slice(0,10);
+    var ini = fDataIni || hoje;
+    var prox = fProxima;
+    if (!prox) { // DB exige not-null: calcular a partir do ciclo
+      var d = new Date(ini + 'T12:00:00');
+      var diaOrig = d.getDate();
+      var addMeses = function(m) { d.setMonth(d.getMonth() + m); if (d.getDate() < diaOrig) d.setDate(0); };
+      if (fCiclo === 'semanal') d.setDate(d.getDate() + 7);
+      else if (fCiclo === 'trimestral') addMeses(3);
+      else if (fCiclo === 'semestral') addMeses(6);
+      else if (fCiclo === 'anual') d.setFullYear(d.getFullYear() + 1);
+      else if (fCiclo === 'custom') d.setDate(d.getDate() + (parseInt(fCicloDias) || 30));
+      else addMeses(1); // mensal
+      prox = d.toISOString().slice(0,10);
+    }
     var row = {
       owner: owner,
       nome: fNome.trim(),
@@ -220,8 +235,8 @@ var SubbyApp = function SubbyApp(_ref) {
       banco: fBanco.trim(),
       cartao_ultimos4: fCartao.trim(),
       pais: fPais,
-      proxima_cobranca: fProxima||null,
-      data_inicio: fDataIni || new Date().toISOString().slice(0,10),
+      proxima_cobranca: prox,
+      data_inicio: ini,
       lembrete_dias: parseInt(fLemb)||3,
       notas: fNotas.trim(),
       ativa: fAtiva,
