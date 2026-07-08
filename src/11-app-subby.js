@@ -46,11 +46,11 @@ var ICONE_KEYWORDS = {
 };
 
 var CICLOS = [
-  { id: 'semanal', label: 'Semanal', diasPorMes: 7 },
+  { id: 'semanal', label: 'Semanal', diasPorMes: 30/7 },
   { id: 'mensal', label: 'Mensal', diasPorMes: 30 },
   { id: 'trimestral', label: 'Trimestral', diasPorMes: 90 },
   { id: 'semestral', label: 'Semestral', diasPorMes: 180 },
-  { id: 'anual', label: 'Anual', diasPorMes: 360 },
+  { id: 'anual', label: 'Anual', diasPorMes: 365 },
   { id: 'custom', label: 'Custom (dias)', diasPorMes: null }
 ];
 
@@ -148,7 +148,7 @@ var SubbyApp = function SubbyApp(_ref) {
     setOrdem(o);
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').update({ subby_prefs: { sortBy: o } })
-      .eq('member_id', owner).catch(function() {});
+      .eq('member_id', owner).then(function() {}).catch(function() {});
   };
 
   (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); }, []);
