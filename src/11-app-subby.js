@@ -46,11 +46,11 @@ var ICONE_KEYWORDS = {
 };
 
 var CICLOS = [
-  { id: 'semanal', label: 'Semanal', diasPorMes: 30/7 },
+  { id: 'semanal', label: 'Semanal', diasPorMes: 7 },
   { id: 'mensal', label: 'Mensal', diasPorMes: 30 },
   { id: 'trimestral', label: 'Trimestral', diasPorMes: 90 },
   { id: 'semestral', label: 'Semestral', diasPorMes: 180 },
-  { id: 'anual', label: 'Anual', diasPorMes: 365 },
+  { id: 'anual', label: 'Anual', diasPorMes: 360 },
   { id: 'custom', label: 'Custom (dias)', diasPorMes: null }
 ];
 
