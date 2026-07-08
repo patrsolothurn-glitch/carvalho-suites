@@ -56,7 +56,7 @@ var CICLOS = [
 
 var METODOS_PAG = ['Débito direto', 'Débito', 'Twint', 'Crédito', 'Apple Pay', 'Google Pay', 'Cash', 'Rechnung'];
 var MOEDAS = ['CHF', 'EUR', 'USD', 'GBP'];
-var FX = { CHF: 1.03, EUR: 1, USD: 0.92, GBP: 1.17 };
+var FX = { CHF: 1.03, EUR: 1, USD: 0.92, GBP: 1.17 }; // fallback (atualizado ao vivo no mount)
 var BANDEIRAS = { 'PT': '🇵🇹', 'CH': '🇨🇭', 'US': '🇺🇸', 'GB': '🇬🇧', 'DE': '🇩🇪', 'FR': '🇫🇷', 'ES': '🇪🇸', 'IT': '🇮🇹', 'NL': '🇳🇱', 'AT': '🇦🇹' };
 
 function subbyAutoIcone(nome) {
@@ -151,7 +151,21 @@ var SubbyApp = function SubbyApp(_ref) {
       .eq('member_id', owner).then(function() {}).catch(function() {});
   };
 
-  (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); }, []);
+  var fetchFX = function() {
+    fetch('https://api.frankfurter.dev/v1/latest?base=CHF')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d && d.rates) {
+          if (d.rates.EUR) FX.CHF = d.rates.EUR;
+          if (d.rates.USD) FX.USD = d.rates.USD;
+          if (d.rates.GBP) FX.GBP = d.rates.GBP;
+          setSubs(function(prev) { return prev.slice(); });
+        }
+      })
+      .catch(function() {});
+  };
+
+  (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); fetchFX(); }, []);
 
   // Calcular badge (subscrições a vencer em breve não confirmadas)
   (0,_react.useEffect)(function() {
