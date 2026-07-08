@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-08T21:19:00.474Z
+  Gerado em: 2026-07-08T21:38:14.295Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-61";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-62";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18667,7 +18667,7 @@ var CICLOS = [
 
 var METODOS_PAG = ['Débito direto', 'Débito', 'Twint', 'Crédito', 'Apple Pay', 'Google Pay', 'Cash', 'Rechnung'];
 var MOEDAS = ['CHF', 'EUR', 'USD', 'GBP'];
-var FX = { CHF: 1.03, EUR: 1, USD: 0.92, GBP: 1.17 };
+var FX = { CHF: 1.03, EUR: 1, USD: 0.92, GBP: 1.17 }; // fallback (atualizado ao vivo no mount)
 var BANDEIRAS = { 'PT': '🇵🇹', 'CH': '🇨🇭', 'US': '🇺🇸', 'GB': '🇬🇧', 'DE': '🇩🇪', 'FR': '🇫🇷', 'ES': '🇪🇸', 'IT': '🇮🇹', 'NL': '🇳🇱', 'AT': '🇦🇹' };
 
 function subbyAutoIcone(nome) {
@@ -18762,7 +18762,21 @@ var SubbyApp = function SubbyApp(_ref) {
       .eq('member_id', owner).then(function() {}).catch(function() {});
   };
 
-  (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); }, []);
+  var fetchFX = function() {
+    fetch('https://api.frankfurter.dev/v1/latest?base=CHF')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d && d.rates) {
+          if (d.rates.EUR) FX.CHF = d.rates.EUR;
+          if (d.rates.USD) FX.USD = d.rates.USD;
+          if (d.rates.GBP) FX.GBP = d.rates.GBP;
+          setSubs(function(prev) { return prev.slice(); });
+        }
+      })
+      .catch(function() {});
+  };
+
+  (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); fetchFX(); }, []);
 
   // Calcular badge (subscrições a vencer em breve não confirmadas)
   (0,_react.useEffect)(function() {
