@@ -135,6 +135,10 @@ function NutriguimaApp(_ref29) {
     if (showAddProd) {
       if (novoNomeRef.current) novoNomeRef.current.value = sessionStorage.getItem('nutri_nome') || '';
       if (novoPrecoRef.current) novoPrecoRef.current.value = sessionStorage.getItem('nutri_preco') || '';
+      var savedEmoji = sessionStorage.getItem('nutri_emoji');
+      if (savedEmoji) setNovoEmoji(savedEmoji);
+      var savedCat = sessionStorage.getItem('nutri_cat');
+      if (savedCat) setNovoCat(savedCat);
     }
   }, [showAddProd]);
   var addProduto = function addProduto() {
@@ -166,6 +170,8 @@ function NutriguimaApp(_ref29) {
         if (novoQtdRef.current) novoQtdRef.current.value = '0';
         sessionStorage.removeItem('nutri_nome');
         sessionStorage.removeItem('nutri_preco');
+        sessionStorage.removeItem('nutri_emoji');
+        sessionStorage.removeItem('nutri_cat');
         if (novoNomeRef.current) novoNomeRef.current.value = '';
         if (novoPrecoRef.current) novoPrecoRef.current.value = '';
         setShowAddProd(false);
@@ -1046,7 +1052,8 @@ function NutriguimaApp(_ref29) {
   }, ['💊', '🧪', '💉', '🌿', '⚡', '🔥', '🥛', '🥩', '🥚', '🍫', '🥤', '🌱', '🍌', '🫐', '🍊', '🍋', '🥑', '🍎', '🏋️', '💪', '🏃', '🚴', '🧘', '🤸', '❤️', '🦴', '🧠', '🫁', '☀️', '🌙', '⚖️', '💤', '🏆', '🎯', '🐟', '💆'].map(function (e) {
     return /*#__PURE__*/React.createElement("button", {
       key: e,
-      onClick: function onClick() { return setNovoEmoji(e); },
+      type: "button",
+      onClick: function onClick() { setNovoEmoji(e); sessionStorage.setItem('nutri_emoji', e); },
       style: { background: novoEmoji === e ? "".concat(N.gold, "22") : N.surface2, border: "1px solid ".concat(novoEmoji === e ? N.gold : N.border), borderRadius: 10, padding: '7px', fontSize: 20, cursor: 'pointer', flexShrink: 0 }
     }, e);
   })), /*#__PURE__*/React.createElement("p", {
@@ -1093,7 +1100,7 @@ function NutriguimaApp(_ref29) {
     style: { color: N.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
   }, "Categoria"), /*#__PURE__*/React.createElement("select", {
     value: novoCat,
-    onChange: function onChange(e) { return setNovoCat(e.target.value); },
+    onChange: function onChange(e) { setNovoCat(e.target.value); sessionStorage.setItem('nutri_cat', e.target.value); },
     style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '11px 12px', color: N.text, fontSize: 15, outline: 'none', boxSizing: 'border-box' }
   }, ['Proteína', 'Força', 'Vitaminas', 'Saúde', 'Packs', 'Outros'].map(function (c) {
     return /*#__PURE__*/React.createElement("option", {
