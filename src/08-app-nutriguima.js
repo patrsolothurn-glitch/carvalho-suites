@@ -51,10 +51,7 @@ function NutriguimaApp(_ref29) {
     _useState136 = _slicedToArray(_useState135, 2),
     novoCat = _useState136[0],
     setNovoCat = _useState136[1];
-  var _useStateNovoQtd = (0, _react.useState)(0),
-    _useStateNovoQtd2 = _slicedToArray(_useStateNovoQtd, 2),
-    novoQtd = _useStateNovoQtd2[0],
-    setNovoQtd = _useStateNovoQtd2[1];
+  var novoQtdRef = React.useRef(null);
   var _useState137 = (0, _react.useState)([{
       id: 1,
       name: 'Whey Protein 1kg',
@@ -146,6 +143,7 @@ function NutriguimaApp(_ref29) {
     var _rawPreco = ((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0'; var price = parseFloat(_rawPreco.replace(',', '.'));
     if (!name) { setAddErr('Preenche o nome do produto.'); return; }
     if (isNaN(price) || price <= 0) { setAddErr('Preenche um preço válido (ex: 12.90).'); return; }
+    var qty = Math.max(0, parseInt((novoQtdRef.current && novoQtdRef.current.value) || '0') || 0);
     setAddErr('');
     setAddSaving(true);
     var id = Date.now();
@@ -156,16 +154,16 @@ function NutriguimaApp(_ref29) {
         price: price,
         emoji: novoEmoji,
         cat: novoCat,
-        stock: novoQtd
+        stock: qty
       }).select().then(function (res) {
         setAddSaving(false);
         if (res.error) { setAddErr('Erro ao guardar: ' + (res.error.message || 'tenta novamente.')); return; }
         setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
-        setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, novoQtd)); });
+        setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, qty)); });
         setAddErr('');
         setNovoEmoji('💊');
         setNovoCat('Proteína');
-        setNovoQtd(0);
+        if (novoQtdRef.current) novoQtdRef.current.value = '0';
         sessionStorage.removeItem('nutri_nome');
         sessionStorage.removeItem('nutri_preco');
         if (novoNomeRef.current) novoNomeRef.current.value = '';
@@ -175,11 +173,11 @@ function NutriguimaApp(_ref29) {
     } else {
       setAddSaving(false);
       setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
-      setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, novoQtd)); });
+      setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, qty)); });
       setAddErr('');
       setNovoEmoji('💊');
       setNovoCat('Proteína');
-      setNovoQtd(0);
+      if (novoQtdRef.current) novoQtdRef.current.value = '0';
       if (novoNomeRef.current) novoNomeRef.current.value = '';
       if (novoPrecoRef.current) novoPrecoRef.current.value = '';
       setShowAddProd(false);
@@ -1134,8 +1132,10 @@ function NutriguimaApp(_ref29) {
     type: "number",
     min: "0",
     step: "1",
-    value: novoQtd,
-    onChange: function onChange(e) { return setNovoQtd(Math.max(0, parseInt(e.target.value) || 0)); },
+    ref: novoQtdRef,
+    type: "text",
+    inputMode: "numeric",
+    defaultValue: "0",
     style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '10px 6px', color: N.text, fontSize: 14, outline: 'none', boxSizing: 'border-box', textAlign: 'center' }
   })), /*#__PURE__*/React.createElement("div", {
     style: {
