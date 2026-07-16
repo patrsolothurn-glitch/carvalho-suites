@@ -37,6 +37,10 @@ function NutriguimaApp(_ref29) {
     _useStateShowCart2 = _slicedToArray(_useStateShowCart, 2),
     showCart = _useStateShowCart2[0],
     setShowCart = _useStateShowCart2[1];
+  var _useStateSelPay = (0, _react.useState)(''),
+    _useStateSelPay2 = _slicedToArray(_useStateSelPay, 2),
+    selPay = _useStateSelPay2[0],
+    setSelPay = _useStateSelPay2[1];
   var _useStateAddErr = (0, _react.useState)(''),
     _useStateAddErr2 = _slicedToArray(_useStateAddErr, 2),
     addErr = _useStateAddErr2[0],
@@ -264,7 +268,7 @@ function NutriguimaApp(_ref29) {
       paddingBottom: 80
     }
   }, showCart && /*#__PURE__*/React.createElement("div", {
-    onClick: function onClick() { setShowCart(false); },
+    onClick: function onClick() { setShowCart(false); setSelPay(''); },
     style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }
   }, /*#__PURE__*/React.createElement("div", {
     onClick: function onClick(e) { e.stopPropagation(); },
@@ -272,7 +276,7 @@ function NutriguimaApp(_ref29) {
   },
     /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 } },
       /*#__PURE__*/React.createElement("p", { style: { color: N.gold, fontWeight: 800, fontSize: 16 } }, "\uD83D\uDED2 Cesto"),
-      /*#__PURE__*/React.createElement("button", { type: "button", onClick: function() { setShowCart(false); }, style: { background: 'none', border: 'none', color: N.muted, fontSize: 22, cursor: 'pointer', lineHeight: 1 } }, "\u2715")
+      /*#__PURE__*/React.createElement("button", { type: "button", onClick: function() { setShowCart(false); setSelPay(''); }, style: { background: 'none', border: 'none', color: N.muted, fontSize: 22, cursor: 'pointer', lineHeight: 1 } }, "\u2715")
     ),
     cartItems.filter(function(p) { return (stock[p.id] || 0) > 0; }).length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginBottom: 16 } },
       /*#__PURE__*/React.createElement("p", { style: { color: N.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 } }, "\uD83C\uDFEA Loja Nutriguima"),
@@ -294,18 +298,23 @@ function NutriguimaApp(_ref29) {
       /*#__PURE__*/React.createElement("p", { style: { color: N.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', margin: '12px 0 8px' } }, "Pagar via"),
       /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 } },
         ['\uD83D\uDCF1 MB Way', '\uD83C\uDFE6 Multibanco', '\uD83D\uDCB3 Cart\xE3o', '\uD83D\uDCB0 PayPal'].map(function(m) {
-          return /*#__PURE__*/React.createElement("div", { key: m, style: { background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.3)', borderRadius: 10, padding: '7px 11px', fontSize: 12, fontWeight: 600, color: '#16a34a' } }, m);
+          var sel = selPay === m;
+          return /*#__PURE__*/React.createElement("button", {
+            key: m, type: "button",
+            onClick: function onClick() { setSelPay(sel ? '' : m); },
+            style: { background: sel ? 'rgba(22,163,74,0.25)' : 'rgba(22,163,74,0.08)', border: '2px solid ' + (sel ? '#16a34a' : 'rgba(22,163,74,0.25)'), borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 700, color: sel ? '#16a34a' : N.muted, cursor: 'pointer', transition: 'all 0.15s' }
+          }, m);
         })
       ),
-      /*#__PURE__*/React.createElement("p", { style: { color: N.muted, fontSize: 11, marginBottom: 8 } }, "Contactar para confirmar:"),
-      /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 8, marginBottom: 4 } },
+      /*#__PURE__*/React.createElement("p", { style: { color: N.muted, fontSize: 11, marginBottom: 8 } }, selPay ? "Enviar encomenda por WhatsApp:" : "Seleciona um m\xE9todo de pagamento acima"),
+      selPay && /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 8, marginBottom: 4 } },
         /*#__PURE__*/React.createElement("a", {
-          href: "https://wa.me/351961088219?text=" + encodeURIComponent("Ol\xE1! Quero encomendar na Nutriguima:\n\n" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).map(function(p){ return "\u2022 " + p.name + " x" + (cart[p.id]||0) + " = \u20AC" + ((cart[p.id]||0)*p.price).toFixed(2); }).join("\n") + "\n\nTotal: \u20AC" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).reduce(function(s,p){return s+(cart[p.id]||0)*p.price;},0).toFixed(2)),
+          href: "https://wa.me/351961088219?text=" + encodeURIComponent("Ol\xE1! Quero encomendar na Nutriguima:\n\n" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).map(function(p){ return "\u2022 " + p.name + " x" + (cart[p.id]||0) + " = \u20AC" + ((cart[p.id]||0)*p.price).toFixed(2); }).join("\n") + "\n\nTotal: \u20AC" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).reduce(function(s,p){return s+(cart[p.id]||0)*p.price;},0).toFixed(2) + "\nPagamento: " + selPay),
           target: "_blank", rel: "noreferrer",
           style: { flex: 1, display: 'block', background: '#25D366', borderRadius: 12, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 800, textDecoration: 'none', textAlign: 'center' }
         }, "\uD83D\uDCF1 PT +351 961 088 219"),
         /*#__PURE__*/React.createElement("a", {
-          href: "https://wa.me/41798884384?text=" + encodeURIComponent("Ol\xE1! Quero encomendar na Nutriguima:\n\n" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).map(function(p){ return "\u2022 " + p.name + " x" + (cart[p.id]||0) + " = \u20AC" + ((cart[p.id]||0)*p.price).toFixed(2); }).join("\n") + "\n\nTotal: \u20AC" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).reduce(function(s,p){return s+(cart[p.id]||0)*p.price;},0).toFixed(2)),
+          href: "https://wa.me/41798884384?text=" + encodeURIComponent("Ol\xE1! Quero encomendar na Nutriguima:\n\n" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).map(function(p){ return "\u2022 " + p.name + " x" + (cart[p.id]||0) + " = \u20AC" + ((cart[p.id]||0)*p.price).toFixed(2); }).join("\n") + "\n\nTotal: \u20AC" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).reduce(function(s,p){return s+(cart[p.id]||0)*p.price;},0).toFixed(2) + "\nPagamento: " + selPay),
           target: "_blank", rel: "noreferrer",
           style: { flex: 1, display: 'block', background: '#25D366', borderRadius: 12, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 800, textDecoration: 'none', textAlign: 'center' }
         }, "\uD83C\uDDE8\uD83C\uDDED CH +41 798 884 384")
@@ -1067,11 +1076,11 @@ function NutriguimaApp(_ref29) {
     style: {
       padding: '14px 0'
     }
-  }, /*#__PURE__*/React.createElement("a", {
-    href: "http://zumu.be/eb762cd1",
-    target: "_blank",
-    rel: "noreferrer",
+  }, totalItems > 0 && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: function onClick() { setShowCart(true); },
     style: {
+      width: '100%',
       display: 'block',
       background: "linear-gradient(135deg,".concat(N.gold, ",").concat(N.goldL, ")"),
       border: 'none',
@@ -1080,11 +1089,11 @@ function NutriguimaApp(_ref29) {
       color: N.bg,
       fontSize: 15,
       fontWeight: 800,
-      textDecoration: 'none',
+      cursor: 'pointer',
       textAlign: 'center',
       boxShadow: "0 8px 24px rgba(201,168,71,0.4)"
     }
-  }, "\uD83D\uDED2 Encomendar no Zumub \xB7 \u20AC", (totalPrice * 0.9).toFixed(2)))), tab === 'stock' && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDED2 Ver cesto \xB7 \u20AC", totalPrice.toFixed(2)))), tab === 'stock' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 16px'
     }
