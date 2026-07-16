@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-16T21:41:55.021Z
+  Gerado em: 2026-07-16T21:48:47.431Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-78";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-79";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12442,6 +12442,10 @@ function NutriguimaApp(_ref29) {
     _useState132 = _slicedToArray(_useState131, 2),
     showAddProd = _useState132[0],
     setShowAddProd = _useState132[1];
+  var _useStateShowCart = (0, _react.useState)(false),
+    _useStateShowCart2 = _slicedToArray(_useStateShowCart, 2),
+    showCart = _useStateShowCart2[0],
+    setShowCart = _useStateShowCart2[1];
   var _useStateAddErr = (0, _react.useState)(''),
     _useStateAddErr2 = _slicedToArray(_useStateAddErr, 2),
     addErr = _useStateAddErr2[0],
@@ -12658,6 +12662,8 @@ function NutriguimaApp(_ref29) {
       }, children);
     };
   }, []); // NCard estável — evita unmount/remount dos inputs ao mudar estado
+  var cartItems = products.filter(function(p) { return (cart[p.id] || 0) > 0; });
+  var totalDesconto = totalPrice * 0.9;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -12666,7 +12672,51 @@ function NutriguimaApp(_ref29) {
       color: N.text,
       paddingBottom: 80
     }
+  }, showCart && /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() { setShowCart(false); },
+    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }
   }, /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick(e) { e.stopPropagation(); },
+    style: { background: N.surface, borderRadius: '20px 20px 0 0', padding: '20px 16px 32px', maxHeight: '85vh', overflowY: 'auto' }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: N.gold, fontWeight: 800, fontSize: 16 }
+  }, "\uD83D\uDED2 Cesto (" + totalItems + " itens)"), /*#__PURE__*/React.createElement("button", {
+    type: "button", onClick: function onClick() { setShowCart(false); },
+    style: { background: 'none', border: 'none', color: N.muted, fontSize: 20, cursor: 'pointer' }
+  }, "\u2715")), cartItems.map(function(p) {
+    var qty = cart[p.id] || 0;
+    return /*#__PURE__*/React.createElement("div", {
+      key: p.id,
+      style: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: "1px solid " + N.border }
+    }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 22 } }, p.emoji),
+    /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+      /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13 } }, p.name),
+      /*#__PURE__*/React.createElement("p", { style: { color: N.muted, fontSize: 11 } }, qty + " x \u20AC" + p.price.toFixed(2))
+    ), /*#__PURE__*/React.createElement("p", { style: { fontWeight: 800, color: N.gold } }, "\u20AC" + (qty * p.price * 0.9).toFixed(2)));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: { padding: '14px 0 10px', borderTop: "2px solid " + N.border, marginTop: 4 }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 }
+  }, /*#__PURE__*/React.createElement("span", { style: { color: N.muted, fontSize: 13 } }, "Subtotal"),
+  /*#__PURE__*/React.createElement("span", { style: { textDecoration: 'line-through', color: N.muted, fontSize: 13 } }, "\u20AC" + totalPrice.toFixed(2))),
+  /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', marginBottom: 14 }
+  }, /*#__PURE__*/React.createElement("span", { style: { fontWeight: 800, fontSize: 15 } }, "Total c/ 10% desconto"),
+  /*#__PURE__*/React.createElement("span", { style: { fontWeight: 800, fontSize: 15, color: N.gold } }, "\u20AC" + totalDesconto.toFixed(2)))),
+  /*#__PURE__*/React.createElement("p", { style: { color: N.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 } }, "Forma de pagamento"),
+  /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 } },
+    [['\uD83D\uDCF1 MB Way', '#1a4'], ['\uD83C\uDFE6 Multibanco', '#1a4'], ['\uD83D\uDCB3 Cart\xE3o', '#1a4'], ['\uD83D\uDCB0 PayPal', '#1a4']].map(function(m) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: m[0],
+        style: { background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.3)', borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: '#16a34a' }
+      }, m[0]);
+    })
+  ), /*#__PURE__*/React.createElement("a", {
+    href: "http://zumu.be/eb762cd1", target: "_blank", rel: "noreferrer",
+    style: { display: 'block', background: "linear-gradient(135deg," + N.gold + "," + N.goldL + ")", borderRadius: 14, padding: '14px', color: N.bg, fontSize: 15, fontWeight: 800, textDecoration: 'none', textAlign: 'center' }
+  }, "\uD83D\uDED2 Encomendar no Zumub \xB7 \u20AC" + totalDesconto.toFixed(2)))), /*#__PURE__*/React.createElement("div", {
     style: {
       background: N.surface,
       borderBottom: "1px solid ".concat(N.border),
