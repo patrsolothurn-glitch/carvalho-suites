@@ -129,6 +129,12 @@ function NutriguimaApp(_ref29) {
   (0, _react.useEffect)(function () {
     loadNutriData();
   }, []);
+  (0, _react.useEffect)(function () {
+    if (showAddProd) {
+      if (novoNomeRef.current) novoNomeRef.current.value = sessionStorage.getItem('nutri_nome') || '';
+      if (novoPrecoRef.current) novoPrecoRef.current.value = sessionStorage.getItem('nutri_preco') || '';
+    }
+  }, [showAddProd]);
   var addProduto = function addProduto() {
     var _novoNomeRef$current, _novoPrecoRef$current;
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
@@ -155,6 +161,8 @@ function NutriguimaApp(_ref29) {
         setNovoEmoji('💊');
         setNovoCat('Proteína');
         setNovoQtd(0);
+        sessionStorage.removeItem('nutri_nome');
+        sessionStorage.removeItem('nutri_preco');
         if (novoNomeRef.current) novoNomeRef.current.value = '';
         if (novoPrecoRef.current) novoPrecoRef.current.value = '';
         setShowAddProd(false);
@@ -1037,7 +1045,7 @@ function NutriguimaApp(_ref29) {
       marginBottom: 12,
       flexWrap: 'wrap'
     }
-  }, ['💊', '🥛', '⚡', '🍊', '🐟', '💪', '🔥', '🌿', '💉', '🧪', '🍫', '🥤', '🫐', '🍋', '🥑', '🥦', '🧄', '🫚', '🥩', '🥚', '🍌', '🍎', '🫁', '❤️', '🧠', '🦴', '🏋️', '🚴', '🧘', '💤', '⚖️', '🌊', '☀️', '🌙'].map(function (e) {
+  }, ['💊', '🧪', '💉', '🌿', '⚡', '🔥', '🥛', '🥩', '🥚', '🍫', '🥤', '🌱', '🍌', '🫐', '🍊', '🍋', '🥑', '🍎', '🏋️', '💪', '🏃', '🚴', '🧘', '🤸', '❤️', '🦴', '🧠', '🫁', '☀️', '🌙', '⚖️', '💤', '🏆', '🎯', '🐟', '💆'].map(function (e) {
     return /*#__PURE__*/React.createElement("button", {
       key: e,
       onClick: function onClick() {
@@ -1062,6 +1070,7 @@ function NutriguimaApp(_ref29) {
     }
   }, "Nome"), /*#__PURE__*/React.createElement("input", {
     ref: novoNomeRef,
+    onChange: function onChange(e) { sessionStorage.setItem('nutri_nome', e.target.value); },
     autoComplete: "off",
     placeholder: "Ex: Magn\xE9sio 300mg",
     style: {
@@ -1098,6 +1107,7 @@ function NutriguimaApp(_ref29) {
     ref: novoPrecoRef,
     type: "text",
     inputMode: "decimal",
+    onChange: function onChange(e) { sessionStorage.setItem('nutri_preco', e.target.value); },
     autoComplete: "off",
     placeholder: "Ex: 15.90",
     style: {
