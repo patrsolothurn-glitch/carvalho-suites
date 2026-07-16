@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-16T18:41:19.643Z
+  Gerado em: 2026-07-16T18:48:21.784Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-70";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-71";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12538,6 +12538,12 @@ function NutriguimaApp(_ref29) {
   (0, _react.useEffect)(function () {
     loadNutriData();
   }, []);
+  (0, _react.useEffect)(function () {
+    if (showAddProd) {
+      if (novoNomeRef.current) novoNomeRef.current.value = sessionStorage.getItem('nutri_nome') || '';
+      if (novoPrecoRef.current) novoPrecoRef.current.value = sessionStorage.getItem('nutri_preco') || '';
+    }
+  }, [showAddProd]);
   var addProduto = function addProduto() {
     var _novoNomeRef$current, _novoPrecoRef$current;
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
@@ -12564,6 +12570,8 @@ function NutriguimaApp(_ref29) {
         setNovoEmoji('💊');
         setNovoCat('Proteína');
         setNovoQtd(0);
+        sessionStorage.removeItem('nutri_nome');
+        sessionStorage.removeItem('nutri_preco');
         if (novoNomeRef.current) novoNomeRef.current.value = '';
         if (novoPrecoRef.current) novoPrecoRef.current.value = '';
         setShowAddProd(false);
@@ -13446,7 +13454,7 @@ function NutriguimaApp(_ref29) {
       marginBottom: 12,
       flexWrap: 'wrap'
     }
-  }, ['💊', '🥛', '⚡', '🍊', '🐟', '💪', '🔥', '🌿', '💉', '🧪', '🍫', '🥤', '🫐', '🍋', '🥑', '🥦', '🧄', '🫚', '🥩', '🥚', '🍌', '🍎', '🫁', '❤️', '🧠', '🦴', '🏋️', '🚴', '🧘', '💤', '⚖️', '🌊', '☀️', '🌙'].map(function (e) {
+  }, ['💊', '🧪', '💉', '🌿', '⚡', '🔥', '🥛', '🥩', '🥚', '🍫', '🥤', '🌱', '🍌', '🫐', '🍊', '🍋', '🥑', '🍎', '🏋️', '💪', '🏃', '🚴', '🧘', '🤸', '❤️', '🦴', '🧠', '🫁', '☀️', '🌙', '⚖️', '💤', '🏆', '🎯', '🐟', '💆'].map(function (e) {
     return /*#__PURE__*/React.createElement("button", {
       key: e,
       onClick: function onClick() {
@@ -13471,6 +13479,7 @@ function NutriguimaApp(_ref29) {
     }
   }, "Nome"), /*#__PURE__*/React.createElement("input", {
     ref: novoNomeRef,
+    onChange: function onChange(e) { sessionStorage.setItem('nutri_nome', e.target.value); },
     autoComplete: "off",
     placeholder: "Ex: Magn\xE9sio 300mg",
     style: {
@@ -13507,6 +13516,7 @@ function NutriguimaApp(_ref29) {
     ref: novoPrecoRef,
     type: "text",
     inputMode: "decimal",
+    onChange: function onChange(e) { sessionStorage.setItem('nutri_preco', e.target.value); },
     autoComplete: "off",
     placeholder: "Ex: 15.90",
     style: {
