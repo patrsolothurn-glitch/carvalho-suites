@@ -258,6 +258,20 @@ function NutriguimaApp(_ref29) {
     };
   }, []); // NCard estável — evita unmount/remount dos inputs ao mudar estado
   var cartItems = products.filter(function(p) { return (cart[p.id] || 0) > 0; });
+  var confirmarEncomenda = function confirmarEncomenda() {
+    var localItems = cartItems.filter(function(p) { return (stock[p.id] || 0) > 0; });
+    localItems.forEach(function(p) {
+      var qty = cart[p.id] || 0;
+      var novoStock = Math.max(0, (stock[p.id] || 0) - qty);
+      if (window.supabaseClient) {
+        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function() {}).catch(function() {});
+      }
+      setStock(function(s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, novoStock)); });
+    });
+    setCart({});
+    setShowCart(false);
+    setSelPay('');
+  };
   var totalDesconto = totalPrice * 0.9;
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -311,11 +325,13 @@ function NutriguimaApp(_ref29) {
         /*#__PURE__*/React.createElement("a", {
           href: "https://wa.me/351961088219?text=" + encodeURIComponent("Ol\xE1! Quero encomendar na Nutriguima:\n\n" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).map(function(p){ return "\u2022 " + p.name + " x" + (cart[p.id]||0) + " = \u20AC" + ((cart[p.id]||0)*p.price).toFixed(2); }).join("\n") + "\n\nTotal: \u20AC" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).reduce(function(s,p){return s+(cart[p.id]||0)*p.price;},0).toFixed(2) + "\nPagamento: " + selPay),
           target: "_blank", rel: "noreferrer",
+          onClick: confirmarEncomenda,
           style: { flex: 1, display: 'block', background: '#25D366', borderRadius: 12, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 800, textDecoration: 'none', textAlign: 'center' }
         }, "\uD83D\uDCF1 PT +351 961 088 219"),
         /*#__PURE__*/React.createElement("a", {
           href: "https://wa.me/41798884384?text=" + encodeURIComponent("Ol\xE1! Quero encomendar na Nutriguima:\n\n" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).map(function(p){ return "\u2022 " + p.name + " x" + (cart[p.id]||0) + " = \u20AC" + ((cart[p.id]||0)*p.price).toFixed(2); }).join("\n") + "\n\nTotal: \u20AC" + cartItems.filter(function(p){return (stock[p.id]||0)>0;}).reduce(function(s,p){return s+(cart[p.id]||0)*p.price;},0).toFixed(2) + "\nPagamento: " + selPay),
           target: "_blank", rel: "noreferrer",
+          onClick: confirmarEncomenda,
           style: { flex: 1, display: 'block', background: '#25D366', borderRadius: 12, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 800, textDecoration: 'none', textAlign: 'center' }
         }, "\uD83C\uDDE8\uD83C\uDDED CH +41 798 884 384")
       )
