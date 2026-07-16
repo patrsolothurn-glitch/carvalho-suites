@@ -234,18 +234,21 @@ function NutriguimaApp(_ref29) {
     green: '#16A34A',
     red: '#DC2626'
   };
-  var NCard = function NCard(_ref30) {
-    var children = _ref30.children,
-      _ref30$style = _ref30.style,
-      style = _ref30$style === void 0 ? {} : _ref30$style;
-    return /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread({
-        background: N.surface,
-        borderRadius: 16,
-        border: "1px solid ".concat(N.border)
-      }, style)
-    }, children);
-  };
+  var NCard = React.useMemo(function () {
+    var _N = N;
+    return function NCard(_ref30) {
+      var children = _ref30.children,
+        _ref30$style = _ref30.style,
+        style = _ref30$style === void 0 ? {} : _ref30$style;
+      return /*#__PURE__*/React.createElement("div", {
+        style: _objectSpread({
+          background: _N.surface,
+          borderRadius: 16,
+          border: "1px solid ".concat(_N.border)
+        }, style)
+      }, children);
+    };
+  }, []); // NCard estável — evita unmount/remount dos inputs ao mudar estado
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
