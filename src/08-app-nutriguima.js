@@ -10,8 +10,10 @@ function NutriguimaApp(_ref29) {
     setSearch = _useState124[1];
   var _useState125 = (0, _react.useState)('loja'),
     _useState126 = _slicedToArray(_useState125, 2),
-    tab = _useState126[0],
-    setTab = _useState126[1]; // loja | stock
+    _rawTab = _useState126[0],
+    _setTab = _useState126[1]; // loja | stock
+  var tab = _rawTab;
+  var setTab = function setTab(v) { sessionStorage.setItem('nutri_tab', v); _setTab(v); };
   var _useState127 = (0, _react.useState)({
       1: 5,
       2: 1,
@@ -128,7 +130,9 @@ function NutriguimaApp(_ref29) {
   };
   (0, _react.useEffect)(function () {
     loadNutriData();
-    if (sessionStorage.getItem('nutri_nome')) { setShowAddProd(true); }
+    var savedTab = sessionStorage.getItem('nutri_tab');
+    if (savedTab) { _setTab(savedTab); }
+    if (sessionStorage.getItem('nutri_nome') !== null && sessionStorage.getItem('nutri_nome') !== '') { setShowAddProd(true); }
   }, []);
   (0, _react.useEffect)(function () {
     if (showAddProd) {
