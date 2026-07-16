@@ -39,8 +39,14 @@ function NutriguimaApp(_ref29) {
     _useStateAddSaving2 = _slicedToArray(_useStateAddSaving, 2),
     addSaving = _useStateAddSaving2[0],
     setAddSaving = _useStateAddSaving2[1];
-  var novoNomeRef = React.useRef(null);
-  var novoPrecoRef = React.useRef(null);
+  var _useStateNovoNome = (0, _react.useState)(''),
+    _useStateNovoNome2 = _slicedToArray(_useStateNovoNome, 2),
+    novoNome = _useStateNovoNome2[0],
+    setNovoNome = _useStateNovoNome2[1];
+  var _useStateNovoPreco = (0, _react.useState)(''),
+    _useStateNovoPreco2 = _slicedToArray(_useStateNovoPreco, 2),
+    novoPreco = _useStateNovoPreco2[0],
+    setNovoPreco = _useStateNovoPreco2[1];
   var _useState133 = (0, _react.useState)('💊'),
     _useState134 = _slicedToArray(_useState133, 2),
     novoEmoji = _useState134[0],
@@ -126,9 +132,8 @@ function NutriguimaApp(_ref29) {
     loadNutriData();
   }, []);
   var addProduto = function addProduto() {
-    var _novoNomeRef$current, _novoPrecoRef$current;
-    var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
-    var price = parseFloat(((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0');
+    var name = (novoNome || '').trim();
+    var price = parseFloat(novoPreco || '0');
     if (!name) { setAddErr('Preenche o nome do produto.'); return; }
     if (isNaN(price) || price <= 0) { setAddErr('Preenche um preço válido (ex: 12.90).'); return; }
     setAddErr('');
@@ -150,8 +155,8 @@ function NutriguimaApp(_ref29) {
         setAddErr('');
         setNovoEmoji('💊');
         setNovoCat('Proteína');
-        if (novoNomeRef.current) novoNomeRef.current.value = '';
-        if (novoPrecoRef.current) novoPrecoRef.current.value = '';
+        setNovoNome('');
+        setNovoPreco('');
         setShowAddProd(false);
       }).catch(function (err) { setAddSaving(false); setAddErr('Erro de ligação. Tenta novamente.'); });
     } else {
@@ -161,8 +166,8 @@ function NutriguimaApp(_ref29) {
       setAddErr('');
       setNovoEmoji('💊');
       setNovoCat('Proteína');
-      if (novoNomeRef.current) novoNomeRef.current.value = '';
-      if (novoPrecoRef.current) novoPrecoRef.current.value = '';
+      setNovoNome('');
+      setNovoPreco('');
       setShowAddProd(false);
     }
   };
@@ -1055,7 +1060,8 @@ function NutriguimaApp(_ref29) {
       marginBottom: 4
     }
   }, "Nome"), /*#__PURE__*/React.createElement("input", {
-    ref: novoNomeRef,
+    value: novoNome,
+    onChange: function onChange(e) { return setNovoNome(e.target.value); },
     autoComplete: "off",
     placeholder: "Ex: Magn\xE9sio 300mg",
     style: {
@@ -1089,7 +1095,8 @@ function NutriguimaApp(_ref29) {
       marginBottom: 4
     }
   }, "Pre\xE7o \u20AC"), /*#__PURE__*/React.createElement("input", {
-    ref: novoPrecoRef,
+    value: novoPreco,
+    onChange: function onChange(e) { return setNovoPreco(e.target.value); },
     type: "number",
     step: "0.1",
     autoComplete: "off",
