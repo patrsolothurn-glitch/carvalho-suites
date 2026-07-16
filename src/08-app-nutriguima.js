@@ -950,7 +950,9 @@ function NutriguimaApp(_ref29) {
         padding: '14px 12px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8
+        gap: 8,
+        opacity: st === 0 ? 0.6 : 1,
+        filter: st === 0 ? 'grayscale(30%)' : 'none'
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1015,18 +1017,18 @@ function NutriguimaApp(_ref29) {
         });
       },
       style: {
-        background: "linear-gradient(135deg,".concat(N.gold, ",").concat(N.goldL, ")"),
-        border: 'none',
+        background: st === 0 ? N.surface2 : "linear-gradient(135deg,".concat(N.gold, ",").concat(N.goldL, ")"),
+        border: st === 0 ? "1px solid ".concat(N.border) : 'none',
         borderRadius: 10,
         padding: '8px',
-        color: N.bg,
+        color: st === 0 ? N.muted : N.bg,
         fontSize: 12,
         fontWeight: 800,
-        cursor: 'pointer',
-        opacity: st === 0 ? 0.4 : 1
+        cursor: st === 0 ? 'not-allowed' : 'pointer',
+        opacity: st === 0 ? 0.6 : 1
       },
       disabled: st === 0
-    }, st === 0 ? 'Sem stock' : 'Adicionar') : /*#__PURE__*/React.createElement("div", {
+    }, st === 0 ? '\uD83D\uDEAB Sem stock' : 'Adicionar') : /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         alignItems: 'center',
@@ -1058,18 +1060,20 @@ function NutriguimaApp(_ref29) {
       }
     }, qty), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return setCart(function (c) {
+        if (qty < st) setCart(function (c) {
           return _objectSpread(_objectSpread({}, c), {}, _defineProperty({}, p.id, qty + 1));
         });
       },
+      disabled: qty >= st,
       style: {
         background: 'none',
         border: 'none',
-        color: N.gold,
+        color: qty >= st ? N.muted : N.gold,
         fontSize: 20,
-        cursor: 'pointer',
+        cursor: qty >= st ? 'not-allowed' : 'pointer',
         fontWeight: 700,
-        padding: '0 4px'
+        padding: '0 4px',
+        opacity: qty >= st ? 0.35 : 1
       }
     }, "\uFF0B")));
   })), totalItems > 0 && /*#__PURE__*/React.createElement("div", {
