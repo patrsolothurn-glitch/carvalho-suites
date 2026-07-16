@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-16T21:03:10.661Z
+  Gerado em: 2026-07-16T21:25:49.473Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-73";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-74";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12419,8 +12419,10 @@ function NutriguimaApp(_ref29) {
     setSearch = _useState124[1];
   var _useState125 = (0, _react.useState)('loja'),
     _useState126 = _slicedToArray(_useState125, 2),
-    tab = _useState126[0],
-    setTab = _useState126[1]; // loja | stock
+    _rawTab = _useState126[0],
+    _setTab = _useState126[1]; // loja | stock
+  var tab = _rawTab;
+  var setTab = function setTab(v) { sessionStorage.setItem('nutri_tab', v); _setTab(v); };
   var _useState127 = (0, _react.useState)({
       1: 5,
       2: 1,
@@ -12537,7 +12539,9 @@ function NutriguimaApp(_ref29) {
   };
   (0, _react.useEffect)(function () {
     loadNutriData();
-    if (sessionStorage.getItem('nutri_nome')) { setShowAddProd(true); }
+    var savedTab = sessionStorage.getItem('nutri_tab');
+    if (savedTab) { _setTab(savedTab); }
+    if (sessionStorage.getItem('nutri_nome') !== null && sessionStorage.getItem('nutri_nome') !== '') { setShowAddProd(true); }
   }, []);
   (0, _react.useEffect)(function () {
     if (showAddProd) {
