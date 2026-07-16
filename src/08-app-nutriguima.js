@@ -128,6 +128,7 @@ function NutriguimaApp(_ref29) {
   };
   (0, _react.useEffect)(function () {
     loadNutriData();
+    if (sessionStorage.getItem('nutri_nome')) { setShowAddProd(true); }
   }, []);
   (0, _react.useEffect)(function () {
     if (showAddProd) {
@@ -1399,5 +1400,6 @@ function NutriguimaApp(_ref29) {
     }, "\u270F\uFE0F"))));
   })));
 }
+NutriguimaApp = React.memo(NutriguimaApp);
 
 // ── AGENDA ESCOLAR ──────────────────────────────────────────────────
