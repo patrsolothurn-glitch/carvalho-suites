@@ -31,6 +31,14 @@ function NutriguimaApp(_ref29) {
     _useState132 = _slicedToArray(_useState131, 2),
     showAddProd = _useState132[0],
     setShowAddProd = _useState132[1];
+  var _useStateAddErr = (0, _react.useState)(''),
+    _useStateAddErr2 = _slicedToArray(_useStateAddErr, 2),
+    addErr = _useStateAddErr2[0],
+    setAddErr = _useStateAddErr2[1];
+  var _useStateAddSaving = (0, _react.useState)(false),
+    _useStateAddSaving2 = _slicedToArray(_useStateAddSaving, 2),
+    addSaving = _useStateAddSaving2[0],
+    setAddSaving = _useStateAddSaving2[1];
   var novoNomeRef = React.useRef(null);
   var novoPrecoRef = React.useRef(null);
   var _useState133 = (0, _react.useState)('💊'),
@@ -121,7 +129,10 @@ function NutriguimaApp(_ref29) {
     var _novoNomeRef$current, _novoPrecoRef$current;
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
     var price = parseFloat(((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0');
-    if (!name || isNaN(price) || price <= 0) return;
+    if (!name) { setAddErr('Preenche o nome do produto.'); return; }
+    if (isNaN(price) || price <= 0) { setAddErr('Preenche um preço válido (ex: 12.90).'); return; }
+    setAddErr('');
+    setAddSaving(true);
     var id = Date.now();
     if (window.supabaseClient) {
       window.supabaseClient.from('nutri_products').insert({
@@ -132,18 +143,22 @@ function NutriguimaApp(_ref29) {
         cat: novoCat,
         stock: 0
       }).select().then(function (res) {
-        if (res.error) { console.error('Nutriguima insert error:', res.error); return; }
+        setAddSaving(false);
+        if (res.error) { setAddErr('Erro ao guardar: ' + (res.error.message || 'tenta novamente.')); return; }
         setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
         setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0)); });
+        setAddErr('');
         setNovoEmoji('💊');
         setNovoCat('Proteína');
         if (novoNomeRef.current) novoNomeRef.current.value = '';
         if (novoPrecoRef.current) novoPrecoRef.current.value = '';
         setShowAddProd(false);
-      }).catch(function (err) { console.error('Nutriguima insert catch:', err); });
+      }).catch(function (err) { setAddSaving(false); setAddErr('Erro de ligação. Tenta novamente.'); });
     } else {
+      setAddSaving(false);
       setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
       setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0)); });
+      setAddErr('');
       setNovoEmoji('💊');
       setNovoCat('Proteína');
       if (novoNomeRef.current) novoNomeRef.current.value = '';
@@ -1121,20 +1136,24 @@ function NutriguimaApp(_ref29) {
     return /*#__PURE__*/React.createElement("option", {
       key: c
     }, c);
-  })))), /*#__PURE__*/React.createElement("button", {
+  })))), addErr && /*#__PURE__*/React.createElement("div", {
+    style: { background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 10, padding: '10px 12px', marginBottom: 10, color: '#f87171', fontSize: 13, fontWeight: 600 }
+  }, "\u26A0\uFE0F ", addErr), /*#__PURE__*/React.createElement("button", {
     onClick: addProduto,
+    disabled: addSaving,
     style: {
       width: '100%',
-      background: "linear-gradient(135deg,".concat(N.gold, ",").concat(N.goldL, ")"),
-      border: 'none',
+      background: addSaving ? N.surface2 : "linear-gradient(135deg,".concat(N.gold, ",").concat(N.goldL, ")"),
+      border: addSaving ? "1px solid ".concat(N.border) : 'none',
       borderRadius: 12,
       padding: '12px',
-      color: N.bg,
+      color: addSaving ? N.muted : N.bg,
       fontSize: 14,
       fontWeight: 800,
-      cursor: 'pointer'
+      cursor: addSaving ? 'not-allowed' : 'pointer',
+      opacity: addSaving ? 0.7 : 1
     }
-  }, "\u2713 Adicionar produto")), /*#__PURE__*/React.createElement("div", {
+  }, addSaving ? '\u23F3 A guardar...' : "\u2713 Adicionar produto")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       gap: 12,
