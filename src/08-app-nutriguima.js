@@ -122,8 +122,10 @@ function NutriguimaApp(_ref29) {
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
     var price = parseFloat(((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0');
     if (!name || isNaN(price) || price <= 0) return;
+    var id = Date.now();
     if (window.supabaseClient) {
       window.supabaseClient.from('nutri_products').insert({
+        id: id,
         name: name,
         price: price,
         emoji: novoEmoji,
@@ -131,11 +133,8 @@ function NutriguimaApp(_ref29) {
         stock: 0
       }).select().then(function (res) {
         if (res.error) { console.error('Nutriguima insert error:', res.error); return; }
-        var row = res.data && res.data[0];
-        if (row) {
-          setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: row.id, name: row.name, price: Number(row.price), emoji: row.emoji, cat: row.cat }]); });
-          setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, row.id, 0)); });
-        }
+        setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
+        setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0)); });
         setNovoEmoji('💊');
         setNovoCat('Proteína');
         if (novoNomeRef.current) novoNomeRef.current.value = '';
@@ -143,7 +142,6 @@ function NutriguimaApp(_ref29) {
         setShowAddProd(false);
       }).catch(function (err) { console.error('Nutriguima insert catch:', err); });
     } else {
-      var id = Date.now();
       setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
       setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0)); });
       setNovoEmoji('💊');
