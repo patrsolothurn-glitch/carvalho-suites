@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-08T21:38:14.295Z
+  Gerado em: 2026-07-16T13:11:14.052Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-62";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-63";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12531,34 +12531,36 @@ function NutriguimaApp(_ref29) {
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
     var price = parseFloat(((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0');
     if (!name || isNaN(price) || price <= 0) return;
-    var id = Date.now();
-    setProducts(function (p) {
-      return [].concat(_toConsumableArray(p), [{
-        id: id,
-        name: name,
-        price: price,
-        emoji: novoEmoji,
-        cat: novoCat
-      }]);
-    });
-    setStock(function (s) {
-      return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0));
-    });
     if (window.supabaseClient) {
       window.supabaseClient.from('nutri_products').insert({
-        id: id,
         name: name,
         price: price,
         emoji: novoEmoji,
         cat: novoCat,
         stock: 0
-      }).then(function () { }).catch(function () {});
+      }).select().then(function (res) {
+        if (res.error) { console.error('Nutriguima insert error:', res.error); return; }
+        var row = res.data && res.data[0];
+        if (row) {
+          setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: row.id, name: row.name, price: Number(row.price), emoji: row.emoji, cat: row.cat }]); });
+          setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, row.id, 0)); });
+        }
+        setNovoEmoji('💊');
+        setNovoCat('Proteína');
+        if (novoNomeRef.current) novoNomeRef.current.value = '';
+        if (novoPrecoRef.current) novoPrecoRef.current.value = '';
+        setShowAddProd(false);
+      }).catch(function (err) { console.error('Nutriguima insert catch:', err); });
+    } else {
+      var id = Date.now();
+      setProducts(function (p) { return [].concat(_toConsumableArray(p), [{ id: id, name: name, price: price, emoji: novoEmoji, cat: novoCat }]); });
+      setStock(function (s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, id, 0)); });
+      setNovoEmoji('💊');
+      setNovoCat('Proteína');
+      if (novoNomeRef.current) novoNomeRef.current.value = '';
+      if (novoPrecoRef.current) novoPrecoRef.current.value = '';
+      setShowAddProd(false);
     }
-    setNovoEmoji('💊');
-    setNovoCat('Proteína');
-    if (novoNomeRef.current) novoNomeRef.current.value = '';
-    if (novoPrecoRef.current) novoPrecoRef.current.value = '';
-    setShowAddProd(false);
   };
   var removeProduto = function removeProduto(id) {
     setProducts(function (p) {
