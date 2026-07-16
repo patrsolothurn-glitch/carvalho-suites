@@ -402,6 +402,7 @@ function NutriguimaApp(_ref29) {
       fontWeight: 800
     }
   }, "Zumub")), /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() { setShowCart(true); },
     style: {
       position: 'relative',
       cursor: 'pointer'
@@ -409,7 +410,7 @@ function NutriguimaApp(_ref29) {
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 22,
-      color: N.gold
+      color: totalItems > 0 ? N.gold : N.muted
     }
   }, "\uD83D\uDED2"), totalItems > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
