@@ -128,7 +128,7 @@ function NutriguimaApp(_ref29) {
   var addProduto = function addProduto() {
     var _novoNomeRef$current, _novoPrecoRef$current;
     var name = (((_novoNomeRef$current = novoNomeRef.current) === null || _novoNomeRef$current === void 0 ? void 0 : _novoNomeRef$current.value) || '').trim();
-    var price = parseFloat(((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0');
+    var _rawPreco = ((_novoPrecoRef$current = novoPrecoRef.current) === null || _novoPrecoRef$current === void 0 ? void 0 : _novoPrecoRef$current.value) || '0'; var price = parseFloat(_rawPreco.replace(',', '.'));
     if (!name) { setAddErr('Preenche o nome do produto.'); return; }
     if (isNaN(price) || price <= 0) { setAddErr('Preenche um preço válido (ex: 12.90).'); return; }
     setAddErr('');
@@ -1090,8 +1090,8 @@ function NutriguimaApp(_ref29) {
     }
   }, "Pre\xE7o \u20AC"), /*#__PURE__*/React.createElement("input", {
     ref: novoPrecoRef,
-    type: "number",
-    step: "0.1",
+    type: "text",
+    inputMode: "decimal",
     autoComplete: "off",
     placeholder: "Ex: 15.90",
     style: {
