@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-16T21:58:11.324Z
+  Gerado em: 2026-07-16T22:07:50.825Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-80";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-81";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12811,6 +12811,7 @@ function NutriguimaApp(_ref29) {
       fontWeight: 800
     }
   }, "Zumub")), /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() { setShowCart(true); },
     style: {
       position: 'relative',
       cursor: 'pointer'
@@ -12818,7 +12819,7 @@ function NutriguimaApp(_ref29) {
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 22,
-      color: N.gold
+      color: totalItems > 0 ? N.gold : N.muted
     }
   }, "\uD83D\uDED2"), totalItems > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
