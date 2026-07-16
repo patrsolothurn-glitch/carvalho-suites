@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-16T21:37:37.886Z
+  Gerado em: 2026-07-16T21:41:55.021Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-77";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-78";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12643,18 +12643,21 @@ function NutriguimaApp(_ref29) {
     green: '#16A34A',
     red: '#DC2626'
   };
-  var NCard = function NCard(_ref30) {
-    var children = _ref30.children,
-      _ref30$style = _ref30.style,
-      style = _ref30$style === void 0 ? {} : _ref30$style;
-    return /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread({
-        background: N.surface,
-        borderRadius: 16,
-        border: "1px solid ".concat(N.border)
-      }, style)
-    }, children);
-  };
+  var NCard = React.useMemo(function () {
+    var _N = N;
+    return function NCard(_ref30) {
+      var children = _ref30.children,
+        _ref30$style = _ref30.style,
+        style = _ref30$style === void 0 ? {} : _ref30$style;
+      return /*#__PURE__*/React.createElement("div", {
+        style: _objectSpread({
+          background: _N.surface,
+          borderRadius: 16,
+          border: "1px solid ".concat(_N.border)
+        }, style)
+      }, children);
+    };
+  }, []); // NCard estável — evita unmount/remount dos inputs ao mudar estado
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
