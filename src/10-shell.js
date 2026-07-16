@@ -1285,11 +1285,10 @@ function CarvalhoSuite() {
     }
   };
 
+  var goBack = (0, _react.useCallback)(function () { return setScreen('hub'); }, []);
+
   // ── APP SCREENS ──
   if (screen === 'app' && activeApp) {
-    var goBack = function goBack() {
-      return setScreen('hub');
-    };
     var sharedProps = {
       sharedDias: sharedDias,
       addSharedDia: addSharedDia,
