@@ -1042,133 +1042,64 @@ function NutriguimaApp(_ref29) {
       marginBottom: 6
     }
   }, "\xCDcone"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6,
-      marginBottom: 12,
-      flexWrap: 'wrap'
-    }
+    style: { display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap', maxHeight: 160, overflowY: 'auto', padding: '2px 0' }
   }, ['💊', '🧪', '💉', '🌿', '⚡', '🔥', '🥛', '🥩', '🥚', '🍫', '🥤', '🌱', '🍌', '🫐', '🍊', '🍋', '🥑', '🍎', '🏋️', '💪', '🏃', '🚴', '🧘', '🤸', '❤️', '🦴', '🧠', '🫁', '☀️', '🌙', '⚖️', '💤', '🏆', '🎯', '🐟', '💆'].map(function (e) {
     return /*#__PURE__*/React.createElement("button", {
       key: e,
-      onClick: function onClick() {
-        return setNovoEmoji(e);
-      },
-      style: {
-        background: novoEmoji === e ? "".concat(N.gold, "22") : N.surface2,
-        border: "1px solid ".concat(novoEmoji === e ? N.gold : N.border),
-        borderRadius: 10,
-        padding: '8px',
-        fontSize: 20,
-        cursor: 'pointer'
-      }
+      onClick: function onClick() { return setNovoEmoji(e); },
+      style: { background: novoEmoji === e ? "".concat(N.gold, "22") : N.surface2, border: "1px solid ".concat(novoEmoji === e ? N.gold : N.border), borderRadius: 10, padding: '7px', fontSize: 20, cursor: 'pointer', flexShrink: 0 }
     }, e);
   })), /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: N.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      marginBottom: 4
-    }
+    style: { color: N.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
   }, "Nome"), /*#__PURE__*/React.createElement("input", {
     ref: novoNomeRef,
     onChange: function onChange(e) { sessionStorage.setItem('nutri_nome', e.target.value); },
     autoComplete: "off",
+    autoCorrect: "off",
+    autoCapitalize: "words",
+    spellCheck: "false",
     placeholder: "Ex: Magn\xE9sio 300mg",
-    style: {
-      width: '100%',
-      background: N.surface2,
-      border: "1px solid ".concat(N.border),
-      borderRadius: 10,
-      padding: '10px 12px',
-      color: N.text,
-      fontSize: 14,
-      outline: 'none',
-      marginBottom: 10,
-      boxSizing: 'border-box'
-    }
+    style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '11px 12px', color: N.text, fontSize: 15, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }
   }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      marginBottom: 14
-    }
+    style: { display: 'flex', gap: 8, marginBottom: 8 }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
+    style: { flex: 1 }
   }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: N.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      marginBottom: 4
-    }
+    style: { color: N.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
   }, "Pre\xE7o \u20AC"), /*#__PURE__*/React.createElement("input", {
     ref: novoPrecoRef,
     type: "text",
     inputMode: "decimal",
     onChange: function onChange(e) { sessionStorage.setItem('nutri_preco', e.target.value); },
     autoComplete: "off",
+    autoCorrect: "off",
+    spellCheck: "false",
     placeholder: "Ex: 15.90",
-    style: {
-      width: '100%',
-      background: N.surface2,
-      border: "1px solid ".concat(N.border),
-      borderRadius: 10,
-      padding: '10px 12px',
-      color: N.text,
-      fontSize: 14,
-      outline: 'none',
-      boxSizing: 'border-box'
-    }
+    style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '11px 12px', color: N.text, fontSize: 15, outline: 'none', boxSizing: 'border-box' }
   })), /*#__PURE__*/React.createElement("div", {
-    style: { width: 72 }
+    style: { width: 90 }
   }, /*#__PURE__*/React.createElement("p", {
     style: { color: N.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
   }, "Qtd"), /*#__PURE__*/React.createElement("input", {
-    type: "number",
-    min: "0",
-    step: "1",
     ref: novoQtdRef,
     type: "text",
     inputMode: "numeric",
     defaultValue: "0",
-    style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '10px 6px', color: N.text, fontSize: 14, outline: 'none', boxSizing: 'border-box', textAlign: 'center' }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
+    autoComplete: "off",
+    style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '11px 8px', color: N.text, fontSize: 15, outline: 'none', boxSizing: 'border-box', textAlign: 'center' }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: { marginBottom: 14 }
   }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      color: N.muted,
-      fontSize: 10,
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      marginBottom: 4
-    }
+    style: { color: N.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
   }, "Categoria"), /*#__PURE__*/React.createElement("select", {
     value: novoCat,
-    onChange: function onChange(e) {
-      return setNovoCat(e.target.value);
-    },
-    style: {
-      width: '100%',
-      background: N.surface2,
-      border: "1px solid ".concat(N.border),
-      borderRadius: 10,
-      padding: '10px 12px',
-      color: N.text,
-      fontSize: 14,
-      outline: 'none'
-    }
+    onChange: function onChange(e) { return setNovoCat(e.target.value); },
+    style: { width: '100%', background: N.surface2, border: "1px solid ".concat(N.border), borderRadius: 10, padding: '11px 12px', color: N.text, fontSize: 15, outline: 'none', boxSizing: 'border-box' }
   }, ['Proteína', 'Força', 'Vitaminas', 'Saúde', 'Packs', 'Outros'].map(function (c) {
     return /*#__PURE__*/React.createElement("option", {
       key: c
     }, c);
-  })))), addErr && /*#__PURE__*/React.createElement("div", {
+  }))), addErr && /*#__PURE__*/React.createElement("div", {
     style: { background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 10, padding: '10px 12px', marginBottom: 10, color: '#f87171', fontSize: 13, fontWeight: 600 }
   }, "\u26A0\uFE0F ", addErr), /*#__PURE__*/React.createElement("button", {
     onClick: addProduto,
