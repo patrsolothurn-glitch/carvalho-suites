@@ -8,9 +8,7 @@
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
       });
-      navigator.serviceWorker.addEventListener('controllerchange', function () {
-        window.location.reload();
-      });
+      // controllerchange reload removido — causava reset do form durante typing
     }
   </script>
 </body></html>
