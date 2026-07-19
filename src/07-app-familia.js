@@ -1168,25 +1168,26 @@ function FamiliaApp(_ref19) {
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
-        fontSize: 8,
-        fontWeight: 700,
-        color: isWeekend ? F.coral : F.muted
+        fontSize: 10,
+        fontWeight: 800,
+        color: isWeekend ? F.coral : F.muted,
+        letterSpacing: '0.5px'
       }
     }, dayName), /*#__PURE__*/React.createElement("div", {
       style: {
-        width: 26,
-        height: 26,
+        width: 32,
+        height: 32,
         borderRadius: '50%',
         background: isToday ? F.coral : 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 2
+        marginTop: 3
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
-        fontSize: 13,
-        fontWeight: isToday ? 900 : 600,
+        fontSize: 17,
+        fontWeight: isToday ? 900 : 700,
         color: isToday ? '#fff' : isWeekend ? F.coral : F.text
       }
     }, date.getDate()))), members.filter(function (m) {
