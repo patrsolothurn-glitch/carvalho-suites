@@ -2470,13 +2470,16 @@ function FamiliaApp(_ref19) {
         /*#__PURE__*/React.createElement("div", {
           style: {
             flex: 1,
-            padding: '14px 14px',
+            padding: '14px 10px 14px 14px',
             minWidth: 0,
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            gap: 6
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8
           }
+        },
+        /*#__PURE__*/React.createElement("div", {
+          style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }
         },
         /*#__PURE__*/React.createElement("div", {
           style: { display: 'flex', alignItems: 'center', gap: 7 }
@@ -2533,7 +2536,39 @@ function FamiliaApp(_ref19) {
             style: { width: '100%', height: '100%', objectFit: 'cover' },
             alt: pm.name
           }) : /*#__PURE__*/React.createElement("span", { style: { fontSize: 11 } }, pm.emoji));
-        }) : /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: F.muted } }, "Todos"))
+        }) : /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: F.muted } }, "Todos"))),
+        /*#__PURE__*/React.createElement("button", {
+          onClick: function onClick(e) {
+            e.stopPropagation();
+            if (!window.supabaseClient || !ev.id) return;
+            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function() {}).catch(function() {});
+            setEvents(function(p) {
+              var d = _objectSpread({}, p);
+              d[date] = (d[date] || []).filter(function(item) { return item.id !== ev.id; });
+              return d;
+            });
+            setEventsArquivados(function(p) {
+              var d = _objectSpread({}, p);
+              d[date] = [].concat(_toConsumableArray(d[date] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: true })]);
+              return d;
+            });
+          },
+          style: {
+            flexShrink: 0,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: F.surface2,
+            border: "1.5px solid ".concat(F.border),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: 20,
+            lineHeight: 1,
+            transition: 'all 0.15s'
+          }
+        }, "\u2705")
         ));
       }));
     });
