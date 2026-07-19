@@ -2426,13 +2426,13 @@ function FamiliaApp(_ref19) {
         },
         /*#__PURE__*/React.createElement("div", {
           style: {
-            width: 70,
+            width: 80,
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '14px 6px',
+            padding: '16px 6px',
             background: isToday2 ? F.coral : F.surface2,
             borderRight: "1px solid ".concat(F.border)
           }
@@ -2440,22 +2440,22 @@ function FamiliaApp(_ref19) {
           /*#__PURE__*/React.createElement("span", {
             key: 'n',
             style: {
-              fontSize: 38,
+              fontSize: 48,
               fontWeight: 900,
               color: isToday2 ? '#fff' : F.coral,
               lineHeight: 1,
-              letterSpacing: '-1px'
+              letterSpacing: '-2px'
             }
           }, dayNum),
           /*#__PURE__*/React.createElement("span", {
             key: 'w',
             style: {
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: 800,
               color: isToday2 ? 'rgba(255,255,255,0.75)' : F.muted,
               textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              marginTop: 3
+              letterSpacing: '0.8px',
+              marginTop: 4
             }
           }, isToday2 ? 'HOJE' : dayWeekName)
         ] : /*#__PURE__*/React.createElement("div", {
