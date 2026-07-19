@@ -2441,7 +2441,7 @@ function FamiliaApp(_ref19) {
           /*#__PURE__*/React.createElement("span", {
             key: 'n',
             style: {
-              fontSize: 48,
+              fontSize: 42,
               fontWeight: 900,
               color: isToday2 ? '#fff' : F.coral,
               lineHeight: 1,
