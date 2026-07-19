@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-19T12:32:19.663Z
+  Gerado em: 2026-07-19T12:34:28.622Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-87";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-88";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -10477,25 +10477,26 @@ function FamiliaApp(_ref19) {
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
-        fontSize: 8,
-        fontWeight: 700,
-        color: isWeekend ? F.coral : F.muted
+        fontSize: 10,
+        fontWeight: 800,
+        color: isWeekend ? F.coral : F.muted,
+        letterSpacing: '0.5px'
       }
     }, dayName), /*#__PURE__*/React.createElement("div", {
       style: {
-        width: 26,
-        height: 26,
+        width: 32,
+        height: 32,
         borderRadius: '50%',
         background: isToday ? F.coral : 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 2
+        marginTop: 3
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
-        fontSize: 13,
-        fontWeight: isToday ? 900 : 600,
+        fontSize: 17,
+        fontWeight: isToday ? 900 : 700,
         color: isToday ? '#fff' : isWeekend ? F.coral : F.text
       }
     }, date.getDate()))), members.filter(function (m) {
