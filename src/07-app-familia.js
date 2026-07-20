@@ -1252,7 +1252,8 @@ function FamiliaApp(_ref19) {
           }
         }, s.tipo === 'ferias' ? '🏖' : s.tipo === 'feriado' ? '🎌' : '✅', " ", s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre'));
       }), mEvs.map(function (ev, ei) {
-        var isDone = !!ev.arquivado;
+        var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+        var isDone = !!ev.arquivado && date < todayMidnight;
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
@@ -1444,7 +1445,9 @@ function FamiliaApp(_ref19) {
     var isSun = (firstDow + i) % 7 === 6;
     var isSat = (firstDow + i) % 7 === 5;
     var allColors = [].concat(_toConsumableArray(ev.map(function (e) {
-      return e.arquivado ? '#2563EB' : e.color;
+      var dObj = new Date(dStr + 'T00:00:00');
+      var todayM = new Date(); todayM.setHours(0,0,0,0);
+      return (e.arquivado && dObj < todayM) ? '#2563EB' : e.color;
     })), _toConsumableArray(sh.map(function () {
       return F.purple;
     }))).slice(0, 3);
@@ -1572,13 +1575,16 @@ function FamiliaApp(_ref19) {
     var whoEmoji = isTodos ? '👥' : m === null || m === void 0 ? void 0 : m.emoji;
     var evKey = "".concat(selDateStr, "-").concat(i);
     var isEditing = editEvKey === evKey;
+    var selDateObj = new Date(selDateStr + 'T00:00:00');
+    var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
+    var isDoneDay = !!ev.arquivado && selDateObj < todayMidnightD;
     return /*#__PURE__*/React.createElement(FCard, {
       key: i,
       style: {
         marginBottom: 10,
-        borderLeft: ev.arquivado ? "4px solid #2563EB" : "4px solid ".concat(ev.color),
+        borderLeft: isDoneDay ? "4px solid #2563EB" : "4px solid ".concat(ev.color),
         overflow: 'hidden',
-        opacity: ev.arquivado ? 0.75 : 1
+        opacity: isDoneDay ? 0.75 : 1
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1592,8 +1598,8 @@ function FamiliaApp(_ref19) {
         width: 44,
         height: 44,
         borderRadius: 14,
-        background: ev.arquivado ? 'rgba(37,99,235,0.1)' : "".concat(ev.color, "15"),
-        border: ev.arquivado ? "1px solid rgba(37,99,235,0.3)" : "1px solid ".concat(ev.color, "33"),
+        background: isDoneDay ? 'rgba(37,99,235,0.1)' : "".concat(ev.color, "15"),
+        border: isDoneDay ? "1px solid rgba(37,99,235,0.3)" : "1px solid ".concat(ev.color, "33"),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1603,12 +1609,12 @@ function FamiliaApp(_ref19) {
       style: {
         fontSize: 22
       }
-    }, ev.arquivado ? '\u2713' : ev.emoji)), /*#__PURE__*/React.createElement("div", {
+    }, isDoneDay ? '\u2713' : ev.emoji)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
       }
-    }, ev.arquivado && /*#__PURE__*/React.createElement("span", {
+    }, isDoneDay && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         fontWeight: 800,
@@ -1624,8 +1630,8 @@ function FamiliaApp(_ref19) {
       style: {
         fontWeight: 800,
         fontSize: 15,
-        color: ev.arquivado ? '#2563EB' : F.text,
-        textDecoration: ev.arquivado ? 'line-through' : 'none'
+        color: isDoneDay ? '#2563EB' : F.text,
+        textDecoration: isDoneDay ? 'line-through' : 'none'
       }
     }, ev.t), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1641,14 +1647,14 @@ function FamiliaApp(_ref19) {
       }
     }, whoEmoji), /*#__PURE__*/React.createElement("span", {
       style: {
-        color: ev.arquivado ? '#2563EB' : ev.color,
+        color: isDoneDay ? '#2563EB' : ev.color,
         fontSize: 12,
         fontWeight: 700
       }
     }, whoLabel), ev.hora ? /*#__PURE__*/React.createElement("span", {
       style: {
-        background: ev.arquivado ? 'rgba(37,99,235,0.1)' : "".concat(ev.color, "18"),
-        border: ev.arquivado ? "1px solid rgba(37,99,235,0.3)" : "1px solid ".concat(ev.color, "33"),
+        background: isDoneDay ? 'rgba(37,99,235,0.1)' : "".concat(ev.color, "18"),
+        border: isDoneDay ? "1px solid rgba(37,99,235,0.3)" : "1px solid ".concat(ev.color, "33"),
         borderRadius: 6,
         padding: '1px 8px',
         fontSize: 11,
