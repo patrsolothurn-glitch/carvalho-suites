@@ -110,6 +110,10 @@ function FamiliaApp(_ref19) {
     _useState110 = _slicedToArray(_useState109, 2),
     memberPhotos = _useState110[0],
     setMemberPhotos = _useState110[1];
+  var _useStateJustDone = (0, _react.useState)(new Set()),
+    _useStateJustDone2 = _slicedToArray(_useStateJustDone, 2),
+    justDoneIds = _useStateJustDone2[0],
+    setJustDoneIds = _useStateJustDone2[1];
   var famStorageGet = function famStorageGet(key) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.get) {
@@ -2516,31 +2520,41 @@ function FamiliaApp(_ref19) {
           onClick: function onClick(e) {
             e.stopPropagation();
             if (!window.supabaseClient || !ev.id) return;
-            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function() {}).catch(function() {});
-            setEvents(function(p) {
-              var d = _objectSpread({}, p);
-              d[date] = (d[date] || []).map(function(item) {
-                return item.id === ev.id ? _objectSpread(_objectSpread({}, item), {}, { arquivado: true }) : item;
+            var evId = ev.id;
+            var evDate = date;
+            // Feedback imediato: mostrar ✓ verde
+            setJustDoneIds(function(prev) { var s = new Set(prev); s.add(evId); return s; });
+            // Arquivar no Supabase
+            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', evId).then(function() {}).catch(function() {});
+            // Após 900ms remover da lista (mantém no calendário)
+            setTimeout(function() {
+              setEvents(function(p) {
+                var d = _objectSpread({}, p);
+                d[evDate] = (d[evDate] || []).map(function(item) {
+                  return item.id === evId ? _objectSpread(_objectSpread({}, item), {}, { arquivado: true }) : item;
+                });
+                return d;
               });
-              return d;
-            });
+              setJustDoneIds(function(prev) { var s = new Set(prev); s.delete(evId); return s; });
+            }, 900);
           },
           style: {
             flexShrink: 0,
             width: 40,
             height: 40,
             borderRadius: '50%',
-            background: F.surface2,
-            border: "1.5px solid ".concat(F.border),
+            background: justDoneIds.has(ev.id) ? '#2D8A4E' : F.surface2,
+            border: justDoneIds.has(ev.id) ? '1.5px solid #2D8A4E' : "1.5px solid ".concat(F.border),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: 20,
+            cursor: justDoneIds.has(ev.id) ? 'default' : 'pointer',
+            fontSize: justDoneIds.has(ev.id) ? 18 : 20,
             lineHeight: 1,
-            transition: 'all 0.15s'
+            transition: 'all 0.2s',
+            transform: justDoneIds.has(ev.id) ? 'scale(1.1)' : 'scale(1)'
           }
-        }, "\u2705")
+        }, justDoneIds.has(ev.id) ? "\u2713" : "\u2705")
         ));
       }));
     });
