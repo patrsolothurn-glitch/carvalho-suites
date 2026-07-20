@@ -2051,7 +2051,44 @@ function FamiliaApp(_ref19) {
         marginBottom: 12,
         boxSizing: 'border-box'
       }
-    }), /*#__PURE__*/React.createElement("div", {
+    }), /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "Categoria"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }
+    }, Object.keys(CATEGORIAS).map(function (ck) {
+      var cat = CATEGORIAS[ck];
+      return /*#__PURE__*/React.createElement("label", {
+        key: ck,
+        htmlFor: "ev-cat-".concat(evKey, "-").concat(ck),
+        style: { display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "radio",
+        name: "ev-cat-".concat(evKey),
+        id: "ev-cat-".concat(evKey, "-").concat(ck),
+        value: ck,
+        defaultChecked: (ev.categoria || 'familia') === ck,
+        style: { display: 'none' }
+      }), /*#__PURE__*/React.createElement("span", {
+        id: "ev-cat-lbl-".concat(evKey, "-").concat(ck),
+        onClick: function onClick() {
+          document.querySelectorAll('[name="ev-cat-'.concat(evKey, '"]')).forEach(function(r) { r.checked = r.value === ck; });
+          document.querySelectorAll('[id^="ev-cat-lbl-'.concat(evKey, '"]')).forEach(function(l) {
+            var lck = l.id.replace('ev-cat-lbl-'.concat(evKey, '-'), '');
+            var lcat = CATEGORIAS[lck];
+            l.style.background = lck === ck ? lcat.color : F.surface2;
+            l.style.color = lck === ck ? '#fff' : F.muted;
+            l.style.border = '1.5px solid ' + (lck === ck ? lcat.color : F.border);
+          });
+        },
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          background: (ev.categoria || 'familia') === ck ? cat.color : F.surface2,
+          color: (ev.categoria || 'familia') === ck ? '#fff' : F.muted,
+          border: '1.5px solid ' + ((ev.categoria || 'familia') === ck ? cat.color : F.border),
+          borderRadius: 20, padding: '5px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer'
+        }
+      }, cat.emoji, " ", cat.label));
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 8
@@ -2078,6 +2115,9 @@ function FamiliaApp(_ref19) {
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
         var newDate = document.getElementById("ev-d-".concat(evKey)) ? document.getElementById("ev-d-".concat(evKey)).value || selDateStr : selDateStr;
         var dateChanged = newDate !== selDateStr;
+        var catRadio = document.querySelector('[name="ev-cat-'.concat(evKey, '"]:checked'));
+        var newCategoria = catRadio ? catRadio.value : (ev.categoria || 'familia');
+        var newCatColor = (CATEGORIAS[newCategoria] || CATEGORIAS.familia).color;
         var isAllDay = document.getElementById("ev-allday-".concat(evKey)) ? document.getElementById("ev-allday-".concat(evKey)).checked : false;
         var hora = isAllDay ? '' : ((_document$getElementB3 = document.getElementById("ev-h-".concat(evKey))) === null || _document$getElementB3 === void 0 ? void 0 : _document$getElementB3.value) || ev.hora || '';
         var checkedMembers = members.filter(function (mb) {
@@ -2092,12 +2132,7 @@ function FamiliaApp(_ref19) {
         var firstSpecific = participantes.find(function (id) {
           return id !== 'todos';
         });
-        var newColor = (function () {
-          var found = members.find(function (x) {
-            return x.id === firstSpecific;
-          });
-          return found ? found.color : ev.color;
-        })();
+        var newColor = newCatColor;
         var prevEv = ev;
         var applyLocal = function applyLocal(novo) {
           (verArquivados ? setEventsArquivados : setEvents)(function (p) {
@@ -2138,7 +2173,8 @@ function FamiliaApp(_ref19) {
           member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
           participant_ids: participantes,
           description: nota || null,
-          color: newColor
+          color: newColor,
+          categoria: newCategoria
         }).eq('id', ev.id).then(function (res) {
           setEditEvSaving(false);
           if (res.error) {
