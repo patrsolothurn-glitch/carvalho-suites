@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-20T13:01:01.517Z
+  Gerado em: 2026-07-20T13:27:20.969Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-98";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-99";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -11956,106 +11956,78 @@ function FamiliaApp(_ref19) {
       marginBottom: 12
     }
   }, "\uD83D\uDCE6 Arquivo \u2014 todos os eventos feitos"), (function () {
-    var datas = Object.keys(eventsArquivados).filter(function (d) {
-      return (eventsArquivados[d] || []).length > 0;
-    }).sort().reverse();
-    if (!datas.length) {
-      return /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: F.muted,
-          fontSize: 13,
-          textAlign: 'center',
-          padding: '30px 0'
-        }
-      }, "Ainda n\xE3o h\xE1 eventos arquivados.");
+    var allArqDates = Object.keys(eventsArquivados).filter(function (d) { return (eventsArquivados[d] || []).length > 0; });
+    if (!allArqDates.length) {
+      return /*#__PURE__*/React.createElement("p", { style: { color: F.muted, fontSize: 13, textAlign: 'center', padding: '30px 0' } }, "Ainda n\xE3o h\xE1 eventos arquivados.");
     }
-    return datas.map(function (d) {
-      var dataFmt = new Date(d + 'T00:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
-      return /*#__PURE__*/React.createElement("div", {
-        key: d,
-        style: { marginBottom: 18 }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: F.coral,
-          fontWeight: 800,
-          fontSize: 12,
-          textTransform: 'uppercase',
-          marginBottom: 6,
-          letterSpacing: 0.3
-        }
-      }, dataFmt), (eventsArquivados[d] || []).map(function (ev, i) {
-      var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
-      var m = members.find(function (x) { return x.id === firstSpecific; });
-      var whoLabel = firstSpecific ? ((m === null || m === void 0 ? void 0 : m.name) || '') : 'Toda a fam\xEDlia';
-      return /*#__PURE__*/React.createElement(FCard, {
-        key: i,
-        style: {
-          padding: '12px 14px',
-          marginBottom: 8,
-          borderLeft: "4px solid ".concat(ev.color),
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: { fontSize: 20, flexShrink: 0 }
-      }, ev.emoji), /*#__PURE__*/React.createElement("div", {
-        style: { flex: 1, minWidth: 0 }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: { fontWeight: 800, fontSize: 14, color: F.text, textDecoration: 'line-through', opacity: 0.75 }
-      }, ev.t), /*#__PURE__*/React.createElement("p", {
-        style: { fontSize: 11, color: F.muted, marginTop: 1 }
-      }, whoLabel)), /*#__PURE__*/React.createElement("div", {
-        style: { display: 'flex', gap: 6, flexShrink: 0 }
-      }, /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          if (window.supabaseClient && ev.id) {
-            window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
-          }
-          setEventsArquivados(function (p) {
-            var next = _objectSpread({}, p);
-            next[d] = (next[d] || []).filter(function (it) { return it.id !== ev.id; });
-            return next;
-          });
-          setEvents(function (p) {
-            var next = _objectSpread({}, p);
-            next[d] = [].concat(_toConsumableArray(next[d] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]);
-            return next;
-          });
-        },
-        title: 'Restaurar',
-        style: {
-          background: "".concat(F.green, "12"),
-          border: "1px solid ".concat(F.green, "33"),
-          borderRadius: 8,
-          padding: '6px 8px',
-          cursor: 'pointer',
-          color: F.green,
-          fontSize: 13
-        }
-      }, "\u21A9\uFE0F"), /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          if (window.supabaseClient && ev.id) {
-            window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () {}).catch(function () {});
-          }
-          setEventsArquivados(function (p) {
-            var next = _objectSpread({}, p);
-            next[d] = (next[d] || []).filter(function (it) { return it.id !== ev.id; });
-            return next;
-          });
-        },
-        title: 'Apagar definitivamente',
-        style: {
-          background: 'rgba(220,38,38,0.08)',
-          border: '1px solid rgba(220,38,38,0.15)',
-          borderRadius: 8,
-          padding: '6px 8px',
-          cursor: 'pointer',
-          color: F.red,
-          fontSize: 13
-        }
-      }, "\uD83D\uDDD1\uFE0F")));
-    }));
+    var weekGroups = {};
+    allArqDates.forEach(function (d) {
+      var dt = new Date(d + 'T00:00:00');
+      var dow = dt.getDay();
+      var monday = new Date(dt);
+      monday.setDate(dt.getDate() - (dow === 0 ? 6 : dow - 1));
+      var wk = monday.toISOString().slice(0, 10);
+      if (!weekGroups[wk]) weekGroups[wk] = [];
+      (eventsArquivados[d] || []).forEach(function (ev) { weekGroups[wk].push(_objectSpread(_objectSpread({}, ev), {}, { _date: d })); });
+    });
+    var weekKeys = Object.keys(weekGroups).sort().reverse();
+    return weekKeys.map(function (wk) {
+      var wkStart = new Date(wk + 'T00:00:00');
+      var wkEnd = new Date(wkStart); wkEnd.setDate(wkEnd.getDate() + 6);
+      var tmp = new Date(wkStart); tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
+      var isoWeek = Math.ceil(((tmp - new Date(tmp.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
+      var wkLabel = "Semana ".concat(isoWeek, " \u00B7 ").concat(wkStart.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), " \u2013 ").concat(wkEnd.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }));
+      var byTitle = {};
+      weekGroups[wk].forEach(function (ev) {
+        var k = (ev.t || '').toLowerCase().trim();
+        if (!byTitle[k]) byTitle[k] = { ev: ev, dates: [], ids: [] };
+        if (byTitle[k].dates.indexOf(ev._date) === -1) byTitle[k].dates.push(ev._date);
+        if (ev.id && byTitle[k].ids.indexOf(ev.id) === -1) byTitle[k].ids.push(ev.id);
+      });
+      var deduped = Object.values(byTitle).map(function (g) { g.dates.sort(); return g; });
+      return /*#__PURE__*/React.createElement("div", { key: wk, style: { marginBottom: 22 } },
+        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 } },
+          /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } }),
+          /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: F.coral, whiteSpace: 'nowrap', padding: '0 6px' } }, wkLabel),
+          /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } })),
+        deduped.map(function (g, i) {
+          var ev = g.ev;
+          var nDays = g.dates.length;
+          var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
+          var m = members.find(function (x) { return x.id === firstSpecific; });
+          var whoLabel = firstSpecific ? ((m === null || m === void 0 ? void 0 : m.name) || '') : 'Toda a fam\xEDlia';
+          var dateLabel = nDays === 1
+            ? new Date(g.dates[0] + 'T00:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })
+            : "".concat(nDays, " dias \u00B7 ").concat(new Date(g.dates[0] + 'T00:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), " \u2013 ").concat(new Date(g.dates[nDays - 1] + 'T00:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }));
+          return /*#__PURE__*/React.createElement(FCard, { key: i, style: { padding: '10px 12px', marginBottom: 8, borderLeft: "3px solid ".concat(ev.color), display: 'flex', alignItems: 'center', gap: 10 } },
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: 18, flexShrink: 0 } }, ev.emoji),
+            /*#__PURE__*/React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+              /*#__PURE__*/React.createElement("p", { style: { fontWeight: 800, fontSize: 13, color: F.text, textDecoration: 'line-through', opacity: 0.7 } }, ev.t),
+              /*#__PURE__*/React.createElement("p", { style: { fontSize: 11, color: F.muted, marginTop: 1 } }, whoLabel, " \u00B7 ", dateLabel)),
+            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 6, flexShrink: 0 } },
+              /*#__PURE__*/React.createElement("button", {
+                onClick: function onClick() {
+                  g.ids.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function () {}).catch(function () {}); });
+                  g.dates.forEach(function (d) {
+                    setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return g.ids.indexOf(it.id) === -1; }); return nx; });
+                    setEvents(function (p) { var nx = _objectSpread({}, p); var toAdd = (eventsArquivados[d] || []).filter(function (it) { return g.ids.indexOf(it.id) !== -1; }).map(function (it) { return _objectSpread(_objectSpread({}, it), {}, { arquivado: false }); }); nx[d] = [].concat(_toConsumableArray(nx[d] || []), toAdd); return nx; });
+                  });
+                },
+                title: 'Restaurar',
+                style: { background: "".concat(F.green, "12"), border: "1px solid ".concat(F.green, "33"), borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: F.green, fontSize: 13 }
+              }, "\u21A9\uFE0F"),
+              /*#__PURE__*/React.createElement("button", {
+                onClick: function onClick() {
+                  g.ids.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').delete().eq('id', id).then(function () {}).catch(function () {}); });
+                  g.dates.forEach(function (d) {
+                    setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return g.ids.indexOf(it.id) === -1; }); return nx; });
+                    setEvents(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return g.ids.indexOf(it.id) === -1; }); return nx; });
+                  });
+                },
+                title: 'Apagar definitivamente',
+                style: { background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: F.red, fontSize: 13 }
+              }, "\uD83D\uDDD1\uFE0F")));
+        }));
     });
   })()), showAdd && /*#__PURE__*/React.createElement("div", {
     style: {
