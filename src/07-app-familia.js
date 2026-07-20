@@ -983,21 +983,24 @@ function FamiliaApp(_ref19) {
       style: {
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-        background: ativo ? "".concat(cat.color, "18") : 'transparent',
-        border: "1px solid ".concat(ativo ? cat.color : F.border),
-        borderRadius: 16,
-        padding: '4px 10px',
+        gap: 5,
+        background: ativo ? cat.color : F.surface2,
+        border: "1.5px solid ".concat(ativo ? cat.color : F.border),
+        borderRadius: 20,
+        padding: '5px 12px',
         cursor: 'pointer',
-        opacity: ativo ? 1 : 0.5
+        opacity: ativo ? 1 : 0.55,
+        boxShadow: ativo ? "0 2px 8px ".concat(cat.color, "44") : 'none',
+        transition: 'all 0.15s'
       }
     }, /*#__PURE__*/React.createElement("span", {
-      style: { fontSize: 11 }
+      style: { fontSize: 12 }
     }, cat.emoji), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: ativo ? cat.color : F.muted
+        fontSize: 12,
+        fontWeight: 800,
+        color: ativo ? '#fff' : F.muted,
+        letterSpacing: '0.2px'
       }
     }, cat.label));
   })), mainView === 'semana' && /*#__PURE__*/React.createElement("div", {
