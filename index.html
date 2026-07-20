@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-20T11:09:50.890Z
+  Gerado em: 2026-07-20T12:15:01.986Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-95";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-96";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -10561,8 +10561,7 @@ function FamiliaApp(_ref19) {
           }
         }, s.tipo === 'ferias' ? '🏖' : s.tipo === 'feriado' ? '🎌' : '✅', " ", s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre'));
       }), mEvs.map(function (ev, ei) {
-        var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
-        var isDone = !!ev.arquivado && date < todayMidnight;
+        var isDone = !!ev.arquivado;
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
@@ -10754,9 +10753,7 @@ function FamiliaApp(_ref19) {
     var isSun = (firstDow + i) % 7 === 6;
     var isSat = (firstDow + i) % 7 === 5;
     var allColors = [].concat(_toConsumableArray(ev.map(function (e) {
-      var dObj = new Date(dStr + 'T00:00:00');
-      var todayM = new Date(); todayM.setHours(0,0,0,0);
-      return (e.arquivado && dObj < todayM) ? '#2563EB' : e.color;
+      return e.arquivado ? '#2563EB' : e.color;
     })), _toConsumableArray(sh.map(function () {
       return F.purple;
     }))).slice(0, 3);
@@ -10886,7 +10883,7 @@ function FamiliaApp(_ref19) {
     var isEditing = editEvKey === evKey;
     var selDateObj = new Date(selDateStr + 'T00:00:00');
     var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
-    var isDoneDay = !!ev.arquivado && selDateObj < todayMidnightD;
+    var isDoneDay = !!ev.arquivado;
     return /*#__PURE__*/React.createElement(FCard, {
       key: i,
       style: {
