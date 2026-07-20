@@ -1154,7 +1154,7 @@ function FamiliaApp(_ref19) {
         _spanMap[k].days.push(_sdi);
       });
     }
-    var _spans = Object.values(_spanMap).filter(function (g) { return g.days.length >= 2; });
+    var _spans = Object.values(_spanMap).filter(function (g) { return g.days.length >= 3; });
     if (_spans.length === 0) return null;
     return /*#__PURE__*/React.createElement("div", {
       style: { padding: '4px 4px 2px', borderBottom: "1px solid ".concat(F.border) }
@@ -1205,7 +1205,7 @@ function FamiliaApp(_ref19) {
       var _mds = "".concat(_mdd.getFullYear(), "-").concat(String(_mdd.getMonth() + 1).padStart(2, '0'), "-").concat(String(_mdd.getDate()).padStart(2, '0'));
       (events[_mds] || []).forEach(function (ev) { var k = (ev.t || '').toLowerCase().trim(); _mdMap[k] = (_mdMap[k] || 0) + 1; });
     }
-    var dayEvs = (events[dStr] || []).filter(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) < 2; });
+    var dayEvs = (events[dStr] || []).filter(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) < 3; });
     var dayShared = sharedDias.filter(function (x) {
       return x.date === dStr;
     });
