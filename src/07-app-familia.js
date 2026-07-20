@@ -1148,10 +1148,10 @@ function FamiliaApp(_ref19) {
     for (var _sdi = 0; _sdi < 7; _sdi++) {
       var _sd = new Date(weekStart.getTime() + _sdi * 86400000);
       var _sds = "".concat(_sd.getFullYear(), "-").concat(String(_sd.getMonth() + 1).padStart(2, '0'), "-").concat(String(_sd.getDate()).padStart(2, '0'));
+      var _seenS = new Set();
       (events[_sds] || []).forEach(function (ev) {
         var k = (ev.t || '').toLowerCase().trim();
-        if (!_spanMap[k]) _spanMap[k] = { ev: ev, days: [] };
-        _spanMap[k].days.push(_sdi);
+        if (!_seenS.has(k)) { _seenS.add(k); if (!_spanMap[k]) _spanMap[k] = { ev: ev, days: [] }; _spanMap[k].days.push(_sdi); }
       });
     }
     var _spans = Object.values(_spanMap).filter(function (g) { return g.days.length >= 3; });
@@ -1203,7 +1203,8 @@ function FamiliaApp(_ref19) {
     for (var _mdi = 0; _mdi < 7; _mdi++) {
       var _mdd = new Date(weekStart.getTime() + _mdi * 86400000);
       var _mds = "".concat(_mdd.getFullYear(), "-").concat(String(_mdd.getMonth() + 1).padStart(2, '0'), "-").concat(String(_mdd.getDate()).padStart(2, '0'));
-      (events[_mds] || []).forEach(function (ev) { var k = (ev.t || '').toLowerCase().trim(); _mdMap[k] = (_mdMap[k] || 0) + 1; });
+      var _seenM = new Set();
+      (events[_mds] || []).forEach(function (ev) { var k = (ev.t || '').toLowerCase().trim(); if (!_seenM.has(k)) { _seenM.add(k); _mdMap[k] = (_mdMap[k] || 0) + 1; } });
     }
     var dayEvs = (events[dStr] || []).filter(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) < 3; });
     var dayShared = sharedDias.filter(function (x) {
