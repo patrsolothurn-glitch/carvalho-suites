@@ -1140,7 +1140,53 @@ function FamiliaApp(_ref19) {
         textAlign: 'center'
       }
     }, m.name));
-  })), Array.from({
+  })), (function () {
+    var _spanMap = {};
+    for (var _sdi = 0; _sdi < 7; _sdi++) {
+      var _sd = new Date(weekStart.getTime() + _sdi * 86400000);
+      var _sds = "".concat(_sd.getFullYear(), "-").concat(String(_sd.getMonth() + 1).padStart(2, '0'), "-").concat(String(_sd.getDate()).padStart(2, '0'));
+      (events[_sds] || []).forEach(function (ev) {
+        var k = (ev.t || '').toLowerCase().trim();
+        if (!_spanMap[k]) _spanMap[k] = { ev: ev, days: [] };
+        _spanMap[k].days.push(_sdi);
+      });
+    }
+    var _spans = Object.values(_spanMap).filter(function (g) { return g.days.length >= 2; });
+    if (_spans.length === 0) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: { padding: '4px 4px 2px', borderBottom: "1px solid ".concat(F.border) }
+    }, _spans.map(function (g, si) {
+      var _sortedDays = g.days.slice().sort(function (a, b) { return a - b; });
+      var _startDay = _sortedDays[0];
+      var _endDay = _sortedDays[_sortedDays.length - 1];
+      var _todayMidS = new Date(); _todayMidS.setHours(0, 0, 0, 0);
+      var _endDateS = new Date(weekStart.getTime() + _endDay * 86400000);
+      var _isDoneSpan = !!g.ev.arquivado && _endDateS < _todayMidS;
+      return /*#__PURE__*/React.createElement("div", {
+        key: si,
+        style: { display: 'grid', gridTemplateColumns: '52px repeat(7, 1fr)', height: 22, marginBottom: si < _spans.length - 1 ? 2 : 0 }
+      },
+      /*#__PURE__*/React.createElement("div"),
+      /*#__PURE__*/React.createElement("div", {
+        style: {
+          gridColumn: "".concat(_startDay + 2, " / ").concat(_endDay + 3),
+          background: _isDoneSpan ? 'rgba(37,99,235,0.08)' : "".concat(g.ev.color, "18"),
+          border: "1px solid ".concat(_isDoneSpan ? 'rgba(37,99,235,0.3)' : "".concat(g.ev.color, "44")),
+          borderRadius: 6,
+          fontSize: 10,
+          fontWeight: 800,
+          color: _isDoneSpan ? '#2563EB' : g.ev.color,
+          padding: '0 6px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 3,
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textDecoration: _isDoneSpan ? 'line-through' : 'none'
+        }
+      }, _isDoneSpan ? '\u2713' : g.ev.emoji, " ", g.ev.t));
+    }));
+  })(), Array.from({
     length: 7
   }).map(function (_, di) {
     var date = new Date(weekStart.getTime() + di * 86400000);
@@ -1150,7 +1196,13 @@ function FamiliaApp(_ref19) {
     var isToday = dStr === todayStr;
     var dayName = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][di];
     var isWeekend = di >= 5;
-    var dayEvs = events[dStr] || [];
+    var _mdMap = {};
+    for (var _mdi = 0; _mdi < 7; _mdi++) {
+      var _mdd = new Date(weekStart.getTime() + _mdi * 86400000);
+      var _mds = "".concat(_mdd.getFullYear(), "-").concat(String(_mdd.getMonth() + 1).padStart(2, '0'), "-").concat(String(_mdd.getDate()).padStart(2, '0'));
+      (events[_mds] || []).forEach(function (ev) { var k = (ev.t || '').toLowerCase().trim(); _mdMap[k] = (_mdMap[k] || 0) + 1; });
+    }
+    var dayEvs = (events[dStr] || []).filter(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) < 2; });
     var dayShared = sharedDias.filter(function (x) {
       return x.date === dStr;
     });
