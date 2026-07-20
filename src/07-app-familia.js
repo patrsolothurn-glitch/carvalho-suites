@@ -1243,19 +1243,21 @@ function FamiliaApp(_ref19) {
           }
         }, s.tipo === 'ferias' ? '🏖' : s.tipo === 'feriado' ? '🎌' : '✅', " ", s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre'));
       }), mEvs.map(function (ev, ei) {
+        var isDone = !!ev.arquivado;
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
-            background: "".concat(ev.color, "18"),
+            background: isDone ? '#F0F0F0' : "".concat(ev.color, "18"),
             borderRadius: 5,
             padding: '3px 4px',
-            border: "1px solid ".concat(ev.color, "40"),
+            border: isDone ? '1px solid #D0D0D0' : "1px solid ".concat(ev.color, "40"),
             overflow: 'hidden',
             boxSizing: 'border-box',
             width: '100%',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 3
+            gap: 3,
+            opacity: isDone ? 0.6 : 1
           }
         }, /*#__PURE__*/React.createElement("div", {
           onClick: function onClick() {
@@ -1273,52 +1275,24 @@ function FamiliaApp(_ref19) {
           style: {
             fontSize: 8,
             fontWeight: 700,
-            color: ev.color,
+            color: isDone ? '#999' : ev.color,
             lineHeight: 1.2,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             margin: 0,
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            textDecoration: isDone ? 'line-through' : 'none'
           }
-        }, ev.emoji, " ", ev.t), ev.hora && /*#__PURE__*/React.createElement("p", {
+        }, isDone ? '✅' : ev.emoji, " ", ev.t), ev.hora && /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 8,
             fontWeight: 800,
-            color: ev.color,
+            color: isDone ? '#999' : ev.color,
             opacity: 0.85,
             margin: 0,
             lineHeight: 1.1
           }
-        }, "\uD83D\uDD50", ev.hora)), /*#__PURE__*/React.createElement("button", {
-          onClick: function onClick(e) {
-            e.stopPropagation();
-            if (!window.supabaseClient || !ev.id) return;
-            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
-            setEvents(function (p) {
-              var d = _objectSpread({}, p);
-              d[dStr] = (d[dStr] || []).filter(function (item) {
-                return item.id !== ev.id;
-              });
-              return d;
-            });
-            setEventsArquivados(function (p) {
-              var d = _objectSpread({}, p);
-              d[dStr] = [].concat(_toConsumableArray(d[dStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: true })]);
-              return d;
-            });
-          },
-          title: 'Marcar como feito e arquivar',
-          style: {
-            flexShrink: 0,
-            background: 'transparent',
-            border: 'none',
-            padding: '0 1px',
-            cursor: 'pointer',
-            fontSize: 9,
-            lineHeight: 1,
-            opacity: 0.55
-          }
-        }, "\u2705"));
+        }, "\uD83D\uDD50", ev.hora)));
       }));
     }));
   })), /*#__PURE__*/React.createElement("div", {
@@ -2359,6 +2333,7 @@ function FamiliaApp(_ref19) {
     })).filter(function (ev) {
       var d = new Date(ev.date + 'T12:00:00');
       var evIds = ev.participantes || (ev.who ? [ev.who] : ['todos']);
+      if (ev.arquivado) return false;
       if (selMember !== 'todos' && evIds.indexOf('todos') === -1 && evIds.indexOf(selMember) === -1) return false;
       if (timeTab === 'Hoje') return ev.date === todayStr2;
       if (timeTab === 'Semana') return d >= now && d <= weekEnd;
@@ -2544,12 +2519,9 @@ function FamiliaApp(_ref19) {
             window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function() {}).catch(function() {});
             setEvents(function(p) {
               var d = _objectSpread({}, p);
-              d[date] = (d[date] || []).filter(function(item) { return item.id !== ev.id; });
-              return d;
-            });
-            setEventsArquivados(function(p) {
-              var d = _objectSpread({}, p);
-              d[date] = [].concat(_toConsumableArray(d[date] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: true })]);
+              d[date] = (d[date] || []).map(function(item) {
+                return item.id === ev.id ? _objectSpread(_objectSpread({}, item), {}, { arquivado: true }) : item;
+              });
               return d;
             });
           },
