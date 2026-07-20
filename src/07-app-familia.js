@@ -1252,8 +1252,7 @@ function FamiliaApp(_ref19) {
           }
         }, s.tipo === 'ferias' ? '🏖' : s.tipo === 'feriado' ? '🎌' : '✅', " ", s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre'));
       }), mEvs.map(function (ev, ei) {
-        var todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
-        var isDone = !!ev.arquivado && date < todayMidnight;
+        var isDone = !!ev.arquivado;
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
@@ -1445,9 +1444,7 @@ function FamiliaApp(_ref19) {
     var isSun = (firstDow + i) % 7 === 6;
     var isSat = (firstDow + i) % 7 === 5;
     var allColors = [].concat(_toConsumableArray(ev.map(function (e) {
-      var dObj = new Date(dStr + 'T00:00:00');
-      var todayM = new Date(); todayM.setHours(0,0,0,0);
-      return (e.arquivado && dObj < todayM) ? '#2563EB' : e.color;
+      return e.arquivado ? '#2563EB' : e.color;
     })), _toConsumableArray(sh.map(function () {
       return F.purple;
     }))).slice(0, 3);
@@ -1577,7 +1574,7 @@ function FamiliaApp(_ref19) {
     var isEditing = editEvKey === evKey;
     var selDateObj = new Date(selDateStr + 'T00:00:00');
     var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
-    var isDoneDay = !!ev.arquivado && selDateObj < todayMidnightD;
+    var isDoneDay = !!ev.arquivado;
     return /*#__PURE__*/React.createElement(FCard, {
       key: i,
       style: {
