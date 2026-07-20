@@ -1489,6 +1489,7 @@ function FamiliaApp(_ref19) {
   }).map(function (_, i) {
     var _ev$;
     var d = i + 1;
+    var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
     var _getDayEvents = getDayEvents(d),
       ev = _getDayEvents.ev,
       sh = _getDayEvents.sh,
