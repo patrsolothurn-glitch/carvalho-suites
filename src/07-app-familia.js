@@ -1883,6 +1883,24 @@ function FamiliaApp(_ref19) {
         marginBottom: 10,
         boxSizing: 'border-box'
       }
+    }), /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+    }, "\uD83D\uDCC5 Data"), /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      defaultValue: selDateStr,
+      id: "ev-d-".concat(evKey),
+      style: {
+        width: '100%',
+        background: F.surface2,
+        border: "1px solid ".concat(F.border),
+        borderRadius: 10,
+        padding: '9px 12px',
+        color: F.text,
+        fontSize: 14,
+        outline: 'none',
+        marginBottom: 10,
+        boxSizing: 'border-box'
+      }
     }), /*#__PURE__*/React.createElement("label", {
       htmlFor: "ev-allday-".concat(evKey),
       style: {
@@ -2054,6 +2072,8 @@ function FamiliaApp(_ref19) {
       onClick: function onClick() {
         var _document$getElementB2, _document$getElementB3, _document$getElementB5;
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
+        var newDate = document.getElementById("ev-d-".concat(evKey)) ? document.getElementById("ev-d-".concat(evKey)).value || selDateStr : selDateStr;
+        var dateChanged = newDate !== selDateStr;
         var isAllDay = document.getElementById("ev-allday-".concat(evKey)) ? document.getElementById("ev-allday-".concat(evKey)).checked : false;
         var hora = isAllDay ? '' : ((_document$getElementB3 = document.getElementById("ev-h-".concat(evKey))) === null || _document$getElementB3 === void 0 ? void 0 : _document$getElementB3.value) || ev.hora || '';
         var checkedMembers = members.filter(function (mb) {
@@ -2079,14 +2099,20 @@ function FamiliaApp(_ref19) {
           (verArquivados ? setEventsArquivados : setEvents)(function (p) {
             var d = _objectSpread({}, p);
             var arr = _toConsumableArray(d[selDateStr] || []);
-            var idx = arr.findIndex(function (item) {
-              return item.id === ev.id;
-            });
+            var idx = arr.findIndex(function (item) { return item.id === ev.id; });
             if (idx === -1) idx = i;
-            arr[idx] = novo ? _objectSpread(_objectSpread({}, arr[idx]), novo) : prevEv;
-            d[selDateStr] = arr;
+            if (novo && dateChanged) {
+              // Remover do dia antigo, adicionar no novo
+              arr.splice(idx, 1);
+              d[selDateStr] = arr;
+              d[newDate] = [].concat(_toConsumableArray(d[newDate] || []), [_objectSpread(_objectSpread({}, ev), novo)]);
+            } else {
+              arr[idx] = novo ? _objectSpread(_objectSpread({}, arr[idx]), novo) : prevEv;
+              d[selDateStr] = arr;
+            }
             return d;
           });
+          if (novo && dateChanged) setSelDay(parseInt(newDate.slice(8)));
         };
         if (!window.supabaseClient || !ev.id) {
           setEditEvErr('Sem ligação ao servidor — não foi guardado.');
@@ -2103,6 +2129,7 @@ function FamiliaApp(_ref19) {
         });
         window.supabaseClient.from('family_events').update({
           title: titulo,
+          event_date: newDate,
           event_time: hora || null,
           member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
           participant_ids: participantes,
