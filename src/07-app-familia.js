@@ -22,7 +22,7 @@ var MEMBER_COLORS = {
 };
 var CATEGORIAS = {
   trabalho: { label: 'Trabalho', emoji: '💼', color: '#F59458' },
-  familia: { label: 'Família', emoji: '🏠', color: '#E8773A' },
+  familia: { label: 'Família', emoji: '🏠', color: '#D43C3C' },
   escola: { label: 'Escola', emoji: '📚', color: '#A855F7' },
   pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
 };
@@ -271,7 +271,7 @@ function FamiliaApp(_ref19) {
           arquivado: !!row.arquivado,
           participantes: row.participant_ids && row.participant_ids.length > 0 ? row.participant_ids : [row.member_id || 'todos'],
           categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
-          color: row.color || F.coral,
+          color: (CATEGORIAS[row.categoria] || CATEGORIAS.familia).color,
           hora: row.event_time || '',
           nota: row.description || ''
         };
