@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-20T10:51:00.154Z
+  Gerado em: 2026-07-20T11:00:21.821Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-93";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-94";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -10753,7 +10753,7 @@ function FamiliaApp(_ref19) {
     var isSun = (firstDow + i) % 7 === 6;
     var isSat = (firstDow + i) % 7 === 5;
     var allColors = [].concat(_toConsumableArray(ev.map(function (e) {
-      return e.color;
+      return e.arquivado ? '#2563EB' : e.color;
     })), _toConsumableArray(sh.map(function () {
       return F.purple;
     }))).slice(0, 3);
@@ -10885,8 +10885,9 @@ function FamiliaApp(_ref19) {
       key: i,
       style: {
         marginBottom: 10,
-        borderLeft: "4px solid ".concat(ev.color),
-        overflow: 'hidden'
+        borderLeft: ev.arquivado ? "4px solid #2563EB" : "4px solid ".concat(ev.color),
+        overflow: 'hidden',
+        opacity: ev.arquivado ? 0.75 : 1
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -10900,8 +10901,8 @@ function FamiliaApp(_ref19) {
         width: 44,
         height: 44,
         borderRadius: 14,
-        background: "".concat(ev.color, "15"),
-        border: "1px solid ".concat(ev.color, "33"),
+        background: ev.arquivado ? 'rgba(37,99,235,0.1)' : "".concat(ev.color, "15"),
+        border: ev.arquivado ? "1px solid rgba(37,99,235,0.3)" : "1px solid ".concat(ev.color, "33"),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -10911,16 +10912,29 @@ function FamiliaApp(_ref19) {
       style: {
         fontSize: 22
       }
-    }, ev.emoji)), /*#__PURE__*/React.createElement("div", {
+    }, ev.arquivado ? '\u2713' : ev.emoji)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
       }
-    }, /*#__PURE__*/React.createElement("p", {
+    }, ev.arquivado && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: '#2563EB',
+        background: 'rgba(37,99,235,0.1)',
+        borderRadius: 4,
+        padding: '1px 6px',
+        marginBottom: 3,
+        display: 'inline-block',
+        letterSpacing: '0.3px'
+      }
+    }, "FEITO"), /*#__PURE__*/React.createElement("p", {
       style: {
         fontWeight: 800,
         fontSize: 15,
-        color: F.text
+        color: ev.arquivado ? '#2563EB' : F.text,
+        textDecoration: ev.arquivado ? 'line-through' : 'none'
       }
     }, ev.t), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -10936,14 +10950,14 @@ function FamiliaApp(_ref19) {
       }
     }, whoEmoji), /*#__PURE__*/React.createElement("span", {
       style: {
-        color: ev.color,
+        color: ev.arquivado ? '#2563EB' : ev.color,
         fontSize: 12,
         fontWeight: 700
       }
     }, whoLabel), ev.hora ? /*#__PURE__*/React.createElement("span", {
       style: {
-        background: "".concat(ev.color, "18"),
-        border: "1px solid ".concat(ev.color, "33"),
+        background: ev.arquivado ? 'rgba(37,99,235,0.1)' : "".concat(ev.color, "18"),
+        border: ev.arquivado ? "1px solid rgba(37,99,235,0.3)" : "1px solid ".concat(ev.color, "33"),
         borderRadius: 6,
         padding: '1px 8px',
         fontSize: 11,
