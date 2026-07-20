@@ -89,7 +89,8 @@ function FamiliaApp(_ref19) {
       dataATE: '',
       hora: '',
       diaTodo: false,
-      nota: ''
+      nota: '',
+      lembrete: null
     }),
     _useState106 = _slicedToArray(_useState105, 2),
     form = _useState106[0],
@@ -524,6 +525,7 @@ function FamiliaApp(_ref19) {
           emoji: ev.emoji,
           color: ev.color,
           categoria: ev.categoria,
+          reminder_minutes: form.lembrete || null,
           created_by: currentMemberId
         };
       });
@@ -551,7 +553,8 @@ function FamiliaApp(_ref19) {
       dataATE: '',
       hora: '',
       diaTodo: false,
-      nota: ''
+      nota: '',
+      lembrete: null
     });
     setShowAdd(false);
   };
@@ -2887,6 +2890,38 @@ function FamiliaApp(_ref19) {
       }
     }));
   }), /*#__PURE__*/React.createElement("p", {
+    style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+  }, "\uD83D\uDD14 Lembrete"), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }
+  }, [
+    { label: 'Nenhum', val: null },
+    { label: '15 min', val: 15 },
+    { label: '30 min', val: 30 },
+    { label: '45 min', val: 45 },
+    { label: '1 hora', val: 60 },
+    { label: '2 horas', val: 120 },
+    { label: '3 horas', val: 180 },
+    { label: '1 dia', val: 1440 },
+    { label: '2 dias', val: 2880 },
+    { label: '3 dias', val: 4320 }
+  ].map(function (opt) {
+    var isSel = form.lembrete === opt.val;
+    return /*#__PURE__*/React.createElement("button", {
+      key: String(opt.val),
+      onClick: function onClick() { return setForm(function (p) { return _objectSpread(_objectSpread({}, p), {}, { lembrete: opt.val }); }); },
+      style: {
+        padding: '6px 12px',
+        borderRadius: 20,
+        border: isSel ? "1.5px solid ".concat(F.coral) : "1.5px solid ".concat(F.border),
+        background: isSel ? F.coral : F.surface2,
+        color: isSel ? '#fff' : F.muted,
+        fontSize: 12,
+        fontWeight: isSel ? 800 : 600,
+        cursor: 'pointer',
+        transition: 'all 0.15s'
+      }
+    }, opt.label);
+  })), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 10,
