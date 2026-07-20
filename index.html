@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-20T16:13:24.530Z
+  Gerado em: 2026-07-20T16:20:21.968Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-104";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-105";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -10292,21 +10292,24 @@ function FamiliaApp(_ref19) {
       style: {
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
-        background: ativo ? "".concat(cat.color, "18") : 'transparent',
-        border: "1px solid ".concat(ativo ? cat.color : F.border),
-        borderRadius: 16,
-        padding: '4px 10px',
+        gap: 5,
+        background: ativo ? cat.color : F.surface2,
+        border: "1.5px solid ".concat(ativo ? cat.color : F.border),
+        borderRadius: 20,
+        padding: '5px 12px',
         cursor: 'pointer',
-        opacity: ativo ? 1 : 0.5
+        opacity: ativo ? 1 : 0.55,
+        boxShadow: ativo ? "0 2px 8px ".concat(cat.color, "44") : 'none',
+        transition: 'all 0.15s'
       }
     }, /*#__PURE__*/React.createElement("span", {
-      style: { fontSize: 11 }
+      style: { fontSize: 12 }
     }, cat.emoji), /*#__PURE__*/React.createElement("span", {
       style: {
-        fontSize: 11,
-        fontWeight: 700,
-        color: ativo ? cat.color : F.muted
+        fontSize: 12,
+        fontWeight: 800,
+        color: ativo ? '#fff' : F.muted,
+        letterSpacing: '0.2px'
       }
     }, cat.label));
   })), mainView === 'semana' && /*#__PURE__*/React.createElement("div", {
