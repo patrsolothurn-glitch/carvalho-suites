@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-20T13:36:11.609Z
+  Gerado em: 2026-07-20T13:49:39.128Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-101";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-102";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -11192,6 +11192,24 @@ function FamiliaApp(_ref19) {
         marginBottom: 10,
         boxSizing: 'border-box'
       }
+    }), /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+    }, "\uD83D\uDCC5 Data"), /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      defaultValue: selDateStr,
+      id: "ev-d-".concat(evKey),
+      style: {
+        width: '100%',
+        background: F.surface2,
+        border: "1px solid ".concat(F.border),
+        borderRadius: 10,
+        padding: '9px 12px',
+        color: F.text,
+        fontSize: 14,
+        outline: 'none',
+        marginBottom: 10,
+        boxSizing: 'border-box'
+      }
     }), /*#__PURE__*/React.createElement("label", {
       htmlFor: "ev-allday-".concat(evKey),
       style: {
@@ -11363,6 +11381,8 @@ function FamiliaApp(_ref19) {
       onClick: function onClick() {
         var _document$getElementB2, _document$getElementB3, _document$getElementB5;
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
+        var newDate = document.getElementById("ev-d-".concat(evKey)) ? document.getElementById("ev-d-".concat(evKey)).value || selDateStr : selDateStr;
+        var dateChanged = newDate !== selDateStr;
         var isAllDay = document.getElementById("ev-allday-".concat(evKey)) ? document.getElementById("ev-allday-".concat(evKey)).checked : false;
         var hora = isAllDay ? '' : ((_document$getElementB3 = document.getElementById("ev-h-".concat(evKey))) === null || _document$getElementB3 === void 0 ? void 0 : _document$getElementB3.value) || ev.hora || '';
         var checkedMembers = members.filter(function (mb) {
@@ -11388,14 +11408,20 @@ function FamiliaApp(_ref19) {
           (verArquivados ? setEventsArquivados : setEvents)(function (p) {
             var d = _objectSpread({}, p);
             var arr = _toConsumableArray(d[selDateStr] || []);
-            var idx = arr.findIndex(function (item) {
-              return item.id === ev.id;
-            });
+            var idx = arr.findIndex(function (item) { return item.id === ev.id; });
             if (idx === -1) idx = i;
-            arr[idx] = novo ? _objectSpread(_objectSpread({}, arr[idx]), novo) : prevEv;
-            d[selDateStr] = arr;
+            if (novo && dateChanged) {
+              // Remover do dia antigo, adicionar no novo
+              arr.splice(idx, 1);
+              d[selDateStr] = arr;
+              d[newDate] = [].concat(_toConsumableArray(d[newDate] || []), [_objectSpread(_objectSpread({}, ev), novo)]);
+            } else {
+              arr[idx] = novo ? _objectSpread(_objectSpread({}, arr[idx]), novo) : prevEv;
+              d[selDateStr] = arr;
+            }
             return d;
           });
+          if (novo && dateChanged) setSelDay(parseInt(newDate.slice(8)));
         };
         if (!window.supabaseClient || !ev.id) {
           setEditEvErr('Sem ligação ao servidor — não foi guardado.');
@@ -11412,6 +11438,7 @@ function FamiliaApp(_ref19) {
         });
         window.supabaseClient.from('family_events').update({
           title: titulo,
+          event_date: newDate,
           event_time: hora || null,
           member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
           participant_ids: participantes,
