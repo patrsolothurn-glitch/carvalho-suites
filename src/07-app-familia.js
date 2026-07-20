@@ -263,8 +263,7 @@ function FamiliaApp(_ref19) {
       var builtArq = {};
       res.data.forEach(function (row) {
         var d = row.event_date;
-        var alvo = row.arquivado ? (builtArq[d] || (builtArq[d] = [])) : (built[d] || (built[d] = []));
-        alvo.push({
+        var evObj = {
           id: row.id,
           t: row.title,
           emoji: row.emoji || '📅',
@@ -274,7 +273,13 @@ function FamiliaApp(_ref19) {
           color: row.color || F.coral,
           hora: row.event_time || '',
           nota: row.description || ''
-        });
+        };
+        // Todos os eventos vão para built (para o calendário mostrar feitos)
+        (built[d] || (built[d] = [])).push(evObj);
+        // Arquivados também vão para builtArq (para o painel de arquivo)
+        if (row.arquivado) {
+          (builtArq[d] || (builtArq[d] = [])).push(evObj);
+        }
       });
       setEvents(built);
       setEventsArquivados(builtArq);
@@ -1251,17 +1256,16 @@ function FamiliaApp(_ref19) {
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
-            background: isDone ? '#F0F0F0' : "".concat(ev.color, "18"),
+            background: isDone ? 'rgba(37,99,235,0.07)' : "".concat(ev.color, "18"),
             borderRadius: 5,
             padding: '3px 4px',
-            border: isDone ? '1px solid #D0D0D0' : "1px solid ".concat(ev.color, "40"),
+            border: isDone ? '1px solid rgba(37,99,235,0.25)' : "1px solid ".concat(ev.color, "40"),
             overflow: 'hidden',
             boxSizing: 'border-box',
             width: '100%',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 3,
-            opacity: isDone ? 0.6 : 1
+            gap: 3
           }
         }, /*#__PURE__*/React.createElement("div", {
           onClick: function onClick() {
@@ -1279,20 +1283,21 @@ function FamiliaApp(_ref19) {
           style: {
             fontSize: 8,
             fontWeight: 700,
-            color: isDone ? '#999' : ev.color,
+            color: isDone ? '#2563EB' : ev.color,
             lineHeight: 1.2,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             margin: 0,
             whiteSpace: 'nowrap',
-            textDecoration: isDone ? 'line-through' : 'none'
+            textDecoration: isDone ? 'line-through' : 'none',
+            opacity: isDone ? 0.7 : 1
           }
-        }, isDone ? '✅' : ev.emoji, " ", ev.t), ev.hora && /*#__PURE__*/React.createElement("p", {
+        }, isDone ? '\u2713' : ev.emoji, " ", ev.t), ev.hora && /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 8,
             fontWeight: 800,
-            color: isDone ? '#999' : ev.color,
-            opacity: 0.85,
+            color: isDone ? '#2563EB' : ev.color,
+            opacity: isDone ? 0.5 : 0.85,
             margin: 0,
             lineHeight: 1.1
           }
