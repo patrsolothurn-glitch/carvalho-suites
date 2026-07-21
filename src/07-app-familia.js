@@ -1746,28 +1746,27 @@ function FamiliaApp(_ref19) {
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (!window.supabaseClient || !ev.id) return;
-        var novoArquivado = !verArquivados;
-        window.supabaseClient.from('family_events').update({ arquivado: novoArquivado }).eq('id', ev.id).then(function () {}).catch(function () {});
-        setEvents(function (p) {
-          var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
-            return item.id !== ev.id;
+        if (verArquivados) {
+          // Modo arquivo: restaurar
+          window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
+          setEventsArquivados(function (p) { var d = _objectSpread({}, p); d[selDateStr] = (d[selDateStr] || []).filter(function (item) { return item.id !== ev.id; }); return d; });
+          setEvents(function (p) { var d = _objectSpread({}, p); d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]); return d; });
+        } else {
+          // Modo normal: marcar feito mas manter visível
+          window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
+          setEvents(function (p) {
+            var d = _objectSpread({}, p);
+            d[selDateStr] = (d[selDateStr] || []).map(function (item) {
+              return item.id === ev.id ? _objectSpread(_objectSpread({}, item), {}, { arquivado: true }) : item;
+            });
+            return d;
           });
-          return d;
-        });
-        setEventsArquivados(function (p) {
-          var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
-            return item.id !== ev.id;
+          setEventsArquivados(function (p) {
+            var d = _objectSpread({}, p);
+            d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: true })]);
+            return d;
           });
-          return d;
-        });
-        var alvoState = novoArquivado ? setEventsArquivados : setEvents;
-        alvoState(function (p) {
-          var d = _objectSpread({}, p);
-          d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: novoArquivado })]);
-          return d;
-        });
+        }
       },
       style: {
         background: "".concat(F.green, "12"),
