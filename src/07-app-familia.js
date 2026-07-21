@@ -1311,8 +1311,11 @@ function FamiliaApp(_ref19) {
           }
         }, s.tipo === 'ferias' ? '🏖' : s.tipo === 'feriado' ? '🎌' : '✅', " ", s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre'));
       }), mEvs.map(function (ev, ei) {
+        var _now = new Date();
         var _todayMid = new Date(); _todayMid.setHours(0,0,0,0);
-        var isDone = !!ev.arquivado && date < _todayMid;
+        var _curTime = String(_now.getHours()).padStart(2,'0') + ':' + String(_now.getMinutes()).padStart(2,'0');
+        var _isToday = date.getTime() === _todayMid.getTime();
+        var isDone = !!ev.arquivado && (date < _todayMid || (_isToday && (!ev.hora || ev.hora <= _curTime)));
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
@@ -1637,7 +1640,10 @@ function FamiliaApp(_ref19) {
     var isEditing = editEvKey === evKey;
     var selDateObj = new Date(selDateStr + 'T00:00:00');
     var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
-    var isDoneDay = !!ev.arquivado && selDateObj < todayMidnightD;
+    var _nowD = new Date();
+    var _curTimeD = String(_nowD.getHours()).padStart(2,'0') + ':' + String(_nowD.getMinutes()).padStart(2,'0');
+    var _isTodayD = selDateObj.getTime() === todayMidnightD.getTime();
+    var isDoneDay = !!ev.arquivado && (selDateObj < todayMidnightD || (_isTodayD && (!ev.hora || ev.hora <= _curTimeD)));
     return /*#__PURE__*/React.createElement(FCard, {
       key: i,
       style: {
