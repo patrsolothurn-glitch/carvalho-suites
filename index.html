@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-21T16:18:40.689Z
+  Gerado em: 2026-07-21T16:22:16.455Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-109";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-110";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -11055,28 +11055,27 @@ function FamiliaApp(_ref19) {
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (!window.supabaseClient || !ev.id) return;
-        var novoArquivado = !verArquivados;
-        window.supabaseClient.from('family_events').update({ arquivado: novoArquivado }).eq('id', ev.id).then(function () {}).catch(function () {});
-        setEvents(function (p) {
-          var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
-            return item.id !== ev.id;
+        if (verArquivados) {
+          // Modo arquivo: restaurar
+          window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
+          setEventsArquivados(function (p) { var d = _objectSpread({}, p); d[selDateStr] = (d[selDateStr] || []).filter(function (item) { return item.id !== ev.id; }); return d; });
+          setEvents(function (p) { var d = _objectSpread({}, p); d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]); return d; });
+        } else {
+          // Modo normal: marcar feito mas manter visível
+          window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
+          setEvents(function (p) {
+            var d = _objectSpread({}, p);
+            d[selDateStr] = (d[selDateStr] || []).map(function (item) {
+              return item.id === ev.id ? _objectSpread(_objectSpread({}, item), {}, { arquivado: true }) : item;
+            });
+            return d;
           });
-          return d;
-        });
-        setEventsArquivados(function (p) {
-          var d = _objectSpread({}, p);
-          d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
-            return item.id !== ev.id;
+          setEventsArquivados(function (p) {
+            var d = _objectSpread({}, p);
+            d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: true })]);
+            return d;
           });
-          return d;
-        });
-        var alvoState = novoArquivado ? setEventsArquivados : setEvents;
-        alvoState(function (p) {
-          var d = _objectSpread({}, p);
-          d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: novoArquivado })]);
-          return d;
-        });
+        }
       },
       style: {
         background: "".concat(F.green, "12"),
