@@ -1637,13 +1637,13 @@ function FamiliaApp(_ref19) {
       return id !== 'todos';
     }).length - 1) : (m === null || m === void 0 ? void 0 : m.name) || '';
     var whoEmoji = isTodos ? '👥' : m === null || m === void 0 ? void 0 : m.emoji;
-    var evKey = "".concat(selDateStr, "-").concat(i);
+    var evKey = "".concat(selDateStr, "-").concat(ev.id || i);
     var isEditing = editEvKey === evKey;
     var selDateObj = new Date(selDateStr + 'T00:00:00');
     var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
     var isDoneDay = !!ev.arquivado && selDateObj <= todayMidnightD;
     return /*#__PURE__*/React.createElement(FCard, {
-      key: i,
+      key: ev.id || i,
       style: {
         marginBottom: 10,
         borderLeft: isDoneDay ? "4px solid #2563EB" : "4px solid ".concat(ev.color),
