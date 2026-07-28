@@ -107,6 +107,10 @@ function FamiliaApp(_ref19) {
     _useStateEditEvSaving2 = _slicedToArray(_useStateEditEvSaving, 2),
     editEvSaving = _useStateEditEvSaving2[0],
     setEditEvSaving = _useStateEditEvSaving2[1];
+  var _useStateEditDate = (0, _react.useState)(''),
+    _useStateEditDate2 = _slicedToArray(_useStateEditDate, 2),
+    editDate = _useStateEditDate2[0],
+    setEditDate = _useStateEditDate2[1];
   var _useState109 = (0, _react.useState)({}),
     _useState110 = _slicedToArray(_useState109, 2),
     memberPhotos = _useState110[0],
@@ -1745,15 +1749,12 @@ function FamiliaApp(_ref19) {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        if (!window.supabaseClient || !ev.id) return;
         if (verArquivados) {
-          // Modo arquivo: restaurar
-          window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
+          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
           setEventsArquivados(function (p) { var d = _objectSpread({}, p); d[selDateStr] = (d[selDateStr] || []).filter(function (item) { return item.id !== ev.id; }); return d; });
           setEvents(function (p) { var d = _objectSpread({}, p); d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]); return d; });
         } else {
-          // Modo normal: marcar feito mas manter visível
-          window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
+          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
           setEvents(function (p) {
             var d = _objectSpread({}, p);
             d[selDateStr] = (d[selDateStr] || []).map(function (item) {
@@ -1802,6 +1803,7 @@ function FamiliaApp(_ref19) {
       }
     }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        if (!isEditing) setEditDate(selDateStr);
         return setEditEvKey(isEditing ? null : evKey);
       },
       style: {
@@ -1890,7 +1892,8 @@ function FamiliaApp(_ref19) {
       style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
     }, "\uD83D\uDCC5 Data"), /*#__PURE__*/React.createElement("input", {
       type: "date",
-      defaultValue: selDateStr,
+      value: editDate,
+      onChange: function onChange(e) { return setEditDate(e.target.value); },
       id: "ev-d-".concat(evKey),
       style: {
         width: '100%',
@@ -2112,7 +2115,7 @@ function FamiliaApp(_ref19) {
       onClick: function onClick() {
         var _document$getElementB2, _document$getElementB3, _document$getElementB5;
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
-        var newDate = document.getElementById("ev-d-".concat(evKey)) ? document.getElementById("ev-d-".concat(evKey)).value || selDateStr : selDateStr;
+        var newDate = editDate || selDateStr;
         var dateChanged = newDate !== selDateStr;
         var catRadio = document.querySelector('[name="ev-cat-'.concat(evKey, '"]:checked'));
         var newCategoria = catRadio ? catRadio.value : (ev.categoria || 'familia');
