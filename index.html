@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-07-28T10:57:17.291Z
+  Gerado em: 2026-07-28T11:04:31.242Z
 -->
 <html lang="pt">
 <head>
@@ -26,7 +26,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-111";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-112";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -10946,13 +10946,13 @@ function FamiliaApp(_ref19) {
       return id !== 'todos';
     }).length - 1) : (m === null || m === void 0 ? void 0 : m.name) || '';
     var whoEmoji = isTodos ? '👥' : m === null || m === void 0 ? void 0 : m.emoji;
-    var evKey = "".concat(selDateStr, "-").concat(i);
+    var evKey = "".concat(selDateStr, "-").concat(ev.id || i);
     var isEditing = editEvKey === evKey;
     var selDateObj = new Date(selDateStr + 'T00:00:00');
     var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
     var isDoneDay = !!ev.arquivado && selDateObj <= todayMidnightD;
     return /*#__PURE__*/React.createElement(FCard, {
-      key: i,
+      key: ev.id || i,
       style: {
         marginBottom: 10,
         borderLeft: isDoneDay ? "4px solid #2563EB" : "4px solid ".concat(ev.color),
