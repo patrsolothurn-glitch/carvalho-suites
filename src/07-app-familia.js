@@ -431,9 +431,8 @@ function FamiliaApp(_ref19) {
     var raw = (fonte[selDateStr] || []).filter(function (e) {
       return eventVisibleTo(e, selMember);
     }).sort(function (a, b) {
-      var ha = a.hora || '99:99';
-      var hb = b.hora || '99:99';
-      return ha.localeCompare(hb);
+      var toMin = function(h) { if (!h) return 9999; var p = h.split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0); };
+      return toMin(a.hora) - toMin(b.hora);
     });
     // Agrupar eventos com o mesmo nome (normalizado) no mesmo dia
     var grouped = [];
@@ -1270,9 +1269,8 @@ function FamiliaApp(_ref19) {
       var mEvs = dayEvs.filter(function (e) {
         return eventVisibleTo(e, m.id);
       }).sort(function (a, b) {
-        var ha = a.hora || '99:99';
-        var hb = b.hora || '99:99';
-        return ha.localeCompare(hb);
+        var toMin = function(h) { if (!h) return 9999; var p = h.split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0); };
+        return toMin(a.hora) - toMin(b.hora);
       });
       var mShared = dayShared.length > 0 && m.id === 'patricio';
       var isEmptyCell = mEvs.length === 0 && !mShared;
