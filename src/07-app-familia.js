@@ -123,6 +123,14 @@ function FamiliaApp(_ref19) {
     _useStateExpandedWeeks2 = _slicedToArray(_useStateExpandedWeeks, 2),
     expandedWeeks = _useStateExpandedWeeks2[0],
     setExpandedWeeks = _useStateExpandedWeeks2[1];
+  var _useStateExpandedMonths = (0, _react.useState)(new Set()),
+    _useStateExpandedMonths2 = _slicedToArray(_useStateExpandedMonths, 2),
+    expandedMonths = _useStateExpandedMonths2[0],
+    setExpandedMonths = _useStateExpandedMonths2[1];
+  var _useStateExpandedDays = (0, _react.useState)(new Set()),
+    _useStateExpandedDays2 = _slicedToArray(_useStateExpandedDays, 2),
+    expandedDays = _useStateExpandedDays2[0],
+    setExpandedDays = _useStateExpandedDays2[1];
   var famStorageGet = function famStorageGet(key) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.get) {
@@ -2730,95 +2738,102 @@ function FamiliaApp(_ref19) {
   }, "\uD83D\uDCE6 Arquivo \u2014 todos os eventos feitos"), (function () {
     var allArqDates = Object.keys(eventsArquivados).filter(function (d) { return (eventsArquivados[d] || []).length > 0; });
     if (!allArqDates.length) {
-      return /*#__PURE__*/React.createElement("p", { style: { color: F.muted, fontSize: 13, textAlign: 'center', padding: '30px 0' } }, "Ainda n\xE3o h\xE1 eventos arquivados.");
+      return React.createElement("p", { style: { color: F.muted, fontSize: 13, textAlign: 'center', padding: '30px 0' } }, "Ainda n\xE3o h\xE1 eventos arquivados.");
     }
-    var weekGroups = {};
+    var monthGroups = {};
     allArqDates.forEach(function (d) {
       var dt = new Date(d + 'T00:00:00');
+      var moKey = d.slice(0, 7);
       var dow = dt.getDay();
       var monday = new Date(dt);
       monday.setDate(dt.getDate() - (dow === 0 ? 6 : dow - 1));
       var wk = monday.toISOString().slice(0, 10);
-      if (!weekGroups[wk]) weekGroups[wk] = [];
-      (eventsArquivados[d] || []).forEach(function (ev) { weekGroups[wk].push(_objectSpread(_objectSpread({}, ev), {}, { _date: d })); });
+      if (!monthGroups[moKey]) monthGroups[moKey] = {};
+      if (!monthGroups[moKey][wk]) monthGroups[moKey][wk] = {};
+      if (!monthGroups[moKey][wk][d]) monthGroups[moKey][wk][d] = [];
+      (eventsArquivados[d] || []).forEach(function (ev) { monthGroups[moKey][wk][d].push(ev); });
     });
-    var weekKeys = Object.keys(weekGroups).sort().reverse();
-    return weekKeys.map(function (wk) {
-      var wkStart = new Date(wk + 'T00:00:00');
-      var wkEnd = new Date(wkStart); wkEnd.setDate(wkEnd.getDate() + 6);
-      var tmp = new Date(wkStart); tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
-      var isoWeek = Math.ceil(((tmp - new Date(tmp.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
-      var wkLabel = "Semana ".concat(isoWeek, " \u00B7 ").concat(wkStart.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), " \u2013 ").concat(wkEnd.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }));
-      var byTitle = {};
-      weekGroups[wk].forEach(function (ev) {
-        var k = (ev.t || '').toLowerCase().trim();
-        if (!byTitle[k]) byTitle[k] = { ev: ev, dates: [], ids: [] };
-        if (byTitle[k].dates.indexOf(ev._date) === -1) byTitle[k].dates.push(ev._date);
-        if (ev.id && byTitle[k].ids.indexOf(ev.id) === -1) byTitle[k].ids.push(ev.id);
-      });
-      var deduped = Object.values(byTitle).map(function (g) { g.dates.sort(); return g; });
-      var isExpanded = expandedWeeks.has(wk);
-      return /*#__PURE__*/React.createElement("div", { key: wk, style: { marginBottom: 10 } },
-        /*#__PURE__*/React.createElement("div", {
-          onClick: function onClick() {
-            setExpandedWeeks(function(prev) {
-              var s = new Set(prev);
-              if (s.has(wk)) s.delete(wk); else s.add(wk);
-              return s;
-            });
-          },
-          style: {
-            display: 'flex', alignItems: 'center', gap: 8,
-            marginBottom: isExpanded ? 10 : 0,
-            cursor: 'pointer',
-            userSelect: 'none'
-          }
+    var monthKeys = Object.keys(monthGroups).sort().reverse();
+    var toggleSet = function(setter, key) { setter(function(prev) { var s = new Set(prev); if (s.has(key)) s.delete(key); else s.add(key); return s; }); };
+    var mkEventCard = function(ev, allIds, allDates, isLast) {
+      var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
+      var m = members.find(function (x) { return x.id === firstSpecific; });
+      var whoLabel = firstSpecific ? ((m && m.name) || '') : 'Toda a fam\xEDlia';
+      return React.createElement(FCard, { key: ev.id, style: { padding: '10px 12px', marginBottom: isLast ? 0 : 6, borderLeft: "3px solid ".concat(ev.color), display: 'flex', alignItems: 'center', gap: 10 } },
+        React.createElement("span", { style: { fontSize: 16, flexShrink: 0 } }, ev.emoji),
+        React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+          React.createElement("p", { style: { fontWeight: 800, fontSize: 13, color: F.text, textDecoration: 'line-through', opacity: 0.7 } }, ev.t),
+          React.createElement("p", { style: { fontSize: 11, color: F.muted, marginTop: 1 } }, whoLabel, ev.hora ? " \u00B7 ".concat(ev.hora) : '')),
+        React.createElement("div", { style: { display: 'flex', gap: 6, flexShrink: 0 } },
+          React.createElement("button", {
+            onClick: function onClick() {
+              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function() {}).catch(function() {}); });
+              allDates.forEach(function (d) {
+                setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
+                setEvents(function (p) { var nx = _objectSpread({}, p); var toAdd = (eventsArquivados[d] || []).filter(function (it) { return allIds.indexOf(it.id) !== -1; }).map(function (it) { return _objectSpread(_objectSpread({}, it), {}, { arquivado: false }); }); nx[d] = [].concat(_toConsumableArray(nx[d] || []), toAdd); return nx; });
+              });
+            },
+            style: { background: "".concat(F.green, "12"), border: "1px solid ".concat(F.green, "33"), borderRadius: 8, padding: '5px 7px', cursor: 'pointer', color: F.green, fontSize: 12 }
+          }, "\u21A9\uFE0F"),
+          React.createElement("button", {
+            onClick: function onClick() {
+              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').delete().eq('id', id).then(function() {}).catch(function() {}); });
+              allDates.forEach(function (d) {
+                setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
+                setEvents(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
+              });
+            },
+            style: { background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, padding: '5px 7px', cursor: 'pointer', color: F.red, fontSize: 12 }
+          }, "\uD83D\uDDD1\uFE0F")));
+    };
+    return monthKeys.map(function (moKey) {
+      var moDate = new Date(moKey + '-01T00:00:00');
+      var moLabel = moDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/^\w/, function(c) { return c.toUpperCase(); });
+      var moExpanded = expandedMonths.has(moKey);
+      var weekKeys = Object.keys(monthGroups[moKey]).sort().reverse();
+      return React.createElement("div", { key: moKey, style: { marginBottom: 6 } },
+        React.createElement("div", {
+          onClick: function onClick() { toggleSet(setExpandedMonths, moKey); },
+          style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: moExpanded ? 6 : 0, cursor: 'pointer', padding: '8px 0' }
         },
-        /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } }),
-        /*#__PURE__*/React.createElement("span", {
-          style: { fontSize: 11, fontWeight: 800, color: F.coral, whiteSpace: 'nowrap', padding: '0 6px' }
-        }, wkLabel),
-        /*#__PURE__*/React.createElement("span", {
-          style: { fontSize: 12, color: F.muted, flexShrink: 0 }
-        }, isExpanded ? '▲' : '▼'),
-        /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } })),
-        isExpanded && deduped.map(function (g, i) {
-          var ev = g.ev;
-          var nDays = g.dates.length;
-          var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
-          var m = members.find(function (x) { return x.id === firstSpecific; });
-          var whoLabel = firstSpecific ? ((m === null || m === void 0 ? void 0 : m.name) || '') : 'Toda a fam\xEDlia';
-          var dateLabel = nDays === 1
-            ? new Date(g.dates[0] + 'T00:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })
-            : "".concat(nDays, " dias \u00B7 ").concat(new Date(g.dates[0] + 'T00:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), " \u2013 ").concat(new Date(g.dates[nDays - 1] + 'T00:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }));
-          return /*#__PURE__*/React.createElement(FCard, { key: i, style: { padding: '10px 12px', marginBottom: 8, borderLeft: "3px solid ".concat(ev.color), display: 'flex', alignItems: 'center', gap: 10 } },
-            /*#__PURE__*/React.createElement("span", { style: { fontSize: 18, flexShrink: 0 } }, ev.emoji),
-            /*#__PURE__*/React.createElement("div", { style: { flex: 1, minWidth: 0 } },
-              /*#__PURE__*/React.createElement("p", { style: { fontWeight: 800, fontSize: 13, color: F.text, textDecoration: 'line-through', opacity: 0.7 } }, ev.t),
-              /*#__PURE__*/React.createElement("p", { style: { fontSize: 11, color: F.muted, marginTop: 1 } }, whoLabel, " \u00B7 ", dateLabel)),
-            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 6, flexShrink: 0 } },
-              /*#__PURE__*/React.createElement("button", {
-                onClick: function onClick() {
-                  g.ids.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function () {}).catch(function () {}); });
-                  g.dates.forEach(function (d) {
-                    setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return g.ids.indexOf(it.id) === -1; }); return nx; });
-                    setEvents(function (p) { var nx = _objectSpread({}, p); var toAdd = (eventsArquivados[d] || []).filter(function (it) { return g.ids.indexOf(it.id) !== -1; }).map(function (it) { return _objectSpread(_objectSpread({}, it), {}, { arquivado: false }); }); nx[d] = [].concat(_toConsumableArray(nx[d] || []), toAdd); return nx; });
-                  });
+          React.createElement("div", { style: { height: 2, flex: 1, background: F.coral, opacity: 0.4 } }),
+          React.createElement("span", { style: { fontSize: 13, fontWeight: 900, color: F.coral, whiteSpace: 'nowrap', padding: '0 10px', textTransform: 'uppercase', letterSpacing: '0.5px' } }, moLabel),
+          React.createElement("span", { style: { fontSize: 11, color: F.coral } }, moExpanded ? '\u25B2' : '\u25BC'),
+          React.createElement("div", { style: { height: 2, flex: 1, background: F.coral, opacity: 0.4 } })),
+        moExpanded && weekKeys.map(function (wk) {
+          var wkStart = new Date(wk + 'T00:00:00');
+          var wkEnd = new Date(wkStart); wkEnd.setDate(wkEnd.getDate() + 6);
+          var tmp = new Date(wkStart); tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
+          var isoWeek = Math.ceil(((tmp - new Date(tmp.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
+          var wkLabel = "Sem. ".concat(isoWeek, " \u00B7 ").concat(wkStart.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), " \u2013 ").concat(wkEnd.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }));
+          var wkExpanded = expandedWeeks.has(wk);
+          var dayKeys = Object.keys(monthGroups[moKey][wk]).sort().reverse();
+          return React.createElement("div", { key: wk, style: { marginBottom: 4, paddingLeft: 10 } },
+            React.createElement("div", {
+              onClick: function onClick() { toggleSet(setExpandedWeeks, wk); },
+              style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: wkExpanded ? 6 : 0, cursor: 'pointer', padding: '5px 0' }
+            },
+              React.createElement("div", { style: { height: 1, flex: 1, background: F.border } }),
+              React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: F.muted, whiteSpace: 'nowrap', padding: '0 6px' } }, wkLabel),
+              React.createElement("span", { style: { fontSize: 10, color: F.muted } }, wkExpanded ? '\u25B2' : '\u25BC'),
+              React.createElement("div", { style: { height: 1, flex: 1, background: F.border } })),
+            wkExpanded && dayKeys.map(function (d) {
+              var dtObj = new Date(d + 'T00:00:00');
+              var dayLabel = dtObj.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'short' }).replace(/^\w/, function(c) { return c.toUpperCase(); });
+              var dayExpanded = expandedDays.has(d);
+              var dayEvArr = (monthGroups[moKey][wk][d] || []);
+              var nEv = dayEvArr.length;
+              return React.createElement("div", { key: d, style: { marginBottom: 4, paddingLeft: 10 } },
+                React.createElement("div", {
+                  onClick: function onClick() { toggleSet(setExpandedDays, d); },
+                  style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: dayExpanded ? 6 : 0, cursor: 'pointer', padding: '4px 0' }
                 },
-                title: 'Restaurar',
-                style: { background: "".concat(F.green, "12"), border: "1px solid ".concat(F.green, "33"), borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: F.green, fontSize: 13 }
-              }, "\u21A9\uFE0F"),
-              /*#__PURE__*/React.createElement("button", {
-                onClick: function onClick() {
-                  g.ids.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').delete().eq('id', id).then(function () {}).catch(function () {}); });
-                  g.dates.forEach(function (d) {
-                    setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return g.ids.indexOf(it.id) === -1; }); return nx; });
-                    setEvents(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return g.ids.indexOf(it.id) === -1; }); return nx; });
-                  });
-                },
-                title: 'Apagar definitivamente',
-                style: { background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: F.red, fontSize: 13 }
-              }, "\uD83D\uDDD1\uFE0F")));
+                  React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: F.text } }, dayLabel),
+                  React.createElement("span", { style: { fontSize: 10, color: F.muted } }, "(".concat(nEv, ")")),
+                  React.createElement("div", { style: { height: 1, flex: 1, background: F.border, marginLeft: 6 } }),
+                  React.createElement("span", { style: { fontSize: 10, color: F.muted } }, dayExpanded ? '\u25B2' : '\u25BC')),
+                dayExpanded && dayEvArr.map(function (ev, gi) { return mkEventCard(ev, ev.id ? [ev.id] : [], [d], gi === dayEvArr.length - 1); }));
+            }));
         }));
     });
   })()), showAdd && /*#__PURE__*/React.createElement("div", {
