@@ -119,6 +119,10 @@ function FamiliaApp(_ref19) {
     _useStateJustDone2 = _slicedToArray(_useStateJustDone, 2),
     justDoneIds = _useStateJustDone2[0],
     setJustDoneIds = _useStateJustDone2[1];
+  var _useStateExpandedWeeks = (0, _react.useState)(new Set()),
+    _useStateExpandedWeeks2 = _slicedToArray(_useStateExpandedWeeks, 2),
+    expandedWeeks = _useStateExpandedWeeks2[0],
+    setExpandedWeeks = _useStateExpandedWeeks2[1];
   var famStorageGet = function famStorageGet(key) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.get) {
@@ -2753,12 +2757,32 @@ function FamiliaApp(_ref19) {
         if (ev.id && byTitle[k].ids.indexOf(ev.id) === -1) byTitle[k].ids.push(ev.id);
       });
       var deduped = Object.values(byTitle).map(function (g) { g.dates.sort(); return g; });
-      return /*#__PURE__*/React.createElement("div", { key: wk, style: { marginBottom: 22 } },
-        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 } },
-          /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } }),
-          /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: F.coral, whiteSpace: 'nowrap', padding: '0 6px' } }, wkLabel),
-          /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } })),
-        deduped.map(function (g, i) {
+      var isExpanded = expandedWeeks.has(wk);
+      return /*#__PURE__*/React.createElement("div", { key: wk, style: { marginBottom: 10 } },
+        /*#__PURE__*/React.createElement("div", {
+          onClick: function onClick() {
+            setExpandedWeeks(function(prev) {
+              var s = new Set(prev);
+              if (s.has(wk)) s.delete(wk); else s.add(wk);
+              return s;
+            });
+          },
+          style: {
+            display: 'flex', alignItems: 'center', gap: 8,
+            marginBottom: isExpanded ? 10 : 0,
+            cursor: 'pointer',
+            userSelect: 'none'
+          }
+        },
+        /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } }),
+        /*#__PURE__*/React.createElement("span", {
+          style: { fontSize: 11, fontWeight: 800, color: F.coral, whiteSpace: 'nowrap', padding: '0 6px' }
+        }, wkLabel),
+        /*#__PURE__*/React.createElement("span", {
+          style: { fontSize: 12, color: F.muted, flexShrink: 0 }
+        }, isExpanded ? '▲' : '▼'),
+        /*#__PURE__*/React.createElement("div", { style: { height: 1, flex: 1, background: F.border } })),
+        isExpanded && deduped.map(function (g, i) {
           var ev = g.ev;
           var nDays = g.dates.length;
           var firstSpecific = (ev.participantes || ['todos']).find(function (id) { return id !== 'todos'; });
