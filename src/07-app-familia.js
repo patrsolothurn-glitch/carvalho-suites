@@ -111,6 +111,10 @@ function FamiliaApp(_ref19) {
     _useStateEditDate2 = _slicedToArray(_useStateEditDate, 2),
     editDate = _useStateEditDate2[0],
     setEditDate = _useStateEditDate2[1];
+  var _useStateEditLembrete = (0, _react.useState)(null),
+    _useStateEditLembrete2 = _slicedToArray(_useStateEditLembrete, 2),
+    editLembrete = _useStateEditLembrete2[0],
+    setEditLembrete = _useStateEditLembrete2[1];
   var _useState109 = (0, _react.useState)({}),
     _useState110 = _slicedToArray(_useState109, 2),
     memberPhotos = _useState110[0],
@@ -131,6 +135,10 @@ function FamiliaApp(_ref19) {
     _useStateExpandedDays2 = _slicedToArray(_useStateExpandedDays, 2),
     expandedDays = _useStateExpandedDays2[0],
     setExpandedDays = _useStateExpandedDays2[1];
+  var _useStateAddingEvent = (0, _react.useState)(false),
+    _useStateAddingEvent2 = _slicedToArray(_useStateAddingEvent, 2),
+    addingEvent = _useStateAddingEvent2[0],
+    setAddingEvent = _useStateAddingEvent2[1];
   var famStorageGet = function famStorageGet(key) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.get) {
@@ -289,7 +297,8 @@ function FamiliaApp(_ref19) {
           categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
           color: (CATEGORIAS[row.categoria] || CATEGORIAS.familia).color,
           hora: row.event_time || '',
-          nota: row.description || ''
+          nota: row.description || '',
+          lembrete: row.reminder_minutes || null
         };
         // Todos os eventos vão para built (para o calendário mostrar feitos)
         (built[d] || (built[d] = [])).push(evObj);
@@ -497,6 +506,8 @@ function FamiliaApp(_ref19) {
   };
   var addEvent = function addEvent() {
     if (!form.titulo || !form.dataDE) return;
+    if (addingEvent) return;
+    setAddingEvent(true);
     var participantes = form.participantes && form.participantes.length > 0 ? form.participantes : ['todos'];
     var firstSpecific = participantes.find(function (id) {
       return id !== 'todos';
@@ -573,6 +584,7 @@ function FamiliaApp(_ref19) {
       nota: '',
       lembrete: null
     });
+    setAddingEvent(false);
     setShowAdd(false);
   };
   var FCard = function FCard(_ref20) {
@@ -1819,7 +1831,7 @@ function FamiliaApp(_ref19) {
       }
     }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        if (!isEditing) setEditDate(selDateStr);
+        if (!isEditing) { setEditDate(selDateStr); setEditLembrete(ev.lembrete || null); }
         return setEditEvKey(isEditing ? null : evKey);
       },
       style: {
@@ -2106,6 +2118,33 @@ function FamiliaApp(_ref19) {
           borderRadius: 20, padding: '5px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer'
         }
       }, cat.emoji, " ", cat.label));
+    })), /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "\uD83D\uDD14 Lembrete"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }
+    }, [
+      { label: 'Nenhum', val: null },
+      { label: '15 min', val: 15 },
+      { label: '30 min', val: 30 },
+      { label: '1 hora', val: 60 },
+      { label: '2 horas', val: 120 },
+      { label: '1 dia', val: 1440 }
+    ].map(function (opt) {
+      var isSel = editLembrete === opt.val;
+      return /*#__PURE__*/React.createElement("button", {
+        key: String(opt.val),
+        onClick: function onClick() { return setEditLembrete(opt.val); },
+        style: {
+          padding: '5px 11px',
+          borderRadius: 20,
+          border: isSel ? "1.5px solid ".concat(F.coral) : "1.5px solid ".concat(F.border),
+          background: isSel ? F.coral : F.surface2,
+          color: isSel ? '#fff' : F.muted,
+          fontSize: 12,
+          fontWeight: isSel ? 800 : 600,
+          cursor: 'pointer'
+        }
+      }, opt.label);
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -2192,7 +2231,8 @@ function FamiliaApp(_ref19) {
           participant_ids: participantes,
           description: nota || null,
           color: newColor,
-          categoria: newCategoria
+          categoria: newCategoria,
+          reminder_minutes: editLembrete
         }).eq('id', ev.id).then(function (res) {
           setEditEvSaving(false);
           if (res.error) {
@@ -3330,19 +3370,20 @@ function FamiliaApp(_ref19) {
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: addEvent,
+    disabled: addingEvent,
     style: {
       flex: 2,
-      background: "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
+      background: addingEvent ? F.muted : "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
       border: 'none',
       borderRadius: 14,
       padding: '13px',
       color: '#fff',
       fontSize: 14,
       fontWeight: 800,
-      cursor: 'pointer',
-      boxShadow: "0 4px 14px rgba(232,119,58,0.3)"
+      cursor: addingEvent ? 'default' : 'pointer',
+      boxShadow: addingEvent ? 'none' : "0 4px 14px rgba(232,119,58,0.3)"
     }
-  }, "\u2713 Adicionar")))));
+  }, addingEvent ? 'A guardar…' : '✓ Adicionar')))));
 }
 
 // ── NUTRIGUIMA ──────────────────────────────────────────────────────
