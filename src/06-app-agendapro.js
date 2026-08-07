@@ -660,7 +660,7 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    return p.includes('POP') ? A.blue : p.includes('BUDI') ? A.orange : A.gold;
+    return p.includes('POP') ? A.blue : p.includes('BUDI-2S') ? '#F1C40F' : p.includes('BUDI-1S') ? '#E74C3C' : p.includes('BUDI-S') ? '#27AE60' : p.includes('BUDI') ? A.orange : A.gold;
   };
 
   // Filtered list
