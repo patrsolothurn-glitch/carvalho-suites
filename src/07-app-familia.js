@@ -95,6 +95,10 @@ function FamiliaApp(_ref19) {
     _useState106 = _slicedToArray(_useState105, 2),
     form = _useState106[0],
     setForm = _useState106[1];
+  var _useStateTituloErr = (0, _react.useState)(''),
+    _useStateTituloErr2 = _slicedToArray(_useStateTituloErr, 2),
+    tituloErr = _useStateTituloErr2[0],
+    setTituloErr = _useStateTituloErr2[1];
   var _useState107 = (0, _react.useState)(null),
     _useState108 = _slicedToArray(_useState107, 2),
     editEvKey = _useState108[0],
@@ -496,7 +500,9 @@ function FamiliaApp(_ref19) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   };
   var addEvent = function addEvent() {
-    if (!form.titulo || !form.dataDE) return;
+    if (!form.titulo) { setTituloErr('O Título é obrigatório.'); return; }
+    if (!form.dataDE) return;
+    setTituloErr('');
     var participantes = form.participantes && form.participantes.length > 0 ? form.participantes : ['todos'];
     var firstSpecific = participantes.find(function (id) {
       return id !== 'todos';
@@ -2984,6 +2990,7 @@ function FamiliaApp(_ref19) {
       type: f.type,
       value: form[f.k],
       onChange: function onChange(e) {
+        if (f.k === 'titulo' && e.target.value) setTituloErr('');
         return setForm(function (p) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, f.k, e.target.value));
         });
@@ -2992,7 +2999,7 @@ function FamiliaApp(_ref19) {
       style: {
         width: '100%',
         background: F.surface2,
-        border: "1px solid ".concat(F.border),
+        border: f.k === 'titulo' && tituloErr ? '1.5px solid #E74C3C' : "1px solid ".concat(F.border),
         borderRadius: 12,
         padding: '11px 14px',
         color: F.text,
@@ -3000,7 +3007,9 @@ function FamiliaApp(_ref19) {
         outline: 'none',
         boxSizing: 'border-box'
       }
-    }));
+    }), f.k === 'titulo' && tituloErr ? /*#__PURE__*/React.createElement("p", {
+      style: { color: '#E74C3C', fontSize: 11, marginTop: 4, fontWeight: 700 }
+    }, "\u26A0\uFE0F ", tituloErr) : null);
   }), /*#__PURE__*/React.createElement("p", {
     style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
   }, "\uD83D\uDD14 Lembrete"), /*#__PURE__*/React.createElement("div", {
