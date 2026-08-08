@@ -1445,7 +1445,7 @@ function LucasApp(_ref) {
         fontSize: 11,
         color: '#999'
       }
-    }, "\u270F\uFE0F Toca nos hor\xE1rios para definir excep\xE7\xF5es pontuais")));
+    }, t.hint_editar)));
   }
 
   // ── VIEW: AUTORIZAÇÕES (só admin) ──
