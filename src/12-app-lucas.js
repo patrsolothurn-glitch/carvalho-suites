@@ -99,7 +99,8 @@ function weekLabel(mon) {
 function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
-    isAdmin = _ref.isAdmin;
+    isAdmin = _ref.isAdmin,
+    onBack = _ref.onBack;
   var _useState = useState('plano'),
     _useState2 = _slicedToArray(_useState, 2),
     view = _useState2[0],
@@ -1398,9 +1399,30 @@ function LucasApp(_ref) {
     style: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      gap: 10
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }, onBack && /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    style: {
+      background: 'rgba(255,255,255,0.15)',
+      border: 'none',
+      borderRadius: 10,
+      width: 34,
+      height: 34,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      color: '#fff',
+      fontSize: 20,
+      flexShrink: 0,
+      lineHeight: 1
+    }
+  }, "\u2039"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
     style: {
       color: '#fff',
       fontWeight: 800,
@@ -1414,7 +1436,7 @@ function LucasApp(_ref) {
     }
   }, "Grenchen Nord Schule \xB7 Selzach")), /*#__PURE__*/React.createElement("div", {
     style: {
-      minWidth: 60,
+      minWidth: 50,
       textAlign: 'right'
     }
   }, saving && /*#__PURE__*/React.createElement("span", {
@@ -1422,7 +1444,7 @@ function LucasApp(_ref) {
       color: 'rgba(255,255,255,.5)',
       fontSize: 11
     }
-  }, "A guardar..."), toast && /*#__PURE__*/React.createElement("span", {
+  }, "..."), toast && /*#__PURE__*/React.createElement("span", {
     style: {
       color: toast.err ? '#ffcdd2' : '#a5d6a7',
       fontSize: 12,
