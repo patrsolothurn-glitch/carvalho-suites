@@ -202,20 +202,83 @@ function LucasApp(_ref) {
       setToast(null);
     }, 2000);
   }
+  function addCondutor(_x, _x2) {
+    return _addCondutor.apply(this, arguments);
+  }
+  function _addCondutor() {
+    _addCondutor = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(nome, cor) {
+      var _yield$supabase$from$, error;
+      return _regenerator().w(function (_context) {
+        while (1) switch (_context.n) {
+          case 0:
+            if (nome.trim()) {
+              _context.n = 1;
+              break;
+            }
+            return _context.a(2);
+          case 1:
+            _context.n = 2;
+            return supabase.from('lucas_condutores').insert({
+              nome: nome.trim(),
+              autorizado: true,
+              cor: cor
+            });
+          case 2:
+            _yield$supabase$from$ = _context.v;
+            error = _yield$supabase$from$.error;
+            if (!error) {
+              flash('✓ ' + nome + ' adicionado');
+              loadDrivers();
+            } else {
+              flash('Erro: nome já existe?', true);
+            }
+          case 3:
+            return _context.a(2);
+        }
+      }, _callee);
+    }));
+    return _addCondutor.apply(this, arguments);
+  }
+  function deleteCondutor(_x3, _x4) {
+    return _deleteCondutor.apply(this, arguments);
+  }
+  function _deleteCondutor() {
+    _deleteCondutor = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(id, nome) {
+      return _regenerator().w(function (_context2) {
+        while (1) switch (_context2.n) {
+          case 0:
+            if (confirm('Remover ' + nome + ' definitivamente?')) {
+              _context2.n = 1;
+              break;
+            }
+            return _context2.a(2);
+          case 1:
+            _context2.n = 2;
+            return supabase.from('lucas_condutores').delete().eq('id', id);
+          case 2:
+            flash('Removido');
+            loadDrivers();
+          case 3:
+            return _context2.a(2);
+        }
+      }, _callee2);
+    }));
+    return _deleteCondutor.apply(this, arguments);
+  }
   function loadConfig() {
     return _loadConfig.apply(this, arguments);
   }
   function _loadConfig() {
-    _loadConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      var _yield$supabase$from$, data, map;
-      return _regenerator().w(function (_context) {
-        while (1) switch (_context.n) {
+    _loadConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+      var _yield$supabase$from$2, data, map;
+      return _regenerator().w(function (_context3) {
+        while (1) switch (_context3.n) {
           case 0:
-            _context.n = 1;
+            _context3.n = 1;
             return supabase.from('lucas_config').select('*');
           case 1:
-            _yield$supabase$from$ = _context.v;
-            data = _yield$supabase$from$.data;
+            _yield$supabase$from$2 = _context3.v;
+            data = _yield$supabase$from$2.data;
             if (data && data.length) {
               map = {};
               data.forEach(function (r) {
@@ -226,21 +289,21 @@ function LucasApp(_ref) {
               });
             }
           case 2:
-            return _context.a(2);
+            return _context3.a(2);
         }
-      }, _callee);
+      }, _callee3);
     }));
     return _loadConfig.apply(this, arguments);
   }
-  function saveConfig(_x, _x2) {
+  function saveConfig(_x5, _x6) {
     return _saveConfig.apply(this, arguments);
   }
   function _saveConfig() {
-    _saveConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(key, value) {
-      return _regenerator().w(function (_context2) {
-        while (1) switch (_context2.n) {
+    _saveConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(key, value) {
+      return _regenerator().w(function (_context4) {
+        while (1) switch (_context4.n) {
           case 0:
-            _context2.n = 1;
+            _context4.n = 1;
             return supabase.from('lucas_config').upsert({
               key: key,
               value: value
@@ -254,9 +317,9 @@ function LucasApp(_ref) {
             setEditField(null);
             flash('✓ Guardado');
           case 2:
-            return _context2.a(2);
+            return _context4.a(2);
         }
-      }, _callee2);
+      }, _callee4);
     }));
     return _saveConfig.apply(this, arguments);
   }
@@ -264,21 +327,21 @@ function LucasApp(_ref) {
     return _loadDrivers.apply(this, arguments);
   }
   function _loadDrivers() {
-    _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+    _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
       var r;
-      return _regenerator().w(function (_context3) {
-        while (1) switch (_context3.n) {
+      return _regenerator().w(function (_context5) {
+        while (1) switch (_context5.n) {
           case 0:
-            _context3.n = 1;
+            _context5.n = 1;
             return supabase.from('lucas_condutores').select('*').order('nome');
           case 1:
-            r = _context3.v;
+            r = _context5.v;
             if (r.data) setDrivers(r.data);
             setLoading(false);
           case 2:
-            return _context3.a(2);
+            return _context5.a(2);
         }
-      }, _callee3);
+      }, _callee5);
     }));
     return _loadDrivers.apply(this, arguments);
   }
@@ -286,16 +349,16 @@ function LucasApp(_ref) {
     return _loadSchedule.apply(this, arguments);
   }
   function _loadSchedule() {
-    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
+    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
       var r, map;
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.n) {
+      return _regenerator().w(function (_context6) {
+        while (1) switch (_context6.n) {
           case 0:
             setLoading(true);
-            _context4.n = 1;
+            _context6.n = 1;
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
-            r = _context4.v;
+            r = _context6.v;
             map = {};
             (r.data || []).forEach(function (row) {
               map[row.dia + ':' + row.slot] = {
@@ -307,9 +370,9 @@ function LucasApp(_ref) {
             setSchedule(map);
             setLoading(false);
           case 2:
-            return _context4.a(2);
+            return _context6.a(2);
         }
-      }, _callee4);
+      }, _callee6);
     }));
     return _loadSchedule.apply(this, arguments);
   }
@@ -317,10 +380,10 @@ function LucasApp(_ref) {
     return _loadHistory.apply(this, arguments);
   }
   function _loadHistory() {
-    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
       var q, r, rows, dayIdx, slotIdx;
-      return _regenerator().w(function (_context5) {
-        while (1) switch (_context5.n) {
+      return _regenerator().w(function (_context7) {
+        while (1) switch (_context7.n) {
           case 0:
             q = supabase.from('lucas_semana').select('*').order('week_start', {
               ascending: false
@@ -328,10 +391,10 @@ function LucasApp(_ref) {
             if (fDriver) q = q.eq('condutor', fDriver);
             if (fDay) q = q.eq('dia', fDay);
             if (fSlot) q = q.eq('slot', fSlot);
-            _context5.n = 1;
+            _context7.n = 1;
             return q;
           case 1:
-            r = _context5.v;
+            r = _context7.v;
             rows = r.data || [];
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
@@ -358,25 +421,25 @@ function LucasApp(_ref) {
             });
             setHistory(rows);
           case 2:
-            return _context5.a(2);
+            return _context7.a(2);
         }
-      }, _callee5);
+      }, _callee7);
     }));
     return _loadHistory.apply(this, arguments);
   }
-  function setSlot(_x3, _x4, _x5) {
+  function setSlot(_x7, _x8, _x9) {
     return _setSlot.apply(this, arguments);
   }
   function _setSlot() {
-    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(dia, slot, condutor) {
+    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(dia, slot, condutor) {
       var key, cur;
-      return _regenerator().w(function (_context6) {
-        while (1) switch (_context6.n) {
+      return _regenerator().w(function (_context8) {
+        while (1) switch (_context8.n) {
           case 0:
             setSaving(true);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
-            _context6.n = 1;
+            _context8.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -396,25 +459,25 @@ function LucasApp(_ref) {
             flash('✓ Guardado');
             setSaving(false);
           case 2:
-            return _context6.a(2);
+            return _context8.a(2);
         }
-      }, _callee6);
+      }, _callee8);
     }));
     return _setSlot.apply(this, arguments);
   }
-  function toggleEnea(_x6, _x7) {
+  function toggleEnea(_x0, _x1) {
     return _toggleEnea.apply(this, arguments);
   }
   function _toggleEnea() {
-    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(dia, slot) {
+    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(dia, slot) {
       var key, cur, newEnea;
-      return _regenerator().w(function (_context7) {
-        while (1) switch (_context7.n) {
+      return _regenerator().w(function (_context9) {
+        while (1) switch (_context9.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newEnea = !cur.enea;
-            _context7.n = 1;
+            _context9.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -432,25 +495,25 @@ function LucasApp(_ref) {
               })));
             });
           case 2:
-            return _context7.a(2);
+            return _context9.a(2);
         }
-      }, _callee7);
+      }, _callee9);
     }));
     return _toggleEnea.apply(this, arguments);
   }
-  function setHoraOverride(_x8, _x9, _x0) {
+  function setHoraOverride(_x10, _x11, _x12) {
     return _setHoraOverride.apply(this, arguments);
   }
   function _setHoraOverride() {
-    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(dia, slot, hora) {
+    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dia, slot, hora) {
       var key, cur, horaVal;
-      return _regenerator().w(function (_context8) {
-        while (1) switch (_context8.n) {
+      return _regenerator().w(function (_context0) {
+        while (1) switch (_context0.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             horaVal = hora || null;
-            _context8.n = 1;
+            _context0.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -469,27 +532,27 @@ function LucasApp(_ref) {
             });
             flash(hora ? '✓ Hora excepção guardada' : '✓ Hora reposta ao padrão');
           case 2:
-            return _context8.a(2);
+            return _context0.a(2);
         }
-      }, _callee8);
+      }, _callee0);
     }));
     return _setHoraOverride.apply(this, arguments);
   }
-  function toggleDriver(_x1, _x10) {
+  function toggleDriver(_x13, _x14) {
     return _toggleDriver.apply(this, arguments);
   }
   function _toggleDriver() {
-    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(id, cur) {
+    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(id, cur) {
       var r;
-      return _regenerator().w(function (_context9) {
-        while (1) switch (_context9.n) {
+      return _regenerator().w(function (_context1) {
+        while (1) switch (_context1.n) {
           case 0:
-            _context9.n = 1;
+            _context1.n = 1;
             return supabase.from('lucas_condutores').update({
               autorizado: !cur
             }).eq('id', id);
           case 1:
-            r = _context9.v;
+            r = _context1.v;
             if (!r.error) {
               setDrivers(function (p) {
                 return p.map(function (d) {
@@ -501,9 +564,9 @@ function LucasApp(_ref) {
               flash(!cur ? '✓ Autorizado' : '⛔ Removido');
             }
           case 2:
-            return _context9.a(2);
+            return _context1.a(2);
         }
-      }, _callee9);
+      }, _callee1);
     }));
     return _toggleDriver.apply(this, arguments);
   }
@@ -1059,7 +1122,7 @@ function LucasApp(_ref) {
         fontWeight: 800,
         fontSize: 13
       }
-    }, "\uD83D\uDCAC WhatsApp"))), /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDCAC WhatsApp"))), /*#__PURE__*/React.createElement(AddCondutor, null), /*#__PURE__*/React.createElement("div", {
       onClick: function onClick() {
         setOpen(function (v) {
           return !v;
@@ -1152,21 +1215,42 @@ function LucasApp(_ref) {
           background: d.autorizado ? col + '22' : '#f0f0f0',
           color: d.autorizado ? col : '#aaa'
         }
-      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso')), /*#__PURE__*/React.createElement("button", {
+      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso')), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 5,
+          alignItems: 'flex-end'
+        }
+      }, /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           toggleDriver(d.id, d.autorizado);
         },
         style: {
           border: 'none',
           borderRadius: 20,
-          padding: '8px 14px',
+          padding: '7px 14px',
           cursor: 'pointer',
           background: d.autorizado ? '#ffebee' : C.greenL,
           color: d.autorizado ? '#c62828' : C.green,
           fontWeight: 700,
           fontSize: 12
         }
-      }, d.autorizado ? 'Remover' : 'Autorizar'));
+      }, d.autorizado ? 'Sem acesso' : 'Autorizar'), /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
+          deleteCondutor(d.id, d.nome);
+        },
+        style: {
+          border: 'none',
+          borderRadius: 20,
+          padding: '4px 10px',
+          cursor: 'pointer',
+          background: '#fafafa',
+          color: '#ccc',
+          fontWeight: 600,
+          fontSize: 10
+        }
+      }, "\uD83D\uDDD1 Apagar")));
     })));
   }
 
@@ -1213,14 +1297,156 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
+  function AddCondutor() {
+    var _useState39 = useState(false),
+      _useState40 = _slicedToArray(_useState39, 2),
+      show = _useState40[0],
+      setShow = _useState40[1];
+    var _useState41 = useState(''),
+      _useState42 = _slicedToArray(_useState41, 2),
+      nome = _useState42[0],
+      setNome = _useState42[1];
+    var _useState43 = useState('#27ae60'),
+      _useState44 = _slicedToArray(_useState43, 2),
+      cor = _useState44[0],
+      setCor = _useState44[1];
+    var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
+    function submit() {
+      if (!nome.trim()) return;
+      addCondutor(nome, cor);
+      setNome('');
+      setShow(false);
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 10
+      }
+    }, !show ? /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setShow(true);
+      },
+      style: {
+        width: '100%',
+        padding: '11px',
+        border: '2px dashed #d0d4e8',
+        borderRadius: 12,
+        background: 'transparent',
+        color: C.primary,
+        fontWeight: 700,
+        fontSize: 13,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6
+      }
+    }, "\uFF0B Adicionar condutor") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.card,
+        borderRadius: 12,
+        padding: '14px 16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 800,
+        color: C.primary,
+        marginBottom: 10
+      }
+    }, "Novo condutor"), /*#__PURE__*/React.createElement("input", {
+      value: nome,
+      onChange: function onChange(e) {
+        setNome(e.target.value);
+      },
+      placeholder: "Nome (ex: Sabine, \xD6V...)",
+      onKeyDown: function onKeyDown(e) {
+        if (e.key === 'Enter') submit();
+      },
+      autoFocus: true,
+      style: {
+        width: '100%',
+        border: '1.5px solid #e0e0e0',
+        borderRadius: 8,
+        padding: '8px 12px',
+        fontSize: 14,
+        outline: 'none',
+        marginBottom: 12
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: '#999',
+        marginBottom: 6,
+        fontWeight: 600
+      }
+    }, "Cor"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6,
+        marginBottom: 14,
+        flexWrap: 'wrap'
+      }
+    }, CORES.map(function (c) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: c,
+        onClick: function onClick() {
+          setCor(c);
+        },
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          background: c,
+          cursor: 'pointer',
+          border: cor === c ? '3px solid #111' : '3px solid transparent',
+          transition: 'border .1s'
+        }
+      });
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setShow(false);
+        setNome('');
+      },
+      style: {
+        flex: 1,
+        padding: '9px',
+        border: '1.5px solid #e0e0e0',
+        borderRadius: 10,
+        background: '#f5f5f5',
+        color: '#888',
+        fontWeight: 700,
+        fontSize: 13,
+        cursor: 'pointer'
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: submit,
+      style: {
+        flex: 2,
+        padding: '9px',
+        border: 'none',
+        borderRadius: 10,
+        background: cor,
+        color: '#fff',
+        fontWeight: 800,
+        fontSize: 13,
+        cursor: 'pointer'
+      }
+    }, "\u2713 Adicionar"))));
+  }
   function WeekBlock(_ref8) {
     var week = _ref8.week,
       rows = _ref8.rows,
       defaultOpen = _ref8.defaultOpen;
-    var _useState39 = useState(defaultOpen),
-      _useState40 = _slicedToArray(_useState39, 2),
-      open = _useState40[0],
-      setOpen = _useState40[1];
+    var _useState45 = useState(defaultOpen),
+      _useState46 = _slicedToArray(_useState45, 2),
+      open = _useState46[0],
+      setOpen = _useState46[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
