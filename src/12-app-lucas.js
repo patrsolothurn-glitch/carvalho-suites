@@ -366,12 +366,6 @@ var LANGS = {
   }
 };
 var ALL_SLOTS = ['leva_manha', 'busca_almoco', 'leva_tarde', 'busca_fim'];
-var SLOT_LABELS = {
-  leva_manha: t.levar_manha,
-  busca_almoco: t.buscar_almoco,
-  leva_tarde: t.levar_tarde,
-  busca_fim: t.buscar_fim
-};
 var C = {
   primary: '#1a237e',
   blue: '#1565c0',
@@ -468,6 +462,12 @@ function LucasApp(_ref) {
     lang = _useState16[0],
     setLang = _useState16[1];
   var t = LANGS[lang] || LANGS.PT;
+  var SLOT_LABELS = {
+    leva_manha: t.levar_manha,
+    busca_almoco: t.buscar_almoco,
+    leva_tarde: t.levar_tarde,
+    busca_fim: t.buscar_fim
+  };
   var DAYS = DAYS_BASE.map(function (d) {
     return Object.assign({}, d, {
       label: t.days[d.key][0],
