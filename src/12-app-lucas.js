@@ -104,6 +104,7 @@ function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
     isAdmin = _ref.isAdmin,
+    isSuperAdmin = _ref.isSuperAdmin,
     onBack = _ref.onBack;
   var _useState = useState('plano'),
     _useState2 = _slicedToArray(_useState, 2),
@@ -323,25 +324,61 @@ function LucasApp(_ref) {
     }));
     return _saveConfig.apply(this, arguments);
   }
+  function notificar(_x7, _x8) {
+    return _notificar.apply(this, arguments);
+  }
+  function _notificar() {
+    _notificar = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(titulo, corpo) {
+      var _t;
+      return _regenerator().w(function (_context5) {
+        while (1) switch (_context5.p = _context5.n) {
+          case 0:
+            if (!isSuperAdmin) {
+              _context5.n = 1;
+              break;
+            }
+            return _context5.a(2);
+          case 1:
+            _context5.p = 1;
+            _context5.n = 2;
+            return supabase.functions.invoke('send-push', {
+              body: {
+                title: titulo,
+                body: corpo
+              }
+            });
+          case 2:
+            _context5.n = 4;
+            break;
+          case 3:
+            _context5.p = 3;
+            _t = _context5.v;
+          case 4:
+            return _context5.a(2);
+        }
+      }, _callee5, null, [[1, 3]]);
+    }));
+    return _notificar.apply(this, arguments);
+  }
   function loadDrivers() {
     return _loadDrivers.apply(this, arguments);
   }
   function _loadDrivers() {
-    _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5() {
+    _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
       var r;
-      return _regenerator().w(function (_context5) {
-        while (1) switch (_context5.n) {
+      return _regenerator().w(function (_context6) {
+        while (1) switch (_context6.n) {
           case 0:
-            _context5.n = 1;
+            _context6.n = 1;
             return supabase.from('lucas_condutores').select('*').order('nome');
           case 1:
-            r = _context5.v;
+            r = _context6.v;
             if (r.data) setDrivers(r.data);
             setLoading(false);
           case 2:
-            return _context5.a(2);
+            return _context6.a(2);
         }
-      }, _callee5);
+      }, _callee6);
     }));
     return _loadDrivers.apply(this, arguments);
   }
@@ -349,16 +386,16 @@ function LucasApp(_ref) {
     return _loadSchedule.apply(this, arguments);
   }
   function _loadSchedule() {
-    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
       var r, map;
-      return _regenerator().w(function (_context6) {
-        while (1) switch (_context6.n) {
+      return _regenerator().w(function (_context7) {
+        while (1) switch (_context7.n) {
           case 0:
             setLoading(true);
-            _context6.n = 1;
+            _context7.n = 1;
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
-            r = _context6.v;
+            r = _context7.v;
             map = {};
             (r.data || []).forEach(function (row) {
               map[row.dia + ':' + row.slot] = {
@@ -370,9 +407,9 @@ function LucasApp(_ref) {
             setSchedule(map);
             setLoading(false);
           case 2:
-            return _context6.a(2);
+            return _context7.a(2);
         }
-      }, _callee6);
+      }, _callee7);
     }));
     return _loadSchedule.apply(this, arguments);
   }
@@ -380,10 +417,10 @@ function LucasApp(_ref) {
     return _loadHistory.apply(this, arguments);
   }
   function _loadHistory() {
-    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
+    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
       var q, r, rows, dayIdx, slotIdx;
-      return _regenerator().w(function (_context7) {
-        while (1) switch (_context7.n) {
+      return _regenerator().w(function (_context8) {
+        while (1) switch (_context8.n) {
           case 0:
             q = supabase.from('lucas_semana').select('*').order('week_start', {
               ascending: false
@@ -391,10 +428,10 @@ function LucasApp(_ref) {
             if (fDriver) q = q.eq('condutor', fDriver);
             if (fDay) q = q.eq('dia', fDay);
             if (fSlot) q = q.eq('slot', fSlot);
-            _context7.n = 1;
+            _context8.n = 1;
             return q;
           case 1:
-            r = _context7.v;
+            r = _context8.v;
             rows = r.data || [];
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
@@ -421,25 +458,25 @@ function LucasApp(_ref) {
             });
             setHistory(rows);
           case 2:
-            return _context7.a(2);
+            return _context8.a(2);
         }
-      }, _callee7);
+      }, _callee8);
     }));
     return _loadHistory.apply(this, arguments);
   }
-  function setSlot(_x7, _x8, _x9) {
+  function setSlot(_x9, _x0, _x1) {
     return _setSlot.apply(this, arguments);
   }
   function _setSlot() {
-    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8(dia, slot, condutor) {
-      var key, cur;
-      return _regenerator().w(function (_context8) {
-        while (1) switch (_context8.n) {
+    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(dia, slot, condutor) {
+      var key, cur, dayLabel, slotNames, quem;
+      return _regenerator().w(function (_context9) {
+        while (1) switch (_context9.n) {
           case 0:
             setSaving(true);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
-            _context8.n = 1;
+            _context9.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -457,27 +494,40 @@ function LucasApp(_ref) {
               })));
             });
             flash('✓ Guardado');
+            if (condutor) {
+              dayLabel = (DAYS.find(function (d) {
+                return d.key === dia;
+              }) || {}).label || dia;
+              slotNames = {
+                leva_manha: 'Leva manhã',
+                busca_almoco: 'Busca almoço',
+                leva_tarde: 'Leva tarde',
+                busca_fim: 'Busca fim'
+              };
+              quem = user && (user.display_name || user.member_id) || 'Alguém';
+              notificar('🏫 Escola Grenchen', quem + ' preencheu ' + dayLabel + ' — ' + (slotNames[slot] || slot) + ': ' + condutor);
+            }
             setSaving(false);
           case 2:
-            return _context8.a(2);
+            return _context9.a(2);
         }
-      }, _callee8);
+      }, _callee9);
     }));
     return _setSlot.apply(this, arguments);
   }
-  function toggleEnea(_x0, _x1) {
+  function toggleEnea(_x10, _x11) {
     return _toggleEnea.apply(this, arguments);
   }
   function _toggleEnea() {
-    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(dia, slot) {
+    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dia, slot) {
       var key, cur, newEnea;
-      return _regenerator().w(function (_context9) {
-        while (1) switch (_context9.n) {
+      return _regenerator().w(function (_context0) {
+        while (1) switch (_context0.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newEnea = !cur.enea;
-            _context9.n = 1;
+            _context0.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -495,25 +545,25 @@ function LucasApp(_ref) {
               })));
             });
           case 2:
-            return _context9.a(2);
+            return _context0.a(2);
         }
-      }, _callee9);
+      }, _callee0);
     }));
     return _toggleEnea.apply(this, arguments);
   }
-  function setHoraOverride(_x10, _x11, _x12) {
+  function setHoraOverride(_x12, _x13, _x14) {
     return _setHoraOverride.apply(this, arguments);
   }
   function _setHoraOverride() {
-    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dia, slot, hora) {
+    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(dia, slot, hora) {
       var key, cur, horaVal;
-      return _regenerator().w(function (_context0) {
-        while (1) switch (_context0.n) {
+      return _regenerator().w(function (_context1) {
+        while (1) switch (_context1.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             horaVal = hora || null;
-            _context0.n = 1;
+            _context1.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -532,27 +582,27 @@ function LucasApp(_ref) {
             });
             flash(hora ? '✓ Hora excepção guardada' : '✓ Hora reposta ao padrão');
           case 2:
-            return _context0.a(2);
+            return _context1.a(2);
         }
-      }, _callee0);
+      }, _callee1);
     }));
     return _setHoraOverride.apply(this, arguments);
   }
-  function toggleDriver(_x13, _x14) {
+  function toggleDriver(_x15, _x16) {
     return _toggleDriver.apply(this, arguments);
   }
   function _toggleDriver() {
-    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(id, cur) {
+    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(id, cur) {
       var r;
-      return _regenerator().w(function (_context1) {
-        while (1) switch (_context1.n) {
+      return _regenerator().w(function (_context10) {
+        while (1) switch (_context10.n) {
           case 0:
-            _context1.n = 1;
+            _context10.n = 1;
             return supabase.from('lucas_condutores').update({
               autorizado: !cur
             }).eq('id', id);
           case 1:
-            r = _context1.v;
+            r = _context10.v;
             if (!r.error) {
               setDrivers(function (p) {
                 return p.map(function (d) {
@@ -564,9 +614,9 @@ function LucasApp(_ref) {
               flash(!cur ? '✓ Autorizado' : '⛔ Removido');
             }
           case 2:
-            return _context1.a(2);
+            return _context10.a(2);
         }
-      }, _callee1);
+      }, _callee10);
     }));
     return _toggleDriver.apply(this, arguments);
   }
@@ -769,7 +819,7 @@ function LucasApp(_ref) {
         padding: '2px 3px',
         lineHeight: 1
       }
-    }, "\u270F\uFE0F"), override && isAdmin && /*#__PURE__*/React.createElement("button", {
+    }, "\u270F\uFE0F"), override && isSuperAdmin && /*#__PURE__*/React.createElement("button", {
       onClick: clearOverride,
       title: "Repor hora padr\xE3o",
       style: {
@@ -1895,7 +1945,7 @@ function LucasApp(_ref) {
     style: {
       flex: 1
     }
-  }, isAdmin && editField === 'nome' ? /*#__PURE__*/React.createElement("input", {
+  }, isSuperAdmin && editField === 'nome' ? /*#__PURE__*/React.createElement("input", {
     autoFocus: true,
     value: editVal,
     onChange: function onChange(e) {
@@ -1921,7 +1971,7 @@ function LucasApp(_ref) {
     }
   }) : /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
-      if (isAdmin) {
+      if (isSuperAdmin) {
         setEditField('nome');
         setEditVal(config.escola_nome);
       }
@@ -1935,12 +1985,12 @@ function LucasApp(_ref) {
       alignItems: 'center',
       gap: 5
     }
-  }, "\uD83C\uDFEB ", config.escola_nome, isAdmin && /*#__PURE__*/React.createElement("span", {
+  }, "\uD83C\uDFEB ", config.escola_nome, isSuperAdmin && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10,
       opacity: 0.5
     }
-  }, "\u270F\uFE0F")), isAdmin && editField === 'morada' ? /*#__PURE__*/React.createElement("input", {
+  }, "\u270F\uFE0F")), isSuperAdmin && editField === 'morada' ? /*#__PURE__*/React.createElement("input", {
     autoFocus: true,
     value: editVal,
     onChange: function onChange(e) {
@@ -1966,7 +2016,7 @@ function LucasApp(_ref) {
     }
   }) : /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
-      if (isAdmin) {
+      if (isSuperAdmin) {
         setEditField('morada');
         setEditVal(config.escola_morada);
       }
