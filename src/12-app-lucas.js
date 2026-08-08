@@ -458,7 +458,22 @@ function LucasApp(_ref) {
     var key = dia + ':' + slot;
     var val = (schedule[key] || {}).condutor || '';
     var col = val ? driverColor[val] || C.green : '#aaa';
-    return /*#__PURE__*/React.createElement("select", {
+    var isOV = val === 'ÖV';
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        minWidth: 0
+      }
+    }, isOV && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 22,
+        flexShrink: 0
+      },
+      title: "Transportes p\xFAblicos"
+    }, "\uD83D\uDE8C"), /*#__PURE__*/React.createElement("select", {
       value: val,
       onChange: function onChange(e) {
         setSlot(dia, slot, e.target.value);
@@ -483,7 +498,7 @@ function LucasApp(_ref) {
         key: d.nome,
         value: d.nome
       }, d.nome);
-    }));
+    })));
   }
   function EneaBtn(_ref3) {
     var dia = _ref3.dia,
@@ -1174,7 +1189,11 @@ function LucasApp(_ref) {
           color: C.exception,
           fontWeight: 700
         }
-      }, "\u23F0", r.hora_override), /*#__PURE__*/React.createElement("span", {
+      }, "\u23F0", r.hora_override), r.condutor === 'ÖV' && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 16
+        }
+      }, "\uD83D\uDE8C"), /*#__PURE__*/React.createElement("span", {
         style: {
           fontWeight: 700,
           color: col,
@@ -1309,7 +1328,8 @@ function LucasApp(_ref) {
           var sc = schedule[k] || {};
           var col = sc.condutor ? driverColor[sc.condutor] || '#333' : '#bbb';
           var hora = sc.hora_override;
-          return '<td style="border:1px solid #ccc;padding:8px 10px;background:#fff;vertical-align:top">' + '<div style="font-weight:800;font-size:13px;color:' + col + '">' + (sc.condutor || '—') + '</div>' + (hora ? '<div style="font-size:10px;color:#e65100;margin-top:2px">⏰ ' + hora + '</div>' : '') + (sc.enea ? '<div style="font-size:10px;color:#7b1fa2;margin-top:3px">🧒 Enea</div>' : '') + '</td>';
+          var isOVprint = sc.condutor === 'ÖV';
+          return '<td style="border:1px solid #ccc;padding:8px 10px;background:#fff;vertical-align:top">' + '<div style="font-weight:800;font-size:13px;color:' + col + '">' + (isOVprint ? '🚌 ' : '') + (sc.condutor || '—') + '</div>' + (hora ? '<div style="font-size:10px;color:#e65100;margin-top:2px">⏰ ' + hora + '</div>' : '') + (sc.enea ? '<div style="font-size:10px;color:#7b1fa2;margin-top:3px">🧒 Enea</div>' : '') + '</td>';
         }
         return '<tr><td style="border:1px solid #ccc;padding:8px;background:#e8eaf6;text-align:center;vertical-align:middle">' + '<div style="font-weight:900;font-size:13px;color:#1a237e">' + d.label + '</div>' + '<div style="font-size:10px;color:#777;margin-top:2px">' + dayDate(weekStart, i) + '</div>' + '<div style="font-size:9px;color:#aaa;margin-top:2px">Sai: ' + d.sai + '</div></td>' + cell('leva_manha') + cell('busca_almoco') + (d.tarde ? cell('leva_tarde') + cell('busca_fim') : '<td colspan="2" style="border:1px solid #ccc;background:#f5f5f5;text-align:center;color:#ccc;vertical-align:middle">—</td>') + '</tr>';
       }).join('');
