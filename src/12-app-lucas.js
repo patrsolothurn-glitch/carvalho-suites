@@ -982,7 +982,84 @@ function LucasApp(_ref) {
       _useState36 = _slicedToArray(_useState35, 2),
       open = _useState36[0],
       setOpen = _useState36[1];
+    var _useState37 = useState(false),
+      _useState38 = _slicedToArray(_useState37, 2),
+      copied = _useState38[0],
+      setCopied = _useState38[1];
+    var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
+    function copyLink() {
+      navigator.clipboard.writeText(link).then(function () {
+        setCopied(true);
+        setTimeout(function () {
+          setCopied(false);
+        }, 2000);
+      });
+    }
+    function shareWhatsApp() {
+      var msg = encodeURIComponent('🏫 Plano de transportes da Escola Grenchen Sek P\n' + link);
+      window.open('https://wa.me/?text=' + msg, '_blank');
+    }
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.card,
+        borderRadius: 12,
+        padding: '14px 16px',
+        marginBottom: 12,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: '#bbb',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        marginBottom: 10
+      }
+    }, "\uD83D\uDD17 Link de acesso"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#f5f7ff',
+        border: '1.5px solid #e0e4ff',
+        borderRadius: 8,
+        padding: '8px 12px',
+        fontSize: 11,
+        color: '#555',
+        wordBreak: 'break-all',
+        marginBottom: 10,
+        fontFamily: 'monospace'
+      }
+    }, link), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: copyLink,
+      style: {
+        flex: 1,
+        padding: '10px',
+        border: 'none',
+        borderRadius: 10,
+        cursor: 'pointer',
+        background: copied ? C.greenL : C.primary,
+        color: copied ? C.green : '#fff',
+        fontWeight: 800,
+        fontSize: 13
+      }
+    }, copied ? '✓ Copiado!' : '📋 Copiar link'), /*#__PURE__*/React.createElement("button", {
+      onClick: shareWhatsApp,
+      style: {
+        flex: 1,
+        padding: '10px',
+        border: 'none',
+        borderRadius: 10,
+        cursor: 'pointer',
+        background: '#25D366',
+        color: '#fff',
+        fontWeight: 800,
+        fontSize: 13
+      }
+    }, "\uD83D\uDCAC WhatsApp"))), /*#__PURE__*/React.createElement("div", {
       onClick: function onClick() {
         setOpen(function (v) {
           return !v;
@@ -1140,10 +1217,10 @@ function LucasApp(_ref) {
     var week = _ref8.week,
       rows = _ref8.rows,
       defaultOpen = _ref8.defaultOpen;
-    var _useState37 = useState(defaultOpen),
-      _useState38 = _slicedToArray(_useState37, 2),
-      open = _useState38[0],
-      setOpen = _useState38[1];
+    var _useState39 = useState(defaultOpen),
+      _useState40 = _slicedToArray(_useState39, 2),
+      open = _useState40[0],
+      setOpen = _useState40[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
