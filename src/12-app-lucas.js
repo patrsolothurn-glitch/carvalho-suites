@@ -54,7 +54,7 @@ const s = {
 };
 
 // ── Componente principal ─────────────────────────────────────────
-export default function LucasApp({ supabase, user, isAdmin }) {
+function LucasApp({ supabase, user, isAdmin }) {
   const [view,       setView]       = useState('plano');
   const [activeDay,  setActiveDay]  = useState('seg');
   const [weekStart,  setWeekStart]  = useState(() => getMonday(new Date()));
