@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a237e">
+<title>Escola do Lucas</title>
+<link rel="manifest" href="lucas-manifest.json">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#eef2f7;min-height:100vh;color:#111}
+  .header{background:#1a237e;padding:14px 16px 12px;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(0,0,0,0.2)}
+  .header h1{color:#fff;font-size:18px;font-weight:800}
+  .header p{color:rgba(255,255,255,.55);font-size:10px;margin-top:2px}
+  .week-nav{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:10px 16px;margin:14px 12px 10px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+  .week-nav button{background:none;border:1.5px solid #e0e0e0;border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer;color:#1a237e;line-height:1}
+  .week-label{text-align:center}
+  .week-label .badge{font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+  .week-label .dates{font-size:14px;font-weight:800;color:#1a237e}
+
+  /* Filtro por pessoa */
+  .filter-bar{display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none}
+  .filter-bar::-webkit-scrollbar{display:none}
+  .filter-btn{border:1.5px solid #e0e0e0;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:#fff;color:#777;flex-shrink:0;transition:all .15s}
+  .filter-btn.active{color:#fff;border-color:transparent;font-weight:800}
+
+  /* Cards dos dias */
+  .days{padding:0 12px 90px}
+  .day-card{background:#fff;border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+  .day-header{display:flex;justify-content:space-between;align-items:center;padding:9px 14px}
+  .day-name{font-weight:900;font-size:15px;color:#1a237e}
+  .day-date{font-size:11px;color:#aaa}
+  .day-body{padding:2px 14px 12px}
+
+  .period-title{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-top:10px;margin-bottom:6px}
+  .period-manha{color:#1565c0}
+  .period-tarde{color:#bf360c}
+
+  .slot-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0}
+  .slot-row:last-child{border-bottom:none}
+  .slot-icon{font-size:14px;width:20px;flex-shrink:0}
+  .slot-info{flex:1}
+  .slot-label{font-size:11px;color:#888}
+  .slot-time{font-size:10px;color:#aaa;margin-top:1px}
+  .slot-exception{color:#e65100}
+  .driver-pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0}
+  .enea-pill{font-size:10px;color:#7b1fa2;background:#f3e5f5;border-radius:10px;padding:2px 7px;margin-left:4px;flex-shrink:0}
+  .no-driver{font-size:12px;color:#ccc;font-style:italic}
+
+  .no-tarde{text-align:center;color:#ccc;font-style:italic;font-size:12px;padding:8px 0}
+
+  /* Grayed when filtered out */
+  .day-card.faded{opacity:0.3}
+
+  .loading{text-align:center;padding:40px;color:#bbb;font-size:14px}
+  .footer{text-align:center;padding:16px;font-size:10px;color:#ccc;position:fixed;bottom:0;left:0;right:0;background:#eef2f7}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <h1>🏫 Escola do Lucas</h1>
+      <p>Grenchen Nord Schule · Selzach · 🛏 6:15 · Entra 7:30</p>
+    </div>
+    <div id="toast" style="font-size:12px;color:#a5d6a7;font-weight:700;min-width:50px;text-align:right"></div>
+  </div>
+</div>
+
+<div class="week-nav">
+  <button onclick="changeWeek(-1)">‹</button>
+  <div class="week-label">
+    <div class="badge" id="week-badge">Semana</div>
+    <div class="dates" id="week-dates">...</div>
+  </div>
+  <button onclick="changeWeek(1)">›</button>
+</div>
+
+<div class="filter-bar" id="filter-bar">
+  <button class="filter-btn active" style="background:#1a237e;border-color:#1a237e" onclick="setFilter(null,this)">Todos</button>
+</div>
+
+<div class="days" id="days-container">
+  <div class="loading">A carregar...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_mRGjfnvI_5rqD_JCv9T8AQ_n7fzOfnA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DAYS = [
+  {key:'seg',label:'Segunda',short:'SEG',sai:'11:50',tarde:true},
+  {key:'ter',label:'Terça',  short:'TER',sai:'11:50',tarde:true},
+  {key:'qua',label:'Quarta', short:'QUA',sai:'11:50',tarde:false},
+  {key:'qui',label:'Quinta', short:'QUI',sai:'11:05',tarde:true},
+  {key:'sex',label:'Sexta',  short:'SEX',sai:'11:40',tarde:false},
+];
+
+let weekStart = getMonday(new Date());
+let schedule  = {};
+let drivers   = [];
+let activeFilter = null;
+
+function getMonday(d) {
+  const dt = new Date(d), day = dt.getDay();
+  dt.setDate(dt.getDate() - day + (day===0?-6:1));
+  dt.setHours(0,0,0,0); return dt;
+}
+function toISO(d) { return d.toISOString().split('T')[0]; }
+function fmtDate(d, opts) { return d.toLocaleDateString('pt-PT', opts||{day:'2-digit',month:'2-digit'}); }
+function addDays(d, n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+
+function weekLabel(mon) {
+  const fri = addDays(mon, 4);
+  return fmtDate(mon) + ' – ' + fmtDate(fri);
+}
+
+function isCurrentWeek() {
+  return toISO(weekStart) === toISO(getMonday(new Date()));
+}
+
+function changeWeek(dir) {
+  weekStart = addDays(weekStart, dir*7);
+  loadSchedule();
+}
+
+async function init() {
+  const {data} = await sb.from('lucas_condutores').select('*').eq('autorizado',true).order('nome');
+  drivers = data||[];
+  buildFilterBar();
+  await loadSchedule();
+}
+
+function buildFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  drivers.forEach(function(d) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.textContent = d.nome;
+    btn.style.borderColor = d.cor||'#27ae60';
+    btn.setAttribute('data-nome', d.nome);
+    btn.setAttribute('data-cor', d.cor||'#27ae60');
+    btn.onclick = function(){ setFilter(d.nome, btn); };
+    bar.appendChild(btn);
+  });
+}
+
+function setFilter(nome, btn) {
+  activeFilter = nome;
+  document.querySelectorAll('.filter-btn').forEach(function(b){
+    b.classList.remove('active');
+    b.style.background = '#fff';
+    b.style.color = '#777';
+    b.style.borderColor = b.getAttribute('data-cor')||'#e0e0e0';
+  });
+  btn.classList.add('active');
+  if(nome) {
+    const cor = btn.getAttribute('data-cor')||'#1a237e';
+    btn.style.background = cor;
+    btn.style.borderColor = cor;
+    btn.style.color = '#fff';
+  } else {
+    btn.style.background = '#1a237e';
+    btn.style.borderColor = '#1a237e';
+    btn.style.color = '#fff';
+  }
+  renderDays();
+}
+
+async function loadSchedule() {
+  const {data} = await sb.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
+  schedule = {};
+  (data||[]).forEach(function(r){
+    schedule[r.dia+':'+r.slot] = {condutor:r.condutor, enea:r.enea, hora_override:r.hora_override};
+  });
+  // Atualizar header semana
+  document.getElementById('week-dates').textContent = weekLabel(weekStart);
+  document.getElementById('week-badge').textContent = isCurrentWeek() ? '🟢 Semana atual' : 'Semana';
+  renderDays();
+}
+
+function driverColor(nome) {
+  const d = drivers.find(function(x){return x.nome===nome;});
+  return d ? (d.cor||'#27ae60') : '#888';
+}
+
+function renderDays() {
+  const container = document.getElementById('days-container');
+  container.innerHTML = '';
+
+  DAYS.forEach(function(day, i) {
+    const dayDate = fmtDate(addDays(weekStart, i));
+    const allSlots = ['leva_manha','busca_almoco'].concat(day.tarde?['leva_tarde','busca_fim']:[]);
+
+    // Verificar se este dia tem o condutor filtrado
+    const hasFilter = activeFilter && allSlots.some(function(sl){
+      return (schedule[day.key+':'+sl]||{}).condutor === activeFilter;
+    });
+    const faded = activeFilter && !hasFilter;
+
+    const card = document.createElement('div');
+    card.className = 'day-card' + (faded?' faded':'');
+
+    // Header
+    card.innerHTML = '<div class="day-header" style="background:'+(faded?'#f5f5f5':'#e8eaf6')+'">'
+      +'<span class="day-name" style="color:'+(faded?'#aaa':'#1a237e')+'">'+day.label+'</span>'
+      +'<span class="day-date">'+dayDate+'</span>'
+      +'</div>';
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'day-body';
+
+    // Manhã
+    body.innerHTML += '<div class="period-title period-manha">🌅 Manhã</div>';
+    body.innerHTML += slotRow('🏫','Entra na escola','7:30',day.key,'leva_manha','entrada');
+    body.innerHTML += slotRow('🚗','Leva','7:30',day.key,'leva_manha','condutor');
+    body.innerHTML += slotRow('🏠','Sai da escola',day.sai,day.key,'busca_almoco','saida');
+    body.innerHTML += slotRow('🚗','Busca',day.sai,day.key,'busca_almoco','condutor');
+
+    // Tarde
+    if(day.tarde) {
+      body.innerHTML += '<div class="period-title period-tarde" style="margin-top:12px">🌤 Tarde</div>';
+      body.innerHTML += slotRow('🏫','Entra na escola','13:30',day.key,'leva_tarde','entrada');
+      body.innerHTML += slotRow('🚗','Leva','13:30',day.key,'leva_tarde','condutor');
+      body.innerHTML += slotRow('🏠','Sai da escola','16:55',day.key,'busca_fim','saida');
+      body.innerHTML += slotRow('🚗','Busca','16:55',day.key,'busca_fim','condutor');
+    } else {
+      body.innerHTML += '<div class="no-tarde">Sem tarde</div>';
+    }
+
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function slotRow(icon, label, defaultTime, dia, slot, type) {
+  const sc = schedule[dia+':'+slot]||{};
+  const hora = sc.hora_override||defaultTime;
+  const isEx = !!sc.hora_override;
+
+  if(type==='entrada' || type==='saida') {
+    return '<div class="slot-row">'
+      +'<span class="slot-icon">'+icon+'</span>'
+      +'<span class="slot-info"><div class="slot-label">'+label+'</div></span>'
+      +'<span style="font-size:15px;font-weight:800;color:'+(isEx?'#e65100':'#111')+'">'+hora+'</span>'
+      +(isEx?'<span style="font-size:9px;color:#e65100;margin-left:2px">⚡</span>':'')
+      +'</div>';
+  }
+
+  // condutor
+  const nome = sc.condutor;
+  const col = nome?driverColor(nome):'';
+  const highlighted = activeFilter && nome===activeFilter;
+
+  return '<div class="slot-row" style="'+(highlighted?'background:'+col+'0d;border-radius:8px;padding:6px 6px;margin:0 -6px':'') +'">'
+    +'<span class="slot-icon">'+icon+'</span>'
+    +'<span class="slot-info"><div class="slot-label">'+label+'</div></span>'
+    +(nome
+      ? '<span class="driver-pill" style="background:'+col+'18;color:'+col+'">'+nome+'</span>'
+        +(sc.enea?'<span class="enea-pill">🧒</span>':'')
+      : '<span class="no-driver">—</span>')
+    +'</div>';
+}
+
+init();
+</script>
+
+<div class="footer">🏫 Escola do Lucas · Grenchen Nord Schule ↔ Selzach</div>
+</body>
+</html>
