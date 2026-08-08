@@ -1,15 +1,9 @@
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
-function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
-function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
 function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
+function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
@@ -18,13 +12,12 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
-// ─────────────────────────────────────────────────────────────────
-// 12-app-lucas.js  —  Escola do Lucas  —  Carvalho Suite
-// ─────────────────────────────────────────────────────────────────
+// 12-app-lucas.js — Escola do Lucas — Carvalho Suite
 
 var _React = React,
   useState = _React.useState,
-  useEffect = _React.useEffect;
+  useEffect = _React.useEffect,
+  useRef = _React.useRef;
 var DAYS = [{
   key: 'seg',
   label: 'Segunda',
@@ -73,10 +66,9 @@ var C = {
   purpleL: '#f3e5f5',
   bg: '#eef2f7',
   card: '#fff',
-  border: '#e8e8e8'
+  border: '#e8e8e8',
+  exception: '#e65100'
 };
-
-// ── Helpers ──────────────────────────────────────────────────────
 function getMonday(d) {
   var dt = new Date(d),
     day = dt.getDay();
@@ -104,34 +96,6 @@ function weekLabel(mon) {
   };
   return "".concat(mon.toLocaleDateString('pt-PT', o), " \u2013 ").concat(fri.toLocaleDateString('pt-PT', o));
 }
-
-// ── Estilos comuns ───────────────────────────────────────────────
-var s = {
-  card: {
-    background: C.card,
-    borderRadius: 14,
-    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-  },
-  sectionTitle: function sectionTitle(color) {
-    return {
-      fontSize: 10,
-      fontWeight: 800,
-      color: color,
-      letterSpacing: 1.5,
-      textTransform: 'uppercase',
-      marginBottom: 4
-    };
-  },
-  row: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '9px 0',
-    borderBottom: "1px solid ".concat(C.border)
-  }
-};
-
-// ── Componente principal ─────────────────────────────────────────
 function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
@@ -174,7 +138,6 @@ function LucasApp(_ref) {
     _useState16 = _slicedToArray(_useState15, 2),
     history = _useState16[0],
     setHistory = _useState16[1];
-  // filtros histórico
   var _useState17 = useState(''),
     _useState18 = _slicedToArray(_useState17, 2),
     fDriver = _useState18[0],
@@ -191,8 +154,6 @@ function LucasApp(_ref) {
     _useState24 = _slicedToArray(_useState23, 2),
     fSlot = _useState24[0],
     setFSlot = _useState24[1];
-
-  // ── Carregar dados ───────────────────────────────────────────
   useEffect(function () {
     loadDrivers();
   }, []);
@@ -202,14 +163,13 @@ function LucasApp(_ref) {
   useEffect(function () {
     if (view === 'historico') loadHistory();
   }, [view, fDriver, fDay, fPeriod, fSlot]);
-  function flash(msg) {
-    var err = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  function flash(msg, err) {
     setToast({
       msg: msg,
-      err: err
+      err: !!err
     });
     setTimeout(function () {
-      return setToast(null);
+      setToast(null);
     }, 2000);
   }
   function loadDrivers() {
@@ -217,16 +177,15 @@ function LucasApp(_ref) {
   }
   function _loadDrivers() {
     _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      var _yield$supabase$from$, data;
+      var r;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.n) {
           case 0:
             _context.n = 1;
             return supabase.from('lucas_condutores').select('*').order('nome');
           case 1:
-            _yield$supabase$from$ = _context.v;
-            data = _yield$supabase$from$.data;
-            if (data) setDrivers(data);
+            r = _context.v;
+            if (r.data) setDrivers(r.data);
             setLoading(false);
           case 2:
             return _context.a(2);
@@ -240,7 +199,7 @@ function LucasApp(_ref) {
   }
   function _loadSchedule() {
     _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-      var _yield$supabase$from$2, data, map;
+      var r, map;
       return _regenerator().w(function (_context2) {
         while (1) switch (_context2.n) {
           case 0:
@@ -248,13 +207,13 @@ function LucasApp(_ref) {
             _context2.n = 1;
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
-            _yield$supabase$from$2 = _context2.v;
-            data = _yield$supabase$from$2.data;
+            r = _context2.v;
             map = {};
-            (data || []).forEach(function (r) {
-              map["".concat(r.dia, ":").concat(r.slot)] = {
-                condutor: r.condutor,
-                enea: r.enea
+            (r.data || []).forEach(function (row) {
+              map[row.dia + ':' + row.slot] = {
+                condutor: row.condutor,
+                enea: row.enea,
+                hora_override: row.hora_override
               };
             });
             setSchedule(map);
@@ -271,7 +230,7 @@ function LucasApp(_ref) {
   }
   function _loadHistory() {
     _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var q, _yield$q, data, rows;
+      var q, r, rows;
       return _regenerator().w(function (_context3) {
         while (1) switch (_context3.n) {
           case 0:
@@ -284,11 +243,10 @@ function LucasApp(_ref) {
             _context3.n = 1;
             return q;
           case 1:
-            _yield$q = _context3.v;
-            data = _yield$q.data;
-            rows = data || [];
-            if (fPeriod) rows = rows.filter(function (r) {
-              var m = ['leva_manha', 'busca_almoco'].includes(r.slot);
+            r = _context3.v;
+            rows = r.data || [];
+            if (fPeriod) rows = rows.filter(function (row) {
+              var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
               return fPeriod === 'manha' ? m : !m;
             });
             setHistory(rows);
@@ -304,35 +262,31 @@ function LucasApp(_ref) {
   }
   function _setSlot() {
     _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(dia, slot, condutor) {
-      var _schedule$key2;
-      var key, enea, _yield$supabase$from$3, error;
+      var key, cur;
       return _regenerator().w(function (_context4) {
         while (1) switch (_context4.n) {
           case 0:
             setSaving(true);
-            key = "".concat(dia, ":").concat(slot);
-            enea = ((_schedule$key2 = schedule[key]) === null || _schedule$key2 === void 0 ? void 0 : _schedule$key2.enea) || false;
+            key = dia + ':' + slot;
+            cur = schedule[key] || {};
             _context4.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
               slot: slot,
               condutor: condutor,
-              enea: enea
+              enea: cur.enea || false,
+              hora_override: cur.hora_override || null
             }, {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
-            _yield$supabase$from$3 = _context4.v;
-            error = _yield$supabase$from$3.error;
-            if (!error) {
-              setSchedule(function (p) {
-                return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, p[key]), {}, {
-                  condutor: condutor
-                })));
-              });
-              flash('✓ Guardado');
-            }
+            setSchedule(function (p) {
+              return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
+                condutor: condutor
+              })));
+            });
+            flash('✓ Guardado');
             setSaving(false);
           case 2:
             return _context4.a(2);
@@ -346,11 +300,11 @@ function LucasApp(_ref) {
   }
   function _toggleEnea() {
     _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(dia, slot) {
-      var key, cur, newEnea, _yield$supabase$from$4, error;
+      var key, cur, newEnea;
       return _regenerator().w(function (_context5) {
         while (1) switch (_context5.n) {
           case 0:
-            key = "".concat(dia, ":").concat(slot);
+            key = dia + ':' + slot;
             cur = schedule[key] || {};
             newEnea = !cur.enea;
             _context5.n = 1;
@@ -359,15 +313,14 @@ function LucasApp(_ref) {
               dia: dia,
               slot: slot,
               condutor: cur.condutor || null,
-              enea: newEnea
+              enea: newEnea,
+              hora_override: cur.hora_override || null
             }, {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
-            _yield$supabase$from$4 = _context5.v;
-            error = _yield$supabase$from$4.error;
-            if (!error) setSchedule(function (p) {
-              return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, p[key]), {}, {
+            setSchedule(function (p) {
+              return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 enea: newEnea
               })));
             });
@@ -378,26 +331,62 @@ function LucasApp(_ref) {
     }));
     return _toggleEnea.apply(this, arguments);
   }
-  function toggleAutorizacao(_x6, _x7) {
-    return _toggleAutorizacao.apply(this, arguments);
+  function setHoraOverride(_x6, _x7, _x8) {
+    return _setHoraOverride.apply(this, arguments);
   }
-  function _toggleAutorizacao() {
-    _toggleAutorizacao = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(id, cur) {
-      var _yield$supabase$from$5, error;
+  function _setHoraOverride() {
+    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(dia, slot, hora) {
+      var key, cur, horaVal;
       return _regenerator().w(function (_context6) {
         while (1) switch (_context6.n) {
           case 0:
+            key = dia + ':' + slot;
+            cur = schedule[key] || {};
+            horaVal = hora || null;
             _context6.n = 1;
+            return supabase.from('lucas_semana').upsert({
+              week_start: toISO(weekStart),
+              dia: dia,
+              slot: slot,
+              condutor: cur.condutor || null,
+              enea: cur.enea || false,
+              hora_override: horaVal
+            }, {
+              onConflict: 'week_start,dia,slot'
+            });
+          case 1:
+            setSchedule(function (p) {
+              return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
+                hora_override: horaVal
+              })));
+            });
+            flash(hora ? '✓ Hora excepção guardada' : '✓ Hora reposta ao padrão');
+          case 2:
+            return _context6.a(2);
+        }
+      }, _callee6);
+    }));
+    return _setHoraOverride.apply(this, arguments);
+  }
+  function toggleDriver(_x9, _x0) {
+    return _toggleDriver.apply(this, arguments);
+  }
+  function _toggleDriver() {
+    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(id, cur) {
+      var r;
+      return _regenerator().w(function (_context7) {
+        while (1) switch (_context7.n) {
+          case 0:
+            _context7.n = 1;
             return supabase.from('lucas_condutores').update({
               autorizado: !cur
             }).eq('id', id);
           case 1:
-            _yield$supabase$from$5 = _context6.v;
-            error = _yield$supabase$from$5.error;
-            if (!error) {
+            r = _context7.v;
+            if (!r.error) {
               setDrivers(function (p) {
                 return p.map(function (d) {
-                  return d.id === id ? _objectSpread(_objectSpread({}, d), {}, {
+                  return d.id === id ? Object.assign({}, d, {
                     autorizado: !cur
                   }) : d;
                 });
@@ -405,11 +394,11 @@ function LucasApp(_ref) {
               flash(!cur ? '✓ Autorizado' : '⛔ Removido');
             }
           case 2:
-            return _context6.a(2);
+            return _context7.a(2);
         }
-      }, _callee6);
+      }, _callee7);
     }));
-    return _toggleAutorizacao.apply(this, arguments);
+    return _toggleDriver.apply(this, arguments);
   }
   function prevWeek() {
     setWeekStart(function (p) {
@@ -425,34 +414,33 @@ function LucasApp(_ref) {
       return d;
     });
   }
-
-  // ── Derivados ────────────────────────────────────────────────
   var authDrivers = drivers.filter(function (d) {
     return d.autorizado;
   });
-  var driverColor = Object.fromEntries(drivers.map(function (d) {
-    return [d.nome, d.cor || C.green];
-  }));
+  var driverColor = {};
+  drivers.forEach(function (d) {
+    driverColor[d.nome] = d.cor || C.green;
+  });
   var day = DAYS.find(function (d) {
     return d.key === activeDay;
   });
+  var isToday = toISO(getMonday(new Date())) === toISO(weekStart);
 
-  // ── Sub-componentes ──────────────────────────────────────────
+  // ── Componentes ──
 
   function DriverSelect(_ref2) {
-    var _schedule$key;
     var dia = _ref2.dia,
       slot = _ref2.slot;
-    var key = "".concat(dia, ":").concat(slot);
-    var val = ((_schedule$key = schedule[key]) === null || _schedule$key === void 0 ? void 0 : _schedule$key.condutor) || '';
+    var key = dia + ':' + slot;
+    var val = (schedule[key] || {}).condutor || '';
     var col = val ? driverColor[val] || C.green : '#aaa';
     return /*#__PURE__*/React.createElement("select", {
       value: val,
       onChange: function onChange(e) {
-        return setSlot(dia, slot, e.target.value);
+        setSlot(dia, slot, e.target.value);
       },
       style: {
-        border: "1.5px solid ".concat(val ? col : '#ddd'),
+        border: '1.5px solid ' + (val ? col : '#ddd'),
         borderRadius: 8,
         padding: '6px 8px',
         fontSize: 13,
@@ -474,16 +462,15 @@ function LucasApp(_ref) {
     }));
   }
   function EneaBtn(_ref3) {
-    var _schedule;
     var dia = _ref3.dia,
       slot = _ref3.slot;
-    var on = !!((_schedule = schedule["".concat(dia, ":").concat(slot)]) !== null && _schedule !== void 0 && _schedule.enea);
+    var on = !!(schedule[dia + ':' + slot] || {}).enea;
     return /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return toggleEnea(dia, slot);
+        toggleEnea(dia, slot);
       },
       style: {
-        border: "1.5px solid ".concat(on ? C.purple : '#ddd'),
+        border: '1.5px solid ' + (on ? C.purple : '#ddd'),
         borderRadius: 20,
         padding: '6px 10px',
         fontSize: 12,
@@ -496,12 +483,49 @@ function LucasApp(_ref) {
       }
     }, "\uD83E\uDDD2 ", on ? 'Enea ✓' : 'Enea?');
   }
+
+  // Linha de hora — editável para admin
   function TimeRow(_ref4) {
-    var icon = _ref4.icon,
+    var dia = _ref4.dia,
+      slot = _ref4.slot,
       label = _ref4.label,
-      time = _ref4.time;
+      icon = _ref4.icon,
+      defaultTime = _ref4.defaultTime;
+    var key = dia + ':' + slot;
+    var override = (schedule[key] || {}).hora_override;
+    var displayTime = override || defaultTime;
+    var _useState25 = useState(false),
+      _useState26 = _slicedToArray(_useState25, 2),
+      editing = _useState26[0],
+      setEditing = _useState26[1];
+    var _useState27 = useState(''),
+      _useState28 = _slicedToArray(_useState27, 2),
+      val = _useState28[0],
+      setVal = _useState28[1];
+    var inputRef = useRef(null);
+    function startEdit() {
+      setVal(override || defaultTime || '');
+      setEditing(true);
+      setTimeout(function () {
+        if (inputRef.current) inputRef.current.focus();
+      }, 50);
+    }
+    function saveEdit() {
+      setEditing(false);
+      if (val && val !== defaultTime) setHoraOverride(dia, slot, val);else if (!val) setHoraOverride(dia, slot, null);else if (val === defaultTime) setHoraOverride(dia, slot, null);
+    }
+    function clearOverride(e) {
+      e.stopPropagation();
+      setHoraOverride(dia, slot, null);
+    }
     return /*#__PURE__*/React.createElement("div", {
-      style: s.row
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '9px 0',
+        borderBottom: '1px solid ' + C.border
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 15,
@@ -513,20 +537,79 @@ function LucasApp(_ref) {
         fontSize: 13,
         color: '#555'
       }
-    }, label), /*#__PURE__*/React.createElement("span", {
+    }, label), editing ? /*#__PURE__*/React.createElement("input", {
+      ref: inputRef,
+      type: "time",
+      value: val,
+      onChange: function onChange(e) {
+        setVal(e.target.value);
+      },
+      onBlur: saveEdit,
+      onKeyDown: function onKeyDown(e) {
+        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Escape') {
+          setEditing(false);
+        }
+      },
+      style: {
+        fontSize: 15,
+        fontWeight: 800,
+        border: '1.5px solid ' + C.primary,
+        borderRadius: 6,
+        padding: '2px 6px',
+        width: 90,
+        outline: 'none'
+      }
+    }) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4
+      }
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 16,
         fontWeight: 800,
-        color: '#111'
+        color: override ? C.exception : '#111'
       }
-    }, time));
+    }, displayTime), isAdmin && /*#__PURE__*/React.createElement("button", {
+      onClick: startEdit,
+      title: "Alterar hora",
+      style: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: 11,
+        color: override ? C.exception : '#ccc',
+        padding: '2px 3px',
+        lineHeight: 1
+      }
+    }, "\u270F\uFE0F"), override && isAdmin && /*#__PURE__*/React.createElement("button", {
+      onClick: clearOverride,
+      title: "Repor hora padr\xE3o",
+      style: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: 10,
+        color: '#e53935',
+        padding: '2px',
+        lineHeight: 1
+      }
+    }, "\u2715")));
   }
   function DriveRow(_ref5) {
     var dia = _ref5.dia,
       slot = _ref5.slot,
       label = _ref5.label;
     return /*#__PURE__*/React.createElement("div", {
-      style: s.row
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '9px 0',
+        borderBottom: '1px solid ' + C.border
+      }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 15,
@@ -547,21 +630,47 @@ function LucasApp(_ref) {
       slot: slot
     }));
   }
+  function SectionTitle(_ref6) {
+    var label = _ref6.label,
+      color = _ref6.color;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: color,
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        marginTop: 14,
+        marginBottom: 4
+      }
+    }, label);
+  }
 
-  // ── VIEW: PLANO ──────────────────────────────────────────────
+  // ── VIEW: PLANO ──
   function ViewPlano() {
-    var isToday = toISO(getMonday(new Date())) === toISO(weekStart);
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.card), {}, {
+      style: {
+        background: C.card,
+        borderRadius: 14,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '10px 16px',
-        marginBottom: 12
-      })
+        marginBottom: 12,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: prevWeek,
-      style: btnNav
+      style: {
+        background: 'none',
+        border: '1.5px solid #e0e0e0',
+        borderRadius: 8,
+        width: 36,
+        height: 36,
+        fontSize: 20,
+        cursor: 'pointer',
+        color: C.primary
+      }
     }, "\u2039"), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center'
@@ -582,7 +691,16 @@ function LucasApp(_ref) {
       }
     }, weekLabel(weekStart))), /*#__PURE__*/React.createElement("button", {
       onClick: nextWeek,
-      style: btnNav
+      style: {
+        background: 'none',
+        border: '1.5px solid #e0e0e0',
+        borderRadius: 8,
+        width: 36,
+        height: 36,
+        fontSize: 20,
+        cursor: 'pointer',
+        color: C.primary
+      }
     }, "\u203A")), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -590,17 +708,18 @@ function LucasApp(_ref) {
         marginBottom: 12
       }
     }, DAYS.map(function (d, i) {
-      var daySlots = ['leva_manha', 'busca_almoco'].concat(_toConsumableArray(d.tarde ? ['leva_tarde', 'busca_fim'] : []));
+      var daySlots = ['leva_manha', 'busca_almoco'].concat(d.tarde ? ['leva_tarde', 'busca_fim'] : []);
       var filled = daySlots.filter(function (sl) {
-        var _schedule2;
-        return (_schedule2 = schedule["".concat(d.key, ":").concat(sl)]) === null || _schedule2 === void 0 ? void 0 : _schedule2.condutor;
+        return (schedule[d.key + ':' + sl] || {}).condutor;
       }).length;
-      var full = filled === daySlots.length;
       var isActive = activeDay === d.key;
+      var hasException = daySlots.some(function (sl) {
+        return (schedule[d.key + ':' + sl] || {}).hora_override;
+      });
       return /*#__PURE__*/React.createElement("button", {
         key: d.key,
         onClick: function onClick() {
-          return setActiveDay(d.key);
+          setActiveDay(d.key);
         },
         style: {
           flex: 1,
@@ -616,7 +735,8 @@ function LucasApp(_ref) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 1
+          gap: 1,
+          outline: hasException && !isActive ? '2px solid ' + C.exception : 'none'
         }
       }, /*#__PURE__*/React.createElement("span", null, d.short), /*#__PURE__*/React.createElement("span", {
         style: {
@@ -627,7 +747,7 @@ function LucasApp(_ref) {
         style: {
           fontSize: 9,
           fontWeight: 700,
-          color: isActive ? 'rgba(255,255,255,.8)' : full ? C.green : '#ccc'
+          color: isActive ? 'rgba(255,255,255,.8)' : filled === daySlots.length ? C.green : '#ccc'
         }
       }, filled, "/", daySlots.length));
     })), loading ? /*#__PURE__*/React.createElement("div", {
@@ -637,9 +757,12 @@ function LucasApp(_ref) {
         color: '#bbb'
       }
     }, "A carregar...") : /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.card), {}, {
-        padding: '4px 16px 16px'
-      })
+      style: {
+        background: C.card,
+        borderRadius: 16,
+        padding: '4px 16px 16px',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+      }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -659,22 +782,25 @@ function LucasApp(_ref) {
         fontSize: 11,
         color: '#aaa'
       }
-    }, "\uD83D\uDECF 6:15 \xB7 \uD83C\uDFEB 7:30")), /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.sectionTitle(C.blue)), {}, {
-        marginTop: 14
-      })
-    }, "\uD83C\uDF05 Manh\xE3"), /*#__PURE__*/React.createElement(TimeRow, {
+    }, "\uD83D\uDECF 6:15 \xB7 \uD83C\uDFEB 7:30")), /*#__PURE__*/React.createElement(SectionTitle, {
+      label: "\uD83C\uDF05 Manh\xE3",
+      color: C.blue
+    }), /*#__PURE__*/React.createElement(TimeRow, {
+      dia: day.key,
+      slot: "leva_manha",
       icon: "\uD83C\uDFEB",
       label: "Entra na escola",
-      time: "7:30"
+      defaultTime: "7:30"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_manha",
       label: "Leva"
     }), /*#__PURE__*/React.createElement(TimeRow, {
+      dia: day.key,
+      slot: "busca_almoco",
       icon: "\uD83C\uDFE0",
       label: "Sai da escola",
-      time: day.sai
+      defaultTime: day.sai
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_almoco",
@@ -685,22 +811,25 @@ function LucasApp(_ref) {
         background: '#eee',
         margin: '14px 0 0'
       }
-    }), /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.sectionTitle(C.orange)), {}, {
-        marginTop: 14
-      })
-    }, "\uD83C\uDF24 Tarde"), /*#__PURE__*/React.createElement(TimeRow, {
+    }), /*#__PURE__*/React.createElement(SectionTitle, {
+      label: "\uD83C\uDF24 Tarde",
+      color: C.orange
+    }), /*#__PURE__*/React.createElement(TimeRow, {
+      dia: day.key,
+      slot: "leva_tarde",
       icon: "\uD83C\uDFEB",
       label: "Entra na escola",
-      time: "13:30"
+      defaultTime: "13:30"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_tarde",
       label: "Leva"
     }), /*#__PURE__*/React.createElement(TimeRow, {
+      dia: day.key,
+      slot: "busca_fim",
       icon: "\uD83C\uDFE0",
       label: "Sai da escola",
-      time: "16:55"
+      defaultTime: "16:55"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_fim",
@@ -713,10 +842,19 @@ function LucasApp(_ref) {
         margin: '18px 0 6px',
         fontSize: 13
       }
-    }, "Sem tarde")));
+    }, "Sem tarde"), isAdmin && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 12,
+        padding: '8px 10px',
+        background: '#f8f9ff',
+        borderRadius: 8,
+        fontSize: 11,
+        color: '#999'
+      }
+    }, "\u270F\uFE0F Toca nos hor\xE1rios para definir excep\xE7\xF5es pontuais")));
   }
 
-  // ── VIEW: AUTORIZAÇÕES ───────────────────────────────────────
+  // ── VIEW: AUTORIZAÇÕES (só admin) ──
   function ViewAutorizacoes() {
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -729,22 +867,25 @@ function LucasApp(_ref) {
       var col = d.cor || C.green;
       return /*#__PURE__*/React.createElement("div", {
         key: d.id,
-        style: _objectSpread(_objectSpread({}, s.card), {}, {
+        style: {
+          background: C.card,
+          borderRadius: 14,
           padding: '14px 16px',
           marginBottom: 10,
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          border: "2px solid ".concat(d.autorizado ? col : C.border),
-          opacity: d.autorizado ? 1 : 0.5
-        })
+          border: '2px solid ' + (d.autorizado ? col : C.border),
+          opacity: d.autorizado ? 1 : 0.5,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
+        }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           width: 48,
           height: 48,
           borderRadius: 24,
           background: d.autorizado ? col + '22' : '#f0f0f0',
-          border: "2px solid ".concat(d.autorizado ? col : '#ddd'),
+          border: '2px solid ' + (d.autorizado ? col : '#ddd'),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -769,9 +910,9 @@ function LucasApp(_ref) {
           background: d.autorizado ? col + '22' : '#f0f0f0',
           color: d.autorizado ? col : '#aaa'
         }
-      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso')), isAdmin ? /*#__PURE__*/React.createElement("button", {
+      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso')), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
-          return toggleAutorizacao(d.id, d.autorizado);
+          toggleDriver(d.id, d.autorizado);
         },
         style: {
           border: 'none',
@@ -783,16 +924,14 @@ function LucasApp(_ref) {
           fontWeight: 700,
           fontSize: 12
         }
-      }, d.autorizado ? 'Remover' : 'Autorizar') : /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 18
-        }
-      }, d.autorizado ? '✅' : '🔒'));
+      }, d.autorizado ? 'Remover' : 'Autorizar'));
     }), /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.card), {}, {
+      style: {
+        background: C.card,
+        borderRadius: 12,
         padding: '12px 16px',
         marginTop: 4
-      })
+      }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
@@ -839,38 +978,71 @@ function LucasApp(_ref) {
         fontSize: 10,
         color: '#aaa'
       }
-    }, "Sem acesso")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: 'center'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 22,
-        fontWeight: 900,
-        color: C.primary
-      }
-    }, drivers.length), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10,
-        color: '#aaa'
-      }
-    }, "Total")))));
+    }, "Sem acesso")))));
   }
 
-  // ── VIEW: HISTÓRICO ──────────────────────────────────────────
+  // ── VIEW: HISTÓRICO ──
+  function FiltroSelect(_ref7) {
+    var label = _ref7.label,
+      value = _ref7.value,
+      _onChange = _ref7.onChange,
+      opts = _ref7.opts;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: '#888',
+        width: 62,
+        flexShrink: 0
+      }
+    }, label), /*#__PURE__*/React.createElement("select", {
+      value: value,
+      onChange: function onChange(e) {
+        _onChange(e.target.value);
+      },
+      style: {
+        flex: 1,
+        border: '1.5px solid ' + (value ? C.primary : '#e0e0e0'),
+        borderRadius: 8,
+        padding: '5px 8px',
+        fontSize: 12,
+        background: value ? C.primary + '0d' : '#f9f9f9',
+        color: value ? C.primary : '#aaa',
+        outline: 'none'
+      }
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Todos"), opts.map(function (o) {
+      return /*#__PURE__*/React.createElement("option", {
+        key: o.v,
+        value: o.v
+      }, o.l);
+    })));
+  }
   function ViewHistorico() {
-    // Agrupar por semana
     var byWeek = {};
     history.forEach(function (r) {
       if (!byWeek[r.week_start]) byWeek[r.week_start] = [];
       byWeek[r.week_start].push(r);
     });
     var hasFilter = fDriver || fDay || fPeriod || fSlot;
+    var dayLabels = {};
+    DAYS.forEach(function (d) {
+      dayLabels[d.key] = d.label;
+    });
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.card), {}, {
+      style: {
+        background: C.card,
+        borderRadius: 12,
         padding: '12px 14px',
-        marginBottom: 14
-      })
+        marginBottom: 14,
+        boxShadow: '0 1px 6px rgba(0,0,0,0.07)'
+      }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10,
@@ -951,10 +1123,9 @@ function LucasApp(_ref) {
         marginTop: 30,
         fontStyle: 'italic'
       }
-    }, hasFilter ? 'Sem resultados para estes filtros' : 'Sem histórico disponível') : Object.entries(byWeek).map(function (_ref6) {
-      var _ref7 = _slicedToArray(_ref6, 2),
-        week = _ref7[0],
-        rows = _ref7[1];
+    }, hasFilter ? 'Sem resultados' : 'Sem histórico') : Object.entries(byWeek).map(function (entry) {
+      var week = entry[0],
+        rows = entry[1];
       var mon = new Date(week + 'T00:00:00');
       var fri = new Date(mon);
       fri.setDate(mon.getDate() + 4);
@@ -976,23 +1147,23 @@ function LucasApp(_ref) {
           paddingLeft: 4
         }
       }, "\uD83D\uDCC5 ", mon.toLocaleDateString('pt-PT', o), " \u2013 ", fri.toLocaleDateString('pt-PT', o)), /*#__PURE__*/React.createElement("div", {
-        style: _objectSpread(_objectSpread({}, s.card), {}, {
-          overflow: 'hidden'
-        })
+        style: {
+          background: C.card,
+          borderRadius: 12,
+          overflow: 'hidden',
+          boxShadow: '0 1px 6px rgba(0,0,0,0.07)'
+        }
       }, rows.map(function (r, i) {
-        var _DAYS$find;
         var col = driverColor[r.condutor] || '#888';
-        var dayLabel = ((_DAYS$find = DAYS.find(function (d) {
-          return d.key === r.dia;
-        })) === null || _DAYS$find === void 0 ? void 0 : _DAYS$find.label) || r.dia;
+        var hasEx = r.hora_override;
         return /*#__PURE__*/React.createElement("div", {
-          key: "".concat(r.week_start).concat(r.dia).concat(r.slot),
+          key: r.dia + r.slot,
           style: {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
             padding: '9px 14px',
-            borderBottom: i < rows.length - 1 ? "1px solid ".concat(C.border) : 'none'
+            borderBottom: i < rows.length - 1 ? '1px solid ' + C.border : 'none'
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
@@ -1001,13 +1172,19 @@ function LucasApp(_ref) {
             width: 40,
             flexShrink: 0
           }
-        }, dayLabel.slice(0, 3)), /*#__PURE__*/React.createElement("span", {
+        }, (dayLabels[r.dia] || r.dia).slice(0, 3)), /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 11,
             color: '#777',
             flex: 1
           }
-        }, SLOT_LABELS[r.slot]), /*#__PURE__*/React.createElement("span", {
+        }, SLOT_LABELS[r.slot]), hasEx && /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 10,
+            color: C.exception,
+            fontWeight: 700
+          }
+        }, "\u23F0", r.hora_override), /*#__PURE__*/React.createElement("span", {
           style: {
             fontWeight: 700,
             color: col,
@@ -1025,77 +1202,39 @@ function LucasApp(_ref) {
       })));
     }));
   }
-  function FiltroSelect(_ref8) {
-    var label = _ref8.label,
-      value = _ref8.value,
-      _onChange = _ref8.onChange,
-      opts = _ref8.opts;
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: '#888',
-        width: 62,
-        flexShrink: 0
-      }
-    }, label), /*#__PURE__*/React.createElement("select", {
-      value: value,
-      onChange: function onChange(e) {
-        return _onChange(e.target.value);
-      },
-      style: {
-        flex: 1,
-        border: "1.5px solid ".concat(value ? C.primary : '#e0e0e0'),
-        borderRadius: 8,
-        padding: '5px 8px',
-        fontSize: 12,
-        background: value ? "".concat(C.primary, "0d") : '#f9f9f9',
-        color: value ? C.primary : '#aaa',
-        outline: 'none'
-      }
-    }, /*#__PURE__*/React.createElement("option", {
-      value: ""
-    }, "Todos"), opts.map(function (o) {
-      return /*#__PURE__*/React.createElement("option", {
-        key: o.v,
-        value: o.v
-      }, o.l);
-    })));
-  }
 
-  // ── VIEW: IMPRIMIR ───────────────────────────────────────────
+  // ── VIEW: IMPRIMIR ──
   function ViewImprimir() {
     function handlePrint() {
       var rows = DAYS.map(function (d, i) {
         function cell(slot) {
-          var k = "".concat(d.key, ":").concat(slot);
+          var k = d.key + ':' + slot;
           var sc = schedule[k] || {};
           var col = sc.condutor ? driverColor[sc.condutor] || '#333' : '#bbb';
-          return "<td style=\"border:1px solid #ccc;padding:8px 10px;background:#fff;vertical-align:top\">\n            <div style=\"font-weight:800;font-size:13px;color:".concat(col, "\">").concat(sc.condutor || '—', "</div>\n            ").concat(sc.enea ? '<div style="font-size:10px;color:#7b1fa2;margin-top:3px">🧒 Enea</div>' : '', "\n          </td>");
+          var hora = sc.hora_override;
+          return '<td style="border:1px solid #ccc;padding:8px 10px;background:#fff;vertical-align:top">' + '<div style="font-weight:800;font-size:13px;color:' + col + '">' + (sc.condutor || '—') + '</div>' + (hora ? '<div style="font-size:10px;color:#e65100;margin-top:2px">⏰ ' + hora + '</div>' : '') + (sc.enea ? '<div style="font-size:10px;color:#7b1fa2;margin-top:3px">🧒 Enea</div>' : '') + '</td>';
         }
-        return "<tr>\n          <td style=\"border:1px solid #ccc;padding:8px;background:#e8eaf6;text-align:center;vertical-align:middle\">\n            <div style=\"font-weight:900;font-size:13px;color:#1a237e\">".concat(d.label, "</div>\n            <div style=\"font-size:10px;color:#777;margin-top:2px\">").concat(dayDate(weekStart, i), "</div>\n            <div style=\"font-size:9px;color:#aaa;margin-top:2px\">Sai: ").concat(d.sai, "</div>\n          </td>\n          ").concat(cell('leva_manha')).concat(cell('busca_almoco'), "\n          ").concat(d.tarde ? cell('leva_tarde') + cell('busca_fim') : '<td colspan="2" style="border:1px solid #ccc;background:#f5f5f5;text-align:center;color:#ccc;font-style:italic;vertical-align:middle">—</td>', "\n        </tr>");
+        return '<tr><td style="border:1px solid #ccc;padding:8px;background:#e8eaf6;text-align:center;vertical-align:middle">' + '<div style="font-weight:900;font-size:13px;color:#1a237e">' + d.label + '</div>' + '<div style="font-size:10px;color:#777;margin-top:2px">' + dayDate(weekStart, i) + '</div>' + '<div style="font-size:9px;color:#aaa;margin-top:2px">Sai: ' + d.sai + '</div></td>' + cell('leva_manha') + cell('busca_almoco') + (d.tarde ? cell('leva_tarde') + cell('busca_fim') : '<td colspan="2" style="border:1px solid #ccc;background:#f5f5f5;text-align:center;color:#ccc;vertical-align:middle">—</td>') + '</tr>';
       }).join('');
-      var html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">\n        <title>Semana do Lucas</title>\n        <style>\n          @page{size:A4 landscape;margin:12mm}\n          body{font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}\n          .page{display:flex;flex-direction:column;height:183mm}\n          table{width:100%;border-collapse:collapse;flex:1}\n          th{color:#fff;padding:8px 6px;font-size:9.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);font-weight:800}\n          #tbody tr{height:20%}\n        </style>\n      </head><body>\n      <div class=\"page\">\n        <div style=\"display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1a237e;padding-bottom:8px;margin-bottom:9px\">\n          <div>\n            <div style=\"font-size:20px;font-weight:900;color:#1a237e\">\uD83D\uDCC5 Semana do Lucas</div>\n            <div style=\"font-size:9px;color:#777;margin-top:2px\">\uD83C\uDFEB Grenchen Nord Schule \u2194 Selzach \xB7 \uD83D\uDECF Levanta 6:15 \xB7 Entra 7:30</div>\n          </div>\n          <div style=\"font-size:15px;font-weight:800;color:#1a237e\">".concat(weekLabel(weekStart), "</div>\n        </div>\n        <table>\n          <thead>\n            <tr>\n              <th rowspan=\"2\" style=\"background:#1a237e\">Dia / Data</th>\n              <th colspan=\"2\" style=\"background:#1565c0\">\uD83C\uDF05 MANH\xC3</th>\n              <th colspan=\"2\" style=\"background:#bf360c\">\uD83C\uDF24 TARDE</th>\n            </tr>\n            <tr>\n              <th style=\"background:#1976d2\">\uD83D\uDE97 Leva \u2014 7:30</th>\n              <th style=\"background:#1976d2\">\uD83D\uDE97 Busca</th>\n              <th style=\"background:#d84315\">\uD83D\uDE97 Leva \u2014 13:30</th>\n              <th style=\"background:#d84315\">\uD83D\uDE97 Busca \u2014 16:55</th>\n            </tr>\n          </thead>\n          <tbody id=\"tbody\">").concat(rows, "</tbody>\n        </table>\n        <div style=\"margin-top:7px;padding-top:6px;border-top:1px solid #ddd;font-size:9px;color:#777;display:flex;gap:14px\">\n          <strong style=\"color:#333\">Legenda:</strong>\n          <span>Condutor: nome de quem leva / busca</span>\n          <span style=\"color:#7b1fa2\">\uD83E\uDDD2 Enea vem junto</span>\n        </div>\n      </div>\n      </body></html>");
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Semana do Lucas</title>' + '<style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' + '.page{display:flex;flex-direction:column;height:183mm}table{width:100%;border-collapse:collapse;flex:1}' + 'th{color:#fff;padding:8px 6px;font-size:9.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);font-weight:800}' + '#tbody tr{height:20%}</style></head><body>' + '<div class="page"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1a237e;padding-bottom:8px;margin-bottom:9px">' + '<div><div style="font-size:20px;font-weight:900;color:#1a237e">📅 Semana do Lucas</div>' + '<div style="font-size:9px;color:#777;margin-top:2px">🏫 Grenchen Nord Schule ↔ Selzach · 🛏 6:15 · Entra 7:30</div></div>' + '<div style="font-size:15px;font-weight:800;color:#1a237e">' + weekLabel(weekStart) + '</div></div>' + '<table><thead><tr>' + '<th rowspan="2" style="background:#1a237e">Dia / Data</th>' + '<th colspan="2" style="background:#1565c0">🌅 MANHÃ</th>' + '<th colspan="2" style="background:#bf360c">🌤 TARDE</th></tr><tr>' + '<th style="background:#1976d2">🚗 Leva — 7:30</th><th style="background:#1976d2">🚗 Busca</th>' + '<th style="background:#d84315">🚗 Leva — 13:30</th><th style="background:#d84315">🚗 Busca — 16:55</th>' + '</tr></thead><tbody id="tbody">' + rows + '</tbody></table>' + '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #ddd;font-size:9px;color:#777;display:flex;gap:14px">' + '<strong style="color:#333">Legenda:</strong><span>Condutor: quem leva / busca</span>' + '<span style="color:#7b1fa2">🧒 Enea vem junto</span>' + '<span style="color:#e65100">⏰ Hora excepção</span></div></div></body></html>';
       var w = window.open('', '_blank');
       w.document.write(html);
       w.document.close();
       setTimeout(function () {
-        return w.print();
+        w.print();
       }, 600);
     }
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread(_objectSpread({}, s.card), {}, {
+      style: {
+        background: C.card,
+        borderRadius: 12,
         padding: '14px 16px',
         marginBottom: 14,
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
-      })
+        alignItems: 'center',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.07)'
+      }
     }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
         fontWeight: 800,
@@ -1108,7 +1247,7 @@ function LucasApp(_ref) {
         color: '#aaa',
         marginTop: 2
       }
-    }, "Pr\xE9-visualiza\xE7\xE3o da semana")), /*#__PURE__*/React.createElement("button", {
+    }, "Pr\xE9-visualiza\xE7\xE3o")), /*#__PURE__*/React.createElement("button", {
       onClick: handlePrint,
       style: {
         background: C.primary,
@@ -1121,13 +1260,16 @@ function LucasApp(_ref) {
         cursor: 'pointer'
       }
     }, "\uD83D\uDDA8\uFE0F Imprimir")), DAYS.map(function (d, i) {
-      var slots = ['leva_manha', 'busca_almoco'].concat(_toConsumableArray(d.tarde ? ['leva_tarde', 'busca_fim'] : []));
+      var slots = ['leva_manha', 'busca_almoco'].concat(d.tarde ? ['leva_tarde', 'busca_fim'] : []);
       return /*#__PURE__*/React.createElement("div", {
         key: d.key,
-        style: _objectSpread(_objectSpread({}, s.card), {}, {
+        style: {
+          background: C.card,
+          borderRadius: 12,
           marginBottom: 8,
-          overflow: 'hidden'
-        })
+          overflow: 'hidden',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.07)'
+        }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
           background: C.primary,
@@ -1152,7 +1294,7 @@ function LucasApp(_ref) {
           padding: '8px 14px'
         }
       }, slots.map(function (slot) {
-        var key = "".concat(d.key, ":").concat(slot);
+        var key = d.key + ':' + slot;
         var sc = schedule[key] || {};
         var col = sc.condutor ? driverColor[sc.condutor] || C.green : '#ccc';
         return /*#__PURE__*/React.createElement("div", {
@@ -1162,7 +1304,7 @@ function LucasApp(_ref) {
             alignItems: 'center',
             gap: 8,
             padding: '6px 0',
-            borderBottom: "1px solid ".concat(C.border)
+            borderBottom: '1px solid ' + C.border
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
@@ -1170,7 +1312,13 @@ function LucasApp(_ref) {
             color: '#999',
             flex: 1
           }
-        }, SLOT_LABELS[slot]), /*#__PURE__*/React.createElement("span", {
+        }, SLOT_LABELS[slot]), sc.hora_override && /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 10,
+            color: C.exception,
+            fontWeight: 700
+          }
+        }, "\u23F0", sc.hora_override), /*#__PURE__*/React.createElement("span", {
           style: {
             fontWeight: 700,
             color: col,
@@ -1189,23 +1337,7 @@ function LucasApp(_ref) {
     }));
   }
 
-  // ── Botão de navegação semana ────────────────────────────────
-  var btnNav = {
-    background: 'none',
-    border: "1.5px solid ".concat(C.border),
-    borderRadius: 8,
-    width: 36,
-    height: 36,
-    fontSize: 20,
-    cursor: 'pointer',
-    color: C.primary,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0
-  };
-
-  // ── Nav inferior ─────────────────────────────────────────────
+  // ── Nav (Acesso só para admin) ──
   var navItems = [{
     key: 'plano',
     icon: '📅',
@@ -1213,7 +1345,8 @@ function LucasApp(_ref) {
   }, {
     key: 'autorizacoes',
     icon: '🔑',
-    label: 'Acesso'
+    label: 'Acesso',
+    adminOnly: true
   }, {
     key: 'historico',
     icon: '📋',
@@ -1222,9 +1355,9 @@ function LucasApp(_ref) {
     key: 'imprimir',
     icon: '🖨️',
     label: 'Imprimir'
-  }];
-
-  // ── RENDER ───────────────────────────────────────────────────
+  }].filter(function (n) {
+    return !n.adminOnly || isAdmin;
+  });
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
@@ -1280,7 +1413,7 @@ function LucasApp(_ref) {
     style: {
       padding: '14px 12px 80px'
     }
-  }, view === 'plano' && /*#__PURE__*/React.createElement(ViewPlano, null), view === 'autorizacoes' && /*#__PURE__*/React.createElement(ViewAutorizacoes, null), view === 'historico' && /*#__PURE__*/React.createElement(ViewHistorico, null), view === 'imprimir' && /*#__PURE__*/React.createElement(ViewImprimir, null)), /*#__PURE__*/React.createElement("div", {
+  }, view === 'plano' && /*#__PURE__*/React.createElement(ViewPlano, null), view === 'autorizacoes' && isAdmin && /*#__PURE__*/React.createElement(ViewAutorizacoes, null), view === 'historico' && /*#__PURE__*/React.createElement(ViewHistorico, null), view === 'imprimir' && /*#__PURE__*/React.createElement(ViewImprimir, null)), /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
       bottom: 0,
@@ -1289,7 +1422,7 @@ function LucasApp(_ref) {
       width: '100%',
       maxWidth: 500,
       background: C.card,
-      borderTop: "1px solid ".concat(C.border),
+      borderTop: '1px solid ' + C.border,
       display: 'flex',
       boxShadow: '0 -2px 10px rgba(0,0,0,0.08)',
       zIndex: 30
@@ -1298,7 +1431,7 @@ function LucasApp(_ref) {
     return /*#__PURE__*/React.createElement("button", {
       key: n.key,
       onClick: function onClick() {
-        return setView(n.key);
+        setView(n.key);
       },
       style: {
         flex: 1,
