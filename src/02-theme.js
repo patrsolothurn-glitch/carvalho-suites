@@ -137,5 +137,5 @@ var APPS_DATA = [{
   desc: 'Gestor de subscrições',
   badge: null,
   color: '#6C5CE7'
-}}];
+}];
 
