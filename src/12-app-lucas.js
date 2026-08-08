@@ -55,10 +55,10 @@ var DAYS = [{
 }];
 var ALL_SLOTS = ['leva_manha', 'busca_almoco', 'leva_tarde', 'busca_fim'];
 var SLOT_LABELS = {
-  leva_manha: '🚗 Leva manhã',
-  busca_almoco: '🚗 Busca almoço',
-  leva_tarde: '🚗 Leva tarde',
-  busca_fim: '🚗 Busca fim dia'
+  leva_manha: '🚗 Levar manhã',
+  busca_almoco: '🚗 Buscar almoço',
+  leva_tarde: '🚗 Levar tarde',
+  busca_fim: '🚗 Buscar fim dia'
 };
 var C = {
   primary: '#1a237e',
@@ -1029,7 +1029,7 @@ function LucasApp(_ref) {
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_manha",
-      label: "Leva"
+      label: "Levar"
     }), /*#__PURE__*/React.createElement(TimeRow, {
       dia: day.key,
       slot: "busca_almoco",
@@ -1039,7 +1039,7 @@ function LucasApp(_ref) {
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_almoco",
-      label: "Busca"
+      label: "Buscar"
     }), day.tarde ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         height: 1,
@@ -1058,7 +1058,7 @@ function LucasApp(_ref) {
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_tarde",
-      label: "Leva"
+      label: "Levar"
     }), /*#__PURE__*/React.createElement(TimeRow, {
       dia: day.key,
       slot: "busca_fim",
@@ -1068,7 +1068,7 @@ function LucasApp(_ref) {
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_fim",
-      label: "Busca"
+      label: "Buscar"
     })) : /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
