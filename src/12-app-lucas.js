@@ -823,7 +823,7 @@ function LucasApp(_ref) {
       dia: day.key,
       slot: "busca_almoco",
       icon: "\uD83C\uDFE0",
-      label: "Partida Grenchen",
+      label: "Sa\xEDda Grenchen",
       defaultTime: day.sai
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
@@ -852,7 +852,7 @@ function LucasApp(_ref) {
       dia: day.key,
       slot: "busca_fim",
       icon: "\uD83C\uDFE0",
-      label: "Partida Grenchen",
+      label: "Sa\xEDda Grenchen",
       defaultTime: "16:55"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
