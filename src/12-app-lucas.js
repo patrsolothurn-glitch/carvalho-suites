@@ -230,13 +230,13 @@ function LucasApp(_ref) {
   }
   function _loadHistory() {
     _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
-      var q, r, rows;
+      var q, r, rows, dayIdx, slotIdx;
       return _regenerator().w(function (_context3) {
         while (1) switch (_context3.n) {
           case 0:
             q = supabase.from('lucas_semana').select('*').order('week_start', {
               ascending: false
-            }).order('dia').limit(300);
+            }).limit(300);
             if (fDriver) q = q.eq('condutor', fDriver);
             if (fDay) q = q.eq('dia', fDay);
             if (fSlot) q = q.eq('slot', fSlot);
@@ -248,6 +248,25 @@ function LucasApp(_ref) {
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
               return fPeriod === 'manha' ? m : !m;
+            });
+            // Ordenar por dia correto (seg→ter→qua→qui→sex) e slot
+            dayIdx = {
+              seg: 0,
+              ter: 1,
+              qua: 2,
+              qui: 3,
+              sex: 4
+            };
+            slotIdx = {
+              leva_manha: 0,
+              busca_almoco: 1,
+              leva_tarde: 2,
+              busca_fim: 3
+            };
+            rows.sort(function (a, b) {
+              if (a.week_start !== b.week_start) return b.week_start.localeCompare(a.week_start);
+              if (a.dia !== b.dia) return (dayIdx[a.dia] || 0) - (dayIdx[b.dia] || 0);
+              return (slotIdx[a.slot] || 0) - (slotIdx[b.slot] || 0);
             });
             setHistory(rows);
           case 2:
