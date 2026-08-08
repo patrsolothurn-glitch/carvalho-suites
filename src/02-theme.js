@@ -119,8 +119,8 @@ var APPS_DATA = [{
 }, {
   id: 'lucas',
   emoji: '🏫',
-  name: 'Escola do Lucas',
-  desc: 'Plano semanal e condutores',
+  name: 'Escola Grenchen Sek P',
+  desc: 'Plano semanal 26/27',
   badge: null,
   color: '#1a237e'
 }, {
