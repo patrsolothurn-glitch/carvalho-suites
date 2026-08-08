@@ -1639,42 +1639,9 @@ function LucasApp(_ref) {
       }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(CodeField, {
         driver: d,
         onSave: setAccessCode
-      }))), /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 5,
-          alignItems: 'flex-end'
-        }
-      }, /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          toggleDriver(d.id, d.autorizado);
-        },
-        style: {
-          border: 'none',
-          borderRadius: 20,
-          padding: '7px 14px',
-          cursor: 'pointer',
-          background: d.autorizado ? '#ffebee' : C.greenL,
-          color: d.autorizado ? '#c62828' : C.green,
-          fontWeight: 700,
-          fontSize: 12
-        }
-      }, d.autorizado ? 'Sem acesso' : 'Autorizar'), /*#__PURE__*/React.createElement("button", {
-        onClick: function onClick() {
-          deleteCondutor(d.id, d.nome);
-        },
-        style: {
-          border: 'none',
-          borderRadius: 20,
-          padding: '4px 10px',
-          cursor: 'pointer',
-          background: '#fafafa',
-          color: '#ccc',
-          fontWeight: 600,
-          fontSize: 10
-        }
-      }, "\uD83D\uDDD1 Apagar")));
+      }))), /*#__PURE__*/React.createElement(DriverActions, {
+        driver: d
+      }));
     })));
   }
 
@@ -1721,17 +1688,118 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
-  function CodeField(_ref8) {
-    var driver = _ref8.driver,
-      onSave = _ref8.onSave;
-    var _useState41 = useState(false),
+  function DriverActions(_ref8) {
+    var driver = _ref8.driver;
+    var _useState41 = useState(null),
       _useState42 = _slicedToArray(_useState41, 2),
-      editing = _useState42[0],
-      setEditing = _useState42[1];
-    var _useState43 = useState(''),
+      confirm = _useState42[0],
+      setConfirm = _useState42[1]; // null | 'toggle' | 'delete'
+
+    function doAction() {
+      if (confirm === 'toggle') {
+        toggleDriver(driver.id, driver.autorizado);
+      } else if (confirm === 'delete') {
+        supabase.from('lucas_condutores').delete().eq('id', driver.id).then(function () {
+          flash('Removido');
+          loadDrivers();
+        });
+      }
+      setConfirm(null);
+    }
+    if (confirm) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        alignItems: 'flex-end'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: '#555',
+        fontWeight: 700,
+        textAlign: 'right'
+      }
+    }, confirm === 'toggle' ? driver.autorizado ? 'Remover acesso?' : 'Dar acesso?' : 'Apagar ' + driver.nome + '?'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setConfirm(null);
+      },
+      style: {
+        border: '1.5px solid #ddd',
+        borderRadius: 20,
+        padding: '6px 12px',
+        background: '#f5f5f5',
+        color: '#888',
+        fontWeight: 700,
+        fontSize: 12,
+        cursor: 'pointer'
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: doAction,
+      style: {
+        border: 'none',
+        borderRadius: 20,
+        padding: '6px 14px',
+        cursor: 'pointer',
+        background: confirm === 'delete' ? '#c62828' : driver.autorizado ? '#c62828' : C.green,
+        color: '#fff',
+        fontWeight: 800,
+        fontSize: 12
+      }
+    }, "\u2713 Confirmar")));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+        alignItems: 'flex-end'
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setConfirm('toggle');
+      },
+      style: {
+        border: 'none',
+        borderRadius: 20,
+        padding: '7px 14px',
+        cursor: 'pointer',
+        background: driver.autorizado ? '#ffebee' : C.greenL,
+        color: driver.autorizado ? '#c62828' : C.green,
+        fontWeight: 700,
+        fontSize: 12
+      }
+    }, driver.autorizado ? 'Sem acesso' : 'Autorizar'), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setConfirm('delete');
+      },
+      style: {
+        border: 'none',
+        borderRadius: 20,
+        padding: '4px 10px',
+        cursor: 'pointer',
+        background: '#fafafa',
+        color: '#ccc',
+        fontWeight: 600,
+        fontSize: 10
+      }
+    }, "\uD83D\uDDD1 Apagar"));
+  }
+  function CodeField(_ref9) {
+    var driver = _ref9.driver,
+      onSave = _ref9.onSave;
+    var _useState43 = useState(false),
       _useState44 = _slicedToArray(_useState43, 2),
-      val = _useState44[0],
-      setVal = _useState44[1];
+      editing = _useState44[0],
+      setEditing = _useState44[1];
+    var _useState45 = useState(''),
+      _useState46 = _slicedToArray(_useState45, 2),
+      val = _useState46[0],
+      setVal = _useState46[1];
     var hasCode = !!driver.access_code;
     function start() {
       setVal(driver.access_code || '');
@@ -1777,18 +1845,18 @@ function LucasApp(_ref) {
     }, hasCode ? '●●●● ✏️' : '+ Definir');
   }
   function AddCondutor() {
-    var _useState45 = useState(false),
-      _useState46 = _slicedToArray(_useState45, 2),
-      show = _useState46[0],
-      setShow = _useState46[1];
-    var _useState47 = useState(''),
+    var _useState47 = useState(false),
       _useState48 = _slicedToArray(_useState47, 2),
-      nome = _useState48[0],
-      setNome = _useState48[1];
-    var _useState49 = useState('#27ae60'),
+      show = _useState48[0],
+      setShow = _useState48[1];
+    var _useState49 = useState(''),
       _useState50 = _slicedToArray(_useState49, 2),
-      cor = _useState50[0],
-      setCor = _useState50[1];
+      nome = _useState50[0],
+      setNome = _useState50[1];
+    var _useState51 = useState('#27ae60'),
+      _useState52 = _slicedToArray(_useState51, 2),
+      cor = _useState52[0],
+      setCor = _useState52[1];
     var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
     function submit() {
       if (!nome.trim()) return;
@@ -1918,14 +1986,14 @@ function LucasApp(_ref) {
       }
     }, "\u2713 Adicionar"))));
   }
-  function WeekBlock(_ref9) {
-    var week = _ref9.week,
-      rows = _ref9.rows,
-      defaultOpen = _ref9.defaultOpen;
-    var _useState51 = useState(defaultOpen),
-      _useState52 = _slicedToArray(_useState51, 2),
-      open = _useState52[0],
-      setOpen = _useState52[1];
+  function WeekBlock(_ref0) {
+    var week = _ref0.week,
+      rows = _ref0.rows,
+      defaultOpen = _ref0.defaultOpen;
+    var _useState53 = useState(defaultOpen),
+      _useState54 = _slicedToArray(_useState53, 2),
+      open = _useState54[0],
+      setOpen = _useState54[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
