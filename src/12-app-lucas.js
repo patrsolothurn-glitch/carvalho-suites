@@ -978,14 +978,57 @@ function LucasApp(_ref) {
 
   // ── VIEW: AUTORIZAÇÕES (só admin) ──
   function ViewAutorizacoes() {
+    var _useState35 = useState(false),
+      _useState36 = _slicedToArray(_useState35, 2),
+      open = _useState36[0],
+      setOpen = _useState36[1];
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() {
+        setOpen(function (v) {
+          return !v;
+        });
+      },
       style: {
-        fontSize: 12,
-        color: '#999',
-        marginBottom: 14,
-        lineHeight: 1.6
+        background: open ? C.primary : C.card,
+        borderRadius: open ? '12px 12px 0 0' : 12,
+        padding: '12px 16px',
+        marginBottom: 0,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
       }
-    }, "Ativa ou remove o acesso de cada condutor ao plano semanal.", /*#__PURE__*/React.createElement("br", null), "Quem n\xE3o estiver autorizado n\xE3o aparece nas op\xE7\xF5es."), drivers.map(function (d) {
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 14,
+        color: open ? '#fff' : C.primary
+      }
+    }, "\uD83D\uDD11 Condutores"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: open ? 'rgba(255,255,255,.6)' : '#aaa',
+        marginTop: 2
+      }
+    }, drivers.filter(function (d) {
+      return d.autorizado;
+    }).length, " autorizados \xB7 ", drivers.filter(function (d) {
+      return !d.autorizado;
+    }).length, " sem acesso")), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 20,
+        color: open ? 'rgba(255,255,255,.7)' : '#bbb'
+      }
+    }, open ? '⌄' : '›')), open && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#f8f9ff',
+        borderRadius: '0 0 12px 12px',
+        padding: '12px 14px',
+        marginBottom: 14,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+      }
+    }, drivers.map(function (d) {
       var col = d.cor || C.green;
       return /*#__PURE__*/React.createElement("div", {
         key: d.id,
@@ -1047,60 +1090,7 @@ function LucasApp(_ref) {
           fontSize: 12
         }
       }, d.autorizado ? 'Remover' : 'Autorizar'));
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: C.card,
-        borderRadius: 12,
-        padding: '12px 16px',
-        marginTop: 4
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11,
-        color: '#999',
-        marginBottom: 8,
-        fontWeight: 700
-      }
-    }, "Resumo"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        gap: 16
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: 'center'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 22,
-        fontWeight: 900,
-        color: C.green
-      }
-    }, drivers.filter(function (d) {
-      return d.autorizado;
-    }).length), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10,
-        color: '#aaa'
-      }
-    }, "Autorizados")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: 'center'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 22,
-        fontWeight: 900,
-        color: '#e53935'
-      }
-    }, drivers.filter(function (d) {
-      return !d.autorizado;
-    }).length), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10,
-        color: '#aaa'
-      }
-    }, "Sem acesso")))));
+    })));
   }
 
   // ── VIEW: HISTÓRICO ──
@@ -1150,10 +1140,10 @@ function LucasApp(_ref) {
     var week = _ref8.week,
       rows = _ref8.rows,
       defaultOpen = _ref8.defaultOpen;
-    var _useState35 = useState(defaultOpen),
-      _useState36 = _slicedToArray(_useState35, 2),
-      open = _useState36[0],
-      setOpen = _useState36[1];
+    var _useState37 = useState(defaultOpen),
+      _useState38 = _slicedToArray(_useState37, 2),
+      open = _useState38[0],
+      setOpen = _useState38[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
