@@ -760,7 +760,8 @@ function LucasApp(_ref) {
               map[row.dia + ':' + row.slot] = {
                 condutor: row.condutor,
                 enea: row.enea,
-                hora_override: row.hora_override
+                hora_override: row.hora_override,
+                lucas_vai: row.lucas_vai !== false
               };
             });
             setSchedule(map);
@@ -842,7 +843,8 @@ function LucasApp(_ref) {
               slot: slot,
               condutor: condutor,
               enea: cur.enea || false,
-              hora_override: cur.hora_override || null
+              hora_override: cur.hora_override || null,
+              lucas_vai: cur.lucas_vai !== false
             }, {
               onConflict: 'week_start,dia,slot'
             });
@@ -893,7 +895,8 @@ function LucasApp(_ref) {
               slot: slot,
               condutor: cur.condutor || null,
               enea: newEnea,
-              hora_override: cur.hora_override || null
+              hora_override: cur.hora_override || null,
+              lucas_vai: cur.lucas_vai !== false
             }, {
               onConflict: 'week_start,dia,slot'
             });
@@ -910,18 +913,18 @@ function LucasApp(_ref) {
     }));
     return _toggleEnea.apply(this, arguments);
   }
-  function setHoraOverride(_x14, _x15, _x16) {
-    return _setHoraOverride.apply(this, arguments);
+  function toggleLucas(_x14, _x15) {
+    return _toggleLucas.apply(this, arguments);
   }
-  function _setHoraOverride() {
-    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(dia, slot, hora) {
-      var key, cur, horaVal;
+  function _toggleLucas() {
+    _toggleLucas = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(dia, slot) {
+      var key, cur, newLucas;
       return _regenerator().w(function (_context10) {
         while (1) switch (_context10.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
-            horaVal = hora || null;
+            newLucas = !(cur.lucas_vai !== false);
             _context10.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
@@ -929,7 +932,45 @@ function LucasApp(_ref) {
               slot: slot,
               condutor: cur.condutor || null,
               enea: cur.enea || false,
-              hora_override: horaVal
+              hora_override: cur.hora_override || null,
+              lucas_vai: newLucas
+            }, {
+              onConflict: 'week_start,dia,slot'
+            });
+          case 1:
+            setSchedule(function (p) {
+              return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
+                lucas_vai: newLucas
+              })));
+            });
+          case 2:
+            return _context10.a(2);
+        }
+      }, _callee10);
+    }));
+    return _toggleLucas.apply(this, arguments);
+  }
+  function setHoraOverride(_x16, _x17, _x18) {
+    return _setHoraOverride.apply(this, arguments);
+  }
+  function _setHoraOverride() {
+    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(dia, slot, hora) {
+      var key, cur, horaVal;
+      return _regenerator().w(function (_context11) {
+        while (1) switch (_context11.n) {
+          case 0:
+            key = dia + ':' + slot;
+            cur = schedule[key] || {};
+            horaVal = hora || null;
+            _context11.n = 1;
+            return supabase.from('lucas_semana').upsert({
+              week_start: toISO(weekStart),
+              dia: dia,
+              slot: slot,
+              condutor: cur.condutor || null,
+              enea: cur.enea || false,
+              hora_override: horaVal,
+              lucas_vai: cur.lucas_vai !== false
             }, {
               onConflict: 'week_start,dia,slot'
             });
@@ -941,27 +982,27 @@ function LucasApp(_ref) {
             });
             flash(hora ? '✓ Hora excepção guardada' : '✓ Hora reposta ao padrão');
           case 2:
-            return _context10.a(2);
+            return _context11.a(2);
         }
-      }, _callee10);
+      }, _callee11);
     }));
     return _setHoraOverride.apply(this, arguments);
   }
-  function toggleDriver(_x17, _x18) {
+  function toggleDriver(_x19, _x20) {
     return _toggleDriver.apply(this, arguments);
   }
   function _toggleDriver() {
-    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(id, cur) {
+    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12(id, cur) {
       var r;
-      return _regenerator().w(function (_context11) {
-        while (1) switch (_context11.n) {
+      return _regenerator().w(function (_context12) {
+        while (1) switch (_context12.n) {
           case 0:
-            _context11.n = 1;
+            _context12.n = 1;
             return supabase.from('lucas_condutores').update({
               autorizado: !cur
             }).eq('id', id);
           case 1:
-            r = _context11.v;
+            r = _context12.v;
             if (!r.error) {
               setDrivers(function (p) {
                 return p.map(function (d) {
@@ -973,9 +1014,9 @@ function LucasApp(_ref) {
               flash(!cur ? t.autorizado : '⛔ Removido');
             }
           case 2:
-            return _context11.a(2);
+            return _context12.a(2);
         }
-      }, _callee11);
+      }, _callee12);
     }));
     return _toggleDriver.apply(this, arguments);
   }
@@ -1055,27 +1096,51 @@ function LucasApp(_ref) {
       }, d.nome);
     })));
   }
-  function EneaBtn(_ref3) {
+  function KidsBtns(_ref3) {
     var dia = _ref3.dia,
       slot = _ref3.slot;
-    var on = !!(schedule[dia + ':' + slot] || {}).enea;
-    return /*#__PURE__*/React.createElement("button", {
+    var key = dia + ':' + slot;
+    var sc = schedule[key] || {};
+    var lucasOn = sc.lucas_vai !== false;
+    var eneaOn = !!sc.enea;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        toggleLucas(dia, slot);
+      },
+      style: {
+        border: '1.5px solid ' + (lucasOn ? C.blue : '#ddd'),
+        borderRadius: 14,
+        padding: '3px 9px',
+        fontSize: 11,
+        background: lucasOn ? '#e3f2fd' : '#f5f5f5',
+        color: lucasOn ? C.blue : '#bbb',
+        fontWeight: lucasOn ? 700 : 400,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap'
+      }
+    }, "\uD83D\uDC66 Lucas", lucasOn ? ' ✓' : ''), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         toggleEnea(dia, slot);
       },
       style: {
-        border: '1.5px solid ' + (on ? C.purple : '#ddd'),
-        borderRadius: 20,
-        padding: '6px 10px',
-        fontSize: 12,
-        background: on ? C.purpleL : '#f5f5f5',
-        color: on ? C.purple : '#bbb',
-        fontWeight: on ? 700 : 400,
+        border: '1.5px solid ' + (eneaOn ? C.purple : '#ddd'),
+        borderRadius: 14,
+        padding: '3px 9px',
+        fontSize: 11,
+        background: eneaOn ? C.purpleL : '#f5f5f5',
+        color: eneaOn ? C.purple : '#bbb',
+        fontWeight: eneaOn ? 700 : 400,
         cursor: 'pointer',
-        whiteSpace: 'nowrap',
-        flexShrink: 0
+        whiteSpace: 'nowrap'
       }
-    }, "\uD83D\uDC66 ", on ? 'Enea ✓' : 'Enea?');
+    }, "\uD83D\uDC66 Enea", eneaOn ? ' ✓' : ''));
   }
 
   // Linha de hora — editável para admin
@@ -1219,7 +1284,7 @@ function LucasApp(_ref) {
     }, label), /*#__PURE__*/React.createElement(DriverSelect, {
       dia: dia,
       slot: slot
-    }), /*#__PURE__*/React.createElement(EneaBtn, {
+    }), /*#__PURE__*/React.createElement(KidsBtns, {
       dia: dia,
       slot: slot
     }));
@@ -2122,7 +2187,15 @@ function LucasApp(_ref) {
           color: col,
           fontSize: 12
         }
-      }, r.condutor || '—'), r.enea && /*#__PURE__*/React.createElement("span", {
+      }, r.condutor || '—'), r.lucas_vai !== false && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: C.blue,
+          background: '#e3f2fd',
+          borderRadius: 10,
+          padding: '1px 7px'
+        }
+      }, "\uD83D\uDC66L"), r.enea && /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 10,
           color: C.purple,
@@ -2130,7 +2203,7 @@ function LucasApp(_ref) {
           borderRadius: 10,
           padding: '1px 7px'
         }
-      }, "\uD83D\uDC66"));
+      }, "\uD83D\uDC66E"));
     })));
   }
   function ViewHistorico() {
@@ -2364,7 +2437,15 @@ function LucasApp(_ref) {
             color: col,
             fontSize: 13
           }
-        }, sc.condutor || '—'), sc.enea && /*#__PURE__*/React.createElement("span", {
+        }, sc.condutor || '—'), sc.lucas_vai !== false && /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 10,
+            color: C.blue,
+            background: '#e3f2fd',
+            borderRadius: 10,
+            padding: '1px 7px'
+          }
+        }, "\uD83D\uDC66L"), sc.enea && /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 10,
             color: C.purple,
@@ -2372,7 +2453,7 @@ function LucasApp(_ref) {
             borderRadius: 10,
             padding: '1px 7px'
           }
-        }, "\uD83D\uDC66"));
+        }, "\uD83D\uDC66E"));
       })));
     }));
   }
