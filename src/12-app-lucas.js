@@ -4,6 +4,10 @@ function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" 
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
@@ -1044,6 +1048,149 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
+  function WeekBlock(_ref8) {
+    var week = _ref8.week,
+      rows = _ref8.rows,
+      defaultOpen = _ref8.defaultOpen;
+    var _useState29 = useState(defaultOpen),
+      _useState30 = _slicedToArray(_useState29, 2),
+      open = _useState30[0],
+      setOpen = _useState30[1];
+    var mon = new Date(week + 'T00:00:00');
+    var fri = new Date(mon);
+    fri.setDate(mon.getDate() + 4);
+    var o = {
+      day: '2-digit',
+      month: '2-digit'
+    };
+    var condutores = _toConsumableArray(new Set(rows.map(function (r) {
+      return r.condutor;
+    }).filter(Boolean)));
+    var isCurrent = toISO(getMonday(new Date())) === week;
+    var dayLabels = {};
+    DAYS.forEach(function (d) {
+      dayLabels[d.key] = d.label;
+    });
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() {
+        setOpen(function (v) {
+          return !v;
+        });
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '10px 14px',
+        cursor: 'pointer',
+        background: open ? C.primary : C.card,
+        borderRadius: open ? '12px 12px 0 0' : 12,
+        boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
+        transition: 'background .15s'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 800,
+        color: open ? '#fff' : C.primary,
+        flex: 1
+      }
+    }, "\uD83D\uDCC5 ", mon.toLocaleDateString('pt-PT', o), " \u2013 ", fri.toLocaleDateString('pt-PT', o)), isCurrent && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 800,
+        background: open ? 'rgba(255,255,255,.2)' : '#e8eaf6',
+        color: open ? '#fff' : C.primary,
+        borderRadius: 10,
+        padding: '2px 7px'
+      }
+    }, "ATUAL"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: open ? 'rgba(255,255,255,.6)' : '#bbb'
+      }
+    }, rows.length, " viagens"), !open && condutores.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 4
+      }
+    }, condutores.slice(0, 3).map(function (nome) {
+      var col = driverColor[nome] || '#888';
+      return /*#__PURE__*/React.createElement("span", {
+        key: nome,
+        style: {
+          fontSize: 10,
+          fontWeight: 700,
+          color: col,
+          background: col + '18',
+          borderRadius: 10,
+          padding: '2px 6px'
+        }
+      }, nome);
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: open ? 'rgba(255,255,255,.7)' : '#bbb',
+        fontSize: 16,
+        lineHeight: 1
+      }
+    }, open ? '⌄' : '›')), open && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.card,
+        borderRadius: '0 0 12px 12px',
+        overflow: 'hidden',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.07)'
+      }
+    }, rows.map(function (r, i) {
+      var col = driverColor[r.condutor] || '#888';
+      return /*#__PURE__*/React.createElement("div", {
+        key: r.dia + r.slot,
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '9px 14px',
+          borderBottom: i < rows.length - 1 ? '1px solid ' + C.border : 'none'
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: '#aaa',
+          width: 35,
+          flexShrink: 0
+        }
+      }, (dayLabels[r.dia] || r.dia).slice(0, 3)), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 11,
+          color: '#777',
+          flex: 1
+        }
+      }, SLOT_LABELS[r.slot]), r.hora_override && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: C.exception,
+          fontWeight: 700
+        }
+      }, "\u23F0", r.hora_override), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontWeight: 700,
+          color: col,
+          fontSize: 12
+        }
+      }, r.condutor || '—'), r.enea && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: C.purple,
+          background: C.purpleL,
+          borderRadius: 10,
+          padding: '1px 7px'
+        }
+      }, "\uD83E\uDDD2"));
+    })));
+  }
   function ViewHistorico() {
     var byWeek = {};
     history.forEach(function (r) {
@@ -1051,9 +1198,9 @@ function LucasApp(_ref) {
       byWeek[r.week_start].push(r);
     });
     var hasFilter = fDriver || fDay || fPeriod || fSlot;
-    var dayLabels = {};
-    DAYS.forEach(function (d) {
-      dayLabels[d.key] = d.label;
+    var currentWeekKey = toISO(getMonday(new Date()));
+    var weeks = Object.keys(byWeek).sort(function (a, b) {
+      return b.localeCompare(a);
     });
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1143,83 +1290,13 @@ function LucasApp(_ref) {
         marginTop: 30,
         fontStyle: 'italic'
       }
-    }, hasFilter ? 'Sem resultados' : 'Sem histórico') : Object.entries(byWeek).map(function (entry) {
-      var week = entry[0],
-        rows = entry[1];
-      var mon = new Date(week + 'T00:00:00');
-      var fri = new Date(mon);
-      fri.setDate(mon.getDate() + 4);
-      var o = {
-        day: '2-digit',
-        month: '2-digit'
-      };
-      return /*#__PURE__*/React.createElement("div", {
+    }, hasFilter ? 'Sem resultados' : 'Sem histórico') : weeks.map(function (week) {
+      return /*#__PURE__*/React.createElement(WeekBlock, {
         key: week,
-        style: {
-          marginBottom: 14
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 11,
-          fontWeight: 800,
-          color: C.primary,
-          marginBottom: 6,
-          paddingLeft: 4
-        }
-      }, "\uD83D\uDCC5 ", mon.toLocaleDateString('pt-PT', o), " \u2013 ", fri.toLocaleDateString('pt-PT', o)), /*#__PURE__*/React.createElement("div", {
-        style: {
-          background: C.card,
-          borderRadius: 12,
-          overflow: 'hidden',
-          boxShadow: '0 1px 6px rgba(0,0,0,0.07)'
-        }
-      }, rows.map(function (r, i) {
-        var col = driverColor[r.condutor] || '#888';
-        var hasEx = r.hora_override;
-        return /*#__PURE__*/React.createElement("div", {
-          key: r.dia + r.slot,
-          style: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '9px 14px',
-            borderBottom: i < rows.length - 1 ? '1px solid ' + C.border : 'none'
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 11,
-            color: '#aaa',
-            width: 40,
-            flexShrink: 0
-          }
-        }, (dayLabels[r.dia] || r.dia).slice(0, 3)), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 11,
-            color: '#777',
-            flex: 1
-          }
-        }, SLOT_LABELS[r.slot]), hasEx && /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 10,
-            color: C.exception,
-            fontWeight: 700
-          }
-        }, "\u23F0", r.hora_override), /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontWeight: 700,
-            color: col,
-            fontSize: 12
-          }
-        }, r.condutor || '—'), r.enea && /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 10,
-            color: C.purple,
-            background: C.purpleL,
-            borderRadius: 10,
-            padding: '1px 7px'
-          }
-        }, "\uD83E\uDDD2"));
-      })));
+        week: week,
+        rows: byWeek[week],
+        defaultOpen: week === currentWeekKey
+      });
     }));
   }
 
