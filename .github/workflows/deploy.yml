@@ -27,6 +27,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Compile JSX apps
+        run: |
+          npm install --no-save @babel/core @babel/cli @babel/preset-react @babel/preset-env
+          npx babel src/12-app-lucas.js --presets @babel/preset-react,@babel/preset-env -o src/12-app-lucas.js
       - name: Build
         run: node build.js
       - name: Setup Pages
