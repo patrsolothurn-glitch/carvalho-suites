@@ -22,43 +22,355 @@ var _React = React,
   useState = _React.useState,
   useEffect = _React.useEffect,
   useRef = _React.useRef;
-var DAYS = [{
+var DAYS_BASE = [{
   key: 'seg',
-  label: 'Segunda',
-  short: 'SEG',
   sai: '11:50',
   tarde: true
 }, {
   key: 'ter',
-  label: 'Terça',
-  short: 'TER',
   sai: '11:50',
   tarde: true
 }, {
   key: 'qua',
-  label: 'Quarta',
-  short: 'QUA',
   sai: '11:50',
   tarde: false
 }, {
   key: 'qui',
-  label: 'Quinta',
-  short: 'QUI',
   sai: '11:05',
   tarde: true
 }, {
   key: 'sex',
-  label: 'Sexta',
-  short: 'SEX',
   sai: '11:40',
   tarde: false
 }];
+var LANGS = {
+  PT: {
+    flag: '🇵🇹',
+    name: 'PT',
+    days: {
+      seg: ['Segunda', 'SEG'],
+      ter: ['Terça', 'TER'],
+      qua: ['Quarta', 'QUA'],
+      qui: ['Quinta', 'QUI'],
+      sex: ['Sexta', 'SEX']
+    },
+    manha: t.manha,
+    tarde: t.tarde,
+    sem_tarde: t.sem_tarde,
+    partida_selzach: 'Partida Selzach',
+    saida_grenchen: 'Saída Grenchen',
+    levar: 'Levar',
+    buscar: 'Buscar',
+    semana_atual: t.semana_atual,
+    semana: 'Semana',
+    escolher: t.escolher,
+    levar_manha: t.levar_manha,
+    buscar_almoco: t.buscar_almoco,
+    levar_tarde: t.levar_tarde,
+    buscar_fim: t.buscar_fim,
+    plano: 'Plano',
+    acesso: 'Acesso',
+    historico: 'Histórico',
+    imprimir: 'Imprimir',
+    guardado: '✓ Guardado',
+    autorizado: t.autorizado,
+    sem_acesso: t.sem_acesso,
+    remover: 'Remover',
+    autorizar: 'Autorizar',
+    apagar: '🗑 Apagar',
+    adicionar_condutor: '＋ Adicionar condutor',
+    novo_condutor: 'Novo condutor',
+    cancelar: 'Cancelar',
+    adicionar: '✓ Adicionar',
+    cor: 'Cor',
+    nome_placeholder: 'Nome (ex: Sabine, ÖV...)',
+    link_acesso: '🔗 Link de acesso',
+    copiar: '📋 Copiar link',
+    copiado: '✓ Copiado!',
+    condutores: '🔑 Condutores',
+    filtros: '🔎 Filtros',
+    condutor_lbl: 'Condutor',
+    dia_lbl: 'Dia',
+    periodo_lbl: 'Período',
+    servico_lbl: 'Serviço',
+    todos: 'Todos',
+    manha_lbl: t.manha,
+    tarde_lbl: t.tarde,
+    limpar_filtros: '✕ Limpar filtros',
+    sem_resultados: 'Sem resultados',
+    sem_historico: 'Sem histórico',
+    viagens: 'viagens',
+    previsualização: 'Pré-visualização',
+    imprimir_btn: '🖨️ Imprimir',
+    hint_editar: '✏️ Toca nos horários para definir excepções pontuais',
+    sai_manha: 'Sai manhã',
+    volta: 'Volta',
+    sai_tarde: 'Sai tarde',
+    sem_tarde_print: t.sem_tarde
+  },
+  DE: {
+    flag: '🇩🇪',
+    name: 'DE',
+    days: {
+      seg: ['Montag', 'MO'],
+      ter: ['Dienstag', 'DI'],
+      qua: ['Mittwoch', 'MI'],
+      qui: ['Donnerstag', 'DO'],
+      sex: ['Freitag', 'FR']
+    },
+    manha: '🌅 Morgen',
+    tarde: '🌤 Nachmittag',
+    sem_tarde: 'Kein Nachmittag',
+    partida_selzach: 'Abfahrt Selzach',
+    saida_grenchen: 'Abfahrt Grenchen',
+    levar: 'Bringen',
+    buscar: 'Abholen',
+    semana_atual: '🟢 Aktuelle Woche',
+    semana: 'Woche',
+    escolher: '— wählen —',
+    levar_manha: '🚗 Bringen (Mo)',
+    buscar_almoco: '🚗 Abholen (Mi)',
+    levar_tarde: '🚗 Bringen (Na)',
+    buscar_fim: '🚗 Abholen (Ende)',
+    plano: 'Plan',
+    acesso: 'Zugang',
+    historico: 'Verlauf',
+    imprimir: 'Drucken',
+    guardado: '✓ Gespeichert',
+    autorizado: '✓ Berechtigt',
+    sem_acesso: '⛔ Kein Zugang',
+    remover: 'Entfernen',
+    autorizar: 'Berechtigen',
+    apagar: '🗑 Löschen',
+    adicionar_condutor: '＋ Fahrer hinzufügen',
+    novo_condutor: 'Neuer Fahrer',
+    cancelar: 'Abbrechen',
+    adicionar: '✓ Hinzufügen',
+    cor: 'Farbe',
+    nome_placeholder: 'Name (z.B. Sabine, ÖV...)',
+    link_acesso: '🔗 Zugangslink',
+    copiar: '📋 Link kopieren',
+    copiado: '✓ Kopiert!',
+    condutores: '🔑 Fahrer',
+    filtros: '🔎 Filter',
+    condutor_lbl: 'Fahrer',
+    dia_lbl: 'Tag',
+    periodo_lbl: 'Zeitraum',
+    servico_lbl: 'Service',
+    todos: 'Alle',
+    manha_lbl: '🌅 Morgen',
+    tarde_lbl: '🌤 Nachmittag',
+    limpar_filtros: '✕ Filter löschen',
+    sem_resultados: 'Keine Ergebnisse',
+    sem_historico: 'Kein Verlauf',
+    viagens: 'Fahrten',
+    previsualização: 'Vorschau',
+    imprimir_btn: '🖨️ Drucken',
+    hint_editar: '✏️ Zeiten antippen um Ausnahmen festzulegen',
+    sai_manha: 'Abfahrt Mo',
+    volta: 'Rückkehr',
+    sai_tarde: 'Abfahrt Na',
+    sem_tarde_print: 'Kein Nachmittag'
+  },
+  FR: {
+    flag: '🇫🇷',
+    name: 'FR',
+    days: {
+      seg: ['Lundi', 'LU'],
+      ter: ['Mardi', 'MA'],
+      qua: ['Mercredi', 'ME'],
+      qui: ['Jeudi', 'JE'],
+      sex: ['Vendredi', 'VE']
+    },
+    manha: '🌅 Matin',
+    tarde: '🌤 Après-midi',
+    sem_tarde: "Pas d'après-midi",
+    partida_selzach: 'Départ Selzach',
+    saida_grenchen: 'Départ Grenchen',
+    levar: 'Déposer',
+    buscar: 'Récupérer',
+    semana_atual: "🟢 Semaine actuelle",
+    semana: 'Semaine',
+    escolher: '— choisir —',
+    levar_manha: '🚗 Déposer (matin)',
+    buscar_almoco: '🚗 Récupérer (midi)',
+    levar_tarde: '🚗 Déposer (ap-m)',
+    buscar_fim: '🚗 Récupérer (fin)',
+    plano: 'Planning',
+    acesso: 'Accès',
+    historico: 'Historique',
+    imprimir: 'Imprimer',
+    guardado: '✓ Enregistré',
+    autorizado: '✓ Autorisé',
+    sem_acesso: '⛔ Sans accès',
+    remover: 'Supprimer',
+    autorizar: 'Autoriser',
+    apagar: '🗑 Effacer',
+    adicionar_condutor: '＋ Ajouter conducteur',
+    novo_condutor: 'Nouveau conducteur',
+    cancelar: 'Annuler',
+    adicionar: '✓ Ajouter',
+    cor: 'Couleur',
+    nome_placeholder: 'Nom (ex: Sabine, TP...)',
+    link_acesso: "🔗 Lien d'accès",
+    copiar: '📋 Copier lien',
+    copiado: '✓ Copié!',
+    condutores: '🔑 Conducteurs',
+    filtros: '🔎 Filtres',
+    condutor_lbl: 'Conducteur',
+    dia_lbl: 'Jour',
+    periodo_lbl: 'Période',
+    servico_lbl: 'Service',
+    todos: 'Tous',
+    manha_lbl: '🌅 Matin',
+    tarde_lbl: "🌤 Après-midi",
+    limpar_filtros: '✕ Effacer filtres',
+    sem_resultados: 'Aucun résultat',
+    sem_historico: 'Aucun historique',
+    viagens: 'trajets',
+    previsualização: 'Aperçu',
+    imprimir_btn: '🖨️ Imprimer',
+    hint_editar: "✏️ Touchez les horaires pour définir des exceptions",
+    sai_manha: 'Départ mat.',
+    volta: 'Retour',
+    sai_tarde: 'Départ ap-m',
+    sem_tarde_print: "Pas d'ap-m"
+  },
+  IT: {
+    flag: '🇮🇹',
+    name: 'IT',
+    days: {
+      seg: ['Lunedì', 'LU'],
+      ter: ['Martedì', 'MA'],
+      qua: ['Mercoledì', 'ME'],
+      qui: ['Giovedì', 'GI'],
+      sex: ['Venerdì', 'VE']
+    },
+    manha: '🌅 Mattina',
+    tarde: '🌤 Pomeriggio',
+    sem_tarde: "Nessun pomeriggio",
+    partida_selzach: 'Partenza Selzach',
+    saida_grenchen: 'Partenza Grenchen',
+    levar: 'Portare',
+    buscar: 'Raccogliere',
+    semana_atual: '🟢 Settimana corrente',
+    semana: 'Settimana',
+    escolher: '— scegliere —',
+    levar_manha: '🚗 Portare (mattina)',
+    buscar_almoco: '🚗 Raccogliere (pranzo)',
+    levar_tarde: '🚗 Portare (pom.)',
+    buscar_fim: '🚗 Raccogliere (fine)',
+    plano: 'Piano',
+    acesso: 'Accesso',
+    historico: 'Storico',
+    imprimir: 'Stampare',
+    guardado: '✓ Salvato',
+    autorizado: '✓ Autorizzato',
+    sem_acesso: '⛔ Senza accesso',
+    remover: 'Rimuovere',
+    autorizar: 'Autorizzare',
+    apagar: '🗑 Eliminare',
+    adicionar_condutor: '＋ Aggiungi conducente',
+    novo_condutor: 'Nuovo conducente',
+    cancelar: 'Annulla',
+    adicionar: '✓ Aggiungi',
+    cor: 'Colore',
+    nome_placeholder: 'Nome (es: Sabine, TP...)',
+    link_acesso: '🔗 Link di accesso',
+    copiar: '📋 Copia link',
+    copiado: '✓ Copiato!',
+    condutores: '🔑 Conducenti',
+    filtros: '🔎 Filtri',
+    condutor_lbl: 'Conducente',
+    dia_lbl: 'Giorno',
+    periodo_lbl: 'Periodo',
+    servico_lbl: 'Servizio',
+    todos: 'Tutti',
+    manha_lbl: '🌅 Mattina',
+    tarde_lbl: '🌤 Pomeriggio',
+    limpar_filtros: '✕ Cancella filtri',
+    sem_resultados: 'Nessun risultato',
+    sem_historico: 'Nessuno storico',
+    viagens: 'viaggi',
+    previsualização: 'Anteprima',
+    imprimir_btn: '🖨️ Stampare',
+    hint_editar: '✏️ Tocca gli orari per impostare eccezioni',
+    sai_manha: 'Partenza mat.',
+    volta: 'Ritorno',
+    sai_tarde: 'Partenza pom.',
+    sem_tarde_print: 'Nessun pom.'
+  },
+  EN: {
+    flag: '🇬🇧',
+    name: 'EN',
+    days: {
+      seg: ['Monday', 'MON'],
+      ter: ['Tuesday', 'TUE'],
+      qua: ['Wednesday', 'WED'],
+      qui: ['Thursday', 'THU'],
+      sex: ['Friday', 'FRI']
+    },
+    manha: '🌅 Morning',
+    tarde: '🌤 Afternoon',
+    sem_tarde: 'No afternoon',
+    partida_selzach: 'Depart Selzach',
+    saida_grenchen: 'Depart Grenchen',
+    levar: 'Drop off',
+    buscar: 'Pick up',
+    semana_atual: '🟢 Current week',
+    semana: 'Week',
+    escolher: '— choose —',
+    levar_manha: '🚗 Drop off (am)',
+    buscar_almoco: '🚗 Pick up (lunch)',
+    levar_tarde: '🚗 Drop off (pm)',
+    buscar_fim: '🚗 Pick up (end)',
+    plano: 'Schedule',
+    acesso: 'Access',
+    historico: 'History',
+    imprimir: 'Print',
+    guardado: '✓ Saved',
+    autorizado: '✓ Authorised',
+    sem_acesso: '⛔ No access',
+    remover: 'Remove',
+    autorizar: 'Authorise',
+    apagar: '🗑 Delete',
+    adicionar_condutor: '＋ Add driver',
+    novo_condutor: 'New driver',
+    cancelar: 'Cancel',
+    adicionar: '✓ Add',
+    cor: 'Colour',
+    nome_placeholder: 'Name (e.g. Sabine, Bus...)',
+    link_acesso: '🔗 Access link',
+    copiar: '📋 Copy link',
+    copiado: '✓ Copied!',
+    condutores: '🔑 Drivers',
+    filtros: '🔎 Filters',
+    condutor_lbl: 'Driver',
+    dia_lbl: 'Day',
+    periodo_lbl: 'Period',
+    servico_lbl: 'Service',
+    todos: 'All',
+    manha_lbl: '🌅 Morning',
+    tarde_lbl: '🌤 Afternoon',
+    limpar_filtros: '✕ Clear filters',
+    sem_resultados: 'No results',
+    sem_historico: 'No history',
+    viagens: 'trips',
+    previsualização: 'Preview',
+    imprimir_btn: '🖨️ Print',
+    hint_editar: '✏️ Tap times to set one-off exceptions',
+    sai_manha: 'Depart am',
+    volta: 'Return',
+    sai_tarde: 'Depart pm',
+    sem_tarde_print: 'No afternoon'
+  }
+};
 var ALL_SLOTS = ['leva_manha', 'busca_almoco', 'leva_tarde', 'busca_fim'];
 var SLOT_LABELS = {
-  leva_manha: '🚗 Levar manhã',
-  busca_almoco: '🚗 Buscar almoço',
-  leva_tarde: '🚗 Levar tarde',
-  busca_fim: '🚗 Buscar fim dia'
+  leva_manha: t.levar_manha,
+  busca_almoco: t.buscar_almoco,
+  leva_tarde: t.levar_tarde,
+  busca_fim: t.buscar_fim
 };
 var C = {
   primary: '#1a237e',
@@ -149,41 +461,58 @@ function LucasApp(_ref) {
     _useState14 = _slicedToArray(_useState13, 2),
     toast = _useState14[0],
     setToast = _useState14[1];
-  var _useState15 = useState({
+  var _useState15 = useState(function () {
+      return localStorage.getItem('lucas_lang') || 'PT';
+    }),
+    _useState16 = _slicedToArray(_useState15, 2),
+    lang = _useState16[0],
+    setLang = _useState16[1];
+  var t = LANGS[lang] || LANGS.PT;
+  var DAYS = DAYS_BASE.map(function (d) {
+    return Object.assign({}, d, {
+      label: t.days[d.key][0],
+      short: t.days[d.key][1]
+    });
+  });
+  var _useState17 = useState({
       escola_nome: 'Escola Grenchen Sek P 1p 26/27',
       escola_morada: 'Schulstrasse 25, 2540 Grenchen'
     }),
-    _useState16 = _slicedToArray(_useState15, 2),
-    config = _useState16[0],
-    setConfig = _useState16[1];
-  var _useState17 = useState(null),
     _useState18 = _slicedToArray(_useState17, 2),
-    editField = _useState18[0],
-    setEditField = _useState18[1];
-  var _useState19 = useState(''),
+    config = _useState18[0],
+    setConfig = _useState18[1];
+  var _useState19 = useState(null),
     _useState20 = _slicedToArray(_useState19, 2),
-    editVal = _useState20[0],
-    setEditVal = _useState20[1];
-  var _useState21 = useState([]),
+    editField = _useState20[0],
+    setEditField = _useState20[1];
+  function changeLang(l) {
+    localStorage.setItem('lucas_lang', l);
+    setLang(l);
+  }
+  var _useState21 = useState(''),
     _useState22 = _slicedToArray(_useState21, 2),
-    history = _useState22[0],
-    setHistory = _useState22[1];
-  var _useState23 = useState(''),
+    editVal = _useState22[0],
+    setEditVal = _useState22[1];
+  var _useState23 = useState([]),
     _useState24 = _slicedToArray(_useState23, 2),
-    fDriver = _useState24[0],
-    setFDriver = _useState24[1];
+    history = _useState24[0],
+    setHistory = _useState24[1];
   var _useState25 = useState(''),
     _useState26 = _slicedToArray(_useState25, 2),
-    fDay = _useState26[0],
-    setFDay = _useState26[1];
+    fDriver = _useState26[0],
+    setFDriver = _useState26[1];
   var _useState27 = useState(''),
     _useState28 = _slicedToArray(_useState27, 2),
-    fPeriod = _useState28[0],
-    setFPeriod = _useState28[1];
+    fDay = _useState28[0],
+    setFDay = _useState28[1];
   var _useState29 = useState(''),
     _useState30 = _slicedToArray(_useState29, 2),
-    fSlot = _useState30[0],
-    setFSlot = _useState30[1];
+    fPeriod = _useState30[0],
+    setFPeriod = _useState30[1];
+  var _useState31 = useState(''),
+    _useState32 = _slicedToArray(_useState31, 2),
+    fSlot = _useState32[0],
+    setFSlot = _useState32[1];
   useEffect(function () {
     loadDrivers();
     loadConfig();
@@ -346,7 +675,7 @@ function LucasApp(_ref) {
               return Object.assign({}, prev, _defineProperty({}, key, value));
             });
             setEditField(null);
-            flash('✓ Guardado');
+            flash(t.guardado);
           case 2:
             return _context5.a(2);
         }
@@ -523,7 +852,7 @@ function LucasApp(_ref) {
                 condutor: condutor
               })));
             });
-            flash('✓ Guardado');
+            flash(t.guardado);
             if (condutor) {
               dayLabel = (DAYS.find(function (d) {
                 return d.key === dia;
@@ -641,7 +970,7 @@ function LucasApp(_ref) {
                   }) : d;
                 });
               });
-              flash(!cur ? '✓ Autorizado' : '⛔ Removido');
+              flash(!cur ? t.autorizado : '⛔ Removido');
             }
           case 2:
             return _context11.a(2);
@@ -759,14 +1088,14 @@ function LucasApp(_ref) {
     var key = dia + ':' + slot;
     var override = (schedule[key] || {}).hora_override;
     var displayTime = override || defaultTime;
-    var _useState31 = useState(false),
-      _useState32 = _slicedToArray(_useState31, 2),
-      editing = _useState32[0],
-      setEditing = _useState32[1];
-    var _useState33 = useState(''),
+    var _useState33 = useState(false),
       _useState34 = _slicedToArray(_useState33, 2),
-      val = _useState34[0],
-      setVal = _useState34[1];
+      editing = _useState34[0],
+      setEditing = _useState34[1];
+    var _useState35 = useState(''),
+      _useState36 = _slicedToArray(_useState35, 2),
+      val = _useState36[0],
+      setVal = _useState36[1];
     var inputRef = useRef(null);
     function startEdit() {
       setVal(override || defaultTime || '');
@@ -948,7 +1277,7 @@ function LucasApp(_ref) {
         textTransform: 'uppercase',
         letterSpacing: 1
       }
-    }, isToday ? '🟢 Semana atual' : 'Semana'), /*#__PURE__*/React.createElement("div", {
+    }, isToday ? t.semana_atual : 'Semana'), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 14,
         fontWeight: 800,
@@ -1048,28 +1377,28 @@ function LucasApp(_ref) {
         color: '#aaa'
       }
     }, "\uD83D\uDECF 6:15 \xB7 \uD83C\uDFEB 7:05")), /*#__PURE__*/React.createElement(SectionTitle, {
-      label: "\uD83C\uDF05 Manh\xE3",
+      label: t.manha,
       color: C.blue
     }), /*#__PURE__*/React.createElement(TimeRow, {
       dia: day.key,
       slot: "leva_manha",
       icon: "\uD83C\uDFEB",
-      label: "Partida Selzach",
+      label: t.partida_selzach,
       defaultTime: "7:05"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_manha",
-      label: "Levar"
+      label: t.levar
     }), /*#__PURE__*/React.createElement(TimeRow, {
       dia: day.key,
       slot: "busca_almoco",
       icon: "\uD83C\uDFE0",
-      label: "Sa\xEDda Grenchen",
+      label: t.saida_grenchen,
       defaultTime: day.sai
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_almoco",
-      label: "Buscar"
+      label: t.buscar
     }), day.tarde ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
       style: {
         height: 1,
@@ -1077,28 +1406,28 @@ function LucasApp(_ref) {
         margin: '14px 0 0'
       }
     }), /*#__PURE__*/React.createElement(SectionTitle, {
-      label: "\uD83C\uDF24 Tarde",
+      label: t.tarde,
       color: C.orange
     }), /*#__PURE__*/React.createElement(TimeRow, {
       dia: day.key,
       slot: "leva_tarde",
       icon: "\uD83C\uDFEB",
-      label: "Partida Selzach",
+      label: t.partida_selzach,
       defaultTime: "13:05"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_tarde",
-      label: "Levar"
+      label: t.levar
     }), /*#__PURE__*/React.createElement(TimeRow, {
       dia: day.key,
       slot: "busca_fim",
       icon: "\uD83C\uDFE0",
-      label: "Sa\xEDda Grenchen",
+      label: t.saida_grenchen,
       defaultTime: "16:55"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_fim",
-      label: "Buscar"
+      label: t.buscar
     })) : /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
@@ -1121,14 +1450,14 @@ function LucasApp(_ref) {
 
   // ── VIEW: AUTORIZAÇÕES (só admin) ──
   function ViewAutorizacoes() {
-    var _useState35 = useState(false),
-      _useState36 = _slicedToArray(_useState35, 2),
-      open = _useState36[0],
-      setOpen = _useState36[1];
     var _useState37 = useState(false),
       _useState38 = _slicedToArray(_useState37, 2),
-      copied = _useState38[0],
-      setCopied = _useState38[1];
+      open = _useState38[0],
+      setOpen = _useState38[1];
+    var _useState39 = useState(false),
+      _useState40 = _slicedToArray(_useState39, 2),
+      copied = _useState40[0],
+      setCopied = _useState40[1];
     var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
     function copyLink() {
       navigator.clipboard.writeText(link).then(function () {
@@ -1295,7 +1624,7 @@ function LucasApp(_ref) {
           background: d.autorizado ? col + '22' : '#f0f0f0',
           color: d.autorizado ? col : '#aaa'
         }
-      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso'), isSuperAdmin && /*#__PURE__*/React.createElement("div", {
+      }, d.autorizado ? t.autorizado : t.sem_acesso), isSuperAdmin && /*#__PURE__*/React.createElement("div", {
         style: {
           marginTop: 6,
           display: 'flex',
@@ -1395,14 +1724,14 @@ function LucasApp(_ref) {
   function CodeField(_ref8) {
     var driver = _ref8.driver,
       onSave = _ref8.onSave;
-    var _useState39 = useState(false),
-      _useState40 = _slicedToArray(_useState39, 2),
-      editing = _useState40[0],
-      setEditing = _useState40[1];
-    var _useState41 = useState(''),
+    var _useState41 = useState(false),
       _useState42 = _slicedToArray(_useState41, 2),
-      val = _useState42[0],
-      setVal = _useState42[1];
+      editing = _useState42[0],
+      setEditing = _useState42[1];
+    var _useState43 = useState(''),
+      _useState44 = _slicedToArray(_useState43, 2),
+      val = _useState44[0],
+      setVal = _useState44[1];
     var hasCode = !!driver.access_code;
     function start() {
       setVal(driver.access_code || '');
@@ -1448,18 +1777,18 @@ function LucasApp(_ref) {
     }, hasCode ? '●●●● ✏️' : '+ Definir');
   }
   function AddCondutor() {
-    var _useState43 = useState(false),
-      _useState44 = _slicedToArray(_useState43, 2),
-      show = _useState44[0],
-      setShow = _useState44[1];
-    var _useState45 = useState(''),
+    var _useState45 = useState(false),
       _useState46 = _slicedToArray(_useState45, 2),
-      nome = _useState46[0],
-      setNome = _useState46[1];
-    var _useState47 = useState('#27ae60'),
+      show = _useState46[0],
+      setShow = _useState46[1];
+    var _useState47 = useState(''),
       _useState48 = _slicedToArray(_useState47, 2),
-      cor = _useState48[0],
-      setCor = _useState48[1];
+      nome = _useState48[0],
+      setNome = _useState48[1];
+    var _useState49 = useState('#27ae60'),
+      _useState50 = _slicedToArray(_useState49, 2),
+      cor = _useState50[0],
+      setCor = _useState50[1];
     var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
     function submit() {
       if (!nome.trim()) return;
@@ -1593,10 +1922,10 @@ function LucasApp(_ref) {
     var week = _ref9.week,
       rows = _ref9.rows,
       defaultOpen = _ref9.defaultOpen;
-    var _useState49 = useState(defaultOpen),
-      _useState50 = _slicedToArray(_useState49, 2),
-      open = _useState50[0],
-      setOpen = _useState50[1];
+    var _useState51 = useState(defaultOpen),
+      _useState52 = _slicedToArray(_useState51, 2),
+      open = _useState52[0],
+      setOpen = _useState52[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
@@ -1796,10 +2125,10 @@ function LucasApp(_ref) {
       onChange: setFPeriod,
       opts: [{
         v: 'manha',
-        l: '🌅 Manhã'
+        l: t.manha
       }, {
         v: 'tarde',
-        l: '🌤 Tarde'
+        l: t.tarde
       }]
     }), /*#__PURE__*/React.createElement(FiltroSelect, {
       label: "Servi\xE7o",
@@ -1984,20 +2313,20 @@ function LucasApp(_ref) {
   var navItems = [{
     key: 'plano',
     icon: '📅',
-    label: 'Plano'
+    label: t.plano
   }, {
     key: 'autorizacoes',
     icon: '🔑',
-    label: 'Acesso',
+    label: t.acesso,
     adminOnly: true
   }, {
     key: 'historico',
     icon: '📋',
-    label: 'Histórico'
+    label: t.historico
   }, {
     key: 'imprimir',
     icon: '🖨️',
-    label: 'Imprimir'
+    label: t.imprimir
   }].filter(function (n) {
     return !n.adminOnly || isAdmin;
   });
@@ -2137,7 +2466,6 @@ function LucasApp(_ref) {
     }
   }, "\u270F\uFE0F"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      minWidth: 50,
       textAlign: 'right',
       flexShrink: 0
     }
@@ -2152,7 +2480,29 @@ function LucasApp(_ref) {
       fontSize: 12,
       fontWeight: 700
     }
-  }, toast.msg)))), /*#__PURE__*/React.createElement("div", {
+  }, toast.msg), !saving && !toast && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 2
+    }
+  }, Object.keys(LANGS).map(function (l) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: l,
+      onClick: function onClick() {
+        changeLang(l);
+      },
+      style: {
+        background: lang === l ? 'rgba(255,255,255,0.25)' : 'transparent',
+        border: 'none',
+        borderRadius: 6,
+        padding: '2px 4px',
+        cursor: 'pointer',
+        fontSize: 16,
+        opacity: lang === l ? 1 : 0.45,
+        transition: 'all .15s'
+      }
+    }, LANGS[l].flag);
+  }))))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '14px 12px 80px'
     }
