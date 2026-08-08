@@ -813,7 +813,7 @@ function LucasApp(_ref) {
       dia: day.key,
       slot: "leva_manha",
       icon: "\uD83C\uDFEB",
-      label: "Entra na escola",
+      label: "Partida Selzach",
       defaultTime: "7:05"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
@@ -823,7 +823,7 @@ function LucasApp(_ref) {
       dia: day.key,
       slot: "busca_almoco",
       icon: "\uD83C\uDFE0",
-      label: "Sai da escola",
+      label: "Partida Grenchen",
       defaultTime: day.sai
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
@@ -842,7 +842,7 @@ function LucasApp(_ref) {
       dia: day.key,
       slot: "leva_tarde",
       icon: "\uD83C\uDFEB",
-      label: "Entra na escola",
+      label: "Partida Selzach",
       defaultTime: "13:05"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
@@ -852,7 +852,7 @@ function LucasApp(_ref) {
       dia: day.key,
       slot: "busca_fim",
       icon: "\uD83C\uDFE0",
-      label: "Sai da escola",
+      label: "Partida Grenchen",
       defaultTime: "16:55"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
