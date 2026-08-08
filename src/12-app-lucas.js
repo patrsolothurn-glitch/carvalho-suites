@@ -109,7 +109,16 @@ function LucasApp(_ref) {
     _useState2 = _slicedToArray(_useState, 2),
     view = _useState2[0],
     setView = _useState2[1];
-  var _useState3 = useState('seg'),
+  var _useState3 = useState(function () {
+      var dayMap = {
+        1: 'seg',
+        2: 'ter',
+        3: 'qua',
+        4: 'qui',
+        5: 'sex'
+      };
+      return dayMap[new Date().getDay()] || 'seg'; // fim de semana → segunda
+    }),
     _useState4 = _slicedToArray(_useState3, 2),
     activeDay = _useState4[0],
     setActiveDay = _useState4[1];
