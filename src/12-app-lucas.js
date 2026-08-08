@@ -1534,7 +1534,7 @@ function LucasApp(_ref) {
       fontWeight: 800,
       fontSize: 17
     }
-  }, "\uD83C\uDFEB Escola do Lucas"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDFEB Escola Grenchen Sek P 1p 26/27"), /*#__PURE__*/React.createElement("div", {
     style: {
       color: 'rgba(255,255,255,.55)',
       fontSize: 10,
