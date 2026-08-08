@@ -266,19 +266,49 @@ function LucasApp(_ref) {
     }));
     return _deleteCondutor.apply(this, arguments);
   }
+  function setAccessCode(_x5, _x6) {
+    return _setAccessCode.apply(this, arguments);
+  }
+  function _setAccessCode() {
+    _setAccessCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(id, code) {
+      var val;
+      return _regenerator().w(function (_context3) {
+        while (1) switch (_context3.n) {
+          case 0:
+            val = code.trim() || null;
+            _context3.n = 1;
+            return supabase.from('lucas_condutores').update({
+              access_code: val
+            }).eq('id', id);
+          case 1:
+            setDrivers(function (p) {
+              return p.map(function (d) {
+                return d.id === id ? Object.assign({}, d, {
+                  access_code: val
+                }) : d;
+              });
+            });
+            flash(val ? '✓ Código definido' : '⛔ Acesso removido');
+          case 2:
+            return _context3.a(2);
+        }
+      }, _callee3);
+    }));
+    return _setAccessCode.apply(this, arguments);
+  }
   function loadConfig() {
     return _loadConfig.apply(this, arguments);
   }
   function _loadConfig() {
-    _loadConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3() {
+    _loadConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4() {
       var _yield$supabase$from$2, data, map;
-      return _regenerator().w(function (_context3) {
-        while (1) switch (_context3.n) {
+      return _regenerator().w(function (_context4) {
+        while (1) switch (_context4.n) {
           case 0:
-            _context3.n = 1;
+            _context4.n = 1;
             return supabase.from('lucas_config').select('*');
           case 1:
-            _yield$supabase$from$2 = _context3.v;
+            _yield$supabase$from$2 = _context4.v;
             data = _yield$supabase$from$2.data;
             if (data && data.length) {
               map = {};
@@ -290,21 +320,21 @@ function LucasApp(_ref) {
               });
             }
           case 2:
-            return _context3.a(2);
+            return _context4.a(2);
         }
-      }, _callee3);
+      }, _callee4);
     }));
     return _loadConfig.apply(this, arguments);
   }
-  function saveConfig(_x5, _x6) {
+  function saveConfig(_x7, _x8) {
     return _saveConfig.apply(this, arguments);
   }
   function _saveConfig() {
-    _saveConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(key, value) {
-      return _regenerator().w(function (_context4) {
-        while (1) switch (_context4.n) {
+    _saveConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(key, value) {
+      return _regenerator().w(function (_context5) {
+        while (1) switch (_context5.n) {
           case 0:
-            _context4.n = 1;
+            _context5.n = 1;
             return supabase.from('lucas_config').upsert({
               key: key,
               value: value
@@ -318,29 +348,29 @@ function LucasApp(_ref) {
             setEditField(null);
             flash('✓ Guardado');
           case 2:
-            return _context4.a(2);
+            return _context5.a(2);
         }
-      }, _callee4);
+      }, _callee5);
     }));
     return _saveConfig.apply(this, arguments);
   }
-  function notificar(_x7, _x8) {
+  function notificar(_x9, _x0) {
     return _notificar.apply(this, arguments);
   }
   function _notificar() {
-    _notificar = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee5(titulo, corpo) {
+    _notificar = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(titulo, corpo) {
       var _t;
-      return _regenerator().w(function (_context5) {
-        while (1) switch (_context5.p = _context5.n) {
+      return _regenerator().w(function (_context6) {
+        while (1) switch (_context6.p = _context6.n) {
           case 0:
             if (!isSuperAdmin) {
-              _context5.n = 1;
+              _context6.n = 1;
               break;
             }
-            return _context5.a(2);
+            return _context6.a(2);
           case 1:
-            _context5.p = 1;
-            _context5.n = 2;
+            _context6.p = 1;
+            _context6.n = 2;
             return supabase.functions.invoke('send-push', {
               body: {
                 title: titulo,
@@ -348,15 +378,15 @@ function LucasApp(_ref) {
               }
             });
           case 2:
-            _context5.n = 4;
+            _context6.n = 4;
             break;
           case 3:
-            _context5.p = 3;
-            _t = _context5.v;
+            _context6.p = 3;
+            _t = _context6.v;
           case 4:
-            return _context5.a(2);
+            return _context6.a(2);
         }
-      }, _callee5, null, [[1, 3]]);
+      }, _callee6, null, [[1, 3]]);
     }));
     return _notificar.apply(this, arguments);
   }
@@ -364,21 +394,21 @@ function LucasApp(_ref) {
     return _loadDrivers.apply(this, arguments);
   }
   function _loadDrivers() {
-    _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6() {
+    _loadDrivers = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
       var r;
-      return _regenerator().w(function (_context6) {
-        while (1) switch (_context6.n) {
+      return _regenerator().w(function (_context7) {
+        while (1) switch (_context7.n) {
           case 0:
-            _context6.n = 1;
+            _context7.n = 1;
             return supabase.from('lucas_condutores').select('*').order('nome');
           case 1:
-            r = _context6.v;
+            r = _context7.v;
             if (r.data) setDrivers(r.data);
             setLoading(false);
           case 2:
-            return _context6.a(2);
+            return _context7.a(2);
         }
-      }, _callee6);
+      }, _callee7);
     }));
     return _loadDrivers.apply(this, arguments);
   }
@@ -386,16 +416,16 @@ function LucasApp(_ref) {
     return _loadSchedule.apply(this, arguments);
   }
   function _loadSchedule() {
-    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7() {
+    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
       var r, map;
-      return _regenerator().w(function (_context7) {
-        while (1) switch (_context7.n) {
+      return _regenerator().w(function (_context8) {
+        while (1) switch (_context8.n) {
           case 0:
             setLoading(true);
-            _context7.n = 1;
+            _context8.n = 1;
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
-            r = _context7.v;
+            r = _context8.v;
             map = {};
             (r.data || []).forEach(function (row) {
               map[row.dia + ':' + row.slot] = {
@@ -407,9 +437,9 @@ function LucasApp(_ref) {
             setSchedule(map);
             setLoading(false);
           case 2:
-            return _context7.a(2);
+            return _context8.a(2);
         }
-      }, _callee7);
+      }, _callee8);
     }));
     return _loadSchedule.apply(this, arguments);
   }
@@ -417,10 +447,10 @@ function LucasApp(_ref) {
     return _loadHistory.apply(this, arguments);
   }
   function _loadHistory() {
-    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
+    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
       var q, r, rows, dayIdx, slotIdx;
-      return _regenerator().w(function (_context8) {
-        while (1) switch (_context8.n) {
+      return _regenerator().w(function (_context9) {
+        while (1) switch (_context9.n) {
           case 0:
             q = supabase.from('lucas_semana').select('*').order('week_start', {
               ascending: false
@@ -428,10 +458,10 @@ function LucasApp(_ref) {
             if (fDriver) q = q.eq('condutor', fDriver);
             if (fDay) q = q.eq('dia', fDay);
             if (fSlot) q = q.eq('slot', fSlot);
-            _context8.n = 1;
+            _context9.n = 1;
             return q;
           case 1:
-            r = _context8.v;
+            r = _context9.v;
             rows = r.data || [];
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
@@ -458,25 +488,25 @@ function LucasApp(_ref) {
             });
             setHistory(rows);
           case 2:
-            return _context8.a(2);
+            return _context9.a(2);
         }
-      }, _callee8);
+      }, _callee9);
     }));
     return _loadHistory.apply(this, arguments);
   }
-  function setSlot(_x9, _x0, _x1) {
+  function setSlot(_x1, _x10, _x11) {
     return _setSlot.apply(this, arguments);
   }
   function _setSlot() {
-    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9(dia, slot, condutor) {
+    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dia, slot, condutor) {
       var key, cur, dayLabel, slotNames, quem;
-      return _regenerator().w(function (_context9) {
-        while (1) switch (_context9.n) {
+      return _regenerator().w(function (_context0) {
+        while (1) switch (_context0.n) {
           case 0:
             setSaving(true);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
-            _context9.n = 1;
+            _context0.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -509,25 +539,25 @@ function LucasApp(_ref) {
             }
             setSaving(false);
           case 2:
-            return _context9.a(2);
+            return _context0.a(2);
         }
-      }, _callee9);
+      }, _callee0);
     }));
     return _setSlot.apply(this, arguments);
   }
-  function toggleEnea(_x10, _x11) {
+  function toggleEnea(_x12, _x13) {
     return _toggleEnea.apply(this, arguments);
   }
   function _toggleEnea() {
-    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(dia, slot) {
+    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(dia, slot) {
       var key, cur, newEnea;
-      return _regenerator().w(function (_context0) {
-        while (1) switch (_context0.n) {
+      return _regenerator().w(function (_context1) {
+        while (1) switch (_context1.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newEnea = !cur.enea;
-            _context0.n = 1;
+            _context1.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -545,25 +575,25 @@ function LucasApp(_ref) {
               })));
             });
           case 2:
-            return _context0.a(2);
+            return _context1.a(2);
         }
-      }, _callee0);
+      }, _callee1);
     }));
     return _toggleEnea.apply(this, arguments);
   }
-  function setHoraOverride(_x12, _x13, _x14) {
+  function setHoraOverride(_x14, _x15, _x16) {
     return _setHoraOverride.apply(this, arguments);
   }
   function _setHoraOverride() {
-    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(dia, slot, hora) {
+    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(dia, slot, hora) {
       var key, cur, horaVal;
-      return _regenerator().w(function (_context1) {
-        while (1) switch (_context1.n) {
+      return _regenerator().w(function (_context10) {
+        while (1) switch (_context10.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             horaVal = hora || null;
-            _context1.n = 1;
+            _context10.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -582,27 +612,27 @@ function LucasApp(_ref) {
             });
             flash(hora ? '✓ Hora excepção guardada' : '✓ Hora reposta ao padrão');
           case 2:
-            return _context1.a(2);
+            return _context10.a(2);
         }
-      }, _callee1);
+      }, _callee10);
     }));
     return _setHoraOverride.apply(this, arguments);
   }
-  function toggleDriver(_x15, _x16) {
+  function toggleDriver(_x17, _x18) {
     return _toggleDriver.apply(this, arguments);
   }
   function _toggleDriver() {
-    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(id, cur) {
+    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(id, cur) {
       var r;
-      return _regenerator().w(function (_context10) {
-        while (1) switch (_context10.n) {
+      return _regenerator().w(function (_context11) {
+        while (1) switch (_context11.n) {
           case 0:
-            _context10.n = 1;
+            _context11.n = 1;
             return supabase.from('lucas_condutores').update({
               autorizado: !cur
             }).eq('id', id);
           case 1:
-            r = _context10.v;
+            r = _context11.v;
             if (!r.error) {
               setDrivers(function (p) {
                 return p.map(function (d) {
@@ -614,9 +644,9 @@ function LucasApp(_ref) {
               flash(!cur ? '✓ Autorizado' : '⛔ Removido');
             }
           case 2:
-            return _context10.a(2);
+            return _context11.a(2);
         }
-      }, _callee10);
+      }, _callee11);
     }));
     return _toggleDriver.apply(this, arguments);
   }
@@ -1265,7 +1295,22 @@ function LucasApp(_ref) {
           background: d.autorizado ? col + '22' : '#f0f0f0',
           color: d.autorizado ? col : '#aaa'
         }
-      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso')), /*#__PURE__*/React.createElement("div", {
+      }, d.autorizado ? '✓ Autorizado' : '⛔ Sem acesso'), isSuperAdmin && /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 6,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: '#bbb'
+        }
+      }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(CodeField, {
+        driver: d,
+        onSave: setAccessCode
+      }))), /*#__PURE__*/React.createElement("div", {
         style: {
           display: 'flex',
           flexDirection: 'column',
@@ -1347,19 +1392,74 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
-  function AddCondutor() {
+  function CodeField(_ref8) {
+    var driver = _ref8.driver,
+      onSave = _ref8.onSave;
     var _useState39 = useState(false),
       _useState40 = _slicedToArray(_useState39, 2),
-      show = _useState40[0],
-      setShow = _useState40[1];
+      editing = _useState40[0],
+      setEditing = _useState40[1];
     var _useState41 = useState(''),
       _useState42 = _slicedToArray(_useState41, 2),
-      nome = _useState42[0],
-      setNome = _useState42[1];
-    var _useState43 = useState('#27ae60'),
+      val = _useState42[0],
+      setVal = _useState42[1];
+    var hasCode = !!driver.access_code;
+    function start() {
+      setVal(driver.access_code || '');
+      setEditing(true);
+    }
+    function save() {
+      setEditing(false);
+      if (val !== (driver.access_code || '')) onSave(driver.id, val);
+    }
+    if (editing) return /*#__PURE__*/React.createElement("input", {
+      autoFocus: true,
+      value: val,
+      onChange: function onChange(e) {
+        setVal(e.target.value);
+      },
+      onBlur: save,
+      onKeyDown: function onKeyDown(e) {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') setEditing(false);
+      },
+      placeholder: "Definir c\xF3digo...",
+      style: {
+        fontSize: 11,
+        border: '1px solid #ddd',
+        borderRadius: 6,
+        padding: '2px 6px',
+        width: 100,
+        outline: 'none'
+      }
+    });
+    return /*#__PURE__*/React.createElement("span", {
+      onClick: start,
+      style: {
+        fontSize: 11,
+        cursor: 'pointer',
+        fontWeight: 700,
+        borderRadius: 10,
+        padding: '2px 8px',
+        background: hasCode ? '#e8f5e9' : '#fff3e0',
+        color: hasCode ? '#2e7d32' : '#e65100',
+        border: '1px solid ' + (hasCode ? '#a5d6a7' : '#ffcc80')
+      }
+    }, hasCode ? '●●●● ✏️' : '+ Definir');
+  }
+  function AddCondutor() {
+    var _useState43 = useState(false),
       _useState44 = _slicedToArray(_useState43, 2),
-      cor = _useState44[0],
-      setCor = _useState44[1];
+      show = _useState44[0],
+      setShow = _useState44[1];
+    var _useState45 = useState(''),
+      _useState46 = _slicedToArray(_useState45, 2),
+      nome = _useState46[0],
+      setNome = _useState46[1];
+    var _useState47 = useState('#27ae60'),
+      _useState48 = _slicedToArray(_useState47, 2),
+      cor = _useState48[0],
+      setCor = _useState48[1];
     var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
     function submit() {
       if (!nome.trim()) return;
@@ -1489,14 +1589,14 @@ function LucasApp(_ref) {
       }
     }, "\u2713 Adicionar"))));
   }
-  function WeekBlock(_ref8) {
-    var week = _ref8.week,
-      rows = _ref8.rows,
-      defaultOpen = _ref8.defaultOpen;
-    var _useState45 = useState(defaultOpen),
-      _useState46 = _slicedToArray(_useState45, 2),
-      open = _useState46[0],
-      setOpen = _useState46[1];
+  function WeekBlock(_ref9) {
+    var week = _ref9.week,
+      rows = _ref9.rows,
+      defaultOpen = _ref9.defaultOpen;
+    var _useState49 = useState(defaultOpen),
+      _useState50 = _slicedToArray(_useState49, 2),
+      open = _useState50[0],
+      setOpen = _useState50[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
