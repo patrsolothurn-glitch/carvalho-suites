@@ -802,7 +802,7 @@ function LucasApp(_ref) {
         fontSize: 11,
         color: '#aaa'
       }
-    }, "\uD83D\uDECF 6:15 \xB7 \uD83C\uDFEB 7:30")), /*#__PURE__*/React.createElement(SectionTitle, {
+    }, "\uD83D\uDECF 6:15 \xB7 \uD83C\uDFEB 7:05")), /*#__PURE__*/React.createElement(SectionTitle, {
       label: "\uD83C\uDF05 Manh\xE3",
       color: C.blue
     }), /*#__PURE__*/React.createElement(TimeRow, {
@@ -810,7 +810,7 @@ function LucasApp(_ref) {
       slot: "leva_manha",
       icon: "\uD83C\uDFEB",
       label: "Entra na escola",
-      defaultTime: "7:30"
+      defaultTime: "7:05"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_manha",
@@ -839,7 +839,7 @@ function LucasApp(_ref) {
       slot: "leva_tarde",
       icon: "\uD83C\uDFEB",
       label: "Entra na escola",
-      defaultTime: "13:30"
+      defaultTime: "13:05"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_tarde",
@@ -1236,7 +1236,7 @@ function LucasApp(_ref) {
         }
         return '<tr><td style="border:1px solid #ccc;padding:8px;background:#e8eaf6;text-align:center;vertical-align:middle">' + '<div style="font-weight:900;font-size:13px;color:#1a237e">' + d.label + '</div>' + '<div style="font-size:10px;color:#777;margin-top:2px">' + dayDate(weekStart, i) + '</div>' + '<div style="font-size:9px;color:#aaa;margin-top:2px">Sai: ' + d.sai + '</div></td>' + cell('leva_manha') + cell('busca_almoco') + (d.tarde ? cell('leva_tarde') + cell('busca_fim') : '<td colspan="2" style="border:1px solid #ccc;background:#f5f5f5;text-align:center;color:#ccc;vertical-align:middle">—</td>') + '</tr>';
       }).join('');
-      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Semana do Lucas</title>' + '<style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' + '.page{display:flex;flex-direction:column;height:183mm}table{width:100%;border-collapse:collapse;flex:1}' + 'th{color:#fff;padding:8px 6px;font-size:9.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);font-weight:800}' + '#tbody tr{height:20%}</style></head><body>' + '<div class="page"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1a237e;padding-bottom:8px;margin-bottom:9px">' + '<div><div style="font-size:20px;font-weight:900;color:#1a237e">📅 Semana do Lucas</div>' + '<div style="font-size:9px;color:#777;margin-top:2px">🏫 Grenchen Nord Schule ↔ Selzach · 🛏 6:15 · Entra 7:30</div></div>' + '<div style="font-size:15px;font-weight:800;color:#1a237e">' + weekLabel(weekStart) + '</div></div>' + '<table><thead><tr>' + '<th rowspan="2" style="background:#1a237e">Dia / Data</th>' + '<th colspan="2" style="background:#1565c0">🌅 MANHÃ</th>' + '<th colspan="2" style="background:#bf360c">🌤 TARDE</th></tr><tr>' + '<th style="background:#1976d2">🚗 Leva — 7:30</th><th style="background:#1976d2">🚗 Busca</th>' + '<th style="background:#d84315">🚗 Leva — 13:30</th><th style="background:#d84315">🚗 Busca — 16:55</th>' + '</tr></thead><tbody id="tbody">' + rows + '</tbody></table>' + '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #ddd;font-size:9px;color:#777;display:flex;gap:14px">' + '<strong style="color:#333">Legenda:</strong><span>Condutor: quem leva / busca</span>' + '<span style="color:#7b1fa2">🧒 Enea vem junto</span>' + '<span style="color:#e65100">⏰ Hora excepção</span></div></div></body></html>';
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Semana do Lucas</title>' + '<style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' + '.page{display:flex;flex-direction:column;height:183mm}table{width:100%;border-collapse:collapse;flex:1}' + 'th{color:#fff;padding:8px 6px;font-size:9.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,.3);font-weight:800}' + '#tbody tr{height:20%}</style></head><body>' + '<div class="page"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1a237e;padding-bottom:8px;margin-bottom:9px">' + '<div><div style="font-size:20px;font-weight:900;color:#1a237e">📅 Semana do Lucas</div>' + '<div style="font-size:9px;color:#777;margin-top:2px">🏫 Grenchen Nord Schule ↔ Selzach · 🛏 6:15 · Entra 7:30</div></div>' + '<div style="font-size:15px;font-weight:800;color:#1a237e">' + weekLabel(weekStart) + '</div></div>' + '<table><thead><tr>' + '<th rowspan="2" style="background:#1a237e">Dia / Data</th>' + '<th colspan="2" style="background:#1565c0">🌅 MANHÃ</th>' + '<th colspan="2" style="background:#bf360c">🌤 TARDE</th></tr><tr>' + '<th style="background:#1976d2">🚗 Leva — 7:05</th><th style="background:#1976d2">🚗 Busca</th>' + '<th style="background:#d84315">🚗 Leva — 13:05</th><th style="background:#d84315">🚗 Busca — 16:55</th>' + '</tr></thead><tbody id="tbody">' + rows + '</tbody></table>' + '<div style="margin-top:7px;padding-top:6px;border-top:1px solid #ddd;font-size:9px;color:#777;display:flex;gap:14px">' + '<strong style="color:#333">Legenda:</strong><span>Condutor: quem leva / busca</span>' + '<span style="color:#7b1fa2">🧒 Enea vem junto</span>' + '<span style="color:#e65100">⏰ Hora excepção</span></div></div></body></html>';
       var w = window.open('', '_blank');
       w.document.write(html);
       w.document.close();
