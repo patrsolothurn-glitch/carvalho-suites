@@ -130,4 +130,12 @@ var APPS_DATA = [{
   desc: 'Gestor de subscrições',
   badge: null,
   color: '#6C5CE7'
+}, {
+  id: 'lucas',
+  emoji: '🏫',
+  name: 'Escola do Lucas',
+  desc: 'Plano semanal e condutores',
+  badge: null,
+  color: '#1a237e'
 }];
+
