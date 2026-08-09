@@ -2242,6 +2242,10 @@ function LucasApp(_ref) {
     })));
   }
   function ViewHistorico() {
+    var _useState55 = useState(false),
+      _useState56 = _slicedToArray(_useState55, 2),
+      filtersOpen = _useState56[0],
+      setFiltersOpen = _useState56[1];
     var byWeek = {};
     history.forEach(function (r) {
       if (!byWeek[r.week_start]) byWeek[r.week_start] = [];
@@ -2254,22 +2258,58 @@ function LucasApp(_ref) {
     });
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
-        background: C.card,
+        background: filtersOpen ? C.card : C.card,
         borderRadius: 12,
-        padding: '12px 14px',
         marginBottom: 14,
-        boxShadow: '0 1px 6px rgba(0,0,0,0.07)'
+        boxShadow: '0 1px 6px rgba(0,0,0,0.07)',
+        overflow: 'hidden'
       }
     }, /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() {
+        setFiltersOpen(function (v) {
+          return !v;
+        });
+      },
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         fontWeight: 800,
         color: '#bbb',
         letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        marginBottom: 10
+        textTransform: 'uppercase'
       }
-    }, "\uD83D\uDD0E Filtros"), /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDD0E Filtros"), hasFilter && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        background: C.primary,
+        color: '#fff',
+        borderRadius: 10,
+        padding: '2px 7px'
+      }
+    }, [fDriver, fDay, fPeriod, fSlot].filter(Boolean).length)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 16,
+        color: '#bbb'
+      }
+    }, filtersOpen ? '⌄' : '›')), filtersOpen && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '0 14px 14px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         flexDirection: 'column',
@@ -2332,7 +2372,7 @@ function LucasApp(_ref) {
         cursor: 'pointer',
         fontWeight: 700
       }
-    }, "\u2715 Limpar filtros")), history.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    }, "\u2715 Limpar filtros"))), history.length === 0 ? /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
         color: '#ccc',
