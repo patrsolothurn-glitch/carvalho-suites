@@ -1332,7 +1332,7 @@ function LucasApp(_ref) {
   });
   var isToday = toISO(getMonday(new Date())) === toISO(weekStart);
   var myDriver = drivers.find(function (d) {
-    var uname = (user && (user.member_id || user.display_name) || '').toLowerCase();
+    var uname = (typeof user === 'string' ? user : (user && (user.member_id || user.display_name)) || '').toLowerCase();
     return d.nome.toLowerCase() === uname;
   });
   var myDriverName = myDriver ? myDriver.nome : null;
