@@ -460,24 +460,28 @@ function LucasApp(_ref) {
     _useState0 = _slicedToArray(_useState9, 2),
     drivers = _useState0[0],
     setDrivers = _useState0[1];
-  var _useState1 = useState(true),
+  var _useState1 = useState([]),
     _useState10 = _slicedToArray(_useState1, 2),
-    loading = _useState10[0],
-    setLoading = _useState10[1];
-  var _useState11 = useState(false),
+    visitantes = _useState10[0],
+    setVisitantes = _useState10[1];
+  var _useState11 = useState(true),
     _useState12 = _slicedToArray(_useState11, 2),
-    saving = _useState12[0],
-    setSaving = _useState12[1];
-  var _useState13 = useState(null),
+    loading = _useState12[0],
+    setLoading = _useState12[1];
+  var _useState13 = useState(false),
     _useState14 = _slicedToArray(_useState13, 2),
-    toast = _useState14[0],
-    setToast = _useState14[1];
-  var _useState15 = useState(function () {
+    saving = _useState14[0],
+    setSaving = _useState14[1];
+  var _useState15 = useState(null),
+    _useState16 = _slicedToArray(_useState15, 2),
+    toast = _useState16[0],
+    setToast = _useState16[1];
+  var _useState17 = useState(function () {
       return localStorage.getItem('lucas_lang') || 'PT';
     }),
-    _useState16 = _slicedToArray(_useState15, 2),
-    lang = _useState16[0],
-    setLang = _useState16[1];
+    _useState18 = _slicedToArray(_useState17, 2),
+    lang = _useState18[0],
+    setLang = _useState18[1];
   var t = LANGS[lang] || LANGS.PT;
   var SLOT_LABELS = {
     leva_manha: t.levar_manha,
@@ -491,50 +495,51 @@ function LucasApp(_ref) {
       short: t.days[d.key][1]
     });
   });
-  var _useState17 = useState({
+  var _useState19 = useState({
       escola_nome: 'Escola Grenchen Sek P 1p 26/27',
       escola_morada: 'Schulstrasse 25, 2540 Grenchen',
       escola_comeca: '07:30',
       escola_acaba: '16:55'
     }),
-    _useState18 = _slicedToArray(_useState17, 2),
-    config = _useState18[0],
-    setConfig = _useState18[1];
-  var _useState19 = useState(null),
     _useState20 = _slicedToArray(_useState19, 2),
-    editField = _useState20[0],
-    setEditField = _useState20[1];
+    config = _useState20[0],
+    setConfig = _useState20[1];
+  var _useState21 = useState(null),
+    _useState22 = _slicedToArray(_useState21, 2),
+    editField = _useState22[0],
+    setEditField = _useState22[1];
   function changeLang(l) {
     localStorage.setItem('lucas_lang', l);
     setLang(l);
   }
-  var _useState21 = useState(''),
-    _useState22 = _slicedToArray(_useState21, 2),
-    editVal = _useState22[0],
-    setEditVal = _useState22[1];
-  var _useState23 = useState([]),
+  var _useState23 = useState(''),
     _useState24 = _slicedToArray(_useState23, 2),
-    history = _useState24[0],
-    setHistory = _useState24[1];
-  var _useState25 = useState(''),
+    editVal = _useState24[0],
+    setEditVal = _useState24[1];
+  var _useState25 = useState([]),
     _useState26 = _slicedToArray(_useState25, 2),
-    fDriver = _useState26[0],
-    setFDriver = _useState26[1];
+    history = _useState26[0],
+    setHistory = _useState26[1];
   var _useState27 = useState(''),
     _useState28 = _slicedToArray(_useState27, 2),
-    fDay = _useState28[0],
-    setFDay = _useState28[1];
+    fDriver = _useState28[0],
+    setFDriver = _useState28[1];
   var _useState29 = useState(''),
     _useState30 = _slicedToArray(_useState29, 2),
-    fPeriod = _useState30[0],
-    setFPeriod = _useState30[1];
+    fDay = _useState30[0],
+    setFDay = _useState30[1];
   var _useState31 = useState(''),
     _useState32 = _slicedToArray(_useState31, 2),
-    fSlot = _useState32[0],
-    setFSlot = _useState32[1];
+    fPeriod = _useState32[0],
+    setFPeriod = _useState32[1];
+  var _useState33 = useState(''),
+    _useState34 = _slicedToArray(_useState33, 2),
+    fSlot = _useState34[0],
+    setFSlot = _useState34[1];
   useEffect(function () {
     loadDrivers();
     loadConfig();
+    loadVisitantes();
   }, []);
   useEffect(function () {
     loadSchedule();
@@ -845,20 +850,125 @@ function LucasApp(_ref) {
     }));
     return _loadDrivers.apply(this, arguments);
   }
+  function loadVisitantes() {
+    return _loadVisitantes.apply(this, arguments);
+  }
+  function _loadVisitantes() {
+    _loadVisitantes = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
+      var r;
+      return _regenerator().w(function (_context9) {
+        while (1) switch (_context9.n) {
+          case 0:
+            _context9.n = 1;
+            return supabase.from('lucas_visitantes').select('*').order('criado_em', {
+              ascending: false
+            });
+          case 1:
+            r = _context9.v;
+            if (r.data) setVisitantes(r.data);
+          case 2:
+            return _context9.a(2);
+        }
+      }, _callee9);
+    }));
+    return _loadVisitantes.apply(this, arguments);
+  }
+  function setVisitanteCode(_x11, _x12) {
+    return _setVisitanteCode.apply(this, arguments);
+  }
+  function _setVisitanteCode() {
+    _setVisitanteCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(id, code) {
+      var val;
+      return _regenerator().w(function (_context0) {
+        while (1) switch (_context0.n) {
+          case 0:
+            val = code.trim() || null;
+            _context0.n = 1;
+            return supabase.from('lucas_visitantes').update({
+              access_code: val
+            }).eq('id', id);
+          case 1:
+            setVisitantes(function (p) {
+              return p.map(function (v) {
+                return v.id === id ? Object.assign({}, v, {
+                  access_code: val
+                }) : v;
+              });
+            });
+            flash(val ? '✓ Código definido' : '⛔ Código removido');
+          case 2:
+            return _context0.a(2);
+        }
+      }, _callee0);
+    }));
+    return _setVisitanteCode.apply(this, arguments);
+  }
+  function toggleVisitante(_x13, _x14) {
+    return _toggleVisitante.apply(this, arguments);
+  }
+  function _toggleVisitante() {
+    _toggleVisitante = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(id, cur) {
+      return _regenerator().w(function (_context1) {
+        while (1) switch (_context1.n) {
+          case 0:
+            _context1.n = 1;
+            return supabase.from('lucas_visitantes').update({
+              autorizado: !cur
+            }).eq('id', id);
+          case 1:
+            setVisitantes(function (p) {
+              return p.map(function (v) {
+                return v.id === id ? Object.assign({}, v, {
+                  autorizado: !cur
+                }) : v;
+              });
+            });
+            flash(!cur ? '✓ Autorizado' : '⛔ Removido');
+          case 2:
+            return _context1.a(2);
+        }
+      }, _callee1);
+    }));
+    return _toggleVisitante.apply(this, arguments);
+  }
+  function deleteVisitante(_x15) {
+    return _deleteVisitante.apply(this, arguments);
+  }
+  function _deleteVisitante() {
+    _deleteVisitante = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(id) {
+      return _regenerator().w(function (_context10) {
+        while (1) switch (_context10.n) {
+          case 0:
+            _context10.n = 1;
+            return supabase.from('lucas_visitantes').delete().eq('id', id);
+          case 1:
+            setVisitantes(function (p) {
+              return p.filter(function (v) {
+                return v.id !== id;
+              });
+            });
+            flash('Removido');
+          case 2:
+            return _context10.a(2);
+        }
+      }, _callee10);
+    }));
+    return _deleteVisitante.apply(this, arguments);
+  }
   function loadSchedule() {
     return _loadSchedule.apply(this, arguments);
   }
   function _loadSchedule() {
-    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee9() {
+    _loadSchedule = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11() {
       var r, map;
-      return _regenerator().w(function (_context9) {
-        while (1) switch (_context9.n) {
+      return _regenerator().w(function (_context11) {
+        while (1) switch (_context11.n) {
           case 0:
             setLoading(true);
-            _context9.n = 1;
+            _context11.n = 1;
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
-            r = _context9.v;
+            r = _context11.v;
             map = {};
             (r.data || []).forEach(function (row) {
               map[row.dia + ':' + row.slot] = {
@@ -871,9 +981,9 @@ function LucasApp(_ref) {
             setSchedule(map);
             setLoading(false);
           case 2:
-            return _context9.a(2);
+            return _context11.a(2);
         }
-      }, _callee9);
+      }, _callee11);
     }));
     return _loadSchedule.apply(this, arguments);
   }
@@ -881,10 +991,10 @@ function LucasApp(_ref) {
     return _loadHistory.apply(this, arguments);
   }
   function _loadHistory() {
-    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0() {
+    _loadHistory = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12() {
       var q, r, rows, dayIdx, slotIdx;
-      return _regenerator().w(function (_context0) {
-        while (1) switch (_context0.n) {
+      return _regenerator().w(function (_context12) {
+        while (1) switch (_context12.n) {
           case 0:
             q = supabase.from('lucas_semana').select('*').order('week_start', {
               ascending: false
@@ -892,10 +1002,10 @@ function LucasApp(_ref) {
             if (fDriver) q = q.eq('condutor', fDriver);
             if (fDay) q = q.eq('dia', fDay);
             if (fSlot) q = q.eq('slot', fSlot);
-            _context0.n = 1;
+            _context12.n = 1;
             return q;
           case 1:
-            r = _context0.v;
+            r = _context12.v;
             rows = r.data || [];
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
@@ -922,25 +1032,25 @@ function LucasApp(_ref) {
             });
             setHistory(rows);
           case 2:
-            return _context0.a(2);
+            return _context12.a(2);
         }
-      }, _callee0);
+      }, _callee12);
     }));
     return _loadHistory.apply(this, arguments);
   }
-  function setSlot(_x11, _x12, _x13) {
+  function setSlot(_x16, _x17, _x18) {
     return _setSlot.apply(this, arguments);
   }
   function _setSlot() {
-    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(dia, slot, condutor) {
+    _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13(dia, slot, condutor) {
       var key, cur, dayLabel, slotNames, quem;
-      return _regenerator().w(function (_context1) {
-        while (1) switch (_context1.n) {
+      return _regenerator().w(function (_context13) {
+        while (1) switch (_context13.n) {
           case 0:
             setSaving(true);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
-            _context1.n = 1;
+            _context13.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -974,25 +1084,25 @@ function LucasApp(_ref) {
             }
             setSaving(false);
           case 2:
-            return _context1.a(2);
+            return _context13.a(2);
         }
-      }, _callee1);
+      }, _callee13);
     }));
     return _setSlot.apply(this, arguments);
   }
-  function toggleEnea(_x14, _x15) {
+  function toggleEnea(_x19, _x20) {
     return _toggleEnea.apply(this, arguments);
   }
   function _toggleEnea() {
-    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(dia, slot) {
+    _toggleEnea = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(dia, slot) {
       var key, cur, newEnea;
-      return _regenerator().w(function (_context10) {
-        while (1) switch (_context10.n) {
+      return _regenerator().w(function (_context14) {
+        while (1) switch (_context14.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newEnea = !cur.enea;
-            _context10.n = 1;
+            _context14.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -1011,25 +1121,25 @@ function LucasApp(_ref) {
               })));
             });
           case 2:
-            return _context10.a(2);
+            return _context14.a(2);
         }
-      }, _callee10);
+      }, _callee14);
     }));
     return _toggleEnea.apply(this, arguments);
   }
-  function toggleLucas(_x16, _x17) {
+  function toggleLucas(_x21, _x22) {
     return _toggleLucas.apply(this, arguments);
   }
   function _toggleLucas() {
-    _toggleLucas = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(dia, slot) {
+    _toggleLucas = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee15(dia, slot) {
       var key, cur, newLucas;
-      return _regenerator().w(function (_context11) {
-        while (1) switch (_context11.n) {
+      return _regenerator().w(function (_context15) {
+        while (1) switch (_context15.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newLucas = !(cur.lucas_vai !== false);
-            _context11.n = 1;
+            _context15.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -1048,25 +1158,25 @@ function LucasApp(_ref) {
               })));
             });
           case 2:
-            return _context11.a(2);
+            return _context15.a(2);
         }
-      }, _callee11);
+      }, _callee15);
     }));
     return _toggleLucas.apply(this, arguments);
   }
-  function setHoraOverride(_x18, _x19, _x20) {
+  function setHoraOverride(_x23, _x24, _x25) {
     return _setHoraOverride.apply(this, arguments);
   }
   function _setHoraOverride() {
-    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee12(dia, slot, hora) {
+    _setHoraOverride = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee16(dia, slot, hora) {
       var key, cur, horaVal;
-      return _regenerator().w(function (_context12) {
-        while (1) switch (_context12.n) {
+      return _regenerator().w(function (_context16) {
+        while (1) switch (_context16.n) {
           case 0:
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             horaVal = hora || null;
-            _context12.n = 1;
+            _context16.n = 1;
             return supabase.from('lucas_semana').upsert({
               week_start: toISO(weekStart),
               dia: dia,
@@ -1086,27 +1196,27 @@ function LucasApp(_ref) {
             });
             flash(hora ? '✓ Hora excepção guardada' : '✓ Hora reposta ao padrão');
           case 2:
-            return _context12.a(2);
+            return _context16.a(2);
         }
-      }, _callee12);
+      }, _callee16);
     }));
     return _setHoraOverride.apply(this, arguments);
   }
-  function toggleDriver(_x21, _x22) {
+  function toggleDriver(_x26, _x27) {
     return _toggleDriver.apply(this, arguments);
   }
   function _toggleDriver() {
-    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee13(id, cur) {
+    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee17(id, cur) {
       var r;
-      return _regenerator().w(function (_context13) {
-        while (1) switch (_context13.n) {
+      return _regenerator().w(function (_context17) {
+        while (1) switch (_context17.n) {
           case 0:
-            _context13.n = 1;
+            _context17.n = 1;
             return supabase.from('lucas_condutores').update({
               autorizado: !cur
             }).eq('id', id);
           case 1:
-            r = _context13.v;
+            r = _context17.v;
             if (!r.error) {
               setDrivers(function (p) {
                 return p.map(function (d) {
@@ -1118,9 +1228,9 @@ function LucasApp(_ref) {
               flash(!cur ? t.autorizado : '⛔ Removido');
             }
           case 2:
-            return _context13.a(2);
+            return _context17.a(2);
         }
-      }, _callee13);
+      }, _callee17);
     }));
     return _toggleDriver.apply(this, arguments);
   }
@@ -1256,14 +1366,14 @@ function LucasApp(_ref) {
   function SchoolTimeField(_ref4) {
     var label = _ref4.label,
       cfgKey = _ref4.cfgKey;
-    var _useState33 = useState(false),
-      _useState34 = _slicedToArray(_useState33, 2),
-      editing = _useState34[0],
-      setEditing = _useState34[1];
-    var _useState35 = useState(''),
+    var _useState35 = useState(false),
       _useState36 = _slicedToArray(_useState35, 2),
-      val = _useState36[0],
-      setVal = _useState36[1];
+      editing = _useState36[0],
+      setEditing = _useState36[1];
+    var _useState37 = useState(''),
+      _useState38 = _slicedToArray(_useState37, 2),
+      val = _useState38[0],
+      setVal = _useState38[1];
     function start() {
       setVal(config[cfgKey] || '');
       setEditing(true);
@@ -1325,14 +1435,14 @@ function LucasApp(_ref) {
     var key = dia + ':' + slot;
     var override = (schedule[key] || {}).hora_override;
     var displayTime = override || defaultTime;
-    var _useState37 = useState(false),
-      _useState38 = _slicedToArray(_useState37, 2),
-      editing = _useState38[0],
-      setEditing = _useState38[1];
-    var _useState39 = useState(''),
+    var _useState39 = useState(false),
       _useState40 = _slicedToArray(_useState39, 2),
-      val = _useState40[0],
-      setVal = _useState40[1];
+      editing = _useState40[0],
+      setEditing = _useState40[1];
+    var _useState41 = useState(''),
+      _useState42 = _slicedToArray(_useState41, 2),
+      val = _useState42[0],
+      setVal = _useState42[1];
     var inputRef = useRef(null);
     function startEdit() {
       setVal(override || defaultTime || '');
@@ -1714,14 +1824,14 @@ function LucasApp(_ref) {
 
   // ── VIEW: AUTORIZAÇÕES (só admin) ──
   function ViewAutorizacoes() {
-    var _useState41 = useState(false),
-      _useState42 = _slicedToArray(_useState41, 2),
-      open = _useState42[0],
-      setOpen = _useState42[1];
     var _useState43 = useState(false),
       _useState44 = _slicedToArray(_useState43, 2),
-      copied = _useState44[0],
-      setCopied = _useState44[1];
+      open = _useState44[0],
+      setOpen = _useState44[1];
+    var _useState45 = useState(false),
+      _useState46 = _slicedToArray(_useState45, 2),
+      copied = _useState46[0],
+      setCopied = _useState46[1];
     var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
     function copyLink() {
       navigator.clipboard.writeText(link).then(function () {
@@ -1947,15 +2057,296 @@ function LucasApp(_ref) {
       }))), /*#__PURE__*/React.createElement(DriverActions, {
         driver: d
       }));
+    })), /*#__PURE__*/React.createElement(VisitantesSection, null));
+  }
+  function VisitantesSection() {
+    var _useState47 = useState(false),
+      _useState48 = _slicedToArray(_useState47, 2),
+      open = _useState48[0],
+      setOpen = _useState48[1];
+    var pendentes = visitantes.filter(function (v) {
+      return !v.autorizado;
+    }).length;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() {
+        setOpen(function (v) {
+          return !v;
+        });
+      },
+      style: {
+        background: open ? '#7b1fa2' : C.card,
+        borderRadius: open ? '12px 12px 0 0' : 12,
+        padding: '12px 16px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 14,
+        color: open ? '#fff' : '#7b1fa2'
+      }
+    }, "\uD83D\uDC4B Visitantes"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: open ? 'rgba(255,255,255,.6)' : '#aaa',
+        marginTop: 2
+      }
+    }, visitantes.length, " registados", pendentes > 0 && ' · ' + pendentes + ' por autorizar')), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }
+    }, pendentes > 0 && !open && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        background: '#e53935',
+        color: '#fff',
+        borderRadius: 10,
+        padding: '2px 8px'
+      }
+    }, pendentes), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 20,
+        color: open ? 'rgba(255,255,255,.7)' : '#bbb'
+      }
+    }, open ? '⌄' : '›'))), open && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#faf5ff',
+        borderRadius: '0 0 12px 12px',
+        padding: '12px 14px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+      }
+    }, visitantes.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: 'center',
+        color: '#ccc',
+        fontSize: 12,
+        fontStyle: 'italic',
+        padding: '12px 0'
+      }
+    }, "Ainda ningu\xE9m se registou") : visitantes.map(function (v) {
+      var dt = new Date(v.criado_em);
+      var dtStr = dt.toLocaleDateString('pt-PT', {
+        day: '2-digit',
+        month: '2-digit'
+      }) + ' ' + dt.toLocaleTimeString('pt-PT', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      return /*#__PURE__*/React.createElement("div", {
+        key: v.id,
+        style: {
+          background: '#fff',
+          borderRadius: 12,
+          padding: '12px 14px',
+          marginBottom: 8,
+          border: '2px solid ' + (v.autorizado ? '#7b1fa2' : '#eee'),
+          opacity: v.autorizado ? 1 : 0.85
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          flexShrink: 0,
+          background: v.autorizado ? '#f3e5f5' : '#f5f5f5',
+          border: '2px solid ' + (v.autorizado ? '#7b1fa2' : '#ddd'),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 16
+        }
+      }, "\uD83D\uDC4B"), /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontWeight: 800,
+          fontSize: 14,
+          color: '#333'
+        }
+      }, v.nome), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          color: '#aaa'
+        }
+      }, "Pediu acesso: ", dtStr)), /*#__PURE__*/React.createElement(VisitanteActions, {
+        visitante: v
+      })), /*#__PURE__*/React.createElement("div", {
+        style: {
+          marginTop: 8,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          paddingLeft: 48
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 10,
+          color: '#bbb'
+        }
+      }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(VisitanteCodeField, {
+        visitante: v
+      })));
     })));
+  }
+  function VisitanteCodeField(_ref8) {
+    var visitante = _ref8.visitante;
+    var _useState49 = useState(false),
+      _useState50 = _slicedToArray(_useState49, 2),
+      editing = _useState50[0],
+      setEditing = _useState50[1];
+    var _useState51 = useState(''),
+      _useState52 = _slicedToArray(_useState51, 2),
+      val = _useState52[0],
+      setVal = _useState52[1];
+    var hasCode = !!visitante.access_code;
+    function start() {
+      setVal(visitante.access_code || '');
+      setEditing(true);
+    }
+    function save() {
+      setEditing(false);
+      if (val !== (visitante.access_code || '')) setVisitanteCode(visitante.id, val);
+    }
+    if (editing) return /*#__PURE__*/React.createElement("input", {
+      autoFocus: true,
+      value: val,
+      onChange: function onChange(e) {
+        setVal(e.target.value);
+      },
+      onBlur: save,
+      onKeyDown: function onKeyDown(e) {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') setEditing(false);
+      },
+      placeholder: "Definir c\xF3digo...",
+      style: {
+        fontSize: 11,
+        border: '1px solid #ddd',
+        borderRadius: 6,
+        padding: '2px 6px',
+        width: 110,
+        outline: 'none'
+      }
+    });
+    return /*#__PURE__*/React.createElement("span", {
+      onClick: start,
+      style: {
+        fontSize: 11,
+        cursor: 'pointer',
+        fontWeight: 700,
+        borderRadius: 10,
+        padding: '2px 8px',
+        background: hasCode ? '#f3e5f5' : '#fff3e0',
+        color: hasCode ? '#7b1fa2' : '#e65100',
+        border: '1px solid ' + (hasCode ? '#ce93d8' : '#ffcc80')
+      }
+    }, hasCode ? '●●●● ✏️' : '+ Definir');
+  }
+  function VisitanteActions(_ref9) {
+    var visitante = _ref9.visitante;
+    var _useState53 = useState(null),
+      _useState54 = _slicedToArray(_useState53, 2),
+      confirm = _useState54[0],
+      setConfirm = _useState54[1];
+    function doAction() {
+      if (confirm === 'toggle') toggleVisitante(visitante.id, visitante.autorizado);else if (confirm === 'delete') deleteVisitante(visitante.id);
+      setConfirm(null);
+    }
+    if (confirm) return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 5,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setConfirm(null);
+      },
+      style: {
+        border: '1.5px solid #ddd',
+        borderRadius: 16,
+        padding: '5px 9px',
+        background: '#f5f5f5',
+        color: '#888',
+        fontWeight: 700,
+        fontSize: 10,
+        cursor: 'pointer'
+      }
+    }, "\u2715"), /*#__PURE__*/React.createElement("button", {
+      onClick: doAction,
+      style: {
+        border: 'none',
+        borderRadius: 16,
+        padding: '5px 9px',
+        background: confirm === 'delete' ? '#c62828' : '#7b1fa2',
+        color: '#fff',
+        fontWeight: 800,
+        fontSize: 10,
+        cursor: 'pointer'
+      }
+    }, "\u2713"));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 5,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setConfirm('toggle');
+      },
+      style: {
+        border: 'none',
+        borderRadius: 16,
+        padding: '5px 10px',
+        cursor: 'pointer',
+        fontSize: 11,
+        fontWeight: 700,
+        background: visitante.autorizado ? '#ffebee' : '#f3e5f5',
+        color: visitante.autorizado ? '#c62828' : '#7b1fa2'
+      }
+    }, visitante.autorizado ? 'Remover' : 'Autorizar'), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setConfirm('delete');
+      },
+      style: {
+        border: 'none',
+        borderRadius: 16,
+        padding: '5px 8px',
+        cursor: 'pointer',
+        background: '#fafafa',
+        color: '#ccc',
+        fontSize: 10
+      }
+    }, "\uD83D\uDDD1"));
   }
 
   // ── VIEW: HISTÓRICO ──
-  function FiltroSelect(_ref8) {
-    var label = _ref8.label,
-      value = _ref8.value,
-      _onChange = _ref8.onChange,
-      opts = _ref8.opts;
+  function FiltroSelect(_ref0) {
+    var label = _ref0.label,
+      value = _ref0.value,
+      _onChange = _ref0.onChange,
+      opts = _ref0.opts;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -1993,12 +2384,12 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
-  function DriverActions(_ref9) {
-    var driver = _ref9.driver;
-    var _useState45 = useState(null),
-      _useState46 = _slicedToArray(_useState45, 2),
-      confirm = _useState46[0],
-      setConfirm = _useState46[1]; // null | 'toggle' | 'delete'
+  function DriverActions(_ref1) {
+    var driver = _ref1.driver;
+    var _useState55 = useState(null),
+      _useState56 = _slicedToArray(_useState55, 2),
+      confirm = _useState56[0],
+      setConfirm = _useState56[1]; // null | 'toggle' | 'delete'
 
     function doAction() {
       if (confirm === 'toggle') {
@@ -2094,17 +2485,17 @@ function LucasApp(_ref) {
       }
     }, "\uD83D\uDDD1 Apagar"));
   }
-  function CodeField(_ref0) {
-    var driver = _ref0.driver,
-      onSave = _ref0.onSave;
-    var _useState47 = useState(false),
-      _useState48 = _slicedToArray(_useState47, 2),
-      editing = _useState48[0],
-      setEditing = _useState48[1];
-    var _useState49 = useState(''),
-      _useState50 = _slicedToArray(_useState49, 2),
-      val = _useState50[0],
-      setVal = _useState50[1];
+  function CodeField(_ref10) {
+    var driver = _ref10.driver,
+      onSave = _ref10.onSave;
+    var _useState57 = useState(false),
+      _useState58 = _slicedToArray(_useState57, 2),
+      editing = _useState58[0],
+      setEditing = _useState58[1];
+    var _useState59 = useState(''),
+      _useState60 = _slicedToArray(_useState59, 2),
+      val = _useState60[0],
+      setVal = _useState60[1];
     var hasCode = !!driver.access_code;
     function start() {
       setVal(driver.access_code || '');
@@ -2150,18 +2541,18 @@ function LucasApp(_ref) {
     }, hasCode ? '●●●● ✏️' : '+ Definir');
   }
   function AddCondutor() {
-    var _useState51 = useState(false),
-      _useState52 = _slicedToArray(_useState51, 2),
-      show = _useState52[0],
-      setShow = _useState52[1];
-    var _useState53 = useState(''),
-      _useState54 = _slicedToArray(_useState53, 2),
-      nome = _useState54[0],
-      setNome = _useState54[1];
-    var _useState55 = useState('#27ae60'),
-      _useState56 = _slicedToArray(_useState55, 2),
-      cor = _useState56[0],
-      setCor = _useState56[1];
+    var _useState61 = useState(false),
+      _useState62 = _slicedToArray(_useState61, 2),
+      show = _useState62[0],
+      setShow = _useState62[1];
+    var _useState63 = useState(''),
+      _useState64 = _slicedToArray(_useState63, 2),
+      nome = _useState64[0],
+      setNome = _useState64[1];
+    var _useState65 = useState('#27ae60'),
+      _useState66 = _slicedToArray(_useState65, 2),
+      cor = _useState66[0],
+      setCor = _useState66[1];
     var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
     function submit() {
       if (!nome.trim()) return;
@@ -2291,14 +2682,14 @@ function LucasApp(_ref) {
       }
     }, "\u2713 Adicionar"))));
   }
-  function WeekBlock(_ref1) {
-    var week = _ref1.week,
-      rows = _ref1.rows,
-      defaultOpen = _ref1.defaultOpen;
-    var _useState57 = useState(defaultOpen),
-      _useState58 = _slicedToArray(_useState57, 2),
-      open = _useState58[0],
-      setOpen = _useState58[1];
+  function WeekBlock(_ref11) {
+    var week = _ref11.week,
+      rows = _ref11.rows,
+      defaultOpen = _ref11.defaultOpen;
+    var _useState67 = useState(defaultOpen),
+      _useState68 = _slicedToArray(_useState67, 2),
+      open = _useState68[0],
+      setOpen = _useState68[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
@@ -2447,10 +2838,10 @@ function LucasApp(_ref) {
     })));
   }
   function ViewHistorico() {
-    var _useState59 = useState(false),
-      _useState60 = _slicedToArray(_useState59, 2),
-      filtersOpen = _useState60[0],
-      setFiltersOpen = _useState60[1];
+    var _useState69 = useState(false),
+      _useState70 = _slicedToArray(_useState69, 2),
+      filtersOpen = _useState70[0],
+      setFiltersOpen = _useState70[1];
     var byWeek = {};
     history.forEach(function (r) {
       if (!byWeek[r.week_start]) byWeek[r.week_start] = [];
