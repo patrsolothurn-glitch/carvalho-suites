@@ -439,7 +439,9 @@ function LucasApp(_ref) {
     isSuperAdmin = _ref.isSuperAdmin,
     onBack = _ref.onBack,
     initialView = _ref.initialView;
-  var _useState = useState(initialView || 'plano'),
+  var VALID_VIEWS = ['plano', 'autorizacoes', 'historico', 'imprimir'];
+  var normalizedInitialView = initialView === 'acesso' ? 'autorizacoes' : initialView;
+  var _useState = useState(VALID_VIEWS.indexOf(normalizedInitialView) !== -1 ? normalizedInitialView : 'plano'),
     _useState2 = _slicedToArray(_useState, 2),
     view = _useState2[0],
     setView = _useState2[1];
