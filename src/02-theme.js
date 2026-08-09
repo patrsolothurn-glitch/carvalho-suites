@@ -117,13 +117,6 @@ var APPS_DATA = [{
   badge: null,
   color: T.green
 }, {
-  id: 'lucas',
-  emoji: '🏫',
-  name: 'Escola Grenchen Sek P',
-  desc: 'Plano Anual 26/27',
-  badge: null,
-  color: '#1a237e'
-}, {
   id: 'escolar',
   emoji: '📚',
   name: 'Vida Escolar',
@@ -138,4 +131,3 @@ var APPS_DATA = [{
   badge: null,
   color: '#6C5CE7'
 }];
-
