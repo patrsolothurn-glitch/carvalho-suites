@@ -59,6 +59,8 @@ var LANGS = {
     sem_tarde: 'Sem tarde',
     partida_selzach: 'Partida Selzach',
     saida_grenchen: 'Saída Grenchen',
+    entra_escola: 'Entra escola',
+    sai_escola: 'Sai escola',
     levar: 'Levar',
     buscar: 'Buscar',
     semana_atual: '🟢 Semana atual',
@@ -123,6 +125,8 @@ var LANGS = {
     sem_tarde: 'Kein Nachmittag',
     partida_selzach: 'Abfahrt Selzach',
     saida_grenchen: 'Abfahrt Grenchen',
+    entra_escola: 'Schulbeginn',
+    sai_escola: 'Schulschluss',
     levar: 'Bringen',
     buscar: 'Abholen',
     semana_atual: '🟢 Aktuelle Woche',
@@ -187,6 +191,8 @@ var LANGS = {
     sem_tarde: "Pas d'après-midi",
     partida_selzach: 'Départ Selzach',
     saida_grenchen: 'Départ Grenchen',
+    entra_escola: 'Début école',
+    sai_escola: 'Fin école',
     levar: 'Déposer',
     buscar: 'Récupérer',
     semana_atual: "🟢 Semaine actuelle",
@@ -251,6 +257,8 @@ var LANGS = {
     sem_tarde: "Nessun pomeriggio",
     partida_selzach: 'Partenza Selzach',
     saida_grenchen: 'Partenza Grenchen',
+    entra_escola: 'Inizio scuola',
+    sai_escola: 'Fine scuola',
     levar: 'Portare',
     buscar: 'Raccogliere',
     semana_atual: '🟢 Settimana corrente',
@@ -315,6 +323,8 @@ var LANGS = {
     sem_tarde: 'No afternoon',
     partida_selzach: 'Depart Selzach',
     saida_grenchen: 'Depart Grenchen',
+    entra_escola: 'School starts',
+    sai_escola: 'School ends',
     levar: 'Drop off',
     buscar: 'Pick up',
     semana_atual: '🟢 Current week',
@@ -1149,7 +1159,9 @@ function LucasApp(_ref) {
       slot = _ref4.slot,
       label = _ref4.label,
       icon = _ref4.icon,
-      defaultTime = _ref4.defaultTime;
+      defaultTime = _ref4.defaultTime,
+      subLabel = _ref4.subLabel,
+      subTime = _ref4.subTime;
     var key = dia + ':' + slot;
     var override = (schedule[key] || {}).hora_override;
     var displayTime = override || defaultTime;
@@ -1179,11 +1191,14 @@ function LucasApp(_ref) {
     }
     return /*#__PURE__*/React.createElement("div", {
       style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
         padding: '9px 0',
         borderBottom: '1px solid ' + C.border
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -1255,7 +1270,19 @@ function LucasApp(_ref) {
         padding: '2px',
         lineHeight: 1
       }
-    }, "\u2715")));
+    }, "\u2715"))), subLabel && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: '#aaa',
+        marginTop: 3,
+        paddingLeft: 30
+      }
+    }, subLabel, " ", /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        color: '#999'
+      }
+    }, subTime)));
   }
   function DriveRow(_ref5) {
     var dia = _ref5.dia,
@@ -1449,7 +1476,9 @@ function LucasApp(_ref) {
       slot: "leva_manha",
       icon: "\uD83C\uDFEB",
       label: t.partida_selzach,
-      defaultTime: "7:05"
+      defaultTime: "7:05",
+      subLabel: t.entra_escola,
+      subTime: "7:30"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_manha",
@@ -1459,7 +1488,9 @@ function LucasApp(_ref) {
       slot: "busca_almoco",
       icon: "\uD83C\uDFE0",
       label: t.saida_grenchen,
-      defaultTime: day.sai
+      defaultTime: day.sai,
+      subLabel: t.sai_escola,
+      subTime: day.sai
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_almoco",
@@ -1478,7 +1509,9 @@ function LucasApp(_ref) {
       slot: "leva_tarde",
       icon: "\uD83C\uDFEB",
       label: t.partida_selzach,
-      defaultTime: "13:05"
+      defaultTime: "13:05",
+      subLabel: t.entra_escola,
+      subTime: "13:30"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_tarde",
@@ -1488,7 +1521,9 @@ function LucasApp(_ref) {
       slot: "busca_fim",
       icon: "\uD83C\uDFE0",
       label: t.saida_grenchen,
-      defaultTime: "16:55"
+      defaultTime: "16:55",
+      subLabel: t.sai_escola,
+      subTime: "16:55"
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_fim",
