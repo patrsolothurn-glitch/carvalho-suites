@@ -486,7 +486,9 @@ function LucasApp(_ref) {
   });
   var _useState17 = useState({
       escola_nome: 'Escola Grenchen Sek P 1p 26/27',
-      escola_morada: 'Schulstrasse 25, 2540 Grenchen'
+      escola_morada: 'Schulstrasse 25, 2540 Grenchen',
+      escola_comeca: '07:30',
+      escola_acaba: '16:55'
     }),
     _useState18 = _slicedToArray(_useState17, 2),
     config = _useState18[0],
@@ -1154,17 +1156,9 @@ function LucasApp(_ref) {
   }
 
   // Linha de hora — editável para admin
-  function TimeRow(_ref4) {
-    var dia = _ref4.dia,
-      slot = _ref4.slot,
-      label = _ref4.label,
-      icon = _ref4.icon,
-      defaultTime = _ref4.defaultTime,
-      subLabel = _ref4.subLabel,
-      subTime = _ref4.subTime;
-    var key = dia + ':' + slot;
-    var override = (schedule[key] || {}).hora_override;
-    var displayTime = override || defaultTime;
+  function SchoolTimeField(_ref4) {
+    var label = _ref4.label,
+      cfgKey = _ref4.cfgKey;
     var _useState33 = useState(false),
       _useState34 = _slicedToArray(_useState33, 2),
       editing = _useState34[0],
@@ -1173,6 +1167,75 @@ function LucasApp(_ref) {
       _useState36 = _slicedToArray(_useState35, 2),
       val = _useState36[0],
       setVal = _useState36[1];
+    function start() {
+      setVal(config[cfgKey] || '');
+      setEditing(true);
+    }
+    function save() {
+      setEditing(false);
+      if (val && val !== config[cfgKey]) saveConfig(cfgKey, val);
+    }
+    if (editing) return /*#__PURE__*/React.createElement("input", {
+      autoFocus: true,
+      type: "time",
+      value: val,
+      onChange: function onChange(e) {
+        setVal(e.target.value);
+      },
+      onBlur: save,
+      onKeyDown: function onKeyDown(e) {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') setEditing(false);
+      },
+      style: {
+        background: 'rgba(255,255,255,.15)',
+        border: '1px solid rgba(255,255,255,.4)',
+        borderRadius: 6,
+        color: '#fff',
+        fontSize: 10,
+        padding: '1px 4px',
+        width: 68,
+        outline: 'none'
+      }
+    });
+    return /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() {
+        if (isSuperAdmin) start();
+      },
+      style: {
+        color: 'rgba(255,255,255,.6)',
+        fontSize: 10,
+        cursor: isSuperAdmin ? 'pointer' : 'default',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 3
+      }
+    }, label, " ", config[cfgKey], isSuperAdmin && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 8,
+        opacity: 0.5
+      }
+    }, "\u270F\uFE0F"));
+  }
+  function TimeRow(_ref5) {
+    var dia = _ref5.dia,
+      slot = _ref5.slot,
+      label = _ref5.label,
+      icon = _ref5.icon,
+      defaultTime = _ref5.defaultTime,
+      subLabel = _ref5.subLabel,
+      subTime = _ref5.subTime;
+    var key = dia + ':' + slot;
+    var override = (schedule[key] || {}).hora_override;
+    var displayTime = override || defaultTime;
+    var _useState37 = useState(false),
+      _useState38 = _slicedToArray(_useState37, 2),
+      editing = _useState38[0],
+      setEditing = _useState38[1];
+    var _useState39 = useState(''),
+      _useState40 = _slicedToArray(_useState39, 2),
+      val = _useState40[0],
+      setVal = _useState40[1];
     var inputRef = useRef(null);
     function startEdit() {
       setVal(override || defaultTime || '');
@@ -1284,10 +1347,10 @@ function LucasApp(_ref) {
       }
     }, subTime)));
   }
-  function DriveRow(_ref5) {
-    var dia = _ref5.dia,
-      slot = _ref5.slot,
-      label = _ref5.label;
+  function DriveRow(_ref6) {
+    var dia = _ref6.dia,
+      slot = _ref6.slot,
+      label = _ref6.label;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -1316,9 +1379,9 @@ function LucasApp(_ref) {
       slot: slot
     }));
   }
-  function SectionTitle(_ref6) {
-    var label = _ref6.label,
-      color = _ref6.color;
+  function SectionTitle(_ref7) {
+    var label = _ref7.label,
+      color = _ref7.color;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10,
@@ -1478,7 +1541,7 @@ function LucasApp(_ref) {
       label: t.partida_selzach,
       defaultTime: "7:05",
       subLabel: t.entra_escola,
-      subTime: "7:30"
+      subTime: config.escola_comeca
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "leva_manha",
@@ -1523,7 +1586,7 @@ function LucasApp(_ref) {
       label: t.saida_grenchen,
       defaultTime: "16:55",
       subLabel: t.sai_escola,
-      subTime: "16:55"
+      subTime: config.escola_acaba
     }), /*#__PURE__*/React.createElement(DriveRow, {
       dia: day.key,
       slot: "busca_fim",
@@ -1550,14 +1613,14 @@ function LucasApp(_ref) {
 
   // ── VIEW: AUTORIZAÇÕES (só admin) ──
   function ViewAutorizacoes() {
-    var _useState37 = useState(false),
-      _useState38 = _slicedToArray(_useState37, 2),
-      open = _useState38[0],
-      setOpen = _useState38[1];
-    var _useState39 = useState(false),
-      _useState40 = _slicedToArray(_useState39, 2),
-      copied = _useState40[0],
-      setCopied = _useState40[1];
+    var _useState41 = useState(false),
+      _useState42 = _slicedToArray(_useState41, 2),
+      open = _useState42[0],
+      setOpen = _useState42[1];
+    var _useState43 = useState(false),
+      _useState44 = _slicedToArray(_useState43, 2),
+      copied = _useState44[0],
+      setCopied = _useState44[1];
     var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
     function copyLink() {
       navigator.clipboard.writeText(link).then(function () {
@@ -1746,11 +1809,11 @@ function LucasApp(_ref) {
   }
 
   // ── VIEW: HISTÓRICO ──
-  function FiltroSelect(_ref7) {
-    var label = _ref7.label,
-      value = _ref7.value,
-      _onChange = _ref7.onChange,
-      opts = _ref7.opts;
+  function FiltroSelect(_ref8) {
+    var label = _ref8.label,
+      value = _ref8.value,
+      _onChange = _ref8.onChange,
+      opts = _ref8.opts;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -1788,12 +1851,12 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
-  function DriverActions(_ref8) {
-    var driver = _ref8.driver;
-    var _useState41 = useState(null),
-      _useState42 = _slicedToArray(_useState41, 2),
-      confirm = _useState42[0],
-      setConfirm = _useState42[1]; // null | 'toggle' | 'delete'
+  function DriverActions(_ref9) {
+    var driver = _ref9.driver;
+    var _useState45 = useState(null),
+      _useState46 = _slicedToArray(_useState45, 2),
+      confirm = _useState46[0],
+      setConfirm = _useState46[1]; // null | 'toggle' | 'delete'
 
     function doAction() {
       if (confirm === 'toggle') {
@@ -1889,17 +1952,17 @@ function LucasApp(_ref) {
       }
     }, "\uD83D\uDDD1 Apagar"));
   }
-  function CodeField(_ref9) {
-    var driver = _ref9.driver,
-      onSave = _ref9.onSave;
-    var _useState43 = useState(false),
-      _useState44 = _slicedToArray(_useState43, 2),
-      editing = _useState44[0],
-      setEditing = _useState44[1];
-    var _useState45 = useState(''),
-      _useState46 = _slicedToArray(_useState45, 2),
-      val = _useState46[0],
-      setVal = _useState46[1];
+  function CodeField(_ref0) {
+    var driver = _ref0.driver,
+      onSave = _ref0.onSave;
+    var _useState47 = useState(false),
+      _useState48 = _slicedToArray(_useState47, 2),
+      editing = _useState48[0],
+      setEditing = _useState48[1];
+    var _useState49 = useState(''),
+      _useState50 = _slicedToArray(_useState49, 2),
+      val = _useState50[0],
+      setVal = _useState50[1];
     var hasCode = !!driver.access_code;
     function start() {
       setVal(driver.access_code || '');
@@ -1945,18 +2008,18 @@ function LucasApp(_ref) {
     }, hasCode ? '●●●● ✏️' : '+ Definir');
   }
   function AddCondutor() {
-    var _useState47 = useState(false),
-      _useState48 = _slicedToArray(_useState47, 2),
-      show = _useState48[0],
-      setShow = _useState48[1];
-    var _useState49 = useState(''),
-      _useState50 = _slicedToArray(_useState49, 2),
-      nome = _useState50[0],
-      setNome = _useState50[1];
-    var _useState51 = useState('#27ae60'),
+    var _useState51 = useState(false),
       _useState52 = _slicedToArray(_useState51, 2),
-      cor = _useState52[0],
-      setCor = _useState52[1];
+      show = _useState52[0],
+      setShow = _useState52[1];
+    var _useState53 = useState(''),
+      _useState54 = _slicedToArray(_useState53, 2),
+      nome = _useState54[0],
+      setNome = _useState54[1];
+    var _useState55 = useState('#27ae60'),
+      _useState56 = _slicedToArray(_useState55, 2),
+      cor = _useState56[0],
+      setCor = _useState56[1];
     var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
     function submit() {
       if (!nome.trim()) return;
@@ -2086,14 +2149,14 @@ function LucasApp(_ref) {
       }
     }, "\u2713 Adicionar"))));
   }
-  function WeekBlock(_ref0) {
-    var week = _ref0.week,
-      rows = _ref0.rows,
-      defaultOpen = _ref0.defaultOpen;
-    var _useState53 = useState(defaultOpen),
-      _useState54 = _slicedToArray(_useState53, 2),
-      open = _useState54[0],
-      setOpen = _useState54[1];
+  function WeekBlock(_ref1) {
+    var week = _ref1.week,
+      rows = _ref1.rows,
+      defaultOpen = _ref1.defaultOpen;
+    var _useState57 = useState(defaultOpen),
+      _useState58 = _slicedToArray(_useState57, 2),
+      open = _useState58[0],
+      setOpen = _useState58[1];
     var mon = new Date(week + 'T00:00:00');
     var fri = new Date(mon);
     fri.setDate(mon.getDate() + 4);
@@ -2242,10 +2305,10 @@ function LucasApp(_ref) {
     })));
   }
   function ViewHistorico() {
-    var _useState55 = useState(false),
-      _useState56 = _slicedToArray(_useState55, 2),
-      filtersOpen = _useState56[0],
-      setFiltersOpen = _useState56[1];
+    var _useState59 = useState(false),
+      _useState60 = _slicedToArray(_useState59, 2),
+      filtersOpen = _useState60[0],
+      setFiltersOpen = _useState60[1];
     var byWeek = {};
     history.forEach(function (r) {
       if (!byWeek[r.week_start]) byWeek[r.week_start] = [];
@@ -2688,7 +2751,19 @@ function LucasApp(_ref) {
       fontSize: 9,
       opacity: 0.5
     }
-  }, "\u270F\uFE0F"))), /*#__PURE__*/React.createElement("div", {
+  }, "\u270F\uFE0F")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 14,
+      marginTop: 5
+    }
+  }, /*#__PURE__*/React.createElement(SchoolTimeField, {
+    label: "\uD83C\uDFEB",
+    cfgKey: "escola_comeca"
+  }), /*#__PURE__*/React.createElement(SchoolTimeField, {
+    label: "\uD83C\uDFC1",
+    cfgKey: "escola_acaba"
+  }))), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'right',
       flexShrink: 0
