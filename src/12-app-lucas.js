@@ -1057,6 +1057,11 @@ function LucasApp(_ref) {
     return d.key === activeDay;
   });
   var isToday = toISO(getMonday(new Date())) === toISO(weekStart);
+  var myDriver = drivers.find(function (d) {
+    var uname = (user && (user.member_id || user.display_name) || '').toLowerCase();
+    return d.nome.toLowerCase() === uname;
+  });
+  var myDriverName = myDriver ? myDriver.nome : null;
 
   // ── Componentes ──
 
@@ -1465,6 +1470,9 @@ function LucasApp(_ref) {
       var hasException = daySlots.some(function (sl) {
         return (schedule[d.key + ':' + sl] || {}).hora_override;
       });
+      var hasMyDay = myDriverName && daySlots.some(function (sl) {
+        return (schedule[d.key + ':' + sl] || {}).condutor === myDriverName;
+      });
       return /*#__PURE__*/React.createElement("button", {
         key: d.key,
         onClick: function onClick() {
@@ -1485,9 +1493,9 @@ function LucasApp(_ref) {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 1,
-          outline: hasException && !isActive ? '2px solid ' + C.exception : 'none'
+          outline: hasMyDay && !isActive ? '2.5px solid #e53935' : hasException && !isActive ? '2px solid ' + C.exception : 'none'
         }
-      }, /*#__PURE__*/React.createElement("span", null, d.short), /*#__PURE__*/React.createElement("span", {
+      }, /*#__PURE__*/React.createElement("span", null, d.short, hasMyDay && !isActive ? ' 🔴' : ''), /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 9,
           opacity: 0.7
