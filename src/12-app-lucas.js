@@ -1493,9 +1493,10 @@ function LucasApp(_ref) {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 1,
-          outline: hasMyDay && !isActive ? '2.5px solid #e53935' : hasException && !isActive ? '2px solid ' + C.exception : 'none'
+          outline: hasMyDay ? '3px solid #e53935' : hasException && !isActive ? '2px solid ' + C.exception : 'none',
+          outlineOffset: hasMyDay ? '2px' : '0'
         }
-      }, /*#__PURE__*/React.createElement("span", null, d.short, hasMyDay && !isActive ? ' 🔴' : ''), /*#__PURE__*/React.createElement("span", {
+      }, /*#__PURE__*/React.createElement("span", null, d.short, hasMyDay ? ' 🔴' : ''), /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 9,
           opacity: 0.7
