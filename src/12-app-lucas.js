@@ -915,6 +915,30 @@ function LucasApp(_ref) {
   function toggleVisitante(_x13, _x14) {
     return _toggleVisitante.apply(this, arguments);
   }
+  function authorizeVisitanteWithCode(id, code) {
+    return _authorizeVisitanteWithCode.apply(this, arguments);
+  }
+  function _authorizeVisitanteWithCode() {
+    _authorizeVisitanteWithCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1b(id, code) {
+      return _regenerator().w(function (_context1b) {
+        while (1) switch (_context1b.n) {
+          case 0:
+            _context1b.n = 1;
+            return supabase.from('lucas_visitantes').update({ autorizado: true, access_code: code }).eq('id', id);
+          case 1:
+            setVisitantes(function (p) {
+              return p.map(function (v) {
+                return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
+              });
+            });
+            flash('\u2713 Autorizado com código');
+          case 2:
+            return _context1b.a(2);
+        }
+      }, _callee1b);
+    }));
+    return _authorizeVisitanteWithCode.apply(this, arguments);
+  }
   function _toggleVisitante() {
     _toggleVisitante = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(id, cur) {
       return _regenerator().w(function (_context1) {
@@ -2507,10 +2531,41 @@ function LucasApp(_ref) {
       _useState60 = _slicedToArray(_useState59, 2),
       confirm = _useState60[0],
       setConfirm = _useState60[1];
+    var _stAuthCode = useState(visitante.access_code || ''),
+      _stAuthCode2 = _slicedToArray(_stAuthCode, 2),
+      authCode = _stAuthCode2[0],
+      setAuthCode = _stAuthCode2[1];
+    var _stShowCode = useState(false),
+      _stShowCode2 = _slicedToArray(_stShowCode, 2),
+      showCode = _stShowCode2[0],
+      setShowCode = _stShowCode2[1];
     function doAction() {
       if (confirm === 'toggle') toggleVisitante(visitante.id, visitante.autorizado);else if (confirm === 'delete') deleteVisitante(visitante.id);
       setConfirm(null);
     }
+    function doAuthorize() {
+      if (!authCode.trim()) return;
+      authorizeVisitanteWithCode(visitante.id, authCode.trim());
+      setShowCode(false);
+    }
+    if (showCode) return /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: authCode,
+      autoFocus: true,
+      placeholder: "Código de acesso",
+      onChange: function onChange(e) { setAuthCode(e.target.value); },
+      onKeyDown: function onKeyDown(e) { if (e.key === 'Enter') doAuthorize(); },
+      style: { border: '1.5px solid #7b1fa2', borderRadius: 8, padding: '6px 10px', fontSize: 12, width: 130, outline: 'none' }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 5 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() { setShowCode(false); },
+      style: { border: '1.5px solid #ddd', borderRadius: 16, padding: '5px 9px', background: '#f5f5f5', color: '#888', fontWeight: 700, fontSize: 10, cursor: 'pointer' }
+    }, "\u2715"), /*#__PURE__*/React.createElement("button", {
+      onClick: doAuthorize,
+      style: { border: 'none', borderRadius: 16, padding: '5px 9px', background: authCode.trim() ? '#7b1fa2' : '#ccc', color: '#fff', fontWeight: 800, fontSize: 10, cursor: authCode.trim() ? 'pointer' : 'default' }
+    }, "\u2713 Autorizar")));
     if (confirm) return /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -2552,7 +2607,7 @@ function LucasApp(_ref) {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        setConfirm('toggle');
+        if (visitante.autorizado) { setConfirm('toggle'); } else { setShowCode(true); }
       },
       style: {
         border: 'none',
