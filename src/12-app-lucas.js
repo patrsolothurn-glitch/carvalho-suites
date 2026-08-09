@@ -40,7 +40,7 @@ var DAYS_BASE = [{
   tarde: true
 }, {
   key: 'sex',
-  sai: '11:40',
+  sai: '12:40',
   tarde: false
 }];
 var LANGS = {
