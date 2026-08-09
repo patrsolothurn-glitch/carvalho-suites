@@ -423,6 +423,15 @@ function getWeekNumber(d) {
   var yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
   return Math.ceil(((dt - yearStart) / 86400000 + 1) / 7);
 }
+function addMin(hhmm, add) {
+  var parts = hhmm.split(':');
+  var h = parseInt(parts[0], 10),
+    m = parseInt(parts[1], 10);
+  var total = h * 60 + m + add;
+  var nh = Math.floor(total / 60);
+  var nm = total % 60;
+  return nh + ':' + String(nm).padStart(2, '0');
+}
 function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
@@ -1800,7 +1809,7 @@ function LucasApp(_ref) {
       slot: "busca_almoco",
       icon: "\uD83C\uDFE0",
       label: t.saida_grenchen,
-      defaultTime: day.sai,
+      defaultTime: addMin(day.sai, 5),
       subLabel: t.sai_escola,
       subTime: day.sai
     }), /*#__PURE__*/React.createElement(DriveRow, {
@@ -1833,7 +1842,7 @@ function LucasApp(_ref) {
       slot: "busca_fim",
       icon: "\uD83C\uDFE0",
       label: t.saida_grenchen,
-      defaultTime: "16:55",
+      defaultTime: addMin(config.escola_acaba, 5),
       subLabel: t.sai_escola,
       subTime: config.escola_acaba
     }), /*#__PURE__*/React.createElement(DriveRow, {
