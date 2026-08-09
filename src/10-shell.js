@@ -1311,7 +1311,6 @@ function CarvalhoSuite() {
       onBack: goBack
     });
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
-    if (activeApp === 'lucas') return /*#__PURE__*/React.createElement(LucasApp, { supabase: window.supabaseClient, user: profile, isAdmin: isAdmin, isSuperAdmin: !!(profile && profile.member_id === 'patricio'), onBack: goBack });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
@@ -3275,4 +3274,3 @@ function CarvalhoSuite() {
     onNav: nav
   }));
 }
-
