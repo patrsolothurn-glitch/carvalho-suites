@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-v2ef7957e';
+const CACHE = 'carvalho-v81fdca04';
 const ASSETS = [
   './',
   './index.html',
