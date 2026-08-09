@@ -2181,87 +2181,142 @@ function LucasApp(_ref) {
         fontStyle: 'italic',
         padding: '12px 0'
       }
-    }, "Ainda ningu\xE9m se registou") : visitantes.map(function (v) {
-      var dt = new Date(v.criado_em);
-      var dtStr = dt.toLocaleDateString('pt-PT', {
-        day: '2-digit',
-        month: '2-digit'
-      }) + ' ' + dt.toLocaleTimeString('pt-PT', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      return /*#__PURE__*/React.createElement("div", {
+    }, "Ainda ningu\xE9m se registou") : /*#__PURE__*/React.createElement(React.Fragment, null, visitantes.filter(function (v) {
+      return !v.autorizado;
+    }).length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: '#e65100',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+        paddingLeft: 2
+      }
+    }, "\u23F3 Por autorizar (", visitantes.filter(function (v) {
+      return !v.autorizado;
+    }).length, ")"), visitantes.filter(function (v) {
+      return !v.autorizado;
+    }).map(function (v) {
+      return /*#__PURE__*/React.createElement(VisitanteCard, {
         key: v.id,
-        style: {
-          background: '#fff',
-          borderRadius: 12,
-          padding: '12px 14px',
-          marginBottom: 8,
-          border: '2px solid ' + (v.autorizado ? '#7b1fa2' : '#eee'),
-          opacity: v.autorizado ? 1 : 0.85
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          width: 38,
-          height: 38,
-          borderRadius: 19,
-          flexShrink: 0,
-          background: v.autorizado ? '#f3e5f5' : '#f5f5f5',
-          border: '2px solid ' + (v.autorizado ? '#7b1fa2' : '#ddd'),
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 16
-        }
-      }, "\uD83D\uDC4B"), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontWeight: 800,
-          fontSize: 14,
-          color: '#333'
-        }
-      }, v.nome), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10,
-          color: '#aaa'
-        }
-      }, "Pediu acesso: ", dtStr), (v.email || v.telefone || v.turma) && /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 10,
-          color: '#999',
-          marginTop: 3,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 8
-        }
-      }, v.turma && /*#__PURE__*/React.createElement("span", null, "\uD83C\uDF93 ", v.turma), v.telefone && /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCDE ", v.telefone), v.email && /*#__PURE__*/React.createElement("span", null, "\u2709\uFE0F ", v.email))), /*#__PURE__*/React.createElement(VisitanteActions, {
-        visitante: v
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 8,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          paddingLeft: 48
-        }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 10,
-          color: '#bbb'
-        }
-      }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(VisitanteCodeField, {
-        visitante: v
-      })));
+        v: v
+      });
+    })), visitantes.filter(function (v) {
+      return v.autorizado;
+    }).length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 800,
+        color: '#2e7d32',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+        paddingLeft: 2
+      }
+    }, "\u2713 Autorizados (", visitantes.filter(function (v) {
+      return v.autorizado;
+    }).length, ")"), visitantes.filter(function (v) {
+      return v.autorizado;
+    }).map(function (v) {
+      return /*#__PURE__*/React.createElement(VisitanteCard, {
+        key: v.id,
+        v: v
+      });
+    })))));
+  }
+  function VisitanteCard(_ref8) {
+    var v = _ref8.v;
+    var dt = new Date(v.criado_em);
+    var dtStr = dt.toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: '2-digit'
+    }) + ' ' + dt.toLocaleTimeString('pt-PT', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#fff',
+        borderRadius: 12,
+        padding: '12px 14px',
+        marginBottom: 8,
+        border: '2px solid ' + (v.autorizado ? '#7b1fa2' : '#eee'),
+        opacity: v.autorizado ? 1 : 0.85
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        flexShrink: 0,
+        overflow: 'hidden',
+        background: v.autorizado ? '#f3e5f5' : '#f5f5f5',
+        border: '2px solid ' + (v.autorizado ? '#7b1fa2' : '#ddd'),
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 16
+      }
+    }, v.avatar_base64 ? /*#__PURE__*/React.createElement("img", {
+      src: v.avatar_base64,
+      style: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+      }
+    }) : '👋'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 14,
+        color: '#333'
+      }
+    }, v.nome), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: '#aaa'
+      }
+    }, "Pediu acesso: ", dtStr), (v.email || v.telefone || v.turma) && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: '#999',
+        marginTop: 3,
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 8
+      }
+    }, v.turma && /*#__PURE__*/React.createElement("span", null, "\uD83C\uDF93 ", v.turma), v.telefone && /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCDE ", v.telefone), v.email && /*#__PURE__*/React.createElement("span", null, "\u2709\uFE0F ", v.email))), /*#__PURE__*/React.createElement(VisitanteActions, {
+      visitante: v
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        paddingLeft: 48
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: '#bbb'
+      }
+    }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(VisitanteCodeField, {
+      visitante: v
     })));
   }
   function AddVisitante() {
@@ -2392,8 +2447,8 @@ function LucasApp(_ref) {
       }
     }, "\u2713 Adicionar"))));
   }
-  function VisitanteCodeField(_ref8) {
-    var visitante = _ref8.visitante;
+  function VisitanteCodeField(_ref9) {
+    var visitante = _ref9.visitante;
     var _useState55 = useState(false),
       _useState56 = _slicedToArray(_useState55, 2),
       editing = _useState56[0],
@@ -2446,8 +2501,8 @@ function LucasApp(_ref) {
       }
     }, hasCode ? '●●●● ✏️' : '+ Definir');
   }
-  function VisitanteActions(_ref9) {
-    var visitante = _ref9.visitante;
+  function VisitanteActions(_ref0) {
+    var visitante = _ref0.visitante;
     var _useState59 = useState(null),
       _useState60 = _slicedToArray(_useState59, 2),
       confirm = _useState60[0],
@@ -2526,11 +2581,11 @@ function LucasApp(_ref) {
   }
 
   // ── VIEW: HISTÓRICO ──
-  function FiltroSelect(_ref0) {
-    var label = _ref0.label,
-      value = _ref0.value,
-      _onChange = _ref0.onChange,
-      opts = _ref0.opts;
+  function FiltroSelect(_ref1) {
+    var label = _ref1.label,
+      value = _ref1.value,
+      _onChange = _ref1.onChange,
+      opts = _ref1.opts;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
@@ -2568,8 +2623,8 @@ function LucasApp(_ref) {
       }, o.l);
     })));
   }
-  function DriverActions(_ref1) {
-    var driver = _ref1.driver;
+  function DriverActions(_ref10) {
+    var driver = _ref10.driver;
     var _useState61 = useState(null),
       _useState62 = _slicedToArray(_useState61, 2),
       confirm = _useState62[0],
@@ -2669,9 +2724,9 @@ function LucasApp(_ref) {
       }
     }, "\uD83D\uDDD1 Apagar"));
   }
-  function CodeField(_ref10) {
-    var driver = _ref10.driver,
-      onSave = _ref10.onSave;
+  function CodeField(_ref11) {
+    var driver = _ref11.driver,
+      onSave = _ref11.onSave;
     var _useState63 = useState(false),
       _useState64 = _slicedToArray(_useState63, 2),
       editing = _useState64[0],
@@ -2866,10 +2921,10 @@ function LucasApp(_ref) {
       }
     }, "\u2713 Adicionar"))));
   }
-  function WeekBlock(_ref11) {
-    var week = _ref11.week,
-      rows = _ref11.rows,
-      defaultOpen = _ref11.defaultOpen;
+  function WeekBlock(_ref12) {
+    var week = _ref12.week,
+      rows = _ref12.rows,
+      defaultOpen = _ref12.defaultOpen;
     var _useState73 = useState(defaultOpen),
       _useState74 = _slicedToArray(_useState73, 2),
       open = _useState74[0],
