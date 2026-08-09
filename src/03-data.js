@@ -49,7 +49,7 @@ var USERS_DEF = [{
 var PERMS_DEF = {
   patricio: ['horaspr', 'agenda', 'familia', 'nutri', 'escolar', 'subby', 'lucas'],
   esposa: ['familia'],
-  lucas: ['familia', 'escolar'],
+  lucas: ['familia', 'escolar', 'lucas'],
   liam: ['familia']
 };
 
