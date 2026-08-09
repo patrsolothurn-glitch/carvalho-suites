@@ -2235,7 +2235,16 @@ function LucasApp(_ref) {
           fontSize: 10,
           color: '#aaa'
         }
-      }, "Pediu acesso: ", dtStr)), /*#__PURE__*/React.createElement(VisitanteActions, {
+      }, "Pediu acesso: ", dtStr), (v.email || v.telefone || v.turma) && /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          color: '#999',
+          marginTop: 3,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8
+        }
+      }, v.turma && /*#__PURE__*/React.createElement("span", null, "\uD83C\uDF93 ", v.turma), v.telefone && /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCDE ", v.telefone), v.email && /*#__PURE__*/React.createElement("span", null, "\u2709\uFE0F ", v.email))), /*#__PURE__*/React.createElement(VisitanteActions, {
         visitante: v
       })), /*#__PURE__*/React.createElement("div", {
         style: {
