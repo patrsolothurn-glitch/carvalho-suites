@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-09T18:49:32.993Z
+  Gerado em: 2026-08-09T18:52:02.205Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-123";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-124";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -20322,7 +20322,7 @@ function LucasApp(_ref) {
   });
   var isToday = toISO(getMonday(new Date())) === toISO(weekStart);
   var myDriver = drivers.find(function (d) {
-    var uname = (user && (user.member_id || user.display_name) || '').toLowerCase();
+    var uname = (typeof user === 'string' ? user : (user && (user.member_id || user.display_name)) || '').toLowerCase();
     return d.nome.toLowerCase() === uname;
   });
   var myDriverName = myDriver ? myDriver.nome : null;
