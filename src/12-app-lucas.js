@@ -1244,7 +1244,7 @@ function LucasApp(_ref) {
       style: {
         fontSize: 16,
         fontWeight: 800,
-        color: override ? C.exception : '#111'
+        color: '#111'
       }
     }, displayTime), isAdmin && /*#__PURE__*/React.createElement("button", {
       onClick: startEdit,
