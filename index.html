@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-07T21:30:19.559Z
+  Gerado em: 2026-08-09T14:20:34.043Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-120";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-121";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -14786,11 +14786,11 @@ function EscolarApp(_ref31) {
     _useState162 = _slicedToArray(_useState161, 2),
     editKlasseKey = _useState162[0],
     setEditKlasseKey = _useState162[1];
-  var _useState163 = (0, _react.useState)(new Date(2026, 5, 1)),
+  var _useState163 = (0, _react.useState)(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
     _useState164 = _slicedToArray(_useState163, 2),
     calMonth = _useState164[0],
     setCalMonth = _useState164[1];
-  var _useState165 = (0, _react.useState)(null),
+  var _useState165 = (0, _react.useState)(new Date().getDate()),
     _useState166 = _slicedToArray(_useState165, 2),
     selDay = _useState166[0],
     setSelDay = _useState166[1];
@@ -17376,7 +17376,8 @@ function EscolarApp(_ref31) {
     var d = i + 1;
     var tpcs = getDayTPC(d);
     var shared = getDayShared(d);
-    var isToday = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0')) === '2026-06-15';
+    var _todayStr = new Date().toISOString().slice(0, 10);
+    var isToday = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0')) === _todayStr;
     var isSel = selDay === d;
     var hasTPC = tpcs.length > 0;
     var hasShared = shared.length > 0;
