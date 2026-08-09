@@ -437,8 +437,9 @@ function LucasApp(_ref) {
     user = _ref.user,
     isAdmin = _ref.isAdmin,
     isSuperAdmin = _ref.isSuperAdmin,
-    onBack = _ref.onBack;
-  var _useState = useState('plano'),
+    onBack = _ref.onBack,
+    initialView = _ref.initialView;
+  var _useState = useState(initialView || 'plano'),
     _useState2 = _slicedToArray(_useState, 2),
     view = _useState2[0],
     setView = _useState2[1];
@@ -1342,11 +1343,8 @@ function LucasApp(_ref) {
     var dia = _ref2.dia,
       slot = _ref2.slot;
     var key = dia + ':' + slot;
-    var sc = schedule[key] || {};
-    var val = sc.condutor || '';
-    var hasExc = !!sc.hora_override;
-    var isMe = !!(val && myDriverName && val === myDriverName);
-    var col = isMe ? '#e53935' : hasExc ? C.exception : (val ? driverColor[val] || C.green : '#aaa');
+    var val = (schedule[key] || {}).condutor || '';
+    var col = val ? driverColor[val] || C.green : '#aaa';
     var isOV = val === 'ÖV';
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -1632,19 +1630,13 @@ function LucasApp(_ref) {
     var dia = _ref6.dia,
       slot = _ref6.slot,
       label = _ref6.label;
-    var drKey = dia + ':' + slot;
-    var drSc = schedule[drKey] || {};
-    var drIsMe = !!(drSc.condutor && myDriverName && drSc.condutor === myDriverName);
-    var drHasExc = !!drSc.hora_override;
     return /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         alignItems: 'center',
         gap: 6,
         padding: '9px 0',
-        borderBottom: '1px solid ' + C.border,
-        background: drIsMe ? '#fff0f0' : drHasExc ? '#fff8f0' : 'transparent',
-        borderRadius: 6
+        borderBottom: '1px solid ' + C.border
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
@@ -3693,4 +3685,3 @@ function LucasApp(_ref) {
     }));
   })));
 }
-
