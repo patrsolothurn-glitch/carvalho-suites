@@ -1,8 +1,5 @@
 function CarvalhoSuite() {
   useFont();
-  var _deepLinkParams = new URLSearchParams(window.location.search);
-  var deepLinkApp = _deepLinkParams.get('app');
-  var deepLinkView = _deepLinkParams.get('view');
   var _useState177 = (0, _react.useState)('login'),
     _useState178 = _slicedToArray(_useState177, 2),
     screen = _useState178[0],
@@ -816,10 +813,7 @@ function CarvalhoSuite() {
         applyTheme(data.theme || 'dark');
         if (isInitialEntry) {
           var allowed = data.allowed_apps || [];
-          if (deepLinkApp && (data.is_admin || allowed.indexOf(deepLinkApp) !== -1)) {
-            setApp(deepLinkApp);
-            setScreen('app');
-          } else if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
+          if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
             setApp(data.default_app);
             setScreen('app');
           }
@@ -889,7 +883,7 @@ function CarvalhoSuite() {
       setSession(s || null);
       if (s && s.user) {
         fetchProfile(s.user.id, true);
-        if (deepLinkApp) { setApp(deepLinkApp); setScreen('app'); } else { setScreen('hub'); }
+        setScreen('hub');
         loadNotifData();
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') subscribeToPush();
       }
@@ -1317,7 +1311,6 @@ function CarvalhoSuite() {
       onBack: goBack
     });
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
-    if (activeApp === 'lucas') return /*#__PURE__*/React.createElement(LucasApp, { supabase: window.supabaseClient, user: activeUser, isAdmin: isAdmin, isSuperAdmin: isAdmin, onBack: goBack, initialView: deepLinkView });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
