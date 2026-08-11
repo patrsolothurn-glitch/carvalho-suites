@@ -613,7 +613,7 @@ function FamiliaApp(_ref19) {
       }, style)
     }, children);
   };
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
       background: F.bg,
@@ -3487,7 +3487,7 @@ function FamiliaApp(_ref19) {
       cursor: addingEvent ? 'default' : 'pointer',
       boxShadow: addingEvent ? 'none' : "0 4px 14px rgba(232,119,58,0.3)"
     }
-  }, addingEvent ? 'A guardar…' : '✓ Adicionar')))), fotoLightbox && /*#__PURE__*/React.createElement("div", {
+  }, addingEvent ? 'A guardar…' : '✓ Adicionar'))))), fotoLightbox && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() { setFotoLightbox(null); },
     style: {
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
