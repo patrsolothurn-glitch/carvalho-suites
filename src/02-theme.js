@@ -130,11 +130,4 @@ var APPS_DATA = [{
   desc: 'Gestor de subscrições',
   badge: null,
   color: '#6C5CE7'
-}, {
-  id: 'lucas',
-  emoji: '🏫',
-  name: 'Escola Grenchen',
-  desc: 'Plano de transporte do Lucas',
-  badge: null,
-  color: '#7b1fa2'
 }];
