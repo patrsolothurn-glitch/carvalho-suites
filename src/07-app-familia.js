@@ -144,6 +144,10 @@ function FamiliaApp(_ref19) {
     _useStateAddingEvent2 = _slicedToArray(_useStateAddingEvent, 2),
     addingEvent = _useStateAddingEvent2[0],
     setAddingEvent = _useStateAddingEvent2[1];
+  var _useStateFotoLightbox = (0, _react.useState)(null),
+    _useStateFotoLightbox2 = _slicedToArray(_useStateFotoLightbox, 2),
+    fotoLightbox = _useStateFotoLightbox2[0],
+    setFotoLightbox = _useStateFotoLightbox2[1];
   var famStorageGet = function famStorageGet(key) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.get) {
@@ -1780,7 +1784,7 @@ function FamiliaApp(_ref19) {
       }
     }, "\uD83D\uDCDD ", ev.nota), ev.foto && /*#__PURE__*/React.createElement("img", {
       src: ev.foto,
-      onClick: function onClick() { window.open(ev.foto, '_blank'); },
+      onClick: function onClick() { setFotoLightbox(ev.foto); },
       style: {
         width: 56, height: 56, objectFit: 'cover', borderRadius: 10,
         border: "1px solid ".concat(F.border), marginTop: 6, cursor: 'pointer'
@@ -3483,7 +3487,27 @@ function FamiliaApp(_ref19) {
       cursor: addingEvent ? 'default' : 'pointer',
       boxShadow: addingEvent ? 'none' : "0 4px 14px rgba(232,119,58,0.3)"
     }
-  }, addingEvent ? 'A guardar…' : '✓ Adicionar')))));
+  }, addingEvent ? 'A guardar…' : '✓ Adicionar')))), fotoLightbox && /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() { setFotoLightbox(null); },
+    style: {
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.9)', zIndex: 999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: fotoLightbox,
+    style: { maxWidth: '100%', maxHeight: '85vh', borderRadius: 12, objectFit: 'contain' }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() { setFotoLightbox(null); },
+    style: {
+      position: 'fixed', top: 20, right: 20,
+      width: 40, height: 40, borderRadius: '50%',
+      background: 'rgba(255,255,255,0.15)', color: '#fff',
+      border: 'none', fontSize: 20, fontWeight: 900, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }
+  }, "\u2715")));
 }
 
 // ── NUTRIGUIMA ──────────────────────────────────────────────────────
