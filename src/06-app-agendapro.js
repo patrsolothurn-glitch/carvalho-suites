@@ -1949,12 +1949,12 @@ function AgendaProApp(_ref13) {
     return /*#__PURE__*/React.createElement("div", null,
     /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
       /*#__PURE__*/React.createElement("button",{
-        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()-7);setCalSelDay(d.toISOString().slice(0,10));},
+        onClick:function(){var d=new Date(_csd+'T12:00:00');d.setDate(d.getDate()-7);setCalSelDay(d.toISOString().slice(0,10));},
         style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:36,height:36,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
       },"‹"),
       /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:14,color:A.text}},'Sem. '+getWk(selDate)),
       /*#__PURE__*/React.createElement("button",{
-        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()+7);setCalSelDay(d.toISOString().slice(0,10));},
+        onClick:function(){var d=new Date(_csd+'T12:00:00');d.setDate(d.getDate()+7);setCalSelDay(d.toISOString().slice(0,10));},
         style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:36,height:36,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
       },"›")),
     /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:12}},
@@ -1972,9 +1972,9 @@ function AgendaProApp(_ref13) {
         hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
       })),
     /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
-      new Date(calSelDay+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
+      new Date(_csd+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
       /*#__PURE__*/React.createElement("span",{style:{color:A.muted,fontWeight:400,fontSize:11}},' · '+appts.filter(function(a){return a.date===calSelDay;}).length+' marcação(ões)')),
-    renderTimeline(calSelDay));
+    renderTimeline(_csd));
   })()),
 
   calView === 'cal' && /*#__PURE__*/React.createElement("div", {
