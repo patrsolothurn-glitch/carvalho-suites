@@ -2185,12 +2185,24 @@ function AgendaProApp(_ref13) {
                 }, a.proj)
               ),
               /*#__PURE__*/React.createElement("div", { style: { fontWeight: 800, fontSize: 14, color: A.text } }, a.morada),
-              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-                /*#__PURE__*/React.createElement("span", {
-                  style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 6, padding: '2px 7px' }
-                }, st.label),
-                a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: '#16a34a' } },
-                  'CHF ' + a.chf.toFixed(1))
+              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+                /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  /*#__PURE__*/React.createElement("span", {
+                    style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 6, padding: '2px 7px' }
+                  }, st.label),
+                  a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: '#16a34a' } },
+                    'CHF ' + a.chf.toFixed(1))
+                ),
+                /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 6 } },
+                  /*#__PURE__*/React.createElement("button", {
+                    onClick: function(e) { e.stopPropagation(); openForm(a); },
+                    style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                  }, "\u270F\uFE0F"),
+                  /*#__PURE__*/React.createElement("button", {
+                    onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar esta marcação?')) deleteApptWithNotif(a); },
+                    style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                  }, "\uD83D\uDDD1\uFE0F")
+                )
               ));
             })
         )
