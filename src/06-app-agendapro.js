@@ -668,7 +668,17 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    return p.includes('POP') ? A.blue : p.includes('BUDI') ? A.orange : A.gold;
+    if (p.includes('BUDI-2S')) return '#F1C40F';
+    if (p.includes('BUDI-1S')) return '#E74C3C';
+    if (p.includes('BUDI-S'))  return '#27AE60';
+    if (p.includes('BUDI'))    return A.orange;
+    if (p.includes('Nachsch') || p.includes('NACH')) return '#9B59B6';
+    if (p.includes('Magazin') || p.includes('MAG')) return '#2980B9';
+    if (p.includes('GREN05') || p.includes('GR05')) return '#E67E22';
+    if (p.includes('GREN04') || p.includes('GR04')) return '#1ABC9C';
+    if (p.includes('POP'))  return '#3498DB';
+    if (p.includes('STOR') || p.includes('STÖR')) return '#E91E63';
+    return A.gold;
   };
 
   // Filtered list
@@ -2812,9 +2822,12 @@ function AgendaProApp(_ref13) {
         padding: '12px 14px',
         background: A.surface2,
         borderRadius: 14,
-        border: "1px solid ".concat(A.border)
+        border: "1px solid ".concat(A.border),
+        borderLeft: '4px solid ' + projColor(p.name)
       }
     }, /*#__PURE__*/React.createElement("div", {
+      style: { width: 10, height: 10, borderRadius: '50%', background: projColor(p.name), flexShrink: 0 }
+    }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
       }
