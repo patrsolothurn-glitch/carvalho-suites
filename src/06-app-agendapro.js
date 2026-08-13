@@ -144,6 +144,10 @@ function AgendaProApp(_ref13) {
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
+  var _useStateCalSelDay = (0, _react.useState)(new Date().toISOString().slice(0, 10)),
+    _useStateCalSelDay2 = _slicedToArray(_useStateCalSelDay, 2),
+    calSelDay = _useStateCalSelDay2[0],
+    setCalSelDay = _useStateCalSelDay2[1];
   var _useState67 = (0, _react.useState)(false),
     _useState68 = _slicedToArray(_useState67, 2),
     showAdd = _useState68[0],
@@ -660,7 +664,7 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    return p.includes('POP') ? A.blue : p.includes('BUDI') ? A.orange : A.gold;
+    return p.includes('POP') ? A.blue : p.includes('BUDI-2S') ? '#F1C40F' : p.includes('BUDI-1S') ? '#E74C3C' : p.includes('BUDI-S') ? '#27AE60' : p.includes('BUDI') ? A.orange : A.gold;
   };
 
   // Filtered list
@@ -2056,7 +2060,8 @@ function AgendaProApp(_ref13) {
         var hasAppt = appts.some(function (a) {
           return a.date === dStr;
         });
-        var isSel = dStr === todayStr;
+        var isSel = dStr === calSelDay;
+        var isToday2 = dStr === todayStr;
         var isWeekend = di >= 5;
         var statusColors = _toConsumableArray(new Set(appts.filter(function (a) {
           return a.date === dStr;
@@ -2067,15 +2072,16 @@ function AgendaProApp(_ref13) {
         return /*#__PURE__*/React.createElement("div", {
           key: di,
           onClick: function onClick() {
-            return setCurDate(new Date(dStr + 'T12:00:00'));
+            setCurDate(new Date(dStr + 'T12:00:00'));
+            setCalSelDay(dStr);
           },
           style: {
             textAlign: 'center',
             padding: '4px 1px',
             borderRadius: 9,
             cursor: 'pointer',
-            background: isSel ? A.orange : 'transparent',
-            border: hasAppt && !isSel ? "1px solid rgba(217,119,6,0.25)" : '1px solid transparent',
+            background: isSel ? A.orange : isToday2 ? 'rgba(217,119,6,0.15)' : 'transparent',
+            border: isSel ? "1px solid ".concat(A.orange) : hasAppt ? "1px solid rgba(217,119,6,0.25)" : '1px solid transparent',
             minHeight: 38,
             display: 'flex',
             flexDirection: 'column',
@@ -2086,7 +2092,7 @@ function AgendaProApp(_ref13) {
           style: {
             fontSize: 12,
             fontWeight: isSel || hasAppt ? 800 : 400,
-            color: isSel ? '#fff' : isWeekend ? A.orange : A.text,
+            color: isSel ? '#fff' : isToday2 ? A.orange : isWeekend ? A.orange : A.text,
             lineHeight: 1.4
           }
         }, day), hasAppt && !isSel && /*#__PURE__*/React.createElement("div", {
@@ -2126,7 +2132,7 @@ function AgendaProApp(_ref13) {
         fontSize: 13,
         color: A.text
       }
-    }, curDate.toLocaleDateString('pt-PT', {
+    }, new Date(calSelDay + 'T12:00:00').toLocaleDateString('pt-PT', {
       weekday: 'long',
       day: 'numeric',
       month: 'long'
@@ -2139,8 +2145,50 @@ function AgendaProApp(_ref13) {
         fontSize: 12
       }
     }, " \xB7 ", appts.filter(function (a) {
-      return a.date === todayStr;
-    }).length, " marca\xE7\xE3o(\xF5es)"))));
+      return a.date === calSelDay;
+    }).length, " marca\xE7\xE3o(\xF5es)")),
+    // Lista de marcações do dia selecionado
+    appts.filter(function(a) { return a.date === calSelDay; }).length > 0
+      ? /*#__PURE__*/React.createElement("div", { style: { padding: '10px 14px 16px' } },
+          appts.filter(function(a) { return a.date === calSelDay; })
+            .sort(function(a, b) { return (a.horaI || '').localeCompare(b.horaI || ''); })
+            .map(function(a) {
+              var st = STATUS[a.status] || STATUS.aberto;
+              var pc = projColor(a.proj);
+              return /*#__PURE__*/React.createElement("div", {
+                key: a.id,
+                style: {
+                  background: A.surface,
+                  border: '1px solid ' + A.border,
+                  borderLeft: '4px solid ' + pc,
+                  borderRadius: 12,
+                  padding: '10px 14px',
+                  marginBottom: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4
+                }
+              },
+              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted } },
+                  a.horaI && a.horaF ? a.horaI + '\u2013' + a.horaF : ''),
+                /*#__PURE__*/React.createElement("span", {
+                  style: { fontSize: 10, fontWeight: 800, background: pc + '22', color: pc, borderRadius: 6, padding: '2px 7px' }
+                }, a.proj)
+              ),
+              /*#__PURE__*/React.createElement("div", { style: { fontWeight: 800, fontSize: 14, color: A.text } }, a.morada),
+              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                /*#__PURE__*/React.createElement("span", {
+                  style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 6, padding: '2px 7px' }
+                }, st.label),
+                a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: '#16a34a' } },
+                  'CHF ' + a.chf.toFixed(1))
+              ));
+            })
+        )
+      : /*#__PURE__*/React.createElement("div", { style: { padding: '10px 14px 16px', color: A.muted, fontSize: 13 } },
+          "Sem marcações neste dia")
+    ));
   }()), showMonteurs && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
