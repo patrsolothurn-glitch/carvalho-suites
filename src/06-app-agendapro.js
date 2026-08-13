@@ -1248,7 +1248,7 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer',
       fontSize: 16
     }
-  }, "\u2715"))), nextAppt && /*#__PURE__*/React.createElement("div", {
+  }, "\u2715"))), (calView === 'lista' || calView === 'graficos') && nextAppt && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
       return openForm(nextAppt);
     },
@@ -1712,7 +1712,7 @@ function AgendaProApp(_ref13) {
       fontWeight: 700,
       cursor: 'pointer'
     }
-  }, "\uD83D\uDD14 Testar aviso agora")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD14 Testar aviso agora")), (calView === 'lista' || calView === 'graficos') && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px',
       display: 'flex',
@@ -1758,7 +1758,7 @@ function AgendaProApp(_ref13) {
         marginTop: 3
       }
     }, s.v));
-  })), ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
+  })), (calView === 'lista' || calView === 'graficos') && ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
     style: {
       padding: '14px 12px',
       marginTop: 10
