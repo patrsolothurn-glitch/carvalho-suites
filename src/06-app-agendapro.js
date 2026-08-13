@@ -2069,6 +2069,11 @@ function AgendaProApp(_ref13) {
           var _STATUS$a$status;
           return (_STATUS$a$status = STATUS[a.status]) === null || _STATUS$a$status === void 0 ? void 0 : _STATUS$a$status.color;
         }))).slice(0, 3);
+        var MAX_PILLS = 3;
+        var dayApptsSorted = appts.filter(function(a) { return a.date === dStr; })
+          .sort(function(a,b) { return (a.horaI||'').localeCompare(b.horaI||''); });
+        var visibleAppts = dayApptsSorted.slice(0, MAX_PILLS);
+        var moreCount = dayApptsSorted.length - MAX_PILLS;
         return /*#__PURE__*/React.createElement("div", {
           key: di,
           onClick: function onClick() {
@@ -2076,49 +2081,52 @@ function AgendaProApp(_ref13) {
             setCalSelDay(dStr);
           },
           style: {
-            textAlign: 'center',
-            padding: '4px 1px',
-            borderRadius: 9,
+            padding: '3px 2px',
+            borderRadius: 7,
             cursor: 'pointer',
-            background: isSel ? A.orange : isToday2 ? 'rgba(217,119,6,0.15)' : 'transparent',
-            border: isSel ? "1px solid ".concat(A.orange) : hasAppt ? "1px solid rgba(217,119,6,0.25)" : '1px solid transparent',
-            minHeight: 38,
+            background: isSel ? 'rgba(217,119,6,0.1)' : isToday2 ? 'rgba(217,119,6,0.05)' : 'transparent',
+            border: isSel ? '1.5px solid ' + A.orange : isToday2 ? '1.5px solid rgba(217,119,6,0.4)' : '1px solid transparent',
+            minHeight: 76,
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1
-          }
-        }, /*#__PURE__*/React.createElement("span", {
-          style: {
-            fontSize: 12,
-            fontWeight: isSel || hasAppt ? 800 : 400,
-            color: isSel ? '#fff' : isToday2 ? A.orange : isWeekend ? A.orange : A.text,
-            lineHeight: 1.4
-          }
-        }, day), hasAppt && !isSel && /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: 'flex',
             gap: 2,
-            justifyContent: 'center'
+            alignItems: 'stretch',
+            verticalAlign: 'top'
           }
-        }, statusColors.map(function (c, ci) {
-          return /*#__PURE__*/React.createElement("div", {
-            key: ci,
-            style: {
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              background: c
-            }
-          });
-        })), hasAppt && isSel && /*#__PURE__*/React.createElement("div", {
+        },
+        /*#__PURE__*/React.createElement("span", {
           style: {
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.7)'
+            fontSize: 11,
+            fontWeight: isToday2 || isSel ? 900 : 500,
+            color: isToday2 ? A.orange : isSel ? A.orange : isWeekend ? A.orange : A.text,
+            lineHeight: 1.3,
+            textAlign: 'right',
+            paddingRight: 2
           }
-        }));
+        }, day),
+        visibleAppts.map(function(a) {
+          var pc = projColor(a.proj);
+          var stColor = (STATUS[a.status] || STATUS.aberto).color;
+          return /*#__PURE__*/React.createElement("div", {
+            key: a.id,
+            title: a.morada,
+            style: {
+              background: pc,
+              borderRadius: 4,
+              padding: '1px 4px',
+              fontSize: 9,
+              fontWeight: 800,
+              color: pc === '#F1C40F' ? '#333' : '#fff',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              lineHeight: 1.5
+            }
+          }, (a.horaI ? a.horaI.slice(0,5) + ' ' : '') + (a.proj || ''));
+        }),
+        moreCount > 0 && /*#__PURE__*/React.createElement("div", {
+          style: { fontSize: 9, color: A.muted, fontWeight: 700, paddingLeft: 2 }
+        }, '+' + moreCount + ' mais'));
       }));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
