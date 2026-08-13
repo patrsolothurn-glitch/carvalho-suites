@@ -703,11 +703,13 @@ function AgendaProApp(_ref13) {
     if (filter === 'Hoje') return a.date === todayStr;
     if (filter === 'Semana') {
       var d = new Date(a.date + 'T12:00:00');
-      var s = new Date(curDate);
+      var s = new Date();
       var dow0 = s.getDay();
+      s.setHours(0,0,0,0);
       s.setDate(s.getDate() + (dow0 === 0 ? -6 : 1 - dow0) + listWeekOffset * 7);
       var e = new Date(s);
       e.setDate(e.getDate() + 6);
+      e.setHours(23,59,59,999);
       return d >= s && d <= e;
     }
     if (filter === 'Aberto') return a.status === 'aberto';
@@ -1380,8 +1382,9 @@ function AgendaProApp(_ref13) {
   }, "\u2039"),
   /*#__PURE__*/React.createElement("span", { style: { fontSize:12, fontWeight:700, color:A.muted } },
     (function() {
-      var s = new Date(curDate);
+      var s = new Date();
       var dow0 = s.getDay();
+      s.setHours(0,0,0,0);
       s.setDate(s.getDate() + (dow0===0?-6:1-dow0) + listWeekOffset*7);
       var e = new Date(s); e.setDate(s.getDate()+6);
       return s.getDate()+'/'+( s.getMonth()+1)+' \u2013 '+e.getDate()+'/'+(e.getMonth()+1);
