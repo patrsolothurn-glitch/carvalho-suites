@@ -1211,8 +1211,10 @@ function AgendaProApp(_ref13) {
     }
   }, ['hoje','semana','cal'].map(function(v) {
     var labels = {hoje:'Hoje', semana:'Semana', cal:'Mês'};
+    var titles = {hoje:'Vista de hoje com timeline por hora', semana:'Vista semanal com timeline', cal:'Calendário mensal com marcações'};
     return /*#__PURE__*/React.createElement("button", {
       key: v,
+      title: titles[v],
       onClick: function() { setCalView(v); },
       style: {
         background: calView === v ? A.orange : A.surface2,
@@ -1226,6 +1228,7 @@ function AgendaProApp(_ref13) {
       }
     }, labels[v]);
   }), /*#__PURE__*/React.createElement("button", {
+    title: 'Gráficos de ganhos',
     onClick: function onClick() {
       return setCalView(function(v) { return v === 'graficos' ? 'hoje' : 'graficos'; });
     },
@@ -1241,6 +1244,7 @@ function AgendaProApp(_ref13) {
     }
   }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() { setCalView(function(v) { return v === 'lista' ? 'hoje' : 'lista'; }); },
+    title: 'Lista de todas as marcações',
     style: {
       background: calView === 'lista' ? A.orange : A.surface2,
       border: '1px solid rgba(255,255,255,0.08)',
