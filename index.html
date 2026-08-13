@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-13T14:52:56.996Z
+  Gerado em: 2026-08-13T14:54:57.666Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-123";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-124";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -7633,12 +7633,24 @@ function AgendaProApp(_ref13) {
                 }, a.proj)
               ),
               /*#__PURE__*/React.createElement("div", { style: { fontWeight: 800, fontSize: 14, color: A.text } }, a.morada),
-              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-                /*#__PURE__*/React.createElement("span", {
-                  style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 6, padding: '2px 7px' }
-                }, st.label),
-                a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: '#16a34a' } },
-                  'CHF ' + a.chf.toFixed(1))
+              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+                /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                  /*#__PURE__*/React.createElement("span", {
+                    style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 6, padding: '2px 7px' }
+                  }, st.label),
+                  a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: '#16a34a' } },
+                    'CHF ' + a.chf.toFixed(1))
+                ),
+                /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 6 } },
+                  /*#__PURE__*/React.createElement("button", {
+                    onClick: function(e) { e.stopPropagation(); openForm(a); },
+                    style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                  }, "\u270F\uFE0F"),
+                  /*#__PURE__*/React.createElement("button", {
+                    onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar esta marcação?')) deleteApptWithNotif(a); },
+                    style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }
+                  }, "\uD83D\uDDD1\uFE0F")
+                )
               ));
             })
         )
