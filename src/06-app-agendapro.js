@@ -2122,30 +2122,31 @@ function AgendaProApp(_ref13) {
             color: isSel ? '#fff' : isToday3 ? A.orange : isWeekend ? A.orange : A.text,
             lineHeight: 1.4
           }
-        }, day), hasAppt && !isSel && /*#__PURE__*/React.createElement("div", {
-          style: {
-            display: 'flex',
-            gap: 2,
-            justifyContent: 'center'
-          }
-        }, statusColors.map(function (c, ci) {
+        }, day),
+        (function() {
+          var dayA = appts.filter(function(a){ return a.date === dStr; })
+            .sort(function(a,b){ return (a.hi||'').localeCompare(b.hi||''); });
+          if (!dayA.length) return null;
+          var maxShow = 2;
+          var shown = dayA.slice(0, maxShow);
+          var more = dayA.length - maxShow;
           return /*#__PURE__*/React.createElement("div", {
-            key: ci,
-            style: {
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              background: c
-            }
-          });
-        })), hasAppt && isSel && /*#__PURE__*/React.createElement("div", {
-          style: {
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.7)'
-          }
-        }));
+            style: { width:'100%', display:'flex', flexDirection:'column', gap:1, marginTop:1, alignItems:'stretch' }
+          },
+          shown.map(function(a) {
+            var pc = isSel ? 'rgba(255,255,255,0.9)' : projColor(a.proj);
+            var bg = isSel ? 'rgba(255,255,255,0.25)' : pc + '20';
+            return /*#__PURE__*/React.createElement("div", {
+              key: a.id,
+              style: { background: bg, borderLeft: '2px solid ' + pc, borderRadius:'0 3px 3px 0',
+                fontSize: 8, fontWeight: 700, color: isSel ? '#fff' : pc,
+                padding:'1px 3px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.4 }
+            }, (a.hi ? a.hi.slice(0,5) : '') + (a.proj ? ' ' + a.proj : ''));
+          }),
+          more > 0 && /*#__PURE__*/React.createElement("div", {
+            style: { fontSize:8, color: isSel?'rgba(255,255,255,0.7)':A.muted, fontWeight:700, textAlign:'center' }
+          }, '+'+more));
+        })());
       }));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
