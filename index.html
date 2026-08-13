@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-13T15:34:05.484Z
+  Gerado em: 2026-08-13T15:36:02.167Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-127";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-128";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -6659,8 +6659,10 @@ function AgendaProApp(_ref13) {
     }
   }, ['hoje','semana','cal'].map(function(v) {
     var labels = {hoje:'Hoje', semana:'Semana', cal:'Mês'};
+    var titles = {hoje:'Vista de hoje com timeline por hora', semana:'Vista semanal com timeline', cal:'Calendário mensal com marcações'};
     return /*#__PURE__*/React.createElement("button", {
       key: v,
+      title: titles[v],
       onClick: function() { setCalView(v); },
       style: {
         background: calView === v ? A.orange : A.surface2,
@@ -6674,6 +6676,7 @@ function AgendaProApp(_ref13) {
       }
     }, labels[v]);
   }), /*#__PURE__*/React.createElement("button", {
+    title: 'Gráficos de ganhos',
     onClick: function onClick() {
       return setCalView(function(v) { return v === 'graficos' ? 'hoje' : 'graficos'; });
     },
@@ -6689,6 +6692,7 @@ function AgendaProApp(_ref13) {
     }
   }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() { setCalView(function(v) { return v === 'lista' ? 'hoje' : 'lista'; }); },
+    title: 'Lista de todas as marcações',
     style: {
       background: calView === 'lista' ? A.orange : A.surface2,
       border: '1px solid rgba(255,255,255,0.08)',
