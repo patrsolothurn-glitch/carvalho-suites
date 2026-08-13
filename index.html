@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-13T22:08:42.476Z
+  Gerado em: 2026-08-13T22:12:13.452Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-141";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-142";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -6116,15 +6116,15 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    if (p.includes('BUDI-2S')) return '#F1C40F';
-    if (p.includes('BUDI-1S')) return '#E74C3C';
-    if (p.includes('BUDI-S'))  return '#27AE60';
+    if (p.includes('BUDI-2S')) return '#F1C40F';   // amarelo
+    if (p.includes('BUDI-1S')) return '#E74C3C';   // vermelho
+    if (p.includes('BUDI-S'))  return '#27AE60';   // verde escuro
     if (p.includes('BUDI'))    return A.orange;
-    if (p.includes('Nachsch') || p.includes('NACH')) return '#9B59B6';
-    if (p.includes('Magazin') || p.includes('MAG')) return '#2980B9';
-    if (p.includes('GREN05') || p.includes('GR05')) return '#E67E22';
-    if (p.includes('GREN04') || p.includes('GR04')) return '#1ABC9C';
-    if (p.includes('POP'))  return '#3498DB';
+    if (p.includes('Nachsch') || p.includes('NACH')) return '#AB47BC'; // violeta vivo
+    if (p.includes('Magazin') || p.includes('MAG')) return '#0288D1';  // azul vivo
+    if (p.includes('GREN05') || p.includes('GR05')) return '#FF7043';  // laranja vivo
+    if (p.includes('GREN04') || p.includes('GR04')) return '#00ACC1';  // ciano vivo (≠ verde)
+    if (p.includes('POP'))  return '#0288D1';
     if (p.includes('STOR') || p.includes('STÖR')) return '#E91E63';
     return A.gold;
   };
