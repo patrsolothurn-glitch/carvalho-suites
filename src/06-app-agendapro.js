@@ -144,7 +144,7 @@ function AgendaProApp(_ref13) {
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
-  var _useStateCalSelDay = (0, _react.useState)(null),
+  var _useStateCalSelDay = (0, _react.useState)(new Date().toISOString().slice(0, 10)),
     _useStateCalSelDay2 = _slicedToArray(_useStateCalSelDay, 2),
     calSelDay = _useStateCalSelDay2[0],
     setCalSelDay = _useStateCalSelDay2[1];
@@ -3690,7 +3690,12 @@ function AgendaProApp(_ref13) {
     style: { background: 'none', border: 'none', color: A.muted, cursor: 'pointer', fontSize: 18, lineHeight: 1 }
   }, "\u2715")),
   appts.filter(function(a) { return a.date === calSelDay; }).length === 0
-    ? /*#__PURE__*/React.createElement("p", { style: { padding: '16px', color: A.muted, fontSize: 13, textAlign: 'center' } }, "Sem marcações")
+    ? (nextAppt ? /*#__PURE__*/React.createElement("div", { style: { padding: '12px 16px' } },
+        /*#__PURE__*/React.createElement("p", { style: { fontSize: 11, color: A.muted, fontWeight: 700, marginBottom: 4 } }, 'Sem marcações · PRÓXIMO:'),
+        /*#__PURE__*/React.createElement("p", { style: { fontWeight: 800, fontSize: 14, color: A.text } }, nextAppt.morada),
+        /*#__PURE__*/React.createElement("p", { style: { fontSize: 12, color: A.muted, marginTop: 2 } },
+          new Date(nextAppt.date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'numeric',month:'short'})+' · '+(nextAppt.hi||'')+'–'+(nextAppt.hf||''))
+      ) : /*#__PURE__*/React.createElement("p", { style: { padding: '16px', color: A.muted, fontSize: 13, textAlign: 'center' } }, 'Sem marcações'))
     : appts.filter(function(a) { return a.date === calSelDay; })
         .sort(function(a,b) { return (a.hi||'').localeCompare(b.hi||''); })
         .map(function(a) {
