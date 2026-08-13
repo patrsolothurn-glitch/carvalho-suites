@@ -1919,7 +1919,64 @@ function AgendaProApp(_ref13) {
       day: 'numeric',
       month: 'short'
     }), " ", d.tipo === 'feriado' ? '🎌' : d.tipo === 'ferias' ? '🏖' : '✅'));
-  }))), calView === 'cal' && /*#__PURE__*/React.createElement("div", {
+  }))),
+
+  // ── VIEW: HOJE ──────────────────────────────────────────────────────────
+  calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
+    /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
+      /*#__PURE__*/React.createElement("p",{style:{fontWeight:900,fontSize:16,color:A.text}},
+        new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
+      /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2}},
+        appts.filter(function(a){return a.date===todayStr;}).length+' marcação(ões)')),
+    renderTimeline(todayStr)),
+
+  // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
+  calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
+  (function() {
+    var selDate = new Date(calSelDay+'T12:00:00');
+    var dow = (selDate.getDay()+6)%7;
+    var monday = new Date(selDate); monday.setDate(selDate.getDate()-dow);
+    var getWk = function(d) {
+      var dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+      var dy = dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dy);
+      var y1 = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+      return Math.ceil(((dt-y1)/86400000+1)/7);
+    };
+    var week = [];
+    for (var wi=0;wi<7;wi++) { var wd=new Date(monday); wd.setDate(monday.getDate()+wi); week.push(wd); }
+    var dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+      /*#__PURE__*/React.createElement("button",{
+        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()-7);setCalSelDay(d.toISOString().slice(0,10));},
+        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:36,height:36,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
+      },"‹"),
+      /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:14,color:A.text}},'Sem. '+getWk(selDate)),
+      /*#__PURE__*/React.createElement("button",{
+        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()+7);setCalSelDay(d.toISOString().slice(0,10));},
+        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:36,height:36,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
+      },"›")),
+    /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:12}},
+      week.map(function(d,i) {
+        var dStr=d.toISOString().slice(0,10);
+        var isSel=dStr===calSelDay; var isT=dStr===todayStr;
+        var hasDots=appts.some(function(a){return a.date===dStr;});
+        return /*#__PURE__*/React.createElement("div",{
+          key:i,
+          onClick:function(){setCalSelDay(dStr);},
+          style:{textAlign:'center',padding:'6px 2px',borderRadius:10,cursor:'pointer',background:isSel?A.orange:isT?A.orange+'22':A.surface2,border:'1px solid '+(isSel?A.orange:A.border)}
+        },
+        /*#__PURE__*/React.createElement("p",{style:{fontSize:9,fontWeight:700,color:isSel?'#fff':A.muted}},dayNames[i]),
+        /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3}},d.getDate()),
+        hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
+      })),
+    /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
+      new Date(calSelDay+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
+      /*#__PURE__*/React.createElement("span",{style:{color:A.muted,fontWeight:400,fontSize:11}},' · '+appts.filter(function(a){return a.date===calSelDay;}).length+' marcação(ões)')),
+    renderTimeline(calSelDay));
+  })()),
+
+  calView === 'cal' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px'
     }
