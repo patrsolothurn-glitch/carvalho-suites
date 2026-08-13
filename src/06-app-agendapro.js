@@ -1033,6 +1033,59 @@ function AgendaProApp(_ref13) {
       });
     }
   };
+  // ── HELPERS: Timeline ───────────────────────────────────────────────────
+  var parseTimeMin = function(t) {
+    if (!t) return 0;
+    var p = t.split(':'); return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
+  };
+  var renderTimeline = function(dayStr) {
+    var HOUR_PX = 64; var S_H = 7; var E_H = 20;
+    var totalH = (E_H - S_H) * HOUR_PX;
+    var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
+      .map(function(a) {
+        var sMin = parseTimeMin(a.horaI);
+        var eMin = parseTimeMin(a.horaF) || sMin + 60;
+        return {id:a.id,horaI:a.horaI,horaF:a.horaF,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_orig:a,_sMin:sMin,_eMin:eMin,_col:0};
+      }).sort(function(a,b) { return a._sMin - b._sMin; });
+    var cols = [];
+    rawAppts.forEach(function(a) {
+      var c = 0;
+      while (cols[c] !== undefined && cols[c] > a._sMin) c++;
+      cols[c] = a._eMin; a._col = c;
+    });
+    var nCols = Math.max(1, cols.length);
+    var now = new Date(); var nowMin = now.getHours()*60+now.getMinutes();
+    var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
+    var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
+    var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {position:'relative',marginLeft:40,height:totalH,background:A.surface,borderRadius:12,border:'1px solid '+A.border,overflow:'hidden'}
+    },
+    hours.map(function(h) {
+      return /*#__PURE__*/React.createElement("div", {key:h,
+        style:{position:'absolute',top:(h-S_H)*HOUR_PX,left:-40,right:0,display:'flex',alignItems:'flex-start',pointerEvents:'none'}},
+        /*#__PURE__*/React.createElement("span",{style:{width:36,fontSize:9,color:A.muted,fontWeight:700,textAlign:'right',paddingRight:4,lineHeight:1}},String(h).padStart(2,'0')),
+        /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1px',background:'rgba(0,0,0,0.08)',marginTop:4}}));
+    }),
+    rawAppts.map(function(a) {
+      if (a._sMin < S_H*60 || a._sMin > E_H*60) return null;
+      var top = (a._sMin - S_H*60)*HOUR_PX/60;
+      var height = Math.max(28,(a._eMin-a._sMin)*HOUR_PX/60-3);
+      var pc = projColor(a.proj);
+      var st = STATUS[a.status] || STATUS.aberto;
+      var colW = 100/nCols;
+      var origAppt = a._orig;
+      return /*#__PURE__*/React.createElement("div", {key:a.id,
+        onClick:function(){ setCalSelDay(a.date); openForm(origAppt); },
+        style:{position:'absolute',top:top,left:a._col*colW+'%',width:(colW-1)+'%',height:height,background:pc+'22',border:'2px solid '+pc,borderRadius:7,padding:'3px 6px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box'}},
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:9,fontWeight:800,color:pc,lineHeight:1.2}},(a.horaI||'')+(a.horaF?'–'+a.horaF:'')+' · '+(a.proj||'')),
+        height > 40 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:A.text,marginTop:1,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
+        height > 60 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:st.color,fontWeight:700,marginTop:1,background:st.bg,borderRadius:4,padding:'1px 4px',display:'inline-block'}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
+    }),
+    showNow ? /*#__PURE__*/React.createElement("div",{style:{position:'absolute',top:nowTop,left:-40,right:0,display:'flex',alignItems:'center',pointerEvents:'none',zIndex:10}},
+      /*#__PURE__*/React.createElement("div",{style:{width:10,height:10,borderRadius:'50%',background:'#ef4444',marginRight:2,flexShrink:0}}),
+      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:2,background:'#ef4444'}})) : null);
+  };
   var deleteApptWithNotif = function deleteApptWithNotif(a) {
     deleteAppt(a.id);
     sendNotifTo(a.monteur, "\u274C Marca\xE7\xE3o cancelada \u2014 ".concat(a.monteur), "".concat(a.morada, " \xB7 ").concat(a.date, " \xE0s ").concat(a.hi, " foi cancelada"));
@@ -1903,66 +1956,6 @@ function AgendaProApp(_ref13) {
       day: 'numeric',
       month: 'short'
     }), " ", d.tipo === 'feriado' ? '🎌' : d.tipo === 'ferias' ? '🏖' : '✅'));
-  // ── HELPER: parse "HH:MM" → minutos totais ──────────────────────────────
-  var parseTimeMin = function(t) {
-    if (!t) return 0;
-    var p = t.split(':'); return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
-  };
-
-  // ── HELPER: renderTimeline ────────────────────────────────────────────────
-  var renderTimeline = function(dayStr) {
-    var HOUR_PX = 64; var S_H = 7; var E_H = 20;
-    var totalH = (E_H - S_H) * HOUR_PX;
-    var dayAppts = appts.filter(function(a) { return a.date === dayStr; })
-      .map(function(a) {
-        var sMin = parseTimeMin(a.horaI);
-        var eMin = parseTimeMin(a.horaF) || sMin + 60;
-        return {id:a.id,horaI:a.horaI,horaF:a.horaF,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_s:a,_sMin:sMin,_eMin:eMin,_col:0};
-      }).sort(function(a,b) { return a._sMin - b._sMin; });
-    var cols = [];
-    dayAppts.forEach(function(a) {
-      var c = 0;
-      while (cols[c] !== undefined && cols[c] > a._sMin) c++;
-      cols[c] = a._eMin; a._col = c;
-    });
-    var nCols = Math.max(1, cols.length);
-    var now = new Date(); var nowMin = now.getHours()*60+now.getMinutes();
-    var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
-    var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
-    var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
-    return /*#__PURE__*/React.createElement("div", {
-      style: {position:'relative',marginLeft:40,height:totalH,background:A.surface,borderRadius:12,border:'1px solid '+A.border,overflow:'hidden'}
-    },
-    hours.map(function(h) {
-      return /*#__PURE__*/React.createElement("div", {
-        key: h,
-        style: {position:'absolute',top:(h-S_H)*HOUR_PX,left:-40,right:0,display:'flex',alignItems:'flex-start',pointerEvents:'none'}
-      },
-      /*#__PURE__*/React.createElement("span",{style:{width:36,fontSize:9,color:A.muted,fontWeight:700,textAlign:'right',paddingRight:4,lineHeight:1}},String(h).padStart(2,'0')),
-      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1px',background:'rgba(0,0,0,0.06)',marginTop:4}}));
-    }),
-    dayAppts.map(function(a) {
-      if (a._sMin < S_H*60 || a._sMin > E_H*60) return null;
-      var top = (a._sMin - S_H*60)*HOUR_PX/60;
-      var height = Math.max(28,(a._eMin-a._sMin)*HOUR_PX/60-3);
-      var pc = projColor(a.proj);
-      var st = STATUS[a.status] || STATUS.aberto;
-      var colW = 100/nCols;
-      var orig = a._s;
-      return /*#__PURE__*/React.createElement("div", {
-        key: a.id,
-        onClick: function() { setCalSelDay(a.date); openForm(orig); },
-        style: {position:'absolute',top:top,left:a._col*colW+'%',width:(colW-1)+'%',height:height,background:pc+'22',border:'2px solid '+pc,borderRadius:7,padding:'3px 6px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box'}
-      },
-      /*#__PURE__*/React.createElement("div",{style:{fontSize:9,fontWeight:800,color:pc,lineHeight:1.2}},(a.horaI||'')+(a.horaF?'–'+a.horaF:'')+' · '+(a.proj||'')),
-      height > 40 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:A.text,marginTop:1,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
-      height > 60 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:st.color,fontWeight:700,marginTop:1,background:st.bg,borderRadius:4,padding:'1px 4px',display:'inline-block'}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
-    }),
-    showNow ? /*#__PURE__*/React.createElement("div",{style:{position:'absolute',top:nowTop,left:-40,right:0,display:'flex',alignItems:'center',pointerEvents:'none',zIndex:10}},
-      /*#__PURE__*/React.createElement("div",{style:{width:10,height:10,borderRadius:'50%',background:'#ef4444',marginRight:2,flexShrink:0}}),
-      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:2,background:'#ef4444'}})) : null);
-  };
-
   // ── VIEW: HOJE ───────────────────────────────────────────────────────────
   }))), calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
   /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
