@@ -144,6 +144,10 @@ function AgendaProApp(_ref13) {
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
+  var _useStateCalSelDay = (0, _react.useState)(new Date().toISOString().slice(0, 10)),
+    _useStateCalSelDay2 = _slicedToArray(_useStateCalSelDay, 2),
+    calSelDay = _useStateCalSelDay2[0],
+    setCalSelDay = _useStateCalSelDay2[1];
   var _useState67 = (0, _react.useState)(false),
     _useState68 = _slicedToArray(_useState67, 2),
     showAdd = _useState68[0],
