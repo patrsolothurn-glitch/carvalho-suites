@@ -1173,56 +1173,35 @@ function AgendaProApp(_ref13) {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setCalView(function (v) {
-        return v === 'lista' ? 'cal' : 'lista';
-      });
+    title: 'Projetos',
+    onClick: function onClick() { setShowManageProj(true); setEditProjId(null); },
+    style: { background: 'none', border: 'none', color: A.muted, fontSize: 18, cursor: 'pointer', padding: '4px 6px' }
+  }, "\uD83D\uDCC1"), /*#__PURE__*/React.createElement("button", {
+    title: 'Gráficos',
+    onClick: function onClick() { setCalView(calView === 'graficos' ? 'lista' : 'graficos'); },
+    style: { background: 'none', border: 'none', color: calView === 'graficos' ? A.orange : A.muted, fontSize: 18, cursor: 'pointer', padding: '4px 6px' }
+  }, "\uD83D\uDCCA"))),
+  // ── TABS PRINCIPAIS ─────────────────────────────────────────────────────
+  /*#__PURE__*/React.createElement("div", {
+    style: { padding: '8px 16px 0', display: 'flex', gap: 0, background: A.surface2, borderRadius: 14, margin: '8px 16px 0' }
+  }, ['hoje','semana','cal','lista'].map(function(v) {
+    var labels = {hoje:'Hoje', semana:'Semana', cal:'Mês', lista:'Lista'};
+    var icons  = {hoje:'☀️', semana:'📅', cal:'🗓', lista:'📋'};
+    var active = calView === v;
+    return /*#__PURE__*/React.createElement("button", {
+      key: v,
+      onClick: function() { setCalView(v); window.scrollTo({top:0,behavior:'smooth'}); },
+      style: {
+        flex: 1, background: active ? A.orange : 'transparent',
+        border: 'none', borderRadius: 12, padding: '8px 4px',
+        color: active ? '#fff' : A.muted,
+        fontSize: 11, fontWeight: 800, cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1
+      }
     },
-    style: {
-      background: A.surface2,
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 10,
-      padding: '7px 12px',
-      color: A.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, calView === 'lista' ? '📅' : '📋'), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setCalView(function (v) {
-        return v === 'graficos' ? 'lista' : 'graficos';
-      });
-    },
-    style: {
-      background: calView === 'graficos' ? A.orange : A.surface2,
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 10,
-      padding: '7px 12px',
-      color: calView === 'graficos' ? '#fff' : A.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setShowManageProj(true);
-      setEditProjId(null);
-    },
-    style: {
-      background: A.surface2,
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 10,
-      width: 38,
-      height: 38,
-      color: A.muted,
-      fontSize: 16,
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, "\uD83D\uDCC1"))), /*#__PURE__*/React.createElement("div", {
+    /*#__PURE__*/React.createElement("span", {style:{fontSize:14}}, icons[v]),
+    /*#__PURE__*/React.createElement("span", null, labels[v]));
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 16px 0'
     }
