@@ -1237,8 +1237,8 @@ function AgendaProApp(_ref13) {
       caretColor: A.orange
     }
   }), search && /*#__PURE__*/React.createElement("span", {
-    style: {fontSize:11,color:A.orange,fontWeight:700,background:A.orange+'18',borderRadius:6,padding:'2px 7px',marginRight:4}
-  }, filtered.length+(filtered.length!==1?' resultados':' resultado')), search && /*#__PURE__*/React.createElement("button", {
+    style: {fontSize:11,color:A.orange,fontWeight:800,background:A.orange+'22',borderRadius:20,padding:'1px 7px',flexShrink:0}
+  }, filtered.length), search && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setSearch('');
     },
