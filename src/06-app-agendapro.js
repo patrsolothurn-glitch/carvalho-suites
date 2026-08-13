@@ -144,7 +144,7 @@ function AgendaProApp(_ref13) {
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
-  var _useStateCalSelDay = (0, _react.useState)(new Date().toISOString().slice(0, 10)),
+  var _useStateCalSelDay = (0, _react.useState)(null),
     _useStateCalSelDay2 = _slicedToArray(_useStateCalSelDay, 2),
     calSelDay = _useStateCalSelDay2[0],
     setCalSelDay = _useStateCalSelDay2[1];
@@ -1933,7 +1933,8 @@ function AgendaProApp(_ref13) {
   // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
   calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
   (function() {
-    var selDate = new Date(calSelDay+'T12:00:00');
+    var _csd = calSelDay || new Date().toISOString().slice(0,10);
+    var selDate = new Date(_csd+'T12:00:00');
     var dow = (selDate.getDay()+6)%7;
     var monday = new Date(selDate); monday.setDate(selDate.getDate()-dow);
     var getWk = function(d) {
