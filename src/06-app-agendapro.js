@@ -140,7 +140,7 @@ function AgendaProApp(_ref13) {
     _useState64 = _slicedToArray(_useState63, 2),
     curDate = _useState64[0],
     setCurDate = _useState64[1];
-  var _useState65 = (0, _react.useState)('lista'),
+  var _useState65 = (0, _react.useState)('hoje'),
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
@@ -1156,31 +1156,29 @@ function AgendaProApp(_ref13) {
       display: 'flex',
       gap: 8
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, ['hoje','semana','cal'].map(function(v) {
+    var labels = {hoje:'Hoje', semana:'Semana', cal:'Mês'};
+    return /*#__PURE__*/React.createElement("button", {
+      key: v,
+      onClick: function() { setCalView(v); },
+      style: {
+        background: calView === v ? A.orange : A.surface2,
+        border: '1px solid ' + (calView === v ? A.orange : 'rgba(255,255,255,0.08)'),
+        borderRadius: 10,
+        padding: '7px 14px',
+        color: calView === v ? '#fff' : A.muted,
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, labels[v]);
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setCalView(function (v) {
-        return v === 'lista' ? 'cal' : 'lista';
-      });
-    },
-    style: {
-      background: A.surface2,
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: 10,
-      padding: '7px 12px',
-      color: A.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, calView === 'lista' ? '📅' : '📋'), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setCalView(function (v) {
-        return v === 'graficos' ? 'lista' : 'graficos';
-      });
+      return setCalView(function(v) { return v === 'graficos' ? 'hoje' : 'graficos'; });
     },
     style: {
       background: calView === 'graficos' ? A.orange : A.surface2,
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 10,
       padding: '7px 12px',
       color: calView === 'graficos' ? '#fff' : A.muted,
@@ -1189,6 +1187,18 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer'
     }
   }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() { setCalView(function(v) { return v === 'lista' ? 'hoje' : 'lista'; }); },
+    style: {
+      background: calView === 'lista' ? A.orange : A.surface2,
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 10,
+      padding: '7px 12px',
+      color: calView === 'lista' ? '#fff' : A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       setShowManageProj(true);
       setEditProjId(null);
@@ -1893,7 +1903,121 @@ function AgendaProApp(_ref13) {
       day: 'numeric',
       month: 'short'
     }), " ", d.tipo === 'feriado' ? '🎌' : d.tipo === 'ferias' ? '🏖' : '✅'));
-  }))), calView === 'cal' && /*#__PURE__*/React.createElement("div", {
+  // ── HELPER: parse "HH:MM" → minutos totais ──────────────────────────────
+  var parseTimeMin = function(t) {
+    if (!t) return 0;
+    var p = t.split(':'); return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
+  };
+
+  // ── HELPER: renderTimeline ────────────────────────────────────────────────
+  var renderTimeline = function(dayStr) {
+    var HOUR_PX = 64; var S_H = 7; var E_H = 20;
+    var totalH = (E_H - S_H) * HOUR_PX;
+    var dayAppts = appts.filter(function(a) { return a.date === dayStr; })
+      .map(function(a) {
+        var sMin = parseTimeMin(a.horaI);
+        var eMin = parseTimeMin(a.horaF) || sMin + 60;
+        return {id:a.id,horaI:a.horaI,horaF:a.horaF,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_s:a,_sMin:sMin,_eMin:eMin,_col:0};
+      }).sort(function(a,b) { return a._sMin - b._sMin; });
+    var cols = [];
+    dayAppts.forEach(function(a) {
+      var c = 0;
+      while (cols[c] !== undefined && cols[c] > a._sMin) c++;
+      cols[c] = a._eMin; a._col = c;
+    });
+    var nCols = Math.max(1, cols.length);
+    var now = new Date(); var nowMin = now.getHours()*60+now.getMinutes();
+    var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
+    var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
+    var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {position:'relative',marginLeft:40,height:totalH,background:A.surface,borderRadius:12,border:'1px solid '+A.border,overflow:'hidden'}
+    },
+    hours.map(function(h) {
+      return /*#__PURE__*/React.createElement("div", {
+        key: h,
+        style: {position:'absolute',top:(h-S_H)*HOUR_PX,left:-40,right:0,display:'flex',alignItems:'flex-start',pointerEvents:'none'}
+      },
+      /*#__PURE__*/React.createElement("span",{style:{width:36,fontSize:9,color:A.muted,fontWeight:700,textAlign:'right',paddingRight:4,lineHeight:1}},String(h).padStart(2,'0')),
+      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1px',background:'rgba(0,0,0,0.06)',marginTop:4}}));
+    }),
+    dayAppts.map(function(a) {
+      if (a._sMin < S_H*60 || a._sMin > E_H*60) return null;
+      var top = (a._sMin - S_H*60)*HOUR_PX/60;
+      var height = Math.max(28,(a._eMin-a._sMin)*HOUR_PX/60-3);
+      var pc = projColor(a.proj);
+      var st = STATUS[a.status] || STATUS.aberto;
+      var colW = 100/nCols;
+      var orig = a._s;
+      return /*#__PURE__*/React.createElement("div", {
+        key: a.id,
+        onClick: function() { setCalSelDay(a.date); openForm(orig); },
+        style: {position:'absolute',top:top,left:a._col*colW+'%',width:(colW-1)+'%',height:height,background:pc+'22',border:'2px solid '+pc,borderRadius:7,padding:'3px 6px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box'}
+      },
+      /*#__PURE__*/React.createElement("div",{style:{fontSize:9,fontWeight:800,color:pc,lineHeight:1.2}},(a.horaI||'')+(a.horaF?'–'+a.horaF:'')+' · '+(a.proj||'')),
+      height > 40 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:A.text,marginTop:1,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
+      height > 60 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:st.color,fontWeight:700,marginTop:1,background:st.bg,borderRadius:4,padding:'1px 4px',display:'inline-block'}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
+    }),
+    showNow ? /*#__PURE__*/React.createElement("div",{style:{position:'absolute',top:nowTop,left:-40,right:0,display:'flex',alignItems:'center',pointerEvents:'none',zIndex:10}},
+      /*#__PURE__*/React.createElement("div",{style:{width:10,height:10,borderRadius:'50%',background:'#ef4444',marginRight:2,flexShrink:0}}),
+      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:2,background:'#ef4444'}})) : null);
+  };
+
+  // ── VIEW: HOJE ───────────────────────────────────────────────────────────
+  }))), calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
+  /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
+    /*#__PURE__*/React.createElement("p",{style:{fontWeight:900,fontSize:16,color:A.text}},
+      new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
+    /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2}},
+      appts.filter(function(a){return a.date===todayStr;}).length+' marcação(ões)')
+  ),
+  renderTimeline(todayStr)),
+
+  // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
+  calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
+  (function() {
+    var selDate = new Date(calSelDay+'T12:00:00');
+    var dow = (selDate.getDay()+6)%7;
+    var monday = new Date(selDate); monday.setDate(selDate.getDate()-dow);
+    var getWk = function(d) {
+      var dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+      var dy = dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dy);
+      var y1 = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+      return Math.ceil(((dt-y1)/86400000+1)/7);
+    };
+    var week = [];
+    for (var wi=0;wi<7;wi++) { var wd=new Date(monday); wd.setDate(monday.getDate()+wi); week.push(wd); }
+    var dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
+      /*#__PURE__*/React.createElement("button",{
+        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()-7);setCalSelDay(d.toISOString().slice(0,10));},
+        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:32,height:32,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
+      },"‹"),
+      /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:14,color:A.text}},'Sem. '+getWk(selDate)),
+      /*#__PURE__*/React.createElement("button",{
+        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()+7);setCalSelDay(d.toISOString().slice(0,10));},
+        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:32,height:32,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
+      },"›")),
+    /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:12}},
+      week.map(function(d,i) {
+        var dStr=d.toISOString().slice(0,10);
+        var isSel=dStr===calSelDay; var isT=dStr===todayStr;
+        var hasDots=appts.some(function(a){return a.date===dStr;});
+        return /*#__PURE__*/React.createElement("div",{
+          key:i,
+          onClick:function(){setCalSelDay(dStr);},
+          style:{textAlign:'center',padding:'6px 4px',borderRadius:10,cursor:'pointer',background:isSel?A.orange:isT?A.orange+'22':A.surface2,border:'1px solid '+(isSel?A.orange:A.border)}
+        },
+        /*#__PURE__*/React.createElement("p",{style:{fontSize:9,fontWeight:700,color:isSel?'#fff':A.muted}},dayNames[i]),
+        /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3}},d.getDate()),
+        hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
+      })),
+    /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
+      new Date(calSelDay+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
+      /*#__PURE__*/React.createElement("span",{style:{color:A.muted,fontWeight:400,fontSize:11}},' · '+appts.filter(function(a){return a.date===calSelDay;}).length+' marcação(ões)')),
+    renderTimeline(calSelDay));
+  })()), calView === 'cal' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px'
     }
