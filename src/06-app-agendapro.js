@@ -1370,7 +1370,10 @@ function AgendaProApp(_ref13) {
     return /*#__PURE__*/React.createElement("button", {
       key: f,
       onClick: function onClick() {
-        return setFilter(f);
+        setFilter(f);
+        if (f === 'Semana') { setCalView('semana'); window.scrollTo({top:0,behavior:'smooth'}); }
+        else if (f === 'Hoje') { setCalView('hoje'); window.scrollTo({top:0,behavior:'smooth'}); }
+        else if (calView === 'semana' || calView === 'hoje') { setCalView('lista'); }
       },
       style: {
         background: filter === f ? A.orange : A.surface,
