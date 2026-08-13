@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-13T21:31:31.969Z
+  Gerado em: 2026-08-13T21:35:54.719Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-136";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-137";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -5600,6 +5600,10 @@ function AgendaProApp(_ref13) {
     _useStateGanhoOffset2 = _slicedToArray(_useStateGanhoOffset, 2),
     ganhoWeekOffset = _useStateGanhoOffset2[0],
     setGanhoWeekOffset = _useStateGanhoOffset2[1];
+  var _useStateListWeekOff = (0, _react.useState)(0),
+    _useStateListWeekOff2 = _slicedToArray(_useStateListWeekOff, 2),
+    listWeekOffset = _useStateListWeekOff2[0],
+    setListWeekOffset = _useStateListWeekOff2[1];
   var _useStateHorasDiaOffset = (0, _react.useState)(0),
     _useStateHorasDiaOffset2 = _slicedToArray(_useStateHorasDiaOffset, 2),
     horasDiaOffset = _useStateHorasDiaOffset2[0],
@@ -6149,7 +6153,7 @@ function AgendaProApp(_ref13) {
       var d = new Date(a.date + 'T12:00:00');
       var s = new Date(curDate);
       var dow0 = s.getDay();
-      s.setDate(s.getDate() + (dow0 === 0 ? -6 : 1 - dow0));
+      s.setDate(s.getDate() + (dow0 === 0 ? -6 : 1 - dow0) + listWeekOffset * 7);
       var e = new Date(s);
       e.setDate(e.getDate() + 6);
       return d >= s && d <= e;
@@ -6813,7 +6817,32 @@ function AgendaProApp(_ref13) {
         flexShrink: 0
       }
     }, f);
-  })), /*#__PURE__*/React.createElement("div", {
+  })),
+  // ── Setas semana quando filtro === 'Semana' ──────────────────────────
+  filter === 'Semana' && /*#__PURE__*/React.createElement("div", {
+    style: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 16px 2px' }
+  },
+  /*#__PURE__*/React.createElement("button", {
+    onClick: function() { setListWeekOffset(function(o){ return o-1; }); },
+    style: { background:A.surface2, border:'1px solid '+A.border, borderRadius:8, width:32, height:32, cursor:'pointer', color:A.orange, fontSize:16, fontWeight:800 }
+  }, "\u2039"),
+  /*#__PURE__*/React.createElement("span", { style: { fontSize:12, fontWeight:700, color:A.muted } },
+    (function() {
+      var s = new Date(curDate);
+      var dow0 = s.getDay();
+      s.setDate(s.getDate() + (dow0===0?-6:1-dow0) + listWeekOffset*7);
+      var e = new Date(s); e.setDate(s.getDate()+6);
+      return s.getDate()+'/'+( s.getMonth()+1)+' \u2013 '+e.getDate()+'/'+(e.getMonth()+1);
+    })()),
+  listWeekOffset !== 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: function() { setListWeekOffset(0); },
+    style: { background:'none', border:'none', fontSize:10, color:A.orange, cursor:'pointer', fontWeight:700 }
+  }, "Hoje"),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: function() { setListWeekOffset(function(o){ return o+1; }); },
+    style: { background:A.surface2, border:'1px solid '+A.border, borderRadius:8, width:32, height:32, cursor:'pointer', color:A.orange, fontSize:16, fontWeight:800 }
+  }, "\u203a")),
+  /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 10px',
       display: 'flex',
