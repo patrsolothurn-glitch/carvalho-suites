@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-13T18:44:58.175Z
+  Gerado em: 2026-08-13T21:31:31.969Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-135";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-136";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -7506,7 +7506,8 @@ function AgendaProApp(_ref13) {
         var hasAppt = appts.some(function (a) {
           return a.date === dStr;
         });
-        var isSel = dStr === todayStr;
+        var isSel = dStr === calSelDay;
+        var isToday3 = dStr === todayStr;
         var isWeekend = di >= 5;
         var statusColors = _toConsumableArray(new Set(appts.filter(function (a) {
           return a.date === dStr;
@@ -7517,15 +7518,16 @@ function AgendaProApp(_ref13) {
         return /*#__PURE__*/React.createElement("div", {
           key: di,
           onClick: function onClick() {
-            return setCurDate(new Date(dStr + 'T12:00:00'));
+            setCurDate(new Date(dStr + 'T12:00:00'));
+            setCalSelDay(calSelDay === dStr ? null : dStr);
           },
           style: {
             textAlign: 'center',
             padding: '4px 1px',
             borderRadius: 9,
             cursor: 'pointer',
-            background: isSel ? A.orange : 'transparent',
-            border: hasAppt && !isSel ? "1px solid rgba(217,119,6,0.25)" : '1px solid transparent',
+            background: isSel ? A.orange : isToday3 ? 'rgba(217,119,6,0.12)' : 'transparent',
+            border: isSel ? '2px solid '+A.orange : hasAppt ? '1px solid rgba(217,119,6,0.3)' : '1px solid transparent',
             minHeight: 38,
             display: 'flex',
             flexDirection: 'column',
@@ -7536,7 +7538,7 @@ function AgendaProApp(_ref13) {
           style: {
             fontSize: 12,
             fontWeight: isSel || hasAppt ? 800 : 400,
-            color: isSel ? '#fff' : isWeekend ? A.orange : A.text,
+            color: isSel ? '#fff' : isToday3 ? A.orange : isWeekend ? A.orange : A.text,
             lineHeight: 1.4
           }
         }, day), hasAppt && !isSel && /*#__PURE__*/React.createElement("div", {
@@ -9024,7 +9026,54 @@ function AgendaProApp(_ref13) {
         style: { fontSize: 10, color: A.muted, fontWeight: 700 }
       }, "S", wi + 1));
     }))));
-  })(), /*#__PURE__*/React.createElement("div", {
+  })(),
+
+  // ── PAINEL: marcações do dia selecionado (calView 'cal') ────────────────
+  calView === 'cal' && calSelDay && /*#__PURE__*/React.createElement("div", {
+    style: { padding: '0 16px 16px' }
+  },
+  /*#__PURE__*/React.createElement("div", {
+    style: { background: A.surface, borderRadius: 14, border: '1px solid ' + A.border, overflow: 'hidden' }
+  },
+  /*#__PURE__*/React.createElement("div", {
+    style: { padding: '12px 16px 10px', borderBottom: '1px solid ' + A.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
+  },
+  /*#__PURE__*/React.createElement("p", { style: { fontWeight: 800, fontSize: 14, color: A.text } },
+    new Date(calSelDay + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^\w/, function(c){ return c.toUpperCase(); })),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: function() { setCalSelDay(null); },
+    style: { background: 'none', border: 'none', color: A.muted, cursor: 'pointer', fontSize: 18, lineHeight: 1 }
+  }, "\u2715")),
+  appts.filter(function(a) { return a.date === calSelDay; }).length === 0
+    ? /*#__PURE__*/React.createElement("p", { style: { padding: '16px', color: A.muted, fontSize: 13, textAlign: 'center' } }, "Sem marcações")
+    : appts.filter(function(a) { return a.date === calSelDay; })
+        .sort(function(a,b) { return (a.hi||'').localeCompare(b.hi||''); })
+        .map(function(a) {
+          var pc = projColor(a.proj);
+          var st = STATUS[a.status] || STATUS.aberto;
+          return /*#__PURE__*/React.createElement("div", {
+            key: a.id,
+            style: { padding: '10px 16px', borderBottom: '1px solid ' + A.border + '80', borderLeft: '3px solid ' + pc }
+          },
+          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
+            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted, fontWeight: 600 } }, (a.hi||'') + (a.hf ? '\u2013' + a.hf : '')),
+              /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 800, background: pc + '20', color: pc, borderRadius: 5, padding: '1px 6px' } }, a.proj)),
+            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: '#16a34a' } }, a.chf > 0 ? 'CHF ' + a.chf.toFixed(0) : ''),
+              /*#__PURE__*/React.createElement("button", {
+                onClick: function(e) { e.stopPropagation(); openForm(a); },
+                style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
+              }, "\u270F\uFE0F"),
+              /*#__PURE__*/React.createElement("button", {
+                onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar?')) deleteApptWithNotif(a); },
+                style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
+              }, "\uD83D\uDDD1\uFE0F"))),
+          /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13, color: A.text } }, a.morada),
+          /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 5, padding: '1px 6px' } }, st.label));
+        }))),
+
+  calView === 'lista' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
