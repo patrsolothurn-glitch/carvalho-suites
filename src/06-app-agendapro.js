@@ -1043,9 +1043,9 @@ function AgendaProApp(_ref13) {
     var totalH = (E_H - S_H) * HOUR_PX;
     var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
       .map(function(a) {
-        var sMin = parseTimeMin(a.horaI);
-        var eMin = parseTimeMin(a.horaF) || sMin + 60;
-        return {id:a.id,horaI:a.horaI,horaF:a.horaF,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_orig:a,_sMin:sMin,_eMin:eMin,_col:0};
+        var sMin = parseTimeMin(a.hi);
+        var eMin = parseTimeMin(a.hf) || sMin + 60;
+        return {id:a.id,hi:a.hi,hf:a.hf,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_orig:a,_sMin:sMin,_eMin:eMin,_col:0};
       }).sort(function(a,b) { return a._sMin - b._sMin; });
     var cols = [];
     rawAppts.forEach(function(a) {
@@ -1078,7 +1078,7 @@ function AgendaProApp(_ref13) {
       return /*#__PURE__*/React.createElement("div", {key:a.id,
         onClick:function(){ setCalSelDay(a.date); openForm(origAppt); },
         style:{position:'absolute',top:top,left:a._col*colW+'%',width:(colW-1)+'%',height:height,background:pc+'22',border:'2px solid '+pc,borderRadius:7,padding:'3px 6px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box'}},
-        /*#__PURE__*/React.createElement("div",{style:{fontSize:9,fontWeight:800,color:pc,lineHeight:1.2}},(a.horaI||'')+(a.horaF?'–'+a.horaF:'')+' · '+(a.proj||'')),
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:9,fontWeight:800,color:pc,lineHeight:1.2}},(a.hi||'')+(a.hf?'–'+a.hf:'')+' · '+(a.proj||'')),
         height > 40 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,fontWeight:700,color:A.text,marginTop:1,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
         height > 60 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:st.color,fontWeight:700,marginTop:1,background:st.bg,borderRadius:4,padding:'1px 4px',display:'inline-block'}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
     }),
@@ -2192,7 +2192,7 @@ function AgendaProApp(_ref13) {
         }))).slice(0, 3);
         var MAX_PILLS = 3;
         var dayApptsSorted = appts.filter(function(a) { return a.date === dStr; })
-          .sort(function(a,b) { return (a.horaI||'').localeCompare(b.horaI||''); });
+          .sort(function(a,b) { return (a.hi||'').localeCompare(b.horaI||''); });
         var visibleAppts = dayApptsSorted.slice(0, MAX_PILLS);
         var moreCount = dayApptsSorted.length - MAX_PILLS;
         return /*#__PURE__*/React.createElement("div", {
@@ -2243,7 +2243,7 @@ function AgendaProApp(_ref13) {
               textOverflow: 'ellipsis',
               lineHeight: 1.5
             }
-          }, (a.horaI ? a.horaI.slice(0,5) + ' ' : '') + (a.proj || ''));
+          }, (a.hi ? a.hi.slice(0,5) + ' ' : '') + (a.proj || ''));
         }),
         moreCount > 0 && /*#__PURE__*/React.createElement("div", {
           style: { fontSize: 9, color: A.muted, fontWeight: 700, paddingLeft: 2 }
@@ -2280,7 +2280,7 @@ function AgendaProApp(_ref13) {
     appts.filter(function(a) { return a.date === calSelDay; }).length > 0
       ? /*#__PURE__*/React.createElement("div", { style: { padding: '10px 14px 16px' } },
           appts.filter(function(a) { return a.date === calSelDay; })
-            .sort(function(a, b) { return (a.horaI || '').localeCompare(b.horaI || ''); })
+            .sort(function(a, b) { return (a.hi || '').localeCompare(b.horaI || ''); })
             .map(function(a) {
               var st = STATUS[a.status] || STATUS.aberto;
               var pc = projColor(a.proj);
@@ -2300,7 +2300,7 @@ function AgendaProApp(_ref13) {
               },
               /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
                 /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted } },
-                  a.horaI && a.horaF ? a.horaI + '\u2013' + a.horaF : ''),
+                  a.hi && a.hf ? a.hi + '\u2013' + a.hf : ''),
                 /*#__PURE__*/React.createElement("span", {
                   style: { fontSize: 10, fontWeight: 800, background: pc + '22', color: pc, borderRadius: 6, padding: '2px 7px' }
                 }, a.proj)
