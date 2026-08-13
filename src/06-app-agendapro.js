@@ -1345,7 +1345,7 @@ function AgendaProApp(_ref13) {
       gap: 7,
       overflowX: 'auto'
     }
-  }, ['Todos', 'Hoje', 'Semana', 'Aberto', 'Em curso', 'Concluído', 'Problema'].map(function (f) {
+  }, (calView === 'lista' || calView === 'graficos') && ['Todos', 'Hoje', 'Semana', 'Aberto', 'Em curso', 'Concluído', 'Problema'].map(function (f) {
     return /*#__PURE__*/React.createElement("button", {
       key: f,
       onClick: function onClick() {
@@ -1464,7 +1464,7 @@ function AgendaProApp(_ref13) {
         marginTop: 2
       }
     }, t.sub));
-  })), /*#__PURE__*/React.createElement("div", {
+  })), (calView === 'lista' || calView === 'graficos') && /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '0 16px 10px',
       background: avisosAtivos ? 'rgba(22,163,74,0.07)' : 'rgba(0,0,0,0.04)',
