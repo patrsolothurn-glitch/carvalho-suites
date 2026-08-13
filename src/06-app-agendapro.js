@@ -1059,13 +1059,13 @@ function AgendaProApp(_ref13) {
     var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
     var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
     return /*#__PURE__*/React.createElement("div", {
-      style: {position:'relative',marginLeft:40,height:totalH,background:A.surface,borderRadius:12,border:'1px solid '+A.border,overflow:'hidden'}
+      style: {position:'relative',marginLeft:40,height:totalH,background:'#fff',borderRadius:12,border:'1px solid #e5e7eb',overflow:'hidden'}
     },
     hours.map(function(h) {
       return /*#__PURE__*/React.createElement("div", {key:h,
         style:{position:'absolute',top:(h-S_H)*HOUR_PX,left:-40,right:0,display:'flex',alignItems:'flex-start',pointerEvents:'none'}},
         /*#__PURE__*/React.createElement("span",{style:{width:36,fontSize:9,color:A.muted,fontWeight:700,textAlign:'right',paddingRight:4,lineHeight:1}},String(h).padStart(2,'0')),
-        /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1px',background:'rgba(0,0,0,0.08)',marginTop:4}}));
+        /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1px',background:'rgba(0,0,0,0.12)',marginTop:4}}));
     }),
     rawAppts.map(function(a) {
       if (a._sMin < S_H*60 || a._sMin > E_H*60) return null;
@@ -3759,7 +3759,7 @@ function AgendaProApp(_ref13) {
         style: { fontSize: 10, color: A.muted, fontWeight: 700 }
       }, "S", wi + 1));
     }))));
-  })(), /*#__PURE__*/React.createElement("div", {
+  })(), ['hoje','semana'].indexOf(calView) === -1 && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
