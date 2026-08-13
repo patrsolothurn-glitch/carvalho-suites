@@ -2246,21 +2246,22 @@ function AgendaProApp(_ref13) {
         }, day),
         visibleAppts.map(function(a) {
           var pc = projColor(a.proj);
-          var stColor = (STATUS[a.status] || STATUS.aberto).color;
+          var textColor = pc === '#F1C40F' ? '#7a6000' : pc;
           return /*#__PURE__*/React.createElement("div", {
             key: a.id,
-            title: a.morada,
+            title: a.hi + (a.hf ? '–'+a.hf : '') + ' · ' + a.morada,
             style: {
-              background: pc,
-              borderRadius: 4,
-              padding: '1px 4px',
+              background: pc + '18',
+              borderLeft: '2.5px solid ' + pc,
+              borderRadius: '0 4px 4px 0',
+              padding: '1px 5px',
               fontSize: 9,
-              fontWeight: 800,
-              color: pc === '#F1C40F' ? '#333' : '#fff',
+              fontWeight: 700,
+              color: textColor,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              lineHeight: 1.5
+              lineHeight: 1.6
             }
           }, (a.hi ? a.hi.slice(0,5) + ' ' : '') + (a.proj || ''));
         }),
