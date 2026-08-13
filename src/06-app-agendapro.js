@@ -668,15 +668,15 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    if (p.includes('BUDI-2S')) return '#F1C40F';
-    if (p.includes('BUDI-1S')) return '#E74C3C';
-    if (p.includes('BUDI-S'))  return '#27AE60';
+    if (p.includes('BUDI-2S')) return '#F1C40F';   // amarelo
+    if (p.includes('BUDI-1S')) return '#E74C3C';   // vermelho
+    if (p.includes('BUDI-S'))  return '#27AE60';   // verde escuro
     if (p.includes('BUDI'))    return A.orange;
-    if (p.includes('Nachsch') || p.includes('NACH')) return '#9B59B6';
-    if (p.includes('Magazin') || p.includes('MAG')) return '#2980B9';
-    if (p.includes('GREN05') || p.includes('GR05')) return '#E67E22';
-    if (p.includes('GREN04') || p.includes('GR04')) return '#1ABC9C';
-    if (p.includes('POP'))  return '#3498DB';
+    if (p.includes('Nachsch') || p.includes('NACH')) return '#AB47BC'; // violeta vivo
+    if (p.includes('Magazin') || p.includes('MAG')) return '#0288D1';  // azul vivo
+    if (p.includes('GREN05') || p.includes('GR05')) return '#FF7043';  // laranja vivo
+    if (p.includes('GREN04') || p.includes('GR04')) return '#00ACC1';  // ciano vivo (≠ verde)
+    if (p.includes('POP'))  return '#0288D1';
     if (p.includes('STOR') || p.includes('STÖR')) return '#E91E63';
     return A.gold;
   };
