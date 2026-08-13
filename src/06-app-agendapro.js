@@ -140,14 +140,10 @@ function AgendaProApp(_ref13) {
     _useState64 = _slicedToArray(_useState63, 2),
     curDate = _useState64[0],
     setCurDate = _useState64[1];
-  var _useState65 = (0, _react.useState)('hoje'),
+  var _useState65 = (0, _react.useState)('lista'),
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
-  var _useStateCalSelDay = (0, _react.useState)(new Date().toISOString().slice(0, 10)),
-    _useStateCalSelDay2 = _slicedToArray(_useStateCalSelDay, 2),
-    calSelDay = _useStateCalSelDay2[0],
-    setCalSelDay = _useStateCalSelDay2[1];
   var _useState67 = (0, _react.useState)(false),
     _useState68 = _slicedToArray(_useState67, 2),
     showAdd = _useState68[0],
@@ -664,7 +660,7 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    return p.includes('POP') ? A.blue : p.includes('BUDI-2S') ? '#F1C40F' : p.includes('BUDI-1S') ? '#E74C3C' : p.includes('BUDI-S') ? '#27AE60' : p.includes('BUDI') ? A.orange : A.gold;
+    return p.includes('POP') ? A.blue : p.includes('BUDI') ? A.orange : A.gold;
   };
 
   // Filtered list
@@ -1033,78 +1029,6 @@ function AgendaProApp(_ref13) {
       });
     }
   };
-  // ── HELPERS: Timeline ───────────────────────────────────────────────────
-  var parseTimeMin = function(t) {
-    if (!t) return 0;
-    var p = t.split(':'); return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
-  };
-  var renderTimeline = function(dayStr) {
-    var HOUR_PX = 56; var S_H = 7; var E_H = 20;
-    var totalH = (E_H - S_H) * HOUR_PX;
-    var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
-      .map(function(a) {
-        var sMin = parseTimeMin(a.hi);
-        var eMin = parseTimeMin(a.hf) || sMin + 60;
-        return {id:a.id,hi:a.hi,hf:a.hf,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_orig:a,_sMin:sMin,_eMin:eMin,_col:0};
-      }).sort(function(a,b) { return a._sMin - b._sMin; });
-    var cols = [];
-    rawAppts.forEach(function(a) {
-      var c = 0;
-      while (cols[c] !== undefined && cols[c] > a._sMin) c++;
-      cols[c] = a._eMin; a._col = c;
-    });
-    var nCols = Math.max(1, cols.length);
-    var now = new Date(); var nowMin = now.getHours()*60+now.getMinutes();
-    var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
-    var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
-    var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
-    return /*#__PURE__*/React.createElement("div", {
-      style: {display:'flex',gap:0,background:'#fff',borderRadius:14,border:'1px solid #e8e8e8',overflow:'hidden',boxShadow:'0 1px 8px rgba(0,0,0,0.06)'}
-    },
-    // Coluna de horas
-    /*#__PURE__*/React.createElement("div", {
-      style: {width:48,flexShrink:0,position:'relative',height:totalH,borderRight:'1px solid #f0f0f0',background:'#fafafa'}
-    },
-    hours.map(function(h) {
-      return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h-S_H)*HOUR_PX-6,right:8,fontSize:10,color:'#aaa',fontWeight:600,letterSpacing:'-0.3px'}},
-        String(h).padStart(2,'0'));
-    })),
-    // Área de marcações
-    /*#__PURE__*/React.createElement("div", {
-      style: {flex:1,position:'relative',height:totalH}
-    },
-    // Linhas de hora
-    hours.map(function(h) {
-      return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h-S_H)*HOUR_PX,left:0,right:0,height:1,background:h===S_H?'transparent':'#f0f0f0',pointerEvents:'none'}});
-    }),
-    // Marcações
-    rawAppts.map(function(a) {
-      if (a._sMin < S_H*60 || a._sMin >= E_H*60) return null;
-      var top = (a._sMin - S_H*60)*HOUR_PX/60;
-      var height = Math.max(32,(a._eMin-a._sMin)*HOUR_PX/60-2);
-      var pc = projColor(a.proj);
-      var st = STATUS[a.status] || STATUS.aberto;
-      var colW = 100/nCols;
-      var origAppt = a._orig;
-      return /*#__PURE__*/React.createElement("div", {key:a.id,
-        onClick:function(){ setCalSelDay(a.date); openForm(origAppt); },
-        style:{position:'absolute',top:top+1,left:'calc('+a._col*colW+'% + 4px)',width:'calc('+colW+'% - 8px)',height:height-2,
-          background:'#fff',borderLeft:'3px solid '+pc,borderRadius:'0 8px 8px 0',
-          padding:'4px 8px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box',
-          boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}},
-        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:5}},
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:10,fontWeight:700,color:pc}},(a.hi||'')+(a.hf?'–'+a.hf:'')),
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
-        height > 44 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:11,fontWeight:600,color:'#333',marginTop:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
-        height > 62 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:st.color,marginTop:2}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
-    }),
-    // Linha da hora atual
-    showNow ? /*#__PURE__*/React.createElement("div",{style:{position:'absolute',top:nowTop,left:0,right:0,display:'flex',alignItems:'center',pointerEvents:'none',zIndex:10}},
-      /*#__PURE__*/React.createElement("div",{style:{width:8,height:8,borderRadius:'50%',background:'#ef4444',flexShrink:0,marginLeft:-4}}),
-      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1.5px',background:'#ef4444'}})) : null));
-  };
   var deleteApptWithNotif = function deleteApptWithNotif(a) {
     deleteAppt(a.id);
     sendNotifTo(a.monteur, "\u274C Marca\xE7\xE3o cancelada \u2014 ".concat(a.monteur), "".concat(a.morada, " \xB7 ").concat(a.date, " \xE0s ").concat(a.hi, " foi cancelada"));
@@ -1228,32 +1152,31 @@ function AgendaProApp(_ref13) {
       display: 'flex',
       gap: 8
     }
-  }, ['hoje','semana','cal'].map(function(v) {
-    var labels = {hoje:'Hoje', semana:'Semana', cal:'Mês'};
-    var titles = {hoje:'Vista de hoje com timeline por hora', semana:'Vista semanal com timeline', cal:'Calendário mensal com marcações'};
-    return /*#__PURE__*/React.createElement("button", {
-      key: v,
-      title: titles[v],
-      onClick: function() { setCalView(v); window.scrollTo({top:0,behavior:'smooth'}); },
-      style: {
-        background: calView === v ? A.orange : A.surface2,
-        border: '1px solid ' + (calView === v ? A.orange : 'rgba(255,255,255,0.08)'),
-        borderRadius: 10,
-        padding: '7px 14px',
-        color: calView === v ? '#fff' : A.muted,
-        fontSize: 13,
-        fontWeight: 700,
-        cursor: 'pointer'
-      }
-    }, labels[v]);
-  }), /*#__PURE__*/React.createElement("button", {
-    title: 'Gráficos de ganhos',
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setCalView(function(v) { return v === 'graficos' ? 'hoje' : 'graficos'; });
+      return setCalView(function (v) {
+        return v === 'lista' ? 'cal' : 'lista';
+      });
+    },
+    style: {
+      background: A.surface2,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
+      padding: '7px 12px',
+      color: A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, calView === 'lista' ? '📅' : '📋'), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setCalView(function (v) {
+        return v === 'graficos' ? 'lista' : 'graficos';
+      });
     },
     style: {
       background: calView === 'graficos' ? A.orange : A.surface2,
-      border: '1px solid rgba(255,255,255,0.08)',
+      border: "1px solid rgba(255,255,255,0.08)",
       borderRadius: 10,
       padding: '7px 12px',
       color: calView === 'graficos' ? '#fff' : A.muted,
@@ -1262,19 +1185,6 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer'
     }
   }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() { setCalView(function(v) { return v === 'lista' ? 'hoje' : 'lista'; }); },
-    title: 'Lista de todas as marcações',
-    style: {
-      background: calView === 'lista' ? A.orange : A.surface2,
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 10,
-      padding: '7px 12px',
-      color: calView === 'lista' ? '#fff' : A.muted,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       setShowManageProj(true);
       setEditProjId(null);
@@ -1326,7 +1236,9 @@ function AgendaProApp(_ref13) {
       outline: 'none',
       caretColor: A.orange
     }
-  }), search && /*#__PURE__*/React.createElement("button", {
+  }), search && /*#__PURE__*/React.createElement("span", {
+    style: {fontSize:11,color:A.orange,fontWeight:700,background:A.orange+'18',borderRadius:6,padding:'2px 7px',marginRight:4}
+  }, filtered.length+(filtered.length!==1?' resultados':' resultado')), search && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setSearch('');
     },
@@ -1337,7 +1249,7 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer',
       fontSize: 16
     }
-  }, "\u2715"))), ['lista','graficos'].indexOf(calView) !== -1 && nextAppt && /*#__PURE__*/React.createElement("div", {
+  }, "\u2715"))), nextAppt && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
       return openForm(nextAppt);
     },
@@ -1772,7 +1684,7 @@ function AgendaProApp(_ref13) {
       fontWeight: 700,
       cursor: 'pointer'
     }
-  }, "\uD83D\uDD14 Testar aviso agora")), ['lista','graficos'].indexOf(calView) !== -1 && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD14 Testar aviso agora")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px',
       display: 'flex',
@@ -1818,7 +1730,7 @@ function AgendaProApp(_ref13) {
         marginTop: 3
       }
     }, s.v));
-  })), ['lista','graficos'].indexOf(calView) !== -1 && ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
+  })), ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
     style: {
       padding: '14px 12px',
       marginTop: 10
@@ -1979,61 +1891,7 @@ function AgendaProApp(_ref13) {
       day: 'numeric',
       month: 'short'
     }), " ", d.tipo === 'feriado' ? '🎌' : d.tipo === 'ferias' ? '🏖' : '✅'));
-  // ── VIEW: HOJE ───────────────────────────────────────────────────────────
-  }))), calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
-  /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
-    /*#__PURE__*/React.createElement("p",{style:{fontWeight:900,fontSize:16,color:A.text}},
-      new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
-    /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2}},
-      appts.filter(function(a){return a.date===todayStr;}).length+' marcação(ões)')
-  ),
-  renderTimeline(todayStr)),
-
-  // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
-  calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
-  (function() {
-    var selDate = new Date(calSelDay+'T12:00:00');
-    var dow = (selDate.getDay()+6)%7;
-    var monday = new Date(selDate); monday.setDate(selDate.getDate()-dow);
-    var getWk = function(d) {
-      var dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
-      var dy = dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dy);
-      var y1 = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
-      return Math.ceil(((dt-y1)/86400000+1)/7);
-    };
-    var week = [];
-    for (var wi=0;wi<7;wi++) { var wd=new Date(monday); wd.setDate(monday.getDate()+wi); week.push(wd); }
-    var dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-    return /*#__PURE__*/React.createElement("div", null,
-    /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
-      /*#__PURE__*/React.createElement("button",{
-        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()-7);setCalSelDay(d.toISOString().slice(0,10));},
-        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:32,height:32,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
-      },"‹"),
-      /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:14,color:A.text}},'Sem. '+getWk(selDate)),
-      /*#__PURE__*/React.createElement("button",{
-        onClick:function(){var d=new Date(calSelDay+'T12:00:00');d.setDate(d.getDate()+7);setCalSelDay(d.toISOString().slice(0,10));},
-        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:32,height:32,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
-      },"›")),
-    /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:12}},
-      week.map(function(d,i) {
-        var dStr=d.toISOString().slice(0,10);
-        var isSel=dStr===calSelDay; var isT=dStr===todayStr;
-        var hasDots=appts.some(function(a){return a.date===dStr;});
-        return /*#__PURE__*/React.createElement("div",{
-          key:i,
-          onClick:function(){setCalSelDay(dStr);},
-          style:{textAlign:'center',padding:'6px 4px',borderRadius:10,cursor:'pointer',background:isSel?A.orange:isT?A.orange+'22':A.surface2,border:'1px solid '+(isSel?A.orange:A.border)}
-        },
-        /*#__PURE__*/React.createElement("p",{style:{fontSize:9,fontWeight:700,color:isSel?'#fff':A.muted}},dayNames[i]),
-        /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3}},d.getDate()),
-        hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
-      })),
-    /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
-      new Date(calSelDay+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
-      /*#__PURE__*/React.createElement("span",{style:{color:A.muted,fontWeight:400,fontSize:11}},' · '+appts.filter(function(a){return a.date===calSelDay;}).length+' marcação(ões)')),
-    renderTimeline(calSelDay));
-  })()), calView === 'cal' && /*#__PURE__*/React.createElement("div", {
+  }))), calView === 'cal' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px'
     }
@@ -2200,8 +2058,7 @@ function AgendaProApp(_ref13) {
         var hasAppt = appts.some(function (a) {
           return a.date === dStr;
         });
-        var isSel = dStr === calSelDay;
-        var isToday2 = dStr === todayStr;
+        var isSel = dStr === todayStr;
         var isWeekend = di >= 5;
         var statusColors = _toConsumableArray(new Set(appts.filter(function (a) {
           return a.date === dStr;
@@ -2209,65 +2066,55 @@ function AgendaProApp(_ref13) {
           var _STATUS$a$status;
           return (_STATUS$a$status = STATUS[a.status]) === null || _STATUS$a$status === void 0 ? void 0 : _STATUS$a$status.color;
         }))).slice(0, 3);
-        var MAX_PILLS = 3;
-        var dayApptsSorted = appts.filter(function(a) { return a.date === dStr; })
-          .sort(function(a,b) { return (a.hi||'').localeCompare(b.horaI||''); });
-        var visibleAppts = dayApptsSorted.slice(0, MAX_PILLS);
-        var moreCount = dayApptsSorted.length - MAX_PILLS;
         return /*#__PURE__*/React.createElement("div", {
           key: di,
           onClick: function onClick() {
-            setCurDate(new Date(dStr + 'T12:00:00'));
-            setCalSelDay(dStr);
+            return setCurDate(new Date(dStr + 'T12:00:00'));
           },
           style: {
-            padding: '3px 2px',
-            borderRadius: 7,
+            textAlign: 'center',
+            padding: '4px 1px',
+            borderRadius: 9,
             cursor: 'pointer',
-            background: isSel ? 'rgba(217,119,6,0.1)' : isToday2 ? 'rgba(217,119,6,0.05)' : 'transparent',
-            border: isSel ? '1.5px solid ' + A.orange : isToday2 ? '1.5px solid rgba(217,119,6,0.4)' : '1px solid transparent',
-            minHeight: 76,
+            background: isSel ? A.orange : 'transparent',
+            border: hasAppt && !isSel ? "1px solid rgba(217,119,6,0.25)" : '1px solid transparent',
+            minHeight: 38,
             display: 'flex',
             flexDirection: 'column',
-            gap: 2,
-            alignItems: 'stretch',
-            verticalAlign: 'top'
+            alignItems: 'center',
+            gap: 1
           }
-        },
-        /*#__PURE__*/React.createElement("span", {
+        }, /*#__PURE__*/React.createElement("span", {
           style: {
-            fontSize: 11,
-            fontWeight: isToday2 || isSel ? 900 : 500,
-            color: isToday2 ? A.orange : isSel ? A.orange : isWeekend ? A.orange : A.text,
-            lineHeight: 1.3,
-            textAlign: 'right',
-            paddingRight: 2
+            fontSize: 12,
+            fontWeight: isSel || hasAppt ? 800 : 400,
+            color: isSel ? '#fff' : isWeekend ? A.orange : A.text,
+            lineHeight: 1.4
           }
-        }, day),
-        visibleAppts.map(function(a) {
-          var pc = projColor(a.proj);
-          var textColor = pc === '#F1C40F' ? '#7a6000' : pc;
+        }, day), hasAppt && !isSel && /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: 'flex',
+            gap: 2,
+            justifyContent: 'center'
+          }
+        }, statusColors.map(function (c, ci) {
           return /*#__PURE__*/React.createElement("div", {
-            key: a.id,
-            title: a.hi + (a.hf ? '–'+a.hf : '') + ' · ' + a.morada,
+            key: ci,
             style: {
-              background: pc + '18',
-              borderLeft: '2.5px solid ' + pc,
-              borderRadius: '0 4px 4px 0',
-              padding: '1px 5px',
-              fontSize: 9,
-              fontWeight: 700,
-              color: textColor,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              lineHeight: 1.6
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              background: c
             }
-          }, (a.hi ? a.hi.slice(0,5) + ' ' : '') + (a.proj || ''));
-        }),
-        moreCount > 0 && /*#__PURE__*/React.createElement("div", {
-          style: { fontSize: 9, color: A.muted, fontWeight: 700, paddingLeft: 2 }
-        }, '+' + moreCount + ' mais'));
+          });
+        })), hasAppt && isSel && /*#__PURE__*/React.createElement("div", {
+          style: {
+            width: 5,
+            height: 5,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.7)'
+          }
+        }));
       }));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2281,7 +2128,7 @@ function AgendaProApp(_ref13) {
         fontSize: 13,
         color: A.text
       }
-    }, new Date(calSelDay + 'T12:00:00').toLocaleDateString('pt-PT', {
+    }, curDate.toLocaleDateString('pt-PT', {
       weekday: 'long',
       day: 'numeric',
       month: 'long'
@@ -2294,62 +2141,8 @@ function AgendaProApp(_ref13) {
         fontSize: 12
       }
     }, " \xB7 ", appts.filter(function (a) {
-      return a.date === calSelDay;
-    }).length, " marca\xE7\xE3o(\xF5es)")),
-    // Lista de marcações do dia selecionado
-    appts.filter(function(a) { return a.date === calSelDay; }).length > 0
-      ? /*#__PURE__*/React.createElement("div", { style: { padding: '10px 14px 16px' } },
-          appts.filter(function(a) { return a.date === calSelDay; })
-            .sort(function(a, b) { return (a.hi || '').localeCompare(b.horaI || ''); })
-            .map(function(a) {
-              var st = STATUS[a.status] || STATUS.aberto;
-              var pc = projColor(a.proj);
-              return /*#__PURE__*/React.createElement("div", {
-                key: a.id,
-                style: {
-                  background: A.surface,
-                  border: '1px solid ' + A.border,
-                  borderLeft: '4px solid ' + pc,
-                  borderRadius: 12,
-                  padding: '10px 14px',
-                  marginBottom: 8,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4
-                }
-              },
-              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-                /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted } },
-                  a.hi && a.hf ? a.hi + '\u2013' + a.hf : ''),
-                /*#__PURE__*/React.createElement("span", {
-                  style: { fontSize: 10, fontWeight: 800, background: pc + '22', color: pc, borderRadius: 6, padding: '2px 7px' }
-                }, a.proj)
-              ),
-              /*#__PURE__*/React.createElement("div", { style: { fontWeight: 800, fontSize: 14, color: A.text } }, a.morada),
-              /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-                /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-                  /*#__PURE__*/React.createElement("span", {
-                    style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 6, padding: '2px 7px' }
-                  }, st.label),
-                  a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 800, color: '#16a34a' } },
-                    'CHF ' + a.chf.toFixed(1))
-                ),
-                /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 6 } },
-                  /*#__PURE__*/React.createElement("button", {
-                    onClick: function(e) { e.stopPropagation(); openForm(a); },
-                    style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }
-                  }, "\u270F\uFE0F"),
-                  /*#__PURE__*/React.createElement("button", {
-                    onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar esta marcação?')) deleteApptWithNotif(a); },
-                    style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }
-                  }, "\uD83D\uDDD1\uFE0F")
-                )
-              ));
-            })
-        )
-      : /*#__PURE__*/React.createElement("div", { style: { padding: '10px 14px 16px', color: A.muted, fontSize: 13 } },
-          "Sem marcações neste dia")
-    ));
+      return a.date === todayStr;
+    }).length, " marca\xE7\xE3o(\xF5es)"))));
   }()), showMonteurs && /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'fixed',
@@ -3783,7 +3576,7 @@ function AgendaProApp(_ref13) {
         style: { fontSize: 10, color: A.muted, fontWeight: 700 }
       }, "S", wi + 1));
     }))));
-  })(), ['hoje','semana'].indexOf(calView) === -1 && /*#__PURE__*/React.createElement("div", {
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
