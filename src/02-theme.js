@@ -130,4 +130,12 @@ var APPS_DATA = [{
   desc: 'Gestor de subscrições',
   badge: null,
   color: '#6C5CE7'
+}, {
+  id: 'escola_lucas',
+  emoji: '🏫',
+  name: 'Escola Grenchen',
+  desc: 'Gestão do transporte escolar',
+  badge: null,
+  color: '#1a237e',
+  adminOnly: true
 }];
