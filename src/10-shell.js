@@ -1136,31 +1136,14 @@ function CarvalhoSuite() {
         setUpdMsg('A app ainda não está registada como PWA neste dispositivo.');
         return;
       }
-      var applied = false;
-      var applyWorker = function(worker) {
-        if (applied) return;
-        applied = true;
-        setUpdMsg('✓ Nova versão encontrada — a aplicar...');
-        worker.postMessage({ type: 'SKIP_WAITING' });
-        setTimeout(function() { window.location.reload(); }, 800);
-      };
-      reg.onupdatefound = function() {
-        var newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.onstatechange = function() {
-          if (newWorker.state === 'installed') applyWorker(newWorker);
-        };
-      };
-      // Se já há um worker em waiting, aplicar de imediato
-      if (reg.waiting) { applyWorker(reg.waiting); return; }
-      reg.update().then(function() {
-        setTimeout(function() {
-          if (!applied) {
-            setUpdChecking(false);
-            setUpdMsg('✓ Já tens a versão mais recente.');
-          }
-        }, 4000);
-      }).catch(function(err) {
+      var found = false;
+      reg.onupdatefound = function () { found = true; };
+      reg.update().then(function () {
+        setTimeout(function () {
+          setUpdChecking(false);
+          setUpdMsg(found ? '✓ Nova versão encontrada — a aplicar e reiniciar...' : '✓ Já tens a versão mais recente.');
+        }, 1200);
+      }).catch(function (err) {
         setUpdChecking(false);
         setUpdMsg('Erro ao verificar: ' + (err && err.message ? err.message : err));
       });
