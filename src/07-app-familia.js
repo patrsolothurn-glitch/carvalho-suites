@@ -90,15 +90,12 @@ function FamiliaApp(_ref19) {
       hora: '',
       diaTodo: false,
       nota: '',
-      lembrete: null
+      lembrete: null,
+      foto: null
     }),
     _useState106 = _slicedToArray(_useState105, 2),
     form = _useState106[0],
     setForm = _useState106[1];
-  var _useStateTituloErr = (0, _react.useState)(''),
-    _useStateTituloErr2 = _slicedToArray(_useStateTituloErr, 2),
-    tituloErr = _useStateTituloErr2[0],
-    setTituloErr = _useStateTituloErr2[1];
   var _useState107 = (0, _react.useState)(null),
     _useState108 = _slicedToArray(_useState107, 2),
     editEvKey = _useState108[0],
@@ -115,6 +112,14 @@ function FamiliaApp(_ref19) {
     _useStateEditDate2 = _slicedToArray(_useStateEditDate, 2),
     editDate = _useStateEditDate2[0],
     setEditDate = _useStateEditDate2[1];
+  var _useStateEditLembrete = (0, _react.useState)(null),
+    _useStateEditLembrete2 = _slicedToArray(_useStateEditLembrete, 2),
+    editLembrete = _useStateEditLembrete2[0],
+    setEditLembrete = _useStateEditLembrete2[1];
+  var _useStateEditFoto = (0, _react.useState)(null),
+    _useStateEditFoto2 = _slicedToArray(_useStateEditFoto, 2),
+    editFoto = _useStateEditFoto2[0],
+    setEditFoto = _useStateEditFoto2[1];
   var _useState109 = (0, _react.useState)({}),
     _useState110 = _slicedToArray(_useState109, 2),
     memberPhotos = _useState110[0],
@@ -135,6 +140,14 @@ function FamiliaApp(_ref19) {
     _useStateExpandedDays2 = _slicedToArray(_useStateExpandedDays, 2),
     expandedDays = _useStateExpandedDays2[0],
     setExpandedDays = _useStateExpandedDays2[1];
+  var _useStateAddingEvent = (0, _react.useState)(false),
+    _useStateAddingEvent2 = _slicedToArray(_useStateAddingEvent, 2),
+    addingEvent = _useStateAddingEvent2[0],
+    setAddingEvent = _useStateAddingEvent2[1];
+  var _useStateFotoLightbox = (0, _react.useState)(null),
+    _useStateFotoLightbox2 = _slicedToArray(_useStateFotoLightbox, 2),
+    fotoLightbox = _useStateFotoLightbox2[0],
+    setFotoLightbox = _useStateFotoLightbox2[1];
   var famStorageGet = function famStorageGet(key) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.get) {
@@ -293,7 +306,9 @@ function FamiliaApp(_ref19) {
           categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
           color: (CATEGORIAS[row.categoria] || CATEGORIAS.familia).color,
           hora: row.event_time || '',
-          nota: row.description || ''
+          nota: row.description || '',
+          lembrete: row.reminder_minutes || null,
+          foto: row.photo_url || null
         };
         // Todos os eventos vão para built (para o calendário mostrar feitos)
         (built[d] || (built[d] = [])).push(evObj);
@@ -390,7 +405,8 @@ function FamiliaApp(_ref19) {
     var y = curMonth.getFullYear();
     var mo2 = curMonth.getMonth();
     var ini = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-01");
-    var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-31");
+    var lastDay = new Date(y, mo2 + 1, 0).getDate();
+    var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-").concat(String(lastDay).padStart(2, '0'));
     window.supabaseClient.from('horas_entries').select('entry_date,hours').gte('entry_date', ini).lte('entry_date', fim2).then(function (res) {
       setHorasMesData(res.data || []);
     }).catch(function () {});
@@ -500,9 +516,9 @@ function FamiliaApp(_ref19) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   };
   var addEvent = function addEvent() {
-    if (!form.titulo) { setTituloErr('O Título é obrigatório.'); return; }
-    if (!form.dataDE) return;
-    setTituloErr('');
+    if (!form.titulo || !form.dataDE) return;
+    if (addingEvent) return;
+    setAddingEvent(true);
     var participantes = form.participantes && form.participantes.length > 0 ? form.participantes : ['todos'];
     var firstSpecific = participantes.find(function (id) {
       return id !== 'todos';
@@ -517,6 +533,7 @@ function FamiliaApp(_ref19) {
       categoria: form.categoria || 'familia',
       color: (CATEGORIAS[form.categoria] || CATEGORIAS.familia).color,
       hora: form.hora,
+      foto: form.foto || null,
       nota: form.nota
     };
     var ate = form.dataATE && form.dataATE >= form.dataDE ? form.dataATE : form.dataDE;
@@ -549,6 +566,7 @@ function FamiliaApp(_ref19) {
           color: ev.color,
           categoria: ev.categoria,
           reminder_minutes: form.lembrete || null,
+          photo_url: ev.foto || null,
           created_by: currentMemberId
         };
       });
@@ -577,8 +595,10 @@ function FamiliaApp(_ref19) {
       hora: '',
       diaTodo: false,
       nota: '',
-      lembrete: null
+      lembrete: null,
+      foto: null
     });
+    setAddingEvent(false);
     setShowAdd(false);
   };
   var FCard = function FCard(_ref20) {
@@ -594,7 +614,7 @@ function FamiliaApp(_ref19) {
       }, style)
     }, children);
   };
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
       background: F.bg,
@@ -1763,7 +1783,14 @@ function FamiliaApp(_ref19) {
         fontSize: 11,
         marginTop: 3
       }
-    }, "\uD83D\uDCDD ", ev.nota)), /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDCDD ", ev.nota), ev.foto && /*#__PURE__*/React.createElement("img", {
+      src: ev.foto,
+      onClick: function onClick() { setFotoLightbox(ev.foto); },
+      style: {
+        width: 56, height: 56, objectFit: 'cover', borderRadius: 10,
+        border: "1px solid ".concat(F.border), marginTop: 6, cursor: 'pointer'
+      }
+    })), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 6,
@@ -1825,7 +1852,7 @@ function FamiliaApp(_ref19) {
       }
     }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        if (!isEditing) setEditDate(selDateStr);
+        if (!isEditing) { setEditDate(selDateStr); setEditLembrete(ev.lembrete || null); setEditFoto(ev.foto || null); }
         return setEditEvKey(isEditing ? null : evKey);
       },
       style: {
@@ -2112,7 +2139,74 @@ function FamiliaApp(_ref19) {
           borderRadius: 20, padding: '5px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer'
         }
       }, cat.emoji, " ", cat.label));
-    })), /*#__PURE__*/React.createElement("div", {
+    })), /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "\uD83D\uDD14 Lembrete"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }
+    }, [
+      { label: 'Nenhum', val: null },
+      { label: '15 min', val: 15 },
+      { label: '30 min', val: 30 },
+      { label: '1 hora', val: 60 },
+      { label: '2 horas', val: 120 },
+      { label: '1 dia', val: 1440 }
+    ].map(function (opt) {
+      var isSel = editLembrete === opt.val;
+      return /*#__PURE__*/React.createElement("button", {
+        key: String(opt.val),
+        onClick: function onClick() { return setEditLembrete(opt.val); },
+        style: {
+          padding: '5px 11px',
+          borderRadius: 20,
+          border: isSel ? "1.5px solid ".concat(F.coral) : "1.5px solid ".concat(F.border),
+          background: isSel ? F.coral : F.surface2,
+          color: isSel ? '#fff' : F.muted,
+          fontSize: 12,
+          fontWeight: isSel ? 800 : 600,
+          cursor: 'pointer'
+        }
+      }, opt.label);
+    })), /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "\uD83D\uDCF7 Foto"), /*#__PURE__*/React.createElement("div", {
+      style: { marginBottom: 14 }
+    }, editFoto ? /*#__PURE__*/React.createElement("div", {
+      style: { position: 'relative', width: 80, height: 80 }
+    }, /*#__PURE__*/React.createElement("img", {
+      src: editFoto,
+      style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10, border: "1px solid ".concat(F.border) }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() { return setEditFoto(null); },
+      style: {
+        position: 'absolute', top: -6, right: -6,
+        width: 20, height: 20, borderRadius: '50%',
+        background: F.red, color: '#fff', border: '2px solid #fff',
+        fontSize: 11, fontWeight: 900, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }
+    }, "\u2715")) : /*#__PURE__*/React.createElement("label", {
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 80, height: 80, borderRadius: 10,
+        border: "2px dashed ".concat(F.border),
+        background: F.surface2, cursor: 'pointer', color: F.muted, fontSize: 20
+      }
+    }, "\u2795", /*#__PURE__*/React.createElement("input", {
+      type: "file",
+      accept: "image/*",
+      style: { display: 'none' },
+      onChange: function onChange(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (ev2) {
+          resizeImage(ev2.target.result, 600).then(function (resized) {
+            setEditFoto(resized);
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 8
@@ -2188,7 +2282,10 @@ function FamiliaApp(_ref19) {
           hora: hora,
           participantes: participantes,
           nota: nota,
-          color: newColor
+          color: newColor,
+          categoria: newCategoria,
+          lembrete: editLembrete,
+          foto: editFoto
         });
         window.supabaseClient.from('family_events').update({
           title: titulo,
@@ -2198,7 +2295,9 @@ function FamiliaApp(_ref19) {
           participant_ids: participantes,
           description: nota || null,
           color: newColor,
-          categoria: newCategoria
+          categoria: newCategoria,
+          reminder_minutes: editLembrete,
+          photo_url: editFoto
         }).eq('id', ev.id).then(function (res) {
           setEditEvSaving(false);
           if (res.error) {
@@ -2990,7 +3089,6 @@ function FamiliaApp(_ref19) {
       type: f.type,
       value: form[f.k],
       onChange: function onChange(e) {
-        if (f.k === 'titulo' && e.target.value) setTituloErr('');
         return setForm(function (p) {
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, f.k, e.target.value));
         });
@@ -2999,7 +3097,7 @@ function FamiliaApp(_ref19) {
       style: {
         width: '100%',
         background: F.surface2,
-        border: f.k === 'titulo' && tituloErr ? '1.5px solid #E74C3C' : "1px solid ".concat(F.border),
+        border: "1px solid ".concat(F.border),
         borderRadius: 12,
         padding: '11px 14px',
         color: F.text,
@@ -3007,9 +3105,7 @@ function FamiliaApp(_ref19) {
         outline: 'none',
         boxSizing: 'border-box'
       }
-    }), f.k === 'titulo' && tituloErr ? /*#__PURE__*/React.createElement("p", {
-      style: { color: '#E74C3C', fontSize: 11, marginTop: 4, fontWeight: 700 }
-    }, "\u26A0\uFE0F ", tituloErr) : null);
+    }));
   }), /*#__PURE__*/React.createElement("p", {
     style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
   }, "\uD83D\uDD14 Lembrete"), /*#__PURE__*/React.createElement("div", {
@@ -3043,6 +3139,46 @@ function FamiliaApp(_ref19) {
       }
     }, opt.label);
   })), /*#__PURE__*/React.createElement("p", {
+    style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+  }, "\uD83D\uDCF7 Foto (opcional)"), /*#__PURE__*/React.createElement("div", {
+    style: { marginBottom: 14 }
+  }, form.foto ? /*#__PURE__*/React.createElement("div", {
+    style: { position: 'relative', width: 90, height: 90 }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: form.foto,
+    style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, border: "1px solid ".concat(F.border) }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() { return setForm(function (p) { return _objectSpread(_objectSpread({}, p), {}, { foto: null }); }); },
+    style: {
+      position: 'absolute', top: -6, right: -6,
+      width: 22, height: 22, borderRadius: '50%',
+      background: F.red, color: '#fff', border: '2px solid #fff',
+      fontSize: 12, fontWeight: 900, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }
+  }, "\u2715")) : /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      width: 90, height: 90, borderRadius: 12,
+      border: "2px dashed ".concat(F.border),
+      background: F.surface2, cursor: 'pointer', color: F.muted, fontSize: 24
+    }
+  }, "\u2795", /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: "image/*",
+    style: { display: 'none' },
+    onChange: function onChange(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (ev2) {
+        resizeImage(ev2.target.result, 600).then(function (resized) {
+          setForm(function (p) { return _objectSpread(_objectSpread({}, p), {}, { foto: resized }); });
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  }))), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 10,
@@ -3339,19 +3475,40 @@ function FamiliaApp(_ref19) {
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: addEvent,
+    disabled: addingEvent,
     style: {
       flex: 2,
-      background: "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
+      background: addingEvent ? F.muted : "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
       border: 'none',
       borderRadius: 14,
       padding: '13px',
       color: '#fff',
       fontSize: 14,
       fontWeight: 800,
-      cursor: 'pointer',
-      boxShadow: "0 4px 14px rgba(232,119,58,0.3)"
+      cursor: addingEvent ? 'default' : 'pointer',
+      boxShadow: addingEvent ? 'none' : "0 4px 14px rgba(232,119,58,0.3)"
     }
-  }, "\u2713 Adicionar")))));
+  }, addingEvent ? 'A guardar…' : '✓ Adicionar'))))), fotoLightbox && /*#__PURE__*/React.createElement("div", {
+    onClick: function onClick() { setFotoLightbox(null); },
+    style: {
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.9)', zIndex: 999,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: fotoLightbox,
+    style: { maxWidth: '100%', maxHeight: '85vh', borderRadius: 12, objectFit: 'contain' }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() { setFotoLightbox(null); },
+    style: {
+      position: 'fixed', top: 20, right: 20,
+      width: 40, height: 40, borderRadius: '50%',
+      background: 'rgba(255,255,255,0.15)', color: '#fff',
+      border: 'none', fontSize: 20, fontWeight: 900, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }
+  }, "\u2715")));
 }
 
 // ── NUTRIGUIMA ──────────────────────────────────────────────────────
