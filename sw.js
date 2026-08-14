@@ -1,24 +1,20 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-ve9bb68bc';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
+const CACHE = 'carvalho-v3714063d';
+const STATIC_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+    caches.open(CACHE).then(c => c.addAll(STATIC_ASSETS))
   );
-});
-
-self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  // Ativa imediatamente sem esperar fechar abas
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -29,21 +25,37 @@ self.addEventListener('activate', e => {
   );
 });
 
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Never cache Supabase API calls — always go live (real-time data)
-  if (url.hostname.endsWith('supabase.co')) {
-    return; // let the browser handle it normally
-  }
+  // Supabase API — sempre rede
+  if (url.hostname.endsWith('supabase.co')) return;
 
-  // Network-first for fonts (CSS can change)
+  // Fontes — network-first
   if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
 
-  // Cache-first for app shell + static libs
+  // HTML / navegação — NETWORK-FIRST (garante versão mais recente)
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/carvalho-suites/' || url.pathname === '/carvalho-suites') {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Assets estáticos (CDNs, ícones) — cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -53,21 +65,15 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return response;
-      }).catch(() => {
-        if (e.request.mode === 'navigate') return caches.match('./index.html');
       });
     })
   );
 });
 
-// ── Push notifications (real, mesmo com a app fechada) ──────────────
+// ── Push notifications ──────────────────────────────────────────────
 self.addEventListener('push', e => {
   let data = { title: 'Carvalho Suite', body: '' };
-  try {
-    if (e.data) data = e.data.json();
-  } catch (err) {
-    if (e.data) data.body = e.data.text();
-  }
+  try { if (e.data) data = e.data.json(); } catch { if (e.data) data.body = e.data.text(); }
   e.waitUntil(
     self.registration.showNotification(data.title || 'Carvalho Suite', {
       body: data.body || '',
