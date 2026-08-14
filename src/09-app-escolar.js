@@ -648,11 +648,11 @@ function EscolarApp(_ref31) {
     _useState162 = _slicedToArray(_useState161, 2),
     editKlasseKey = _useState162[0],
     setEditKlasseKey = _useState162[1];
-  var _useState163 = (0, _react.useState)(new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+  var _useState163 = (0, _react.useState)(new Date(2026, 5, 1)),
     _useState164 = _slicedToArray(_useState163, 2),
     calMonth = _useState164[0],
     setCalMonth = _useState164[1];
-  var _useState165 = (0, _react.useState)(new Date().getDate()),
+  var _useState165 = (0, _react.useState)(null),
     _useState166 = _slicedToArray(_useState165, 2),
     selDay = _useState166[0],
     setSelDay = _useState166[1];
@@ -3238,8 +3238,7 @@ function EscolarApp(_ref31) {
     var d = i + 1;
     var tpcs = getDayTPC(d);
     var shared = getDayShared(d);
-    var _todayStr = new Date().toISOString().slice(0, 10);
-    var isToday = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0')) === _todayStr;
+    var isToday = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0')) === '2026-06-15';
     var isSel = selDay === d;
     var hasTPC = tpcs.length > 0;
     var hasShared = shared.length > 0;
