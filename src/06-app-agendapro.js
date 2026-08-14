@@ -668,6 +668,7 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
+    if (!p) return '#888';
     if (p.includes('BUDI-2S')) return '#F1C40F';   // amarelo
     if (p.includes('BUDI-1S')) return '#E74C3C';   // vermelho
     if (p.includes('BUDI-S'))  return '#27AE60';   // verde escuro
