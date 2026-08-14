@@ -687,6 +687,11 @@ function AgendaProApp(_ref13) {
     _useStateFiltrosAP2 = _slicedToArray(_useStateFiltrosAP, 2),
     filtrosAtivos = _useStateFiltrosAP2[0],
     setFiltrosAtivos = _useStateFiltrosAP2[1];
+  var dragRef = (0, _react.useRef)(null);
+  var _useStateDragInfo = (0, _react.useState)(null),
+    _useStateDragInfo2 = _slicedToArray(_useStateDragInfo, 2),
+    dragInfo = _useStateDragInfo2[0],
+    setDragInfo = _useStateDragInfo2[1];
   var toggleFiltro = function toggleFiltro(catKey) {
     setFiltrosAtivos(function (p) {
       if (p.indexOf(catKey) !== -1) {
@@ -1055,6 +1060,16 @@ function AgendaProApp(_ref13) {
     if (!t) return 0;
     var p = t.split(':'); return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
   };
+  var minToTime = function(min) {
+    var h = Math.floor(min/60), m = min%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  };
+  var updateApptTime = function(id, hi, hf) {
+    setAppts(function(p){ return p.map(function(a){ return a.id===id ? Object.assign({},a,{hi:hi,hf:hf}) : a; }); });
+    if (window.supabaseClient) {
+      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function(){}).catch(function(){});
+    }
+  };
   var renderTimeline = function(dayStr) {
     var HOUR_PX = 56; var S_H = 7; var E_H = 20;
     var totalH = (E_H - S_H) * HOUR_PX;
@@ -1095,20 +1110,47 @@ function AgendaProApp(_ref13) {
     }),
     rawAppts.map(function(a) {
       if (a._sMin < S_H*60 || a._sMin >= E_H*60) return null;
-      var top = (a._sMin - S_H*60)*HOUR_PX/60;
+      var isDragging = dragInfo && dragInfo.id === a.id;
+      var displaySMin = isDragging ? dragInfo.currentSMin : a._sMin;
+      var top = (displaySMin - S_H*60)*HOUR_PX/60;
       var height = Math.max(38,(a._eMin-a._sMin)*HOUR_PX/60-2);
       var pc = projColor(a.proj);
       var st = STATUS[a.status] || STATUS.aberto;
       var colW = 100/nCols;
       var origAppt = a._orig;
+      var dHi = isDragging ? minToTime(dragInfo.currentSMin) : (a.hi||'');
+      var dHf = isDragging ? minToTime(dragInfo.currentSMin + (a._eMin-a._sMin)) : a.hf;
       return /*#__PURE__*/React.createElement("div", {key:a.id,
-        onClick:function(){ setCalSelDay(a.date); openForm(origAppt); },
+        onPointerDown:function(e){
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          var info={id:a.id,appt:origAppt,duration:a._eMin-a._sMin,startY:e.clientY,startTop:(a._sMin-S_H*60)*HOUR_PX/60,currentSMin:a._sMin,didMove:false};
+          dragRef.current=info; setDragInfo(Object.assign({},info));
+        },
+        onPointerMove:function(e){
+          var dr=dragRef.current; if(!dr||dr.id!==a.id)return;
+          var deltaY=e.clientY-dr.startY;
+          if(!dr.didMove&&Math.abs(deltaY)<=5)return;
+          var rawSMin=Math.round(((dr.startTop+deltaY)*60/HOUR_PX+S_H*60)/15)*15;
+          dr.currentSMin=Math.max(S_H*60,Math.min((E_H-1)*60,rawSMin));
+          dr.didMove=true;
+          setDragInfo(Object.assign({},dr));
+        },
+        onPointerUp:function(e){
+          var dr=dragRef.current; dragRef.current=null; setDragInfo(null);
+          if(!dr||dr.id!==a.id)return;
+          if(dr.didMove){ var ns=dr.currentSMin,ne=ns+dr.duration; updateApptTime(a.id,minToTime(ns),minToTime(ne)); }
+          else { setCalSelDay(a.date); openForm(origAppt); }
+        },
+        onPointerCancel:function(e){ dragRef.current=null; setDragInfo(null); },
         style:{position:'absolute',top:top+1,left:'calc('+a._col*colW+'% + 3px)',width:'calc('+colW+'% - 6px)',height:height-2,
-          background:'#fff',borderLeft:'4px solid '+pc,borderRadius:'0 10px 10px 0',
-          padding:'5px 10px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box',
-          boxShadow:'0 2px 8px rgba(0,0,0,0.10)'}},
+          background:isDragging?'#EEF2FF':'#fff',borderLeft:'4px solid '+pc,borderRadius:'0 10px 10px 0',
+          padding:'5px 10px',cursor:isDragging?'grabbing':'grab',overflow:'hidden',boxSizing:'border-box',
+          boxShadow:isDragging?'0 8px 20px rgba(0,0,0,0.22)':'0 2px 8px rgba(0,0,0,0.10)',
+          opacity:isDragging?0.95:1,zIndex:isDragging?50:1,touchAction:'none',userSelect:'none',
+          transition:isDragging?'none':'box-shadow 0.15s'}},
         /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6}},
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},(a.hi||'')+(a.hf?'–'+a.hf:'')),
+          /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},dHi+(dHf?'–'+dHf:'')),
           /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
         height > 46 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:12,fontWeight:700,color:'#222',marginTop:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
         height > 66 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:st.color,marginTop:2}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
