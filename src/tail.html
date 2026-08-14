@@ -6,9 +6,17 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg) {
+          // Quando o SW novo ativa, recarrega automaticamente
+          navigator.serviceWorker.addEventListener('controllerchange', function() {
+            // Evitar reload em loop — só recarrega se não acabou de carregar
+            if (!window.__swReloading) {
+              window.__swReloading = true;
+              window.location.reload();
+            }
+          });
+        }).catch(function () {});
       });
-      // controllerchange reload removido — causava reset do form durante typing
     }
   </script>
 </body></html>
