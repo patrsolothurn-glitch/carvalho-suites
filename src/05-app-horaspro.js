@@ -735,8 +735,14 @@ function HorasProApp(_ref9) {
   // duplicados (ex: de uma falha antiga a re-inserir o mesmo dia).
   var dedupedEntries = (0, _react.useMemo)(function () {
     var seen = {};
+    // Dias que já têm férias — sexta-feira livre nesses dias é suprimida
+    var feriasDates = new Set(entries.filter(function (e) {
+      return e.isAuto && (e.dlTipo === 'ferias' || e.dlTipo === 'ferias_extra');
+    }).map(function (e) { return e.date; }));
     return entries.filter(function (e) {
       if (!e.isAuto || !e.dlTipo) return true;
+      // Sexta suprimida quando o dia já tem entrada de férias
+      if (e.dlTipo === 'sexta' && feriasDates.has(e.date)) return false;
       var key = e.date + '|' + e.dlTipo;
       if (seen[key]) return false;
       seen[key] = true;
@@ -770,6 +776,12 @@ function HorasProApp(_ref9) {
   }).reduce(function (s, e) {
     return s + e.horas;
   }, 0);
+  // Para display: inclui auto-entries (férias/sexta) mas não conta dias futuros
+  var horasMesDisplay = dedupedEntries.filter(function (e) {
+    if (!e.date.startsWith(curDate.toISOString().slice(0, 7))) return false;
+    if (e.isAuto && e.date > hojeRealStr) return false;
+    return true;
+  }).reduce(function (s, e) { return s + e.horas; }, 0);
   // Horas acumuladas do dia 1 do mês até ao dia que estás a ver (não conta
   // dias do mês que ainda estão "no futuro" em relação a esse dia, mesmo que
   // já existam pré-criados na base de dados — ex: sextas/feriados futuros).
@@ -863,7 +875,7 @@ function HorasProApp(_ref9) {
       console.warn('[horaspro] Erro ao guardar Saldo Abaclick — tenta outra vez.');
     });
   };
-  var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMes;
+  var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMesDisplay;
   var metaTab = tab === 'Dia' ? metaDiaPara(curDate) : tab === 'Semana' ? metaSem : metaMes;
   var pct = Math.min(100, Math.round(horasTab / metaTab * 100));
   var prevDay = function prevDay() {
@@ -2326,7 +2338,7 @@ function HorasProApp(_ref9) {
       fontWeight: 900,
       marginTop: 3
     }
-  }, horasMes.toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
+  }, horasMesDisplay.toFixed(1), "h"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: H.muted,
       fontSize: 10,
@@ -4727,7 +4739,7 @@ function HorasProApp(_ref9) {
     c: H.gold
   }, {
     l: 'Mês',
-    v: "".concat(horasMes.toFixed(1), "h"),
+    v: "".concat(horasMesDisplay.toFixed(1), "h"),
     c: H.gold
   }, {
     l: 'Até Hoje',
