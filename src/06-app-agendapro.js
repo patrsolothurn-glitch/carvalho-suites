@@ -1996,7 +1996,8 @@ function AgendaProApp(_ref13) {
       week.map(function(d,i) {
         var dStr=d.toISOString().slice(0,10);
         var isSel=dStr===calSelDay; var isT=dStr===todayStr;
-        var hasDots=appts.some(function(a){return a.date===dStr;});
+        var dayApptsSem=appts.filter(function(a){return a.date===dStr;}).sort(function(a,b){return (a.hi||'').localeCompare(b.hi||'');});
+        var maxShow=2;
         return /*#__PURE__*/React.createElement("div",{
           key:i,
           onClick:function(){setCalSelDay(dStr);},
@@ -2004,7 +2005,15 @@ function AgendaProApp(_ref13) {
         },
         /*#__PURE__*/React.createElement("p",{style:{fontSize:9,fontWeight:700,color:isSel?'#fff':A.muted}},dayNames[i]),
         /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3}},d.getDate()),
-        hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
+        dayApptsSem.length>0?/*#__PURE__*/React.createElement("div",{style:{display:'flex',flexDirection:'column',gap:1,marginTop:2,alignItems:'stretch'}},
+          dayApptsSem.slice(0,maxShow).map(function(a){
+            var pc=projColor(a.proj);
+            var txtC=isSel?'rgba(255,255,255,0.9)':(pc==='#F1C40F'?'#7a6000':'#fff');
+            var bgC=isSel?'rgba(255,255,255,0.3)':pc;
+            return /*#__PURE__*/React.createElement("div",{key:a.id,style:{background:bgC,borderRadius:3,fontSize:8,fontWeight:800,color:txtC,padding:'1px 2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.5}},(a.hi?a.hi.slice(0,5):''));
+          }),
+          dayApptsSem.length>maxShow?/*#__PURE__*/React.createElement("div",{style:{fontSize:7,color:isSel?'rgba(255,255,255,0.7)':A.muted,fontWeight:700,textAlign:'center'}},'+' +(dayApptsSem.length-maxShow)):null
+        ):null);
       })),
     /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
       new Date(_csd+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
