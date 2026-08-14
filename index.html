@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-14T05:16:15.056Z
+  Gerado em: 2026-08-14T05:25:04.683Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-159";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-160";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -6673,7 +6673,11 @@ function AgendaProApp(_ref13) {
     var active = calView === v;
     return /*#__PURE__*/React.createElement("button", {
       key: v,
-      onClick: function() { setCalView(v); window.scrollTo({top:0,behavior:'smooth'}); },
+      onClick: function() {
+        if (v === 'semana') setCalSelDay(todayStr);
+        if (v === 'hoje') setCalSelDay(todayStr);
+        setCalView(v); window.scrollTo({top:0,behavior:'smooth'});
+      },
       style: {
         flex: 1, background: active ? A.orange : 'transparent',
         border: 'none', borderRadius: 12, padding: '8px 4px',
@@ -6833,8 +6837,8 @@ function AgendaProApp(_ref13) {
       key: f,
       onClick: function onClick() {
         setFilter(f);
-        if (f === 'Semana') { setCalView('semana'); window.scrollTo({top:0,behavior:'smooth'}); }
-        else if (f === 'Hoje') { setCalView('hoje'); window.scrollTo({top:0,behavior:'smooth'}); }
+        if (f === 'Semana') { setCalSelDay(todayStr); setCalView('semana'); window.scrollTo({top:0,behavior:'smooth'}); }
+        else if (f === 'Hoje') { setCalSelDay(todayStr); setCalView('hoje'); window.scrollTo({top:0,behavior:'smooth'}); }
         else if (calView === 'semana' || calView === 'hoje') { setCalView('lista'); }
       },
       style: {
