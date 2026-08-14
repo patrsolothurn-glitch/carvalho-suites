@@ -1967,6 +1967,18 @@ function AgendaProApp(_ref13) {
 
   // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
   calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
+  nextAppt && /*#__PURE__*/React.createElement("div", {
+    onClick: function() { openForm(nextAppt); },
+    style: { margin:'0 0 14px', background:"linear-gradient(135deg,".concat(A.gold,",").concat(A.orange,")"), borderRadius:20, padding:'14px 16px', cursor:'pointer', boxShadow:'0 6px 18px rgba(184,150,46,0.3)' }
+  },
+    /*#__PURE__*/React.createElement("div", {style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}},
+      /*#__PURE__*/React.createElement("p", {style:{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'0.8px'}}, "⏱️ Próxima marcação"),
+      /*#__PURE__*/React.createElement("div", {style:{background:'rgba(255,255,255,0.25)',borderRadius:8,padding:'2px 8px',color:'#fff',fontSize:10,fontWeight:800}}, nextAppt.proj)),
+    /*#__PURE__*/React.createElement("p", {style:{color:'#fff',fontSize:18,fontWeight:900,letterSpacing:'-0.3px',marginBottom:2}}, nextAppt.morada),
+    /*#__PURE__*/React.createElement("p", {style:{color:'rgba(255,255,255,0.9)',fontSize:13,fontWeight:700}},
+      (nextAppt.date===todayStr?'Hoje':new Date(nextAppt.date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'short'})),
+      " · ", nextAppt.hi, "–", nextAppt.hf,
+      /*#__PURE__*/React.createElement("span", {style:{marginLeft:10,fontWeight:900}}, "CHF ", nextAppt.chf))),
   (function() {
     var _csd = calSelDay || new Date().toISOString().slice(0,10);
     var selDate = new Date(_csd+'T12:00:00');
