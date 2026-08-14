@@ -2038,7 +2038,17 @@ function AgendaProApp(_ref13) {
         new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
       /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2}},
         appts.filter(function(a){return a.date===todayStr;}).length+' marcação(ões)')),
-    renderTimeline(todayStr)),
+    /*#__PURE__*/React.createElement("div", {
+      style: {height:'calc(100vh - 220px)', overflowY:'auto', WebkitOverflowScrolling:'touch', borderRadius:14},
+      ref: function(el) {
+        if (!el) return;
+        var HOUR_PX = 56, S_H = 7;
+        var now = new Date();
+        var nowMin = now.getHours()*60 + now.getMinutes();
+        var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
+        el.scrollTop = Math.max(0, nowTop - 120);
+      }
+    }, renderTimeline(todayStr))),
 
   // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
   calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
@@ -2096,7 +2106,17 @@ function AgendaProApp(_ref13) {
     /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
       new Date(_csd+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
       /*#__PURE__*/React.createElement("span",{style:{color:A.muted,fontWeight:400,fontSize:11}},' · '+appts.filter(function(a){return a.date===calSelDay;}).length+' marcação(ões)')),
-    renderTimeline(_csd));
+    /*#__PURE__*/React.createElement("div", {
+      style: {height:'calc(100vh - 300px)', overflowY:'auto', WebkitOverflowScrolling:'touch', borderRadius:14},
+      ref: function(el) {
+        if (!el) return;
+        var HOUR_PX = 56, S_H = 7;
+        var now = new Date();
+        var nowMin = now.getHours()*60 + now.getMinutes();
+        var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
+        el.scrollTop = Math.max(0, nowTop - 120);
+      }
+    }, renderTimeline(_csd)));
   })()),
 
   calView === 'cal' && /*#__PURE__*/React.createElement("div", {
