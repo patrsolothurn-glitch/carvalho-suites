@@ -1104,6 +1104,40 @@ function AgendaProApp(_ref13) {
       }, style)
     }, children);
   };
+  // ── HELPER: renderTimeline — lista de marcações de um dia ──────────────
+  var renderTimeline = function(dateStr) {
+    var dayAppts = appts.filter(function(a) { return a.date === dateStr; })
+      .sort(function(a,b) { return (a.hi||'').localeCompare(b.hi||''); });
+    if (dayAppts.length === 0) return /*#__PURE__*/React.createElement("p", {
+      style: { color: A.muted, fontSize: 13, textAlign: 'center', padding: '16px 0' }
+    }, "Sem marcações");
+    return /*#__PURE__*/React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+      dayAppts.map(function(a) {
+        var pc = projColor(a.proj);
+        var st = STATUS[a.status] || STATUS.aberto;
+        return /*#__PURE__*/React.createElement("div", {
+          key: a.id,
+          style: { background: A.surface, borderRadius: 12, padding: '10px 14px', borderLeft: '4px solid ' + pc, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }
+        },
+        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
+          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted, fontWeight: 600 } }, (a.hi||'') + (a.hf ? '–' + a.hf : '')),
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 800, background: pc + '20', color: pc, borderRadius: 5, padding: '1px 6px' } }, a.proj||'')),
+          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+            a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: '#16a34a' } }, 'CHF ' + (a.chf||0).toFixed(0)),
+            /*#__PURE__*/React.createElement("button", {
+              onClick: function(e) { e.stopPropagation(); openForm(a); },
+              style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
+            }, "✏️"),
+            /*#__PURE__*/React.createElement("button", {
+              onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar?')) deleteApptWithNotif(a); },
+              style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
+            }, "🗑️"))),
+        /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13, color: A.text, marginBottom: 3 } }, a.morada||''),
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 5, padding: '1px 6px' } }, st.label));
+      }));
+  };
+
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -1921,40 +1955,6 @@ function AgendaProApp(_ref13) {
       month: 'short'
     }), " ", d.tipo === 'feriado' ? '🎌' : d.tipo === 'ferias' ? '🏖' : '✅'));
   }))),
-
-  // ── HELPER: Timeline de um dia ──────────────────────────────────────────
-  renderTimeline = function(dateStr) {
-    var dayAppts = appts.filter(function(a) { return a.date === dateStr; })
-      .sort(function(a,b) { return (a.hi||'').localeCompare(b.hi||''); });
-    if (dayAppts.length === 0) return /*#__PURE__*/React.createElement("p", {
-      style: { color: A.muted, fontSize: 13, textAlign: 'center', padding: '16px 0' }
-    }, "Sem marcações");
-    return /*#__PURE__*/React.createElement("div", { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
-      dayAppts.map(function(a) {
-        var pc = projColor(a.proj);
-        var st = STATUS[a.status] || STATUS.aberto;
-        return /*#__PURE__*/React.createElement("div", {
-          key: a.id,
-          style: { background: A.surface, borderRadius: 12, padding: '10px 14px', borderLeft: '4px solid ' + pc, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }
-        },
-        /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
-          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-            /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted, fontWeight: 600 } }, (a.hi||'') + (a.hf ? '–' + a.hf : '')),
-            /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 800, background: pc + '20', color: pc, borderRadius: 5, padding: '1px 6px' } }, a.proj||'')),
-          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 6 } },
-            a.chf > 0 && /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: '#16a34a' } }, 'CHF ' + (a.chf||0).toFixed(0)),
-            /*#__PURE__*/React.createElement("button", {
-              onClick: function(e) { e.stopPropagation(); openForm(a); },
-              style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
-            }, "✏️"),
-            /*#__PURE__*/React.createElement("button", {
-              onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar?')) deleteApptWithNotif(a); },
-              style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
-            }, "🗑️"))),
-        /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13, color: A.text, marginBottom: 3 } }, a.morada||''),
-        /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 5, padding: '1px 6px' } }, st.label));
-      }));
-  },
 
   // ── VIEW: HOJE ──────────────────────────────────────────────────────────
   calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
