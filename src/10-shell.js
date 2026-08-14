@@ -283,9 +283,9 @@ function CarvalhoSuite() {
     liam: '👦'
   }[profile && profile.member_id] || (isAdmin ? '👨‍💼' : '👤');
   var myAllowedApps = (profile && profile.allowed_apps) || [];
-  var visApps = isAdmin ? APPS_DATA : APPS_DATA.filter(function (a) {
-    return myAllowedApps.includes(a.id);
-  });
+  var visApps = isAdmin
+    ? APPS_DATA
+    : APPS_DATA.filter(function (a) { return !a.adminOnly && myAllowedApps.includes(a.id); });
   var myReadNotifs = (profile && profile.read_notifications) || [];
   var _useStateEscolarPendentes = (0, _react.useState)(0),
     _useStateEscolarPendentes2 = _slicedToArray(_useStateEscolarPendentes, 2),
@@ -813,7 +813,13 @@ function CarvalhoSuite() {
         applyTheme(data.theme || 'dark');
         if (isInitialEntry) {
           var allowed = data.allowed_apps || [];
-          if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
+          var _urlParams = new URLSearchParams(window.location.search);
+          var _urlApp = _urlParams.get('app');
+          // Atalho da Escola Grenchen: ?app=lucas abre diretamente a gestão (só admin)
+          if (_urlApp === 'lucas' && data.is_admin) {
+            setApp('escola_lucas');
+            setScreen('app');
+          } else if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
             setApp(data.default_app);
             setScreen('app');
           }
@@ -1315,6 +1321,14 @@ function CarvalhoSuite() {
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
     }, sharedProps));
+    if (activeApp === 'escola_lucas' && isAdmin) return /*#__PURE__*/React.createElement(LucasApp, {
+      supabase: window.supabaseClient,
+      user: profile,
+      isAdmin: true,
+      isSuperAdmin: true,
+      onBack: goBack,
+      initialView: 'autorizacoes'
+    });
   }
 
   // ── LOGIN ──
@@ -1950,7 +1964,8 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true, adminOnly: true }].filter(function (app) {
+      if (app.adminOnly) return isAdmin;
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
     }).map(function (app) {
@@ -2050,6 +2065,7 @@ function CarvalhoSuite() {
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6 }
     }, [{ id: null, emoji: '🏠', name: 'Início (todas as apps)' }].concat(APPS_DATA.filter(function (app) {
+      if (isAdmin) return true;
       return !profile || !profile.allowed_apps || profile.allowed_apps.indexOf(app.id) !== -1;
     }).map(function (app) {
       return { id: app.id, emoji: app.emoji, name: app.name };
