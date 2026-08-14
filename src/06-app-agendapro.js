@@ -144,10 +144,6 @@ function AgendaProApp(_ref13) {
     _useState66 = _slicedToArray(_useState65, 2),
     calView = _useState66[0],
     setCalView = _useState66[1]; // lista | cal
-  var _useStateCalSelDay = (0, _react.useState)(new Date().toISOString().slice(0, 10)),
-    _useStateCalSelDay2 = _slicedToArray(_useStateCalSelDay, 2),
-    calSelDay = _useStateCalSelDay2[0],
-    setCalSelDay = _useStateCalSelDay2[1];
   var _useState67 = (0, _react.useState)(false),
     _useState68 = _slicedToArray(_useState67, 2),
     showAdd = _useState68[0],
@@ -156,10 +152,6 @@ function AgendaProApp(_ref13) {
     _useStateGanhoOffset2 = _slicedToArray(_useStateGanhoOffset, 2),
     ganhoWeekOffset = _useStateGanhoOffset2[0],
     setGanhoWeekOffset = _useStateGanhoOffset2[1];
-  var _useStateListWeekOff = (0, _react.useState)(0),
-    _useStateListWeekOff2 = _slicedToArray(_useStateListWeekOff, 2),
-    listWeekOffset = _useStateListWeekOff2[0],
-    setListWeekOffset = _useStateListWeekOff2[1];
   var _useStateHorasDiaOffset = (0, _react.useState)(0),
     _useStateHorasDiaOffset2 = _slicedToArray(_useStateHorasDiaOffset, 2),
     horasDiaOffset = _useStateHorasDiaOffset2[0],
@@ -668,18 +660,7 @@ function AgendaProApp(_ref13) {
     return Math.round(hours * proj.hourlyRate);
   };
   var projColor = function projColor(p) {
-    if (!p) return '#888';
-    if (p.includes('BUDI-2S')) return '#F1C40F';   // amarelo
-    if (p.includes('BUDI-1S')) return '#E74C3C';   // vermelho
-    if (p.includes('BUDI-S'))  return '#27AE60';   // verde escuro
-    if (p.includes('BUDI'))    return A.orange;
-    if (p.includes('Nachsch') || p.includes('NACH')) return '#AB47BC'; // violeta vivo
-    if (p.includes('Magazin') || p.includes('MAG')) return '#0288D1';  // azul vivo
-    if (p.includes('GREN05') || p.includes('GR05')) return '#FF7043';  // laranja vivo
-    if (p.includes('GREN04') || p.includes('GR04')) return '#00ACC1';  // ciano vivo (≠ verde)
-    if (p.includes('POP'))  return '#0288D1';
-    if (p.includes('STOR') || p.includes('STÖR')) return '#E91E63';
-    return A.gold;
+    return p.includes('POP') ? A.blue : p.includes('BUDI') ? A.orange : A.gold;
   };
 
   // Filtered list
@@ -718,13 +699,11 @@ function AgendaProApp(_ref13) {
     if (filter === 'Hoje') return a.date === todayStr;
     if (filter === 'Semana') {
       var d = new Date(a.date + 'T12:00:00');
-      var s = new Date();
+      var s = new Date(curDate);
       var dow0 = s.getDay();
-      s.setHours(0,0,0,0);
-      s.setDate(s.getDate() + (dow0 === 0 ? -6 : 1 - dow0) + listWeekOffset * 7);
+      s.setDate(s.getDate() + (dow0 === 0 ? -6 : 1 - dow0));
       var e = new Date(s);
       e.setDate(e.getDate() + 6);
-      e.setHours(23,59,59,999);
       return d >= s && d <= e;
     }
     if (filter === 'Aberto') return a.status === 'aberto';
@@ -1050,73 +1029,6 @@ function AgendaProApp(_ref13) {
       });
     }
   };
-  // ── HELPERS: Timeline ──────────────────────────────────────────────────
-  var parseTimeMin = function(t) {
-    if (!t) return 0;
-    var p = t.split(':'); return parseInt(p[0]||0)*60 + parseInt(p[1]||0);
-  };
-  var renderTimeline = function(dayStr) {
-    var HOUR_PX = 56; var S_H = 7; var E_H = 20;
-    var totalH = (E_H - S_H) * HOUR_PX;
-    var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
-      .map(function(a) {
-        var sMin = parseTimeMin(a.hi);
-        var eMin = parseTimeMin(a.hf) || sMin + 60;
-        return {id:a.id,hi:a.hi,hf:a.hf,morada:a.morada,proj:a.proj,status:a.status,chf:a.chf,date:a.date,_orig:a,_sMin:sMin,_eMin:eMin,_col:0};
-      }).sort(function(a,b) { return a._sMin - b._sMin; });
-    var cols = [];
-    rawAppts.forEach(function(a) {
-      var c = 0;
-      while (cols[c] !== undefined && cols[c] > a._sMin) c++;
-      cols[c] = a._eMin; a._col = c;
-    });
-    var nCols = Math.max(1, cols.length);
-    var now = new Date(); var nowMin = now.getHours()*60+now.getMinutes();
-    var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
-    var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
-    var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
-    return /*#__PURE__*/React.createElement("div", {
-      style: {display:'flex',gap:0,background:'#fff',borderRadius:14,border:'1px solid #e8e8e8',overflow:'hidden',boxShadow:'0 1px 8px rgba(0,0,0,0.06)'}
-    },
-    /*#__PURE__*/React.createElement("div", {
-      style: {width:44,flexShrink:0,position:'relative',height:totalH,borderRight:'1px solid #f0f0f0',background:'#fafafa'}
-    },
-    hours.map(function(h) {
-      return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h-S_H)*HOUR_PX-6,right:6,fontSize:10,color:'#aaa',fontWeight:600}},
-        String(h).padStart(2,'0'));
-    })),
-    /*#__PURE__*/React.createElement("div", {
-      style: {flex:1,position:'relative',height:totalH}
-    },
-    hours.map(function(h) {
-      return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h-S_H)*HOUR_PX,left:0,right:0,height:1,background:h===S_H?'transparent':'#f0f0f0',pointerEvents:'none'}});
-    }),
-    rawAppts.map(function(a) {
-      if (a._sMin < S_H*60 || a._sMin >= E_H*60) return null;
-      var top = (a._sMin - S_H*60)*HOUR_PX/60;
-      var height = Math.max(38,(a._eMin-a._sMin)*HOUR_PX/60-2);
-      var pc = projColor(a.proj);
-      var st = STATUS[a.status] || STATUS.aberto;
-      var colW = 100/nCols;
-      var origAppt = a._orig;
-      return /*#__PURE__*/React.createElement("div", {key:a.id,
-        onClick:function(){ setCalSelDay(a.date); openForm(origAppt); },
-        style:{position:'absolute',top:top+1,left:'calc('+a._col*colW+'% + 3px)',width:'calc('+colW+'% - 6px)',height:height-2,
-          background:'#fff',borderLeft:'4px solid '+pc,borderRadius:'0 10px 10px 0',
-          padding:'5px 10px',cursor:'pointer',overflow:'hidden',boxSizing:'border-box',
-          boxShadow:'0 2px 8px rgba(0,0,0,0.10)'}},
-        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6}},
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},(a.hi||'')+(a.hf?'–'+a.hf:'')),
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
-        height > 46 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:12,fontWeight:700,color:'#222',marginTop:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
-        height > 66 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:st.color,marginTop:2}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
-    }),
-    showNow ? /*#__PURE__*/React.createElement("div",{style:{position:'absolute',top:nowTop,left:0,right:0,display:'flex',alignItems:'center',pointerEvents:'none',zIndex:10}},
-      /*#__PURE__*/React.createElement("div",{style:{width:8,height:8,borderRadius:'50%',background:'#ef4444',flexShrink:0,marginLeft:-4}}),
-      /*#__PURE__*/React.createElement("div",{style:{flex:1,height:'1.5px',background:'#ef4444'}})) : null));
-  };
   var deleteApptWithNotif = function deleteApptWithNotif(a) {
     deleteAppt(a.id);
     sendNotifTo(a.monteur, "\u274C Marca\xE7\xE3o cancelada \u2014 ".concat(a.monteur), "".concat(a.morada, " \xB7 ").concat(a.date, " \xE0s ").concat(a.hi, " foi cancelada"));
@@ -1241,35 +1153,56 @@ function AgendaProApp(_ref13) {
       gap: 8
     }
   }, /*#__PURE__*/React.createElement("button", {
-    title: 'Projetos',
-    onClick: function onClick() { setShowManageProj(true); setEditProjId(null); },
-    style: { background: 'none', border: 'none', color: A.muted, fontSize: 18, cursor: 'pointer', padding: '4px 6px' }
-  }, "\uD83D\uDCC1"), /*#__PURE__*/React.createElement("button", {
-    title: 'Gráficos',
-    onClick: function onClick() { setCalView(calView === 'graficos' ? 'lista' : 'graficos'); },
-    style: { background: 'none', border: 'none', color: calView === 'graficos' ? A.orange : A.muted, fontSize: 18, cursor: 'pointer', padding: '4px 6px' }
-  }, "\uD83D\uDCCA"))),
-  // ── TABS PRINCIPAIS ─────────────────────────────────────────────────────
-  /*#__PURE__*/React.createElement("div", {
-    style: { padding: '8px 16px 0', display: 'flex', gap: 0, background: A.surface2, borderRadius: 14, margin: '8px 16px 0' }
-  }, ['hoje','semana','cal','lista'].map(function(v) {
-    var labels = {hoje:'Hoje', semana:'Semana', cal:'Mês', lista:'Lista'};
-    var icons  = {hoje:'☀️', semana:'📅', cal:'🗓', lista:'📋'};
-    var active = calView === v;
-    return /*#__PURE__*/React.createElement("button", {
-      key: v,
-      onClick: function() { setCalView(v); window.scrollTo({top:0,behavior:'smooth'}); },
-      style: {
-        flex: 1, background: active ? A.orange : 'transparent',
-        border: 'none', borderRadius: 12, padding: '8px 4px',
-        color: active ? '#fff' : A.muted,
-        fontSize: 11, fontWeight: 800, cursor: 'pointer',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1
-      }
+    onClick: function onClick() {
+      return setCalView(function (v) {
+        return v === 'lista' ? 'cal' : 'lista';
+      });
     },
-    /*#__PURE__*/React.createElement("span", {style:{fontSize:14}}, icons[v]),
-    /*#__PURE__*/React.createElement("span", null, labels[v]));
-  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: A.surface2,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
+      padding: '7px 12px',
+      color: A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, calView === 'lista' ? '📅' : '📋'), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      return setCalView(function (v) {
+        return v === 'graficos' ? 'lista' : 'graficos';
+      });
+    },
+    style: {
+      background: calView === 'graficos' ? A.orange : A.surface2,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
+      padding: '7px 12px',
+      color: calView === 'graficos' ? '#fff' : A.muted,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setShowManageProj(true);
+      setEditProjId(null);
+    },
+    style: {
+      background: A.surface2,
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
+      width: 38,
+      height: 38,
+      color: A.muted,
+      fontSize: 16,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }
+  }, "\uD83D\uDCC1"))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 16px 0'
     }
@@ -1303,9 +1236,7 @@ function AgendaProApp(_ref13) {
       outline: 'none',
       caretColor: A.orange
     }
-  }), search && /*#__PURE__*/React.createElement("span", {
-    style: {fontSize:11,color:A.orange,fontWeight:800,background:A.orange+'22',borderRadius:20,padding:'1px 7px',flexShrink:0}
-  }, filtered.length), search && /*#__PURE__*/React.createElement("button", {
+  }), search && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return setSearch('');
     },
@@ -1316,7 +1247,7 @@ function AgendaProApp(_ref13) {
       cursor: 'pointer',
       fontSize: 16
     }
-  }, "\u2715"))), (calView === 'lista' || calView === 'graficos') && nextAppt && /*#__PURE__*/React.createElement("div", {
+  }, "\u2715"))), nextAppt && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() {
       return openForm(nextAppt);
     },
@@ -1413,14 +1344,11 @@ function AgendaProApp(_ref13) {
       gap: 7,
       overflowX: 'auto'
     }
-  }, (calView === 'lista' || calView === 'graficos') && ['Todos', 'Hoje', 'Semana', 'Aberto', 'Em curso', 'Concluído', 'Problema'].map(function (f) {
+  }, ['Todos', 'Hoje', 'Semana', 'Aberto', 'Em curso', 'Concluído', 'Problema'].map(function (f) {
     return /*#__PURE__*/React.createElement("button", {
       key: f,
       onClick: function onClick() {
-        setFilter(f);
-        if (f === 'Semana') { setCalView('semana'); window.scrollTo({top:0,behavior:'smooth'}); }
-        else if (f === 'Hoje') { setCalView('hoje'); window.scrollTo({top:0,behavior:'smooth'}); }
-        else if (calView === 'semana' || calView === 'hoje') { setCalView('lista'); }
+        return setFilter(f);
       },
       style: {
         background: filter === f ? A.orange : A.surface,
@@ -1435,33 +1363,7 @@ function AgendaProApp(_ref13) {
         flexShrink: 0
       }
     }, f);
-  })),
-  // ── Setas semana quando filtro === 'Semana' ──────────────────────────
-  filter === 'Semana' && /*#__PURE__*/React.createElement("div", {
-    style: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 16px 2px' }
-  },
-  /*#__PURE__*/React.createElement("button", {
-    onClick: function() { setListWeekOffset(function(o){ return o-1; }); },
-    style: { background:A.surface2, border:'1px solid '+A.border, borderRadius:8, width:32, height:32, cursor:'pointer', color:A.orange, fontSize:16, fontWeight:800 }
-  }, "\u2039"),
-  /*#__PURE__*/React.createElement("span", { style: { fontSize:12, fontWeight:700, color:A.muted } },
-    (function() {
-      var s = new Date();
-      var dow0 = s.getDay();
-      s.setHours(0,0,0,0);
-      s.setDate(s.getDate() + (dow0===0?-6:1-dow0) + listWeekOffset*7);
-      var e = new Date(s); e.setDate(s.getDate()+6);
-      return s.getDate()+'/'+( s.getMonth()+1)+' \u2013 '+e.getDate()+'/'+(e.getMonth()+1);
-    })()),
-  listWeekOffset !== 0 && /*#__PURE__*/React.createElement("button", {
-    onClick: function() { setListWeekOffset(0); },
-    style: { background:'none', border:'none', fontSize:10, color:A.orange, cursor:'pointer', fontWeight:700 }
-  }, "Hoje"),
-  /*#__PURE__*/React.createElement("button", {
-    onClick: function() { setListWeekOffset(function(o){ return o+1; }); },
-    style: { background:A.surface2, border:'1px solid '+A.border, borderRadius:8, width:32, height:32, cursor:'pointer', color:A.orange, fontSize:16, fontWeight:800 }
-  }, "\u203a")),
-  /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 10px',
       display: 'flex',
@@ -1532,7 +1434,7 @@ function AgendaProApp(_ref13) {
         marginTop: 2
       }
     }, t.sub));
-  })), (calView === 'lista' || calView === 'graficos') && /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '0 16px 10px',
       background: avisosAtivos ? 'rgba(22,163,74,0.07)' : 'rgba(0,0,0,0.04)',
@@ -1780,7 +1682,7 @@ function AgendaProApp(_ref13) {
       fontWeight: 700,
       cursor: 'pointer'
     }
-  }, "\uD83D\uDD14 Testar aviso agora")), (calView === 'lista' || calView === 'graficos') && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDD14 Testar aviso agora")), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px',
       display: 'flex',
@@ -1826,7 +1728,7 @@ function AgendaProApp(_ref13) {
         marginTop: 3
       }
     }, s.v));
-  })), (calView === 'lista' || calView === 'graficos') && ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
+  })), ganhoDiasSemana.length > 0 && /*#__PURE__*/React.createElement(ACard, {
     style: {
       padding: '14px 12px',
       marginTop: 10
@@ -1987,65 +1889,7 @@ function AgendaProApp(_ref13) {
       day: 'numeric',
       month: 'short'
     }), " ", d.tipo === 'feriado' ? '🎌' : d.tipo === 'ferias' ? '🏖' : '✅'));
-  }))),
-
-  // ── VIEW: HOJE ──────────────────────────────────────────────────────────
-  calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
-    /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
-      /*#__PURE__*/React.createElement("p",{style:{fontWeight:900,fontSize:16,color:A.text}},
-        new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
-      /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2}},
-        appts.filter(function(a){return a.date===todayStr;}).length+' marcação(ões)')),
-    renderTimeline(todayStr)),
-
-  // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
-  calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
-  (function() {
-    var _csd = calSelDay || new Date().toISOString().slice(0,10);
-    var selDate = new Date(_csd+'T12:00:00');
-    var dow = (selDate.getDay()+6)%7;
-    var monday = new Date(selDate); monday.setDate(selDate.getDate()-dow);
-    var getWk = function(d) {
-      var dt = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
-      var dy = dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-dy);
-      var y1 = new Date(Date.UTC(dt.getUTCFullYear(),0,1));
-      return Math.ceil(((dt-y1)/86400000+1)/7);
-    };
-    var week = [];
-    for (var wi=0;wi<7;wi++) { var wd=new Date(monday); wd.setDate(monday.getDate()+wi); week.push(wd); }
-    var dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-    return /*#__PURE__*/React.createElement("div", null,
-    /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
-      /*#__PURE__*/React.createElement("button",{
-        onClick:function(){var d=new Date(_csd+'T12:00:00');d.setDate(d.getDate()-7);setCalSelDay(d.toISOString().slice(0,10));},
-        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:36,height:36,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
-      },"‹"),
-      /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:14,color:A.text}},'Sem. '+getWk(selDate)),
-      /*#__PURE__*/React.createElement("button",{
-        onClick:function(){var d=new Date(_csd+'T12:00:00');d.setDate(d.getDate()+7);setCalSelDay(d.toISOString().slice(0,10));},
-        style:{background:A.surface2,border:'1px solid '+A.border,borderRadius:8,width:36,height:36,cursor:'pointer',color:A.orange,fontSize:18,fontWeight:700}
-      },"›")),
-    /*#__PURE__*/React.createElement("div",{style:{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:12}},
-      week.map(function(d,i) {
-        var dStr=d.toISOString().slice(0,10);
-        var isSel=dStr===calSelDay; var isT=dStr===todayStr;
-        var hasDots=appts.some(function(a){return a.date===dStr;});
-        return /*#__PURE__*/React.createElement("div",{
-          key:i,
-          onClick:function(){setCalSelDay(dStr);},
-          style:{textAlign:'center',padding:'6px 2px',borderRadius:10,cursor:'pointer',background:isSel?A.orange:isT?A.orange+'22':A.surface2,border:'1px solid '+(isSel?A.orange:A.border)}
-        },
-        /*#__PURE__*/React.createElement("p",{style:{fontSize:9,fontWeight:700,color:isSel?'#fff':A.muted}},dayNames[i]),
-        /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3}},d.getDate()),
-        hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
-      })),
-    /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
-      new Date(_csd+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
-      /*#__PURE__*/React.createElement("span",{style:{color:A.muted,fontWeight:400,fontSize:11}},' · '+appts.filter(function(a){return a.date===calSelDay;}).length+' marcação(ões)')),
-    renderTimeline(_csd));
-  })()),
-
-  calView === 'cal' && /*#__PURE__*/React.createElement("div", {
+  }))), calView === 'cal' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 12px'
     }
@@ -2183,8 +2027,8 @@ function AgendaProApp(_ref13) {
         key: wi,
         style: {
           display: 'grid',
-          gridTemplateColumns: '22px repeat(7,1fr)',
-          marginBottom: 2
+          gridTemplateColumns: '32px repeat(7,1fr)',
+          marginBottom: 3
         }
       }, /*#__PURE__*/React.createElement("div", {
         style: {
@@ -2212,8 +2056,7 @@ function AgendaProApp(_ref13) {
         var hasAppt = appts.some(function (a) {
           return a.date === dStr;
         });
-        var isSel = dStr === calSelDay;
-        var isToday3 = dStr === todayStr;
+        var isSel = dStr === todayStr;
         var isWeekend = di >= 5;
         var statusColors = _toConsumableArray(new Set(appts.filter(function (a) {
           return a.date === dStr;
@@ -2224,57 +2067,52 @@ function AgendaProApp(_ref13) {
         return /*#__PURE__*/React.createElement("div", {
           key: di,
           onClick: function onClick() {
-            setCurDate(new Date(dStr + 'T12:00:00'));
-            setCalSelDay(calSelDay === dStr ? null : dStr);
+            return setCurDate(new Date(dStr + 'T12:00:00'));
           },
           style: {
             textAlign: 'center',
-            padding: '2px 1px',
-            borderRadius: 6,
+            padding: '4px 1px',
+            borderRadius: 9,
             cursor: 'pointer',
-            background: isSel ? A.orange : isToday3 ? 'rgba(217,119,6,0.12)' : 'transparent',
-            border: isSel ? '2px solid '+A.orange : hasAppt ? '1px solid rgba(217,119,6,0.25)' : '1px solid transparent',
-            minHeight: 54,
+            background: isSel ? A.orange : 'transparent',
+            border: hasAppt && !isSel ? "1px solid rgba(217,119,6,0.25)" : '1px solid transparent',
+            minHeight: 38,
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'stretch',
-            overflow: 'hidden',
+            alignItems: 'center',
             gap: 1
           }
         }, /*#__PURE__*/React.createElement("span", {
           style: {
             fontSize: 12,
             fontWeight: isSel || hasAppt ? 800 : 400,
-            color: isSel ? '#fff' : isToday3 ? A.orange : isWeekend ? A.orange : A.text,
+            color: isSel ? '#fff' : isWeekend ? A.orange : A.text,
             lineHeight: 1.4
           }
-        }, day),
-        (function() {
-          var dayA = appts.filter(function(a){ return a.date === dStr; })
-            .sort(function(a,b){ return (a.hi||'').localeCompare(b.hi||''); });
-          if (!dayA.length) return null;
-          var maxShow = 3;
-          var shown = dayA.slice(0, maxShow);
-          var more = dayA.length - maxShow;
+        }, day), hasAppt && !isSel && /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: 'flex',
+            gap: 2,
+            justifyContent: 'center'
+          }
+        }, statusColors.map(function (c, ci) {
           return /*#__PURE__*/React.createElement("div", {
-            style: { width:'100%', display:'flex', flexDirection:'column', gap:1, marginTop:1, alignItems:'stretch' }
-          },
-          shown.map(function(a) {
-            var pc = projColor(a.proj);
-            var txtColor = isSel ? '#fff' : (pc === '#F1C40F' ? '#7a6000' : '#fff');
-            var bgColor = isSel ? 'rgba(255,255,255,0.3)' : pc;
-            return /*#__PURE__*/React.createElement("div", {
-              key: a.id,
-              style: { background: bgColor, borderRadius: 3,
-                fontSize: 8, fontWeight: 800, color: txtColor,
-                padding:'1px 2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.5,
-                textAlign:'left' }
-            }, (a.hi ? a.hi.slice(0,5) : ''));
-          }),
-          more > 0 && /*#__PURE__*/React.createElement("div", {
-            style: { fontSize:8, color: isSel?'rgba(255,255,255,0.7)':A.muted, fontWeight:700, textAlign:'center' }
-          }, '+'+more));
-        })());
+            key: ci,
+            style: {
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              background: c
+            }
+          });
+        })), hasAppt && isSel && /*#__PURE__*/React.createElement("div", {
+          style: {
+            width: 5,
+            height: 5,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.7)'
+          }
+        }));
       }));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2933,12 +2771,9 @@ function AgendaProApp(_ref13) {
         padding: '12px 14px',
         background: A.surface2,
         borderRadius: 14,
-        border: "1px solid ".concat(A.border),
-        borderLeft: '4px solid ' + projColor(p.name)
+        border: "1px solid ".concat(A.border)
       }
     }, /*#__PURE__*/React.createElement("div", {
-      style: { width: 10, height: 10, borderRadius: '50%', background: projColor(p.name), flexShrink: 0 }
-    }), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
       }
@@ -3739,54 +3574,7 @@ function AgendaProApp(_ref13) {
         style: { fontSize: 10, color: A.muted, fontWeight: 700 }
       }, "S", wi + 1));
     }))));
-  })(),
-
-  // ── PAINEL: marcações do dia selecionado (calView 'cal') ────────────────
-  calView === 'cal' && calSelDay && /*#__PURE__*/React.createElement("div", {
-    style: { padding: '0 16px 16px' }
-  },
-  /*#__PURE__*/React.createElement("div", {
-    style: { background: A.surface, borderRadius: 14, border: '1px solid ' + A.border, overflow: 'hidden' }
-  },
-  /*#__PURE__*/React.createElement("div", {
-    style: { padding: '12px 16px 10px', borderBottom: '1px solid ' + A.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }
-  },
-  /*#__PURE__*/React.createElement("p", { style: { fontWeight: 800, fontSize: 14, color: A.text } },
-    new Date(calSelDay + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^\w/, function(c){ return c.toUpperCase(); })),
-  /*#__PURE__*/React.createElement("button", {
-    onClick: function() { setCalSelDay(null); },
-    style: { background: 'none', border: 'none', color: A.muted, cursor: 'pointer', fontSize: 18, lineHeight: 1 }
-  }, "\u2715")),
-  appts.filter(function(a) { return a.date === calSelDay; }).length === 0
-    ? /*#__PURE__*/React.createElement("p", { style: { padding: '16px', color: A.muted, fontSize: 13, textAlign: 'center' } }, "Sem marcações")
-    : appts.filter(function(a) { return a.date === calSelDay; })
-        .sort(function(a,b) { return (a.hi||'').localeCompare(b.hi||''); })
-        .map(function(a) {
-          var pc = projColor(a.proj);
-          var st = STATUS[a.status] || STATUS.aberto;
-          return /*#__PURE__*/React.createElement("div", {
-            key: a.id,
-            style: { padding: '10px 16px', borderBottom: '1px solid ' + A.border + '80', borderLeft: '3px solid ' + pc }
-          },
-          /*#__PURE__*/React.createElement("div", { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 } },
-            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-              /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted, fontWeight: 600 } }, (a.hi||'') + (a.hf ? '\u2013' + a.hf : '')),
-              /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 800, background: pc + '20', color: pc, borderRadius: 5, padding: '1px 6px' } }, a.proj)),
-            /*#__PURE__*/React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-              /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 800, color: '#16a34a' } }, a.chf > 0 ? 'CHF ' + a.chf.toFixed(0) : ''),
-              /*#__PURE__*/React.createElement("button", {
-                onClick: function(e) { e.stopPropagation(); openForm(a); },
-                style: { background: A.surface2, border: '1px solid ' + A.border, borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
-              }, "\u270F\uFE0F"),
-              /*#__PURE__*/React.createElement("button", {
-                onClick: function(e) { e.stopPropagation(); if (window.confirm('Apagar?')) deleteApptWithNotif(a); },
-                style: { background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, width: 26, height: 26, cursor: 'pointer', fontSize: 12 }
-              }, "\uD83D\uDDD1\uFE0F"))),
-          /*#__PURE__*/React.createElement("p", { style: { fontWeight: 700, fontSize: 13, color: A.text } }, a.morada),
-          /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, background: st.bg, color: st.color, borderRadius: 5, padding: '1px 6px' } }, st.label));
-        }))),
-
-  calView === 'lista' && /*#__PURE__*/React.createElement("div", {
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 16px 20px'
     }
