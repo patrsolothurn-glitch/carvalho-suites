@@ -2029,15 +2029,27 @@ function AgendaProApp(_ref13) {
       week.map(function(d,i) {
         var dStr=d.toISOString().slice(0,10);
         var isSel=dStr===calSelDay; var isT=dStr===todayStr;
-        var hasDots=appts.some(function(a){return a.date===dStr;});
+        var dayAppts=appts.filter(function(a){return a.date===dStr;}).sort(function(a,b){return (a.hi||'').localeCompare(b.hi||'');});
+        var maxShow=3;
+        var shown=dayAppts.slice(0,maxShow);
+        var moreCount=dayAppts.length-shown.length;
         return /*#__PURE__*/React.createElement("div",{
           key:i,
           onClick:function(){setCalSelDay(dStr);},
-          style:{textAlign:'center',padding:'6px 2px',borderRadius:10,cursor:'pointer',background:isSel?A.orange:isT?A.orange+'22':A.surface2,border:'1px solid '+(isSel?A.orange:A.border)}
+          style:{textAlign:'center',padding:'6px 2px',borderRadius:10,cursor:'pointer',background:isSel?A.orange:isT?A.orange+'22':A.surface2,border:'1px solid '+(isSel?A.orange:A.border),minHeight:64,display:'flex',flexDirection:'column',gap:1}
         },
         /*#__PURE__*/React.createElement("p",{style:{fontSize:9,fontWeight:700,color:isSel?'#fff':A.muted}},dayNames[i]),
-        /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3}},d.getDate()),
-        hasDots?/*#__PURE__*/React.createElement("div",{style:{width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,0.7)':A.orange,margin:'2px auto 0'}}):null);
+        /*#__PURE__*/React.createElement("p",{style:{fontSize:14,fontWeight:900,color:isSel?'#fff':isT?A.orange:A.text,lineHeight:1.3,marginBottom:2}},d.getDate()),
+        shown.map(function(a){
+          var pc=projColor(a.proj);
+          var txtColor=isSel?'#fff':(pc==='#F1C40F'?'#7a6000':'#fff');
+          var bgColor=isSel?'rgba(255,255,255,0.3)':pc;
+          return /*#__PURE__*/React.createElement("div",{
+            key:a.id,
+            style:{background:bgColor,borderRadius:3,fontSize:8,fontWeight:800,color:txtColor,padding:'1px 2px',lineHeight:1.5,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}
+          },(a.hi?a.hi.slice(0,5):''));
+        }),
+        moreCount>0 && /*#__PURE__*/React.createElement("div",{style:{fontSize:7,fontWeight:700,color:isSel?'rgba(255,255,255,0.7)':A.muted}},'+'+moreCount));
       })),
     /*#__PURE__*/React.createElement("p",{style:{fontWeight:800,fontSize:13,color:A.text,marginBottom:8}},
       new Date(_csd+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();}),
