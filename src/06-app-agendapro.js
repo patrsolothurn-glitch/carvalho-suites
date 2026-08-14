@@ -1225,7 +1225,11 @@ function AgendaProApp(_ref13) {
     var active = calView === v;
     return /*#__PURE__*/React.createElement("button", {
       key: v,
-      onClick: function() { setCalView(v); window.scrollTo({top:0,behavior:'smooth'}); },
+      onClick: function() {
+        if (v === 'semana') setCalSelDay(todayStr);
+        if (v === 'hoje') setCalSelDay(todayStr);
+        setCalView(v); window.scrollTo({top:0,behavior:'smooth'});
+      },
       style: {
         flex: 1, background: active ? A.orange : 'transparent',
         border: 'none', borderRadius: 12, padding: '8px 4px',
@@ -1385,8 +1389,8 @@ function AgendaProApp(_ref13) {
       key: f,
       onClick: function onClick() {
         setFilter(f);
-        if (f === 'Semana') { setCalView('semana'); window.scrollTo({top:0,behavior:'smooth'}); }
-        else if (f === 'Hoje') { setCalView('hoje'); window.scrollTo({top:0,behavior:'smooth'}); }
+        if (f === 'Semana') { setCalSelDay(todayStr); setCalView('semana'); window.scrollTo({top:0,behavior:'smooth'}); }
+        else if (f === 'Hoje') { setCalSelDay(todayStr); setCalView('hoje'); window.scrollTo({top:0,behavior:'smooth'}); }
         else if (calView === 'semana' || calView === 'hoje') { setCalView('lista'); }
       },
       style: {
