@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-15T19:20:01.294Z
+  Gerado em: 2026-08-15T19:43:56.154Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-147";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-148";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24941,17 +24941,19 @@ function HwPrintView(props) {
               React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen!'),
               React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
             )
-          ) // total+bank+footer div
-          ,
+          ), // total+bank+footer div
 
-          // ── ZAHLTEIL INSIDE PRINT PAGE ── (screen: hidden, print: visible)
-          React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
-            React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
-          )
-
+          React.createElement('div', { style: { flexGrow: 1 } })
         ) // #print-page
       ) // scale wrapper
     ), // outer grey bg
+
+    // ── ZAHLTEIL: separate page, bottom-aligned ──
+    React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
+      React.createElement('div', { id: 'zahlteil-page' },
+        React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
+      )
+    ),
 
     React.createElement('style', null,
       '@media print {' +
@@ -24962,6 +24964,15 @@ function HwPrintView(props) {
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
       '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
       '  .hw-zahlteil-print { display: block !important; }' +
+      '  #zahlteil-page {' +
+      '    page-break-before: always;' +
+      '    break-before: always;' +
+      '    width: 100%;' +
+      '    height: 297mm;' +
+      '    display: flex;' +
+      '    flex-direction: column;' +
+      '    justify-content: flex-end;' +
+      '  }' +
       '  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
       '}'
     )

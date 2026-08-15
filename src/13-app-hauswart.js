@@ -1086,17 +1086,19 @@ function HwPrintView(props) {
               React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen!'),
               React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
             )
-          ) // total+bank+footer div
-          ,
+          ), // total+bank+footer div
 
-          // ── ZAHLTEIL INSIDE PRINT PAGE ── (screen: hidden, print: visible)
-          React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
-            React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
-          )
-
+          React.createElement('div', { style: { flexGrow: 1 } })
         ) // #print-page
       ) // scale wrapper
     ), // outer grey bg
+
+    // ── ZAHLTEIL: separate page, bottom-aligned ──
+    React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
+      React.createElement('div', { id: 'zahlteil-page' },
+        React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
+      )
+    ),
 
     React.createElement('style', null,
       '@media print {' +
@@ -1107,6 +1109,15 @@ function HwPrintView(props) {
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
       '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
       '  .hw-zahlteil-print { display: block !important; }' +
+      '  #zahlteil-page {' +
+      '    page-break-before: always;' +
+      '    break-before: always;' +
+      '    width: 100%;' +
+      '    height: 297mm;' +
+      '    display: flex;' +
+      '    flex-direction: column;' +
+      '    justify-content: flex-end;' +
+      '  }' +
       '  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
       '}'
     )
