@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-15T11:53:46.286Z
+  Gerado em: 2026-08-15T11:55:16.561Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-138";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-139";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24591,14 +24591,16 @@ function HwPrintView(props) {
           var w = window.open('', '_blank');
           w.document.write('<!DOCTYPE html><html><head><title>QR ' + referenz + '</title>'
             + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            + '<style>body{margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Arial;gap:16px;padding:20px;box-sizing:border-box;}'
-            + '.qr{background:white;padding:16px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}'
-            + '.qr img{display:block;width:220px;height:220px;}'
-            + '.info{color:#94a3b8;font-size:13px;text-align:center;line-height:1.6;}'
-            + '.ref{color:#3b82f6;font-weight:700;font-size:16px;}'
-            + '.amt{color:#22c55e;font-weight:700;font-size:20px;}'
-            + '.btn{background:#3b82f6;color:white;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;}'
-            + '.tip{color:#475569;font-size:11px;text-align:center;margin-top:4px;}'
+            + '<style>'
+            + '*{box-sizing:border-box;margin:0;padding:0;}'
+            + 'body{background:#0f172a;display:flex;flex-direction:column;align-items:center;font-family:Arial,sans-serif;gap:18px;padding:28px 16px;min-height:100vh;}'
+            + '.qr{background:white;padding:20px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.6);width:calc(100vw - 60px);max-width:340px;}'
+            + '.qr img{display:block;width:100%;height:auto;}'
+            + '.ref{color:#60a5fa;font-weight:700;font-size:17px;text-align:center;}'
+            + '.amt{color:#4ade80;font-weight:800;font-size:26px;text-align:center;}'
+            + '.info{color:#94a3b8;font-size:12px;text-align:center;line-height:1.7;}'
+            + '.btn{background:#3b82f6;color:white;border:none;border-radius:12px;padding:14px 0;font-size:16px;font-weight:700;cursor:pointer;text-decoration:none;display:block;width:calc(100vw - 60px);max-width:340px;text-align:center;}'
+            + '.tip{color:#475569;font-size:11px;text-align:center;}'
             + '</style></head><body>'
             + '<div class="qr"><img src="' + qrUrl + '" alt="Swiss QR ' + referenz + '"/></div>'
             + '<div class="ref">' + referenz + '</div>'
