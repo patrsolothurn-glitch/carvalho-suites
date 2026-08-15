@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-14T16:07:04.674Z
+  Gerado em: 2026-08-15T08:23:05.824Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-126";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-127";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -284,6 +284,14 @@ var APPS_DATA = [{
   desc: 'Gestão do transporte escolar',
   badge: null,
   color: '#1a237e',
+  adminOnly: true
+}, {
+  id: 'hauswart',
+  emoji: '🔧',
+  name: 'Hauswart',
+  desc: 'Faturação trimestral',
+  badge: null,
+  color: '#0891b2',
   adminOnly: true
 }];
 
@@ -25131,6 +25139,7 @@ function CarvalhoSuite() {
       onBack: goBack
     });
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'hauswart' && isAdmin) return /*#__PURE__*/React.createElement(HauswartApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
