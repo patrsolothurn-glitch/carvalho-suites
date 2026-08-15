@@ -908,7 +908,7 @@ function HwPrintView(props) {
             + '  body{background:white;margin:0;padding:0;}'
             + '  .spacer-page{display:none;}'
             + '  .wrap{'
-            + '    position:fixed;bottom:0;left:0;right:0;'
+            + '    position:fixed;bottom:20mm;left:0;right:0;'
             + '    margin:0;border-radius:0;'
             + '  }'
             + '  .emp{width:62mm;padding:3mm 4mm;}'
