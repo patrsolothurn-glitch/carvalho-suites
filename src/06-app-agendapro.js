@@ -1071,7 +1071,7 @@ function AgendaProApp(_ref13) {
     }
   };
   var renderTimeline = function(dayStr) {
-    var HOUR_PX = 56; var S_H = 7; var E_H = 20;
+    var HOUR_PX = 56; var S_H = 0; var E_H = 24;
     var totalH = (E_H - S_H) * HOUR_PX;
     var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
       .map(function(a) {
@@ -2042,7 +2042,7 @@ function AgendaProApp(_ref13) {
       style: {height:'calc(100vh - 220px)', overflowY:'auto', WebkitOverflowScrolling:'touch', borderRadius:14},
       ref: function(el) {
         if (!el) return;
-        var HOUR_PX = 56, S_H = 7;
+        var HOUR_PX = 56, S_H = 0;
         var now = new Date();
         var nowMin = now.getHours()*60 + now.getMinutes();
         var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
@@ -2110,7 +2110,7 @@ function AgendaProApp(_ref13) {
       style: {height:'calc(100vh - 300px)', overflowY:'auto', WebkitOverflowScrolling:'touch', borderRadius:14},
       ref: function(el) {
         if (!el) return;
-        var HOUR_PX = 56, S_H = 7;
+        var HOUR_PX = 56, S_H = 0;
         var now = new Date();
         var nowMin = now.getHours()*60 + now.getMinutes();
         var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
