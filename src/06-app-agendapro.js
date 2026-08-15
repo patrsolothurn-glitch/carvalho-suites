@@ -2032,23 +2032,55 @@ function AgendaProApp(_ref13) {
   }))),
 
   // ── VIEW: HOJE ──────────────────────────────────────────────────────────
-  calView === 'hoje' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
-    /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
-      /*#__PURE__*/React.createElement("p",{style:{fontWeight:900,fontSize:16,color:A.text}},
-        new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
-      /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2}},
-        appts.filter(function(a){return a.date===todayStr;}).length+' marcação(ões)')),
-    /*#__PURE__*/React.createElement("div", {
-      style: {height:'calc(100vh - 220px)', overflowY:'auto', WebkitOverflowScrolling:'touch', borderRadius:14},
-      ref: function(el) {
-        if (!el) return;
-        var HOUR_PX = 56, S_H = 0;
-        var now = new Date();
-        var nowMin = now.getHours()*60 + now.getMinutes();
-        var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
-        el.scrollTop = Math.max(0, nowTop - 120);
-      }
-    }, renderTimeline(todayStr))),
+  calView === 'hoje' && (function() {
+    var _hd = calSelDay || todayStr;
+    var isToday = _hd === todayStr;
+    var goDay = function(delta) {
+      var d = new Date(_hd + 'T12:00:00');
+      d.setDate(d.getDate() + delta);
+      setCalSelDay(d.toISOString().slice(0,10));
+    };
+    var swipeStart = {x:0, y:0};
+    return /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
+      /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',marginBottom:10,gap:8}},
+        /*#__PURE__*/React.createElement("button",{
+          onClick:function(){goDay(-1);},
+          style:{background:'none',border:'none',fontSize:20,color:A.muted,padding:'4px 8px',cursor:'pointer',borderRadius:8,lineHeight:1}
+        },'◀'),
+        /*#__PURE__*/React.createElement("div",{style:{flex:1}},
+          /*#__PURE__*/React.createElement("p",{style:{fontWeight:900,fontSize:16,color:A.text,margin:0}},
+            new Date(_hd+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,function(c){return c.toUpperCase();})),
+          /*#__PURE__*/React.createElement("p",{style:{fontSize:11,color:A.muted,marginTop:2,margin:0}},
+            appts.filter(function(a){return a.date===_hd;}).length+' marcação(ões)')),
+        !isToday && /*#__PURE__*/React.createElement("button",{
+          onClick:function(){setCalSelDay(todayStr);},
+          style:{background:A.accent,color:'#fff',border:'none',borderRadius:8,fontSize:10,fontWeight:700,padding:'4px 8px',cursor:'pointer'}
+        },'Hoje'),
+        /*#__PURE__*/React.createElement("button",{
+          onClick:function(){goDay(1);},
+          style:{background:'none',border:'none',fontSize:20,color:A.muted,padding:'4px 8px',cursor:'pointer',borderRadius:8,lineHeight:1}
+        },'▶')),
+      /*#__PURE__*/React.createElement("div", {
+        style: {height:'calc(100vh - 220px)', overflowY:'auto', WebkitOverflowScrolling:'touch', borderRadius:14},
+        onTouchStart: function(e){ swipeStart = {x:e.touches[0].clientX, y:e.touches[0].clientY}; },
+        onTouchEnd: function(e) {
+          var dx = e.changedTouches[0].clientX - swipeStart.x;
+          var dy = e.changedTouches[0].clientY - swipeStart.y;
+          if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)*1.5) {
+            goDay(dx < 0 ? 1 : -1);
+          }
+        },
+        ref: function(el) {
+          if (!el) return;
+          var HOUR_PX = 56, S_H = 0;
+          var now = new Date();
+          var nowMin = now.getHours()*60 + now.getMinutes();
+          var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
+          if (isToday) el.scrollTop = Math.max(0, nowTop - 120);
+          else el.scrollTop = 7 * 56; // começa nas 07h para dias sem hora actual
+        }
+      }, renderTimeline(_hd)));
+  })(),
 
   // ── VIEW: SEMANA ─────────────────────────────────────────────────────────
   calView === 'semana' && /*#__PURE__*/React.createElement("div", {style:{padding:'0 16px 24px'}},
