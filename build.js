@@ -32,6 +32,7 @@ const JS_SECTIONS = [
   '09-app-escolar.js', // app Agenda Escolar
   '11-app-subby.js', // app Subby — gestor de subscrições (independente, só Patricio)
   '12-app-lucas.js', // app Escola Grenchen — gestão admin do transporte escolar
+  '13-app-hauswart.js', // app Hauswart — faturação trimestral pessoal (admin only)
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
