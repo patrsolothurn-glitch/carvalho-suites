@@ -1072,7 +1072,7 @@ function AgendaProApp(_ref13) {
   };
   var renderTimeline = function(dayStr) {
     var HOUR_PX = 56; var S_H = 0; var E_H = 24;
-    var totalH = (E_H - S_H) * HOUR_PX;
+    var totalH = E_H * HOUR_PX - 8; // termina antes do slot 24:00
     var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
       .map(function(a) {
         var sMin = parseTimeMin(a.hi);
@@ -1097,8 +1097,9 @@ function AgendaProApp(_ref13) {
       style: {width:44,flexShrink:0,position:'relative',height:totalH,borderRight:'1px solid #f0f0f0',background:'#fafafa'}
     },
     hours.map(function(h) {
+      if (h === 0) return null;
       return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h===S_H?4:(h-S_H)*HOUR_PX-6),right:6,fontSize:10,color:'#aaa',fontWeight:600}},
+        style:{position:'absolute',top:(h-S_H)*HOUR_PX-6,right:6,fontSize:10,color:'#aaa',fontWeight:600}},
         String(h).padStart(2,'0'));
     })),
     /*#__PURE__*/React.createElement("div", {
