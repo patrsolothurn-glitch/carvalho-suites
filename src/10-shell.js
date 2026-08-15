@@ -1317,6 +1317,7 @@ function CarvalhoSuite() {
       onBack: goBack
     });
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'hauswart' && isAdmin) return /*#__PURE__*/React.createElement(HauswartApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
