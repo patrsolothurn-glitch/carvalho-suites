@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-15T08:39:22.503Z
+  Gerado em: 2026-08-15T08:40:48.932Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-130";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-131";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24434,6 +24434,61 @@ function HwPrintView(props) {
     React.createElement('div', { className: 'no-print', style: { background: '#1e293b', padding: '10px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 } },
       React.createElement('button', { onClick: onBack, style: { background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '← Zurück'),
       React.createElement('button', { onClick: function() { window.print(); }, style: { background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, padding: '8px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 } }, '🖨️ Drucken / PDF'),
+      React.createElement('button', {
+        onClick: function() {
+          var qrData = hwQrContent(cfg, total, referenz);
+          var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&data=' + encodeURIComponent(qrData);
+          var a = document.createElement('a');
+          a.href = qrUrl;
+          a.download = 'QR-' + referenz.replace(/\s/g, '-') + '.png';
+          a.target = '_blank';
+          a.click();
+        },
+        style: { background: '#0891b2', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
+      }, '⬇️ Guardar QR'),
+      React.createElement('button', {
+        onClick: function() {
+          var qrData = hwQrContent(cfg, total, referenz);
+          var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&data=' + encodeURIComponent(qrData);
+          var qStartStr = new Date(cfg.year + '-' + (HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2]).startDay + 'T12:00:00').toLocaleDateString('de-CH');
+          var qEndStr = new Date(cfg.year + '-' + (HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2]).endDay + 'T12:00:00').toLocaleDateString('de-CH');
+          var lz = qStartStr + ' – ' + qEndStr;
+          var w = window.open('', '_blank', 'width=860,height=500');
+          w.document.write('<!DOCTYPE html><html><head><title>Zahlteil ' + referenz + '</title><style>body{margin:0;font-family:Arial;background:white;display:flex;justify-content:center;padding:20px;} @media print{body{padding:0;} .no-print{display:none;}}</style></head><body>');
+          w.document.write('<div>');
+          w.document.write('<div class="no-print" style="margin-bottom:12px;display:flex;gap:8px;">');
+          w.document.write('<button onclick="window.print()" style="background:#1d4ed8;color:white;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:14px;font-weight:700;">🖨️ Imprimir Zahlteil</button>');
+          w.document.write('<button onclick="window.close()" style="background:#334155;color:#94a3b8;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;">✕ Fechar</button>');
+          w.document.write('</div>');
+          w.document.write('<div style="display:flex;align-items:center;gap:8px;padding:4px 0;"><span style="font-size:16px;">✂</span><div style="flex:1;border-top:1px dashed #888;"></div></div>');
+          w.document.write('<div style="display:flex;border:1px solid #555;border-top:none;min-height:397px;">');
+          // Empfangsschein
+          w.document.write('<div style="width:225px;padding:12px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;">');
+          w.document.write('<div style="font-size:12px;font-weight:900;">Empfangsschein</div>');
+          w.document.write('<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Konto / Zahlbar an</div>');
+          w.document.write('<div style="font-size:9px;line-height:1.5;">' + cfg.iban + '<br>' + cfg.name + '<br>' + cfg.address + '<br>' + cfg.city + '</div></div>');
+          w.document.write('<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Zahlbar durch</div><div style="border:0.75px solid #000;height:32px;margin-top:2px;"></div></div>');
+          w.document.write('<div style="flex:1;"></div>');
+          w.document.write('<div style="display:flex;gap:12px;"><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Währung</div><div style="font-size:11px;font-weight:700;">CHF</div></div><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Betrag</div><div style="font-size:11px;font-weight:700;">' + total.toFixed(2) + '</div></div></div>');
+          w.document.write('<div style="font-size:7px;text-align:right;">Annahmestelle</div>');
+          w.document.write('</div>');
+          // Separator
+          w.document.write('<div style="width:1px;background:#555;flex-shrink:0;"></div>');
+          // Zahlteil
+          w.document.write('<div style="flex:1;padding:12px 12px 12px 20px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;">');
+          w.document.write('<div style="font-size:15px;font-weight:900;">Zahlteil</div>');
+          w.document.write('<div style="display:flex;gap:16px;align-items:flex-start;">');
+          w.document.write('<div><img src="' + qrUrl + '" width="175" height="175" style="display:block;border:1px solid #eee;"/><div style="display:flex;gap:12px;margin-top:10px;"><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Währung</div><div style="font-size:13px;font-weight:700;">CHF</div></div><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Betrag</div><div style="font-size:13px;font-weight:700;">' + total.toFixed(2) + '</div></div></div></div>');
+          w.document.write('<div style="flex:1;"><div style="margin-bottom:8px;"><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Konto / Zahlbar an</div><div style="font-size:10px;line-height:1.5;">' + cfg.iban + '<br>' + cfg.name + '<br>' + cfg.address + '<br>' + cfg.city + '</div></div>');
+          w.document.write('<div style="margin-bottom:8px;"><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Zahlbar durch</div><div style="border:0.75px solid #000;height:36px;width:85%;margin-top:2px;"></div></div>');
+          w.document.write('<div style="margin-bottom:6px;"><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Referenz</div><div style="font-size:10px;">' + referenz + '</div></div>');
+          w.document.write('<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Leistungszeitraum</div><div style="font-size:10px;">' + lz + '</div></div>');
+          w.document.write('</div></div></div></div>');
+          w.document.write('</div></body></html>');
+          w.document.close();
+        },
+        style: { background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
+      }, '🖨️ Imprimir QR'),
       React.createElement('button', { onClick: onNew, style: { background: '#14532d', color: '#4ade80', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '✓ Abgerechnet — Neue Rechnung')
     ),
 
