@@ -138,4 +138,12 @@ var APPS_DATA = [{
   badge: null,
   color: '#1a237e',
   adminOnly: true
+}, {
+  id: 'hauswart',
+  emoji: '🔧',
+  name: 'Hauswart',
+  desc: 'Faturação trimestral',
+  badge: null,
+  color: '#0891b2',
+  adminOnly: true
 }];
