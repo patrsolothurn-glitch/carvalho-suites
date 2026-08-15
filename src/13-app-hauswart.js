@@ -174,6 +174,7 @@ var HauswartApp = function(props) {
       works: works, mats: mats, cfg: cfg, total: total,
       totalWork: totalWork, totalMats: totalMats, pauschale: pauschale,
       beschreibung: beschreibung, referenz: referenz, invLabel: invLabel,
+      leistungszeitraum: leistungszeitraum,
       onBack: function() { setPrint(false); },
       onNew: function() { updW([]); updM([]); updC(Object.assign({}, cfg, { invoiceDate: '', serviceDate: '' })); setPrint(false); setTab('dash'); }
     });
@@ -560,6 +561,7 @@ function HwPrintView(props) {
   var works = props.works, mats = props.mats, cfg = props.cfg, total = props.total;
   var totalWork = props.totalWork, totalMats = props.totalMats, pauschale = props.pauschale;
   var beschreibung = props.beschreibung, referenz = props.referenz, invLabel = props.invLabel;
+  var leistungszeitraum = props.leistungszeitraum;
   var onBack = props.onBack, onNew = props.onNew;
 
   var _useStateScale = React.useState(1);
@@ -717,11 +719,116 @@ function HwPrintView(props) {
               React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen!'),
               React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
             )
-          )
-        ) // print-page
-      ) // scale
-    ), // outer
+          ) // total+bank+footer div
 
-    React.createElement('style', null, '@media print { @page { size: A4 portrait; margin: 10mm 12mm; } .no-print { display: none !important; } body { background: white !important; margin: 0 !important; } #print-page { width: 100% !important; min-height: calc(297mm - 20mm) !important; box-shadow: none !important; transform: none !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }')
+        ) // #print-page
+      ) // scale wrapper
+    ), // outer grey bg
+
+    // ── SWISS QR BILL ──
+    React.createElement('div', { style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
+      React.createElement('div', { style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (397 * scale) + 'px' : 'auto' } },
+        React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
+      )
+    ),
+
+    React.createElement('style', null, '@media print { @page { size: A4 portrait; margin: 10mm 12mm; } .no-print { display: none !important; } body { background: white !important; margin: 0 !important; } #print-page { width: 100% !important; box-shadow: none !important; transform: none !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }')
+  );
+}
+
+// ── SWISS QR BILL (Zahlteil) ──────────────────────────────────────────
+function hwQrContent(cfg, total, referenz) {
+  var iban = (cfg.iban || '').replace(/\s/g, '');
+  return [
+    'SPC', '0200', '1',
+    iban,
+    'K', cfg.name || '', cfg.address || '', cfg.city || '', '', '', 'CH',
+    '', '', '', '', '', '', '',
+    total.toFixed(2), 'CHF',
+    '', '', '', '', '', '', '',
+    'NON', '',
+    referenz || '',
+    'EPD'
+  ].join('\n');
+}
+
+function HwZahlteil(props) {
+  var cfg = props.cfg, total = props.total, referenz = props.referenz, leistungszeitraum = props.leistungszeitraum;
+
+  var qrData = hwQrContent(cfg, total, referenz);
+  var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=175x175&ecc=M&data=' + encodeURIComponent(qrData);
+
+  var F = { fontFamily: 'Arial, Helvetica, sans-serif', color: '#000' };
+  var label = function(t) { return React.createElement('div', { style: Object.assign({}, F, { fontSize: 7, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }) }, t); };
+  var val = function(t) { return React.createElement('div', { style: Object.assign({}, F, { fontSize: 9, lineHeight: 1.5 }) }, t); };
+
+  // Empfangsschein (left)
+  var emp = React.createElement('div', { style: { width: 178, padding: '5mm 4mm 5mm 4mm', display: 'flex', flexDirection: 'column', gap: '3mm', boxSizing: 'border-box' } },
+    React.createElement('div', { style: Object.assign({}, F, { fontSize: 11, fontWeight: 900, marginBottom: '1mm' }) }, 'Empfangsschein'),
+    React.createElement('div', null,
+      label('Konto / Zahlbar an'),
+      val(cfg.iban), val(cfg.name), val(cfg.address), val(cfg.city)
+    ),
+    React.createElement('div', null,
+      label('Zahlbar durch'),
+      React.createElement('div', { style: { border: '0.75px solid #000', height: 28, marginTop: 3 } })
+    ),
+    React.createElement('div', { style: { flex: 1 } }),
+    React.createElement('div', { style: { display: 'flex', gap: 12 } },
+      React.createElement('div', null, label('Währung'), React.createElement('div', { style: Object.assign({}, F, { fontSize: 11, fontWeight: 700 }) }, 'CHF')),
+      React.createElement('div', null, label('Betrag'), React.createElement('div', { style: Object.assign({}, F, { fontSize: 11, fontWeight: 700 }) }, total.toFixed(2)))
+    ),
+    React.createElement('div', { style: Object.assign({}, F, { fontSize: 7, textAlign: 'right', marginTop: '3mm' }) }, 'Annahmestelle')
+  );
+
+  // Zahlteil (right)
+  var zahl = React.createElement('div', { style: { flex: 1, padding: '5mm 5mm 5mm 10mm', display: 'flex', flexDirection: 'column', gap: '3mm', boxSizing: 'border-box' } },
+    React.createElement('div', { style: Object.assign({}, F, { fontSize: 14, fontWeight: 900, marginBottom: '1mm' }) }, 'Zahlteil'),
+    React.createElement('div', { style: { display: 'flex', gap: '5mm', alignItems: 'flex-start' } },
+      // QR code block
+      React.createElement('div', null,
+        React.createElement('img', {
+          src: qrUrl, width: 133, height: 133, alt: 'Swiss QR',
+          style: { display: 'block', border: '1px solid #e0e0e0' }
+        }),
+        React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: '4mm' } },
+          React.createElement('div', null, label('Währung'), React.createElement('div', { style: Object.assign({}, F, { fontSize: 12, fontWeight: 700 }) }, 'CHF')),
+          React.createElement('div', null, label('Betrag'), React.createElement('div', { style: Object.assign({}, F, { fontSize: 12, fontWeight: 700 }) }, total.toFixed(2)))
+        )
+      ),
+      // Info right of QR
+      React.createElement('div', { style: { flex: 1 } },
+        React.createElement('div', { style: { marginBottom: '3mm' } },
+          label('Konto / Zahlbar an'),
+          val(cfg.iban), val(cfg.name), val(cfg.address), val(cfg.city)
+        ),
+        React.createElement('div', { style: { marginBottom: '3mm' } },
+          label('Zahlbar durch'),
+          React.createElement('div', { style: { border: '0.75px solid #000', height: 32, width: '85%', marginTop: 3 } })
+        ),
+        referenz && React.createElement('div', null,
+          label('Referenz'),
+          val(referenz)
+        ),
+        leistungszeitraum && React.createElement('div', { style: { marginTop: '2mm' } },
+          label('Leistungszeitraum'),
+          val(leistungszeitraum)
+        )
+      )
+    )
+  );
+
+  return React.createElement('div', { style: { width: 794, background: 'white', fontFamily: 'Arial', marginTop: 0 } },
+    // Scissors line
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', padding: '6px 12px', gap: 8 } },
+      React.createElement('span', { style: { fontSize: 16, color: '#555' } }, '✂'),
+      React.createElement('div', { style: { flex: 1, borderTop: '1px dashed #888' } })
+    ),
+    // Payment slip
+    React.createElement('div', { style: { display: 'flex', border: '1px solid #555', borderTop: 'none', minHeight: 105 * 3.78 } },
+      emp,
+      React.createElement('div', { style: { width: 1, background: '#555', flexShrink: 0 } }),
+      zahl
+    )
   );
 }
