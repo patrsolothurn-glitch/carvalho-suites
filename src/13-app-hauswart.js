@@ -25,10 +25,10 @@ var HW_DEFAULTS = {
 };
 
 var HW_QUARTERS = [
-  { key: 'Q1', from: '1. Januar',  to: '31. März'      },
-  { key: 'Q2', from: '1. April',   to: '30. Juni'       },
-  { key: 'Q3', from: '1. Juli',    to: '30. September'  },
-  { key: 'Q4', from: '1. Oktober', to: '31. Dezember'   },
+  { key: 'Q1', from: '1. Januar',  to: '31. März',      startDay: '01-01', endDay: '03-31' },
+  { key: 'Q2', from: '1. April',   to: '30. Juni',       startDay: '04-01', endDay: '06-30' },
+  { key: 'Q3', from: '1. Juli',    to: '30. September',  startDay: '07-01', endDay: '09-30' },
+  { key: 'Q4', from: '1. Oktober', to: '31. Dezember',   startDay: '10-01', endDay: '12-31' },
 ];
 
 var HW_MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
@@ -463,8 +463,15 @@ function HwInvoiceTab(props) {
       React.createElement('div', { style: S.secLabel }, '📅 Datas da fatura'),
       React.createElement(HwDatePick, { label: '🚀 Data de envio (Rechnungsdatum)', value: cfg.invoiceDate || '', onChange: function(v) { updC(Object.assign({}, cfg, { invoiceDate: v })); } }),
       !cfg.invoiceDate && React.createElement('div', { style: { fontSize: 11, color: '#475569', marginTop: -8, marginBottom: 10 } }, '📌 Vazio = hoje automático'),
-      React.createElement(HwDatePick, { label: '📋 Data do serviço (Leistungsdatum)', value: cfg.serviceDate || '', onChange: function(v) { updC(Object.assign({}, cfg, { serviceDate: v })); } }),
-      !cfg.serviceDate && React.createElement('div', { style: { fontSize: 11, color: '#475569', marginTop: -8 } }, '📌 Vazio = igual à data de envio')
+      React.createElement('div', { style: { marginTop: 10, fontSize: 12, color: '#64748b' } }, '📋 Leistungszeitraum (automático pelo trimestre)'),
+      React.createElement('div', { style: { background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '9px 12px', color: '#93c5fd', fontSize: 13, fontWeight: 600, marginTop: 4 } },
+        (function() {
+          var qP = HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2];
+          var s = new Date(cfg.year + '-' + qP.startDay + 'T12:00:00').toLocaleDateString('de-CH');
+          var e = new Date(cfg.year + '-' + qP.endDay + 'T12:00:00').toLocaleDateString('de-CH');
+          return s + ' – ' + e;
+        })()
+      )
     ),
 
     // Total
@@ -569,7 +576,10 @@ function HwPrintView(props) {
   }, []);
 
   var dateStr = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00').toLocaleDateString('de-CH') : new Date().toLocaleDateString('de-CH');
-  var serviceDateStr = cfg.serviceDate ? new Date(cfg.serviceDate + 'T12:00:00').toLocaleDateString('de-CH') : dateStr;
+  var qObjP = HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2];
+  var qStartStr = new Date(cfg.year + '-' + qObjP.startDay + 'T12:00:00').toLocaleDateString('de-CH');
+  var qEndStr = new Date(cfg.year + '-' + qObjP.endDay + 'T12:00:00').toLocaleDateString('de-CH');
+  var leistungszeitraum = qStartStr + ' – ' + qEndStr;
 
   var Row = function(rp) {
     return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '11px 16px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
@@ -637,7 +647,7 @@ function HwPrintView(props) {
                 React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientCity)
               ),
               React.createElement('div', { style: { background: '#f0f5ff', border: '1px solid #dde8f8', borderRadius: 8, padding: '16px 22px', minWidth: 250, fontSize: 12 } },
-                [['Rechnungsnummer', invLabel], ['Rechnungsdatum', dateStr], ['Leistungsdatum', serviceDateStr], ['Referenz', referenz], ['Arbeitsort', cfg.location]].map(function(row) {
+                [['Rechnungsnummer', invLabel], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Referenz', referenz], ['Arbeitsort', cfg.location]].map(function(row) {
                   return React.createElement('div', { key: row[0], style: { display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 6 } },
                     React.createElement('span', { style: { color: '#64748b', whiteSpace: 'nowrap' } }, row[0]),
                     React.createElement('span', { style: { fontWeight: 700, textAlign: 'right', color: row[0] === 'Referenz' ? '#1d4ed8' : '#111' } }, row[1])
