@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-15T12:56:25.275Z
+  Gerado em: 2026-08-15T14:15:20.893Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-143";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-144";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -6536,7 +6536,7 @@ function AgendaProApp(_ref13) {
   };
   var renderTimeline = function(dayStr) {
     var HOUR_PX = 56; var S_H = 0; var E_H = 24;
-    var totalH = (E_H - S_H) * HOUR_PX;
+    var totalH = E_H * HOUR_PX - 8; // termina antes do slot 24:00
     var rawAppts = appts.filter(function(a) { return a.date === dayStr; })
       .map(function(a) {
         var sMin = parseTimeMin(a.hi);
@@ -6561,8 +6561,9 @@ function AgendaProApp(_ref13) {
       style: {width:44,flexShrink:0,position:'relative',height:totalH,borderRight:'1px solid #f0f0f0',background:'#fafafa'}
     },
     hours.map(function(h) {
+      if (h === 0) return null;
       return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h===S_H?4:(h-S_H)*HOUR_PX-6),right:6,fontSize:10,color:'#aaa',fontWeight:600}},
+        style:{position:'absolute',top:(h-S_H)*HOUR_PX-6,right:6,fontSize:10,color:'#aaa',fontWeight:600}},
         String(h).padStart(2,'0'));
     })),
     /*#__PURE__*/React.createElement("div", {
