@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-15T19:43:56.154Z
+  Gerado em: 2026-08-15T19:46:20.475Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-148";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-149";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24721,7 +24721,7 @@ function HwPrintView(props) {
     );
   };
 
-  return React.createElement('div', { style: { background: '#94a3b8' } },
+  return React.createElement('div', { className: 'hw-print-outer', style: { background: '#94a3b8' } },
     // Toolbar
     React.createElement('div', { className: 'no-print', style: { background: '#1e293b', padding: '10px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 } },
       React.createElement('button', { onClick: onBack, style: { background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '← Zurück'),
@@ -24960,10 +24960,13 @@ function HwPrintView(props) {
       '  @page { size: A4 portrait; margin: 0; }' +
       '  .no-print { display: none !important; }' +
       '  body { margin: 0 !important; padding: 0 !important; background: white !important; }' +
+      '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
       '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
-      '  .hw-zahlteil-print { display: block !important; }' +
+      '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
+      '  #zahlteil-page { background: white !important; }' +
+      '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
       '  #zahlteil-page {' +
       '    page-break-before: always;' +
       '    break-before: always;' +
