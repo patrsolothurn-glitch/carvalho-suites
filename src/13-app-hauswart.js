@@ -617,11 +617,26 @@ function HwPrintView(props) {
         onClick: function() {
           var qrData = hwQrContent(cfg, total, referenz);
           var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&data=' + encodeURIComponent(qrData);
-          var a = document.createElement('a');
-          a.href = qrUrl;
-          a.download = 'QR-' + referenz.replace(/\s/g, '-') + '.png';
-          a.target = '_blank';
-          a.click();
+          var w = window.open('', '_blank');
+          w.document.write('<!DOCTYPE html><html><head><title>QR ' + referenz + '</title>'
+            + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            + '<style>body{margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Arial;gap:16px;padding:20px;box-sizing:border-box;}'
+            + '.qr{background:white;padding:16px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}'
+            + '.qr img{display:block;width:220px;height:220px;}'
+            + '.info{color:#94a3b8;font-size:13px;text-align:center;line-height:1.6;}'
+            + '.ref{color:#3b82f6;font-weight:700;font-size:16px;}'
+            + '.amt{color:#22c55e;font-weight:700;font-size:20px;}'
+            + '.btn{background:#3b82f6;color:white;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;}'
+            + '.tip{color:#475569;font-size:11px;text-align:center;margin-top:4px;}'
+            + '</style></head><body>'
+            + '<div class="qr"><img src="' + qrUrl + '" alt="Swiss QR ' + referenz + '"/></div>'
+            + '<div class="ref">' + referenz + '</div>'
+            + '<div class="amt">CHF ' + total.toFixed(2) + '</div>'
+            + '<div class="info">Swiss QR-Rechnung<br>' + cfg.name + '<br>IBAN: ' + cfg.iban + '</div>'
+            + '<a href="' + qrUrl + '" download="QR-' + referenz.replace(/\s/g, '-') + '.png" class="btn">⬇️ Guardar imagem</a>'
+            + '<div class="tip">Ou pressiona longamente a imagem para guardar</div>'
+            + '</body></html>');
+          w.document.close();
         },
         style: { background: '#0891b2', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
       }, '⬇️ Guardar QR'),
