@@ -1089,7 +1089,7 @@ function AgendaProApp(_ref13) {
     var now = new Date(); var nowMin = now.getHours()*60+now.getMinutes();
     var nowTop = (nowMin - S_H*60)*HOUR_PX/60;
     var showNow = dayStr === todayStr && nowTop >= 0 && nowTop <= totalH;
-    var hours = []; for (var hi=S_H; hi<=E_H; hi++) hours.push(hi);
+    var hours = []; for (var hi=S_H; hi<E_H; hi++) hours.push(hi);
     return /*#__PURE__*/React.createElement("div", {
       style: {display:'flex',gap:0,background:'#fff',borderRadius:14,border:'1px solid #e8e8e8',overflow:'hidden',boxShadow:'0 1px 8px rgba(0,0,0,0.06)'}
     },
@@ -1098,7 +1098,7 @@ function AgendaProApp(_ref13) {
     },
     hours.map(function(h) {
       return /*#__PURE__*/React.createElement("div", {key:h,
-        style:{position:'absolute',top:(h-S_H)*HOUR_PX-6,right:6,fontSize:10,color:'#aaa',fontWeight:600}},
+        style:{position:'absolute',top:(h===S_H?4:(h-S_H)*HOUR_PX-6),right:6,fontSize:10,color:'#aaa',fontWeight:600}},
         String(h).padStart(2,'0'));
     })),
     /*#__PURE__*/React.createElement("div", {
