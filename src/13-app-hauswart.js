@@ -983,8 +983,8 @@ function HwPrintView(props) {
     ),
 
     // A4
-    React.createElement('div', { style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
-      React.createElement('div', { style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (1123 * scale) + 'px' : 'auto' } },
+    React.createElement('div', { className: 'hw-scale-outer', style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
+      React.createElement('div', { className: 'hw-scale-inner', style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (1123 * scale) + 'px' : 'auto' } },
         React.createElement('div', { id: 'print-page', style: { width: 794, background: 'white', boxShadow: '0 8px 40px rgba(0,0,0,0.3)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#111', display: 'flex', flexDirection: 'column', minHeight: 1123 } },
 
           // KOPF
@@ -1087,19 +1087,29 @@ function HwPrintView(props) {
               React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
             )
           ) // total+bank+footer div
+          ,
+
+          // ── ZAHLTEIL INSIDE PRINT PAGE ── (screen: hidden, print: visible)
+          React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
+            React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
+          )
 
         ) // #print-page
       ) // scale wrapper
     ), // outer grey bg
 
-    // ── SWISS QR BILL ──
-    React.createElement('div', { style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
-      React.createElement('div', { style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (397 * scale) + 'px' : 'auto' } },
-        React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
-      )
-    ),
-
-    React.createElement('style', null, '@media print { @page { size: A4 portrait; margin: 10mm 12mm; } .no-print { display: none !important; } body { background: white !important; margin: 0 !important; } #print-page { width: 100% !important; box-shadow: none !important; transform: none !important; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } }')
+    React.createElement('style', null,
+      '@media print {' +
+      '  @page { size: A4 portrait; margin: 0; }' +
+      '  .no-print { display: none !important; }' +
+      '  body { margin: 0 !important; padding: 0 !important; background: white !important; }' +
+      '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
+      '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
+      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
+      '  .hw-zahlteil-print { display: block !important; }' +
+      '  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+      '}'
+    )
   );
 }
 
