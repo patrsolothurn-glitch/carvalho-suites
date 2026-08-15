@@ -158,8 +158,6 @@ var HauswartApp = function(props) {
   var leistungszeitraum = new Date(cfg.year + '-' + qObj.startDay + 'T12:00:00').toLocaleDateString('de-CH')
     + ' \u2013 '
     + new Date(cfg.year + '-' + qObj.endDay + 'T12:00:00').toLocaleDateString('de-CH');
-  var invNum = 'R' + cfg.year + '-' + String(qNum).padStart(4,'0');
-  var invLabel = cfg.quarter + ' Rechnung ' + invNum;
 
   var S = {
     wrap: { fontFamily: 'system-ui,sans-serif', background: T.bg, minHeight: '100vh', color: '#e2e8f0', display: 'flex', flexDirection: 'column' },
