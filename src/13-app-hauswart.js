@@ -866,7 +866,7 @@ function HwPrintView(props) {
     );
   };
 
-  return React.createElement('div', { style: { background: '#94a3b8' } },
+  return React.createElement('div', { className: 'hw-print-outer', style: { background: '#94a3b8' } },
     // Toolbar
     React.createElement('div', { className: 'no-print', style: { background: '#1e293b', padding: '10px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 } },
       React.createElement('button', { onClick: onBack, style: { background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '← Zurück'),
@@ -1105,10 +1105,13 @@ function HwPrintView(props) {
       '  @page { size: A4 portrait; margin: 0; }' +
       '  .no-print { display: none !important; }' +
       '  body { margin: 0 !important; padding: 0 !important; background: white !important; }' +
+      '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
       '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
-      '  .hw-zahlteil-print { display: block !important; }' +
+      '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
+      '  #zahlteil-page { background: white !important; }' +
+      '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
       '  #zahlteil-page {' +
       '    page-break-before: always;' +
       '    break-before: always;' +
