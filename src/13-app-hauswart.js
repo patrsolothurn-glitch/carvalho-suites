@@ -629,41 +629,78 @@ function HwPrintView(props) {
         onClick: function() {
           var qrData = hwQrContent(cfg, total, referenz);
           var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&data=' + encodeURIComponent(qrData);
-          var qStartStr = new Date(cfg.year + '-' + (HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2]).startDay + 'T12:00:00').toLocaleDateString('de-CH');
-          var qEndStr = new Date(cfg.year + '-' + (HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2]).endDay + 'T12:00:00').toLocaleDateString('de-CH');
-          var lz = qStartStr + ' – ' + qEndStr;
-          var w = window.open('', '_blank', 'width=860,height=500');
-          w.document.write('<!DOCTYPE html><html><head><title>Zahlteil ' + referenz + '</title><style>body{margin:0;font-family:Arial;background:white;display:flex;justify-content:center;padding:20px;} @media print{body{padding:0;} .no-print{display:none;}}</style></head><body>');
-          w.document.write('<div>');
-          w.document.write('<div class="no-print" style="margin-bottom:12px;display:flex;gap:8px;">');
-          w.document.write('<button onclick="window.print()" style="background:#1d4ed8;color:white;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:14px;font-weight:700;">🖨️ Imprimir Zahlteil</button>');
-          w.document.write('<button onclick="window.close()" style="background:#334155;color:#94a3b8;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;">✕ Fechar</button>');
-          w.document.write('</div>');
-          w.document.write('<div style="display:flex;align-items:center;gap:8px;padding:4px 0;"><span style="font-size:16px;">✂</span><div style="flex:1;border-top:1px dashed #888;"></div></div>');
-          w.document.write('<div style="display:flex;border:1px solid #555;border-top:none;min-height:397px;">');
-          // Empfangsschein
-          w.document.write('<div style="width:225px;padding:12px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;">');
-          w.document.write('<div style="font-size:12px;font-weight:900;">Empfangsschein</div>');
-          w.document.write('<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Konto / Zahlbar an</div>');
-          w.document.write('<div style="font-size:9px;line-height:1.5;">' + cfg.iban + '<br>' + cfg.name + '<br>' + cfg.address + '<br>' + cfg.city + '</div></div>');
-          w.document.write('<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Zahlbar durch</div><div style="border:0.75px solid #000;height:32px;margin-top:2px;"></div></div>');
-          w.document.write('<div style="flex:1;"></div>');
-          w.document.write('<div style="display:flex;gap:12px;"><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Währung</div><div style="font-size:11px;font-weight:700;">CHF</div></div><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Betrag</div><div style="font-size:11px;font-weight:700;">' + total.toFixed(2) + '</div></div></div>');
-          w.document.write('<div style="font-size:7px;text-align:right;">Annahmestelle</div>');
-          w.document.write('</div>');
-          // Separator
-          w.document.write('<div style="width:1px;background:#555;flex-shrink:0;"></div>');
-          // Zahlteil
-          w.document.write('<div style="flex:1;padding:12px 12px 12px 20px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;">');
-          w.document.write('<div style="font-size:15px;font-weight:900;">Zahlteil</div>');
-          w.document.write('<div style="display:flex;gap:16px;align-items:flex-start;">');
-          w.document.write('<div><img src="' + qrUrl + '" width="175" height="175" style="display:block;border:1px solid #eee;"/><div style="display:flex;gap:12px;margin-top:10px;"><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Währung</div><div style="font-size:13px;font-weight:700;">CHF</div></div><div><div style="font-size:7px;font-weight:700;text-transform:uppercase;">Betrag</div><div style="font-size:13px;font-weight:700;">' + total.toFixed(2) + '</div></div></div></div>');
-          w.document.write('<div style="flex:1;"><div style="margin-bottom:8px;"><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Konto / Zahlbar an</div><div style="font-size:10px;line-height:1.5;">' + cfg.iban + '<br>' + cfg.name + '<br>' + cfg.address + '<br>' + cfg.city + '</div></div>');
-          w.document.write('<div style="margin-bottom:8px;"><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Zahlbar durch</div><div style="border:0.75px solid #000;height:36px;width:85%;margin-top:2px;"></div></div>');
-          w.document.write('<div style="margin-bottom:6px;"><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Referenz</div><div style="font-size:10px;">' + referenz + '</div></div>');
-          w.document.write('<div><div style="font-size:7px;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Leistungszeitraum</div><div style="font-size:10px;">' + lz + '</div></div>');
-          w.document.write('</div></div></div></div>');
-          w.document.write('</div></body></html>');
+          var lz = leistungszeitraum;
+          var w = window.open('', '_blank');
+          var html = '<!DOCTYPE html><html><head><title>Zahlteil ' + referenz + '</title>'
+            + '<style>'
+            + '* { box-sizing: border-box; margin: 0; padding: 0; }'
+            + 'body { font-family: Arial, Helvetica, sans-serif; background: white; }'
+            + '.no-print { background: #1e293b; padding: 10px 16px; display: flex; gap: 8px; align-items: center; position: sticky; top: 0; }'
+            + '.btn-print { background: #1d4ed8; color: white; border: none; border-radius: 8px; padding: 9px 22px; cursor: pointer; font-size: 14px; font-weight: 700; }'
+            + '.btn-close { background: #334155; color: #94a3b8; border: none; border-radius: 8px; padding: 9px 14px; cursor: pointer; font-size: 13px; }'
+            + '.page { width: 210mm; height: 297mm; display: flex; flex-direction: column; margin: 0 auto; }'
+            + '.spacer { flex: 1; }'
+            + '.zahlteil-wrap { height: 105mm; display: flex; flex-direction: column; }'
+            + '.scissors { display: flex; align-items: center; gap: 8px; padding: 2mm 0; }'
+            + '.scissors span { font-size: 14px; color: #444; }'
+            + '.scissors hr { flex: 1; border: none; border-top: 1px dashed #777; }'
+            + '.slip { display: flex; border: 1px solid #444; flex: 1; }'
+            + '.emp { width: 62mm; padding: 3mm 4mm; display: flex; flex-direction: column; border-right: 1px solid #444; }'
+            + '.zahl { flex: 1; padding: 3mm 4mm 3mm 8mm; display: flex; flex-direction: column; }'
+            + '.lbl { font-size: 6pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 1mm; }'
+            + '.val { font-size: 8pt; line-height: 1.45; }'
+            + '.big { font-size: 11pt; font-weight: 700; }'
+            + '.row { display: flex; gap: 6mm; }'
+            + '.col { display: flex; flex-direction: column; }'
+            + '.spacer2 { flex: 1; }'
+            + '.sep { height: 1mm; }'
+            + '@media print {'
+            + '  @page { size: A4 portrait; margin: 0; }'
+            + '  .no-print { display: none !important; }'
+            + '  body { margin: 0; }'
+            + '  .page { margin: 0; }'
+            + '  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }'
+            + '}'
+            + '</style></head><body>'
+            + '<div class="no-print">'
+            + '<button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>'
+            + '<button class="btn-close" onclick="window.close()">✕ Fechar</button>'
+            + '<span style="color:#64748b;font-size:12px;margin-left:8px;">Zahlteil — ' + referenz + ' — CHF ' + total.toFixed(2) + '</span>'
+            + '</div>'
+            + '<div class="page">'
+            + '<div class="spacer"></div>'
+            + '<div class="zahlteil-wrap">'
+            + '<div class="scissors"><span>✂</span><hr></div>'
+            + '<div class="slip">'
+            // Empfangsschein
+            + '<div class="emp">'
+            + '<div style="font-size:9pt;font-weight:900;margin-bottom:2mm;">Empfangsschein</div>'
+            + '<div style="margin-bottom:2mm;"><div class="lbl">Konto / Zahlbar an</div><div class="val">' + cfg.iban + '<br>' + cfg.name + '<br>' + cfg.address + '<br>' + cfg.city + '</div></div>'
+            + '<div style="margin-bottom:2mm;"><div class="lbl">Zahlbar durch</div><div style="border:0.5pt solid #000;height:15mm;margin-top:1mm;"></div></div>'
+            + '<div class="spacer2"></div>'
+            + '<div class="row"><div class="col"><div class="lbl">Währung</div><div class="big">CHF</div></div><div class="col"><div class="lbl">Betrag</div><div class="big">' + total.toFixed(2) + '</div></div></div>'
+            + '<div style="font-size:6pt;text-align:right;margin-top:2mm;">Annahmestelle</div>'
+            + '</div>'
+            // Zahlteil
+            + '<div class="zahl">'
+            + '<div style="font-size:11pt;font-weight:900;margin-bottom:2mm;">Zahlteil</div>'
+            + '<div style="display:flex;gap:5mm;align-items:flex-start;">'
+            + '<div>'
+            + '<img src="' + qrUrl + '" style="width:46mm;height:46mm;display:block;" alt="Swiss QR"/>'
+            + '<div class="row" style="margin-top:2mm;"><div class="col"><div class="lbl">Währung</div><div class="big">CHF</div></div><div class="col"><div class="lbl">Betrag</div><div class="big">' + total.toFixed(2) + '</div></div></div>'
+            + '</div>'
+            + '<div style="flex:1;">'
+            + '<div style="margin-bottom:2mm;"><div class="lbl">Konto / Zahlbar an</div><div class="val">' + cfg.iban + '<br>' + cfg.name + '<br>' + cfg.address + '<br>' + cfg.city + '</div></div>'
+            + '<div style="margin-bottom:2mm;"><div class="lbl">Zahlbar durch</div><div style="border:0.5pt solid #000;height:18mm;width:85%;margin-top:1mm;"></div></div>'
+            + '<div style="margin-bottom:1.5mm;"><div class="lbl">Referenz</div><div class="val">' + referenz + '</div></div>'
+            + '<div><div class="lbl">Leistungszeitraum</div><div class="val">' + lz + '</div></div>'
+            + '</div></div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '</div>'
+            + '</body></html>';
+          w.document.write(html);
           w.document.close();
         },
         style: { background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
