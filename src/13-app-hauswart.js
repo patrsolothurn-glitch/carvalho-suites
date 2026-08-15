@@ -50,73 +50,146 @@ function hwToday() { return new Date().toISOString().slice(0,10); }
 // ── DatePick ──
 function HwDatePick(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
-  var DE_DOW = ['So.','Mo.','Di.','Mi.','Do.','Fr.','Sa.'];
 
-  var parts = value ? value.split('-') : [];
-  var y = parts[0] || String(new Date().getFullYear());
-  var m = parts[1] || String(new Date().getMonth()+1).padStart(2,'0');
-  var d = parts[2] || String(new Date().getDate()).padStart(2,'0');
-  var daysInMonth = new Date(parseInt(y), parseInt(m), 0).getDate();
+  var _useStateOpen = React.useState(false);
+  var open = _useStateOpen[0], setOpen = _useStateOpen[1];
 
-  var emit = function(ny, nm, nd) {
-    var dd = Math.min(parseInt(nd), new Date(parseInt(ny), parseInt(nm), 0).getDate());
-    onChange(ny + '-' + String(nm).padStart(2,'0') + '-' + String(dd).padStart(2,'0'));
+  var today = new Date();
+  var DE_DOW = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  var DE_MON = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+  var parseVal = function(v) {
+    if (!v) return { y: today.getFullYear(), m: today.getMonth(), d: 0 };
+    var p = v.split('-');
+    return { y: parseInt(p[0]), m: parseInt(p[1]) - 1, d: parseInt(p[2]) };
+  };
+  var pv = parseVal(value);
+
+  var _useStateView = React.useState({ y: pv.y, m: pv.m });
+  var view = _useStateView[0], setView = _useStateView[1];
+
+  var openCal = function() {
+    var p2 = parseVal(value);
+    setView({ y: p2.y, m: p2.m });
+    setOpen(true);
   };
 
-  // ISO week number
-  var isoWeek = function(date) {
-    var d2 = new Date(date); d2.setHours(0,0,0,0);
-    d2.setDate(d2.getDate() + 3 - (d2.getDay() + 6) % 7);
-    var w1 = new Date(d2.getFullYear(), 0, 4);
-    return 1 + Math.round(((d2.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
+  var prevM = function() { setView(function(v) { return v.m === 0 ? { y: v.y-1, m: 11 } : { y: v.y, m: v.m-1 }; }); };
+  var nextM = function() { setView(function(v) { return v.m === 11 ? { y: v.y+1, m: 0 } : { y: v.y, m: v.m+1 }; }); };
+
+  var firstDOW = (new Date(view.y, view.m, 1).getDay() + 6) % 7; // Mon=0
+  var daysInM  = new Date(view.y, view.m + 1, 0).getDate();
+
+  var cells = [];
+  for (var i = 0; i < firstDOW; i++) cells.push(null);
+  for (var n = 1; n <= daysInM; n++) cells.push(n);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  // ISO week number helper
+  var isoWeek = function(d) {
+    var dt = new Date(view.y, view.m, d); dt.setHours(0,0,0,0);
+    dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7);
+    var w1 = new Date(dt.getFullYear(), 0, 4);
+    return 1 + Math.round(((dt.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7);
   };
 
-  // Group days by KW
-  var groups = [];
-  var curGroup = null;
-  for (var n = 1; n <= daysInMonth; n++) {
-    var dt = new Date(parseInt(y), parseInt(m) - 1, n);
-    var dow = DE_DOW[dt.getDay()];
-    var kw = isoWeek(dt);
-    if (!curGroup || curGroup.kw !== kw) {
-      curGroup = { kw: kw, days: [] };
-      groups.push(curGroup);
-    }
-    curGroup.days.push({ n: n, dow: dow });
-  }
+  // Group cells into weeks
+  var weeks = [];
+  for (var wi = 0; wi < cells.length / 7; wi++) weeks.push(cells.slice(wi*7, (wi+1)*7));
 
-  var selStyle = { background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '9px 6px', color: '#f1f5f9', fontSize: 14, flex: 1, outline: 'none' };
+  var selInView = pv.d > 0 && pv.y === view.y && pv.m === view.m;
+  var selDay    = selInView ? pv.d : null;
+  var todayInV  = today.getFullYear() === view.y && today.getMonth() === view.m;
+  var todayDay  = todayInV ? today.getDate() : null;
+
+  var pick = function(day) {
+    onChange(view.y + '-' + String(view.m+1).padStart(2,'0') + '-' + String(day).padStart(2,'0'));
+    setOpen(false);
+  };
+
+  var dispText = value
+    ? new Date(value + 'T12:00:00').toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Datum auswählen';
+
+  var selDateDisplay = selDay
+    ? new Date(view.y, view.m, selDay).toLocaleDateString('de-CH', { weekday: 'long' }) + ', ' + selDay + '/' + String(view.m+1).padStart(2,'0')
+    : DE_MON[view.m];
 
   return React.createElement('div', { style: { marginBottom: 12 } },
-    React.createElement('label', { style: { display: 'block', fontSize: 12, color: '#64748b', marginBottom: 4 } }, label),
-    React.createElement('div', { style: { display: 'flex', gap: 6 } },
-      // Day select — grouped by KW with weekday names
-      React.createElement('select', { value: d, onChange: function(e) { emit(y, m, e.target.value); }, style: { ...selStyle, flex: 1.4 } },
-        groups.map(function(g) {
-          return React.createElement('optgroup', { key: 'kw' + g.kw, label: 'KW ' + g.kw },
-            g.days.map(function(day) {
-              var val = String(day.n).padStart(2, '0');
-              return React.createElement('option', { key: day.n, value: val },
-                day.n + '  ' + day.dow);
-            })
-          );
-        })
-      ),
-      // Month select
-      React.createElement('select', { value: m, onChange: function(e) { emit(y, e.target.value, d); }, style: selStyle },
-        HW_MONTHS.map(function(name, i) {
-          return React.createElement('option', { key: i, value: String(i+1).padStart(2,'0') }, name);
-        })
-      ),
-      // Year select
-      React.createElement('select', { value: y, onChange: function(e) { emit(e.target.value, m, d); }, style: selStyle },
-        [2024,2025,2026,2027,2028].map(function(yr) {
-          return React.createElement('option', { key: yr, value: yr }, yr);
-        })
-      )
+    label && React.createElement('label', { style: { display: 'block', fontSize: 12, color: '#64748b', marginBottom: 4 } }, label),
+
+    // Trigger
+    React.createElement('button', {
+      onClick: openCal,
+      style: { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '10px 12px', color: value ? '#f1f5f9' : '#475569', fontSize: 14, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }
+    },
+      React.createElement('span', null, '📅'),
+      React.createElement('span', null, dispText)
     ),
-    value && React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginTop: 3 } },
-      '✓ ', new Date(value + 'T12:00:00').toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+    // Calendar Modal
+    open && React.createElement('div', {
+      onClick: function(e) { if (e.target === e.currentTarget) setOpen(false); },
+      style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px' }
+    },
+      React.createElement('div', { style: { background: '#1e293b', borderRadius: 16, width: '100%', maxWidth: 360, overflow: 'hidden' } },
+
+        // Header — dark top section
+        React.createElement('div', { style: { background: '#0f172a', padding: '20px 20px 16px' } },
+          React.createElement('div', { style: { fontSize: 13, color: '#64748b', marginBottom: 2 } }, view.y),
+          React.createElement('div', { style: { fontSize: 24, fontWeight: 700, color: '#f1f5f9' } }, selDateDisplay)
+        ),
+
+        // Month nav
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 8px' } },
+          React.createElement('button', { onClick: prevM, style: { background: 'none', border: 'none', color: '#3b82f6', fontSize: 22, cursor: 'pointer', padding: '4px 10px', lineHeight: 1 } }, '‹'),
+          React.createElement('span', { style: { fontWeight: 700, fontSize: 15, color: '#f1f5f9' } }, DE_MON[view.m] + ' ' + view.y),
+          React.createElement('button', { onClick: nextM, style: { background: 'none', border: 'none', color: '#3b82f6', fontSize: 22, cursor: 'pointer', padding: '4px 10px', lineHeight: 1 } }, '›')
+        ),
+
+        // Day headers — with KW column
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '28px repeat(7,1fr)', padding: '0 12px', marginBottom: 4 } },
+          React.createElement('div', { style: { textAlign: 'center', fontSize: 9, color: '#334155', fontWeight: 700, padding: '4px 0' } }, 'KW'),
+          DE_DOW.map(function(h) {
+            return React.createElement('div', { key: h, style: { textAlign: 'center', fontSize: 12, color: '#64748b', fontWeight: 600, padding: '4px 0' } }, h);
+          })
+        ),
+
+        // Day grid — rows with KW number
+        React.createElement('div', { style: { padding: '0 12px', marginBottom: 8 } },
+          weeks.map(function(week, wi) {
+            var firstValid = week.find(function(x) { return x !== null; });
+            var kw = firstValid ? isoWeek(firstValid) : null;
+            return React.createElement('div', { key: wi, style: { display: 'grid', gridTemplateColumns: '28px repeat(7,1fr)', gap: '2px 0', marginBottom: 2 } },
+              React.createElement('div', { style: { textAlign: 'center', fontSize: 9, color: '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' } }, kw || ''),
+              week.map(function(day, di) {
+                if (!day) return React.createElement('div', { key: 'e'+wi+di });
+                var isSel = day === selDay;
+                var isToday = day === todayDay;
+                return React.createElement('button', {
+                  key: day, onClick: function() { pick(day); },
+                  style: {
+                    background: isSel ? '#3b82f6' : 'none',
+                    border: !isSel && isToday ? '2px solid #3b82f6' : '2px solid transparent',
+                    borderRadius: '50%',
+                    color: isSel ? 'white' : isToday ? '#60a5fa' : '#e2e8f0',
+                    fontWeight: isSel || isToday ? 700 : 400,
+                    fontSize: 14, padding: '7px 0', cursor: 'pointer',
+                    textAlign: 'center', width: '100%', aspectRatio: '1', lineHeight: 1,
+                  }
+                }, day);
+              })
+            );
+          })
+        ),
+
+        // Actions
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 4, padding: '10px 16px 16px', borderTop: '1px solid #334155' } },
+          React.createElement('button', { onClick: function() { onChange(''); setOpen(false); }, style: { background: 'none', border: 'none', color: '#64748b', fontSize: 14, cursor: 'pointer', padding: '8px 12px' } }, 'Limpar'),
+          React.createElement('button', { onClick: function() { setOpen(false); }, style: { background: 'none', border: 'none', color: '#3b82f6', fontSize: 14, cursor: 'pointer', padding: '8px 12px' } }, 'Cancelar'),
+          React.createElement('button', { onClick: function() { setOpen(false); }, style: { background: '#3b82f6', border: 'none', borderRadius: 8, color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: '8px 20px' } }, 'Definir')
+        )
+      )
     )
   );
 }
