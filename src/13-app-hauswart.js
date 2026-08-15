@@ -137,12 +137,15 @@ var HauswartApp = function(props) {
   var _useStateC = React.useState(Object.assign({}, HW_DEFAULTS, hwLoad('cfg') || {}));
   var cfg = _useStateC[0], setCfgRaw = _useStateC[1];
 
+  var _useStateA = React.useState(hwLoad('archive') || []);
+  var archive = _useStateA[0], setArchiveRaw = _useStateA[1];
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
   var updW = function(v) { setWorksRaw(v); hwSave('works', v); };
   var updM = function(v) { setMatsRaw(v); hwSave('mats', v); };
   var updC = function(v) { setCfgRaw(v); hwSave('cfg', v); };
+  var updA = function(v) { setArchiveRaw(v); hwSave('archive', v); };
 
   var pauschale = cfg.pauschale || 0;
   var totalWork = works.reduce(function(s, w) { return s + w.hours * w.rate; }, 0);
@@ -179,15 +182,43 @@ var HauswartApp = function(props) {
       beschreibung: beschreibung, referenz: referenz, invLabel: invLabel,
       leistungszeitraum: leistungszeitraum,
       onBack: function() { setPrint(false); },
-      onNew: function() { updW([]); updM([]); updC(Object.assign({}, cfg, { invoiceDate: '', serviceDate: '' })); setPrint(false); setTab('dash'); }
+      onNew: function() {
+        // Guardar no arquivo antes de limpar
+        var entry = {
+          id: hwUid(),
+          year: cfg.year,
+          quarter: cfg.quarter,
+          referenz: referenz,
+          invLabel: invLabel,
+          beschreibung: beschreibung,
+          leistungszeitraum: leistungszeitraum,
+          total: total,
+          totalWork: totalWork,
+          totalMats: totalMats,
+          pauschale: pauschale,
+          works: works.slice(),
+          mats: mats.slice(),
+          cfg: Object.assign({}, cfg),
+          dateArchived: hwToday(),
+          paid: false,
+          datePaid: null,
+        };
+        updA(archive.concat([entry]));
+        updW([]); updM([]);
+        updC(Object.assign({}, cfg, { invoiceDate: '', serviceDate: '' }));
+        setPrint(false); setTab('arquivo');
+      }
     });
   }
+
+  var unreadArchive = archive.filter(function(a) { return !a.paid; }).length;
 
   var TABS = [
     { id: 'dash', icon: '🏠', label: 'Início' },
     { id: 'work', icon: '🔧', label: 'Arbeit' },
     { id: 'mats', icon: '🛒', label: 'Material' },
     { id: 'invoice', icon: '🧾', label: 'Rechnung' },
+    { id: 'arquivo', icon: '📁', label: 'Arquivo', badge: unreadArchive > 0 ? unreadArchive : 0 },
     { id: 'cfg', icon: '⚙️', label: 'Config' },
   ];
 
@@ -209,14 +240,18 @@ var HauswartApp = function(props) {
       tab === 'work' && React.createElement(HwWorkTab, { works: works, cfg: cfg, updW: updW, S: S }),
       tab === 'mats' && React.createElement(HwMatsTab, { mats: mats, updM: updM, S: S }),
       tab === 'invoice' && React.createElement(HwInvoiceTab, { works: works, mats: mats, cfg: cfg, total: total, totalWork: totalWork, totalMats: totalMats, pauschale: pauschale, beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, updC: updC, onPrint: function() { setPrint(true); }, S: S }),
+      tab === 'arquivo' && React.createElement(HwArquivoTab, { archive: archive, updA: updA, S: S }),
       tab === 'cfg' && React.createElement(HwCfgTab, { cfg: cfg, updC: updC, S: S })
     ),
     // Nav
     React.createElement('nav', { style: S.nav },
       TABS.map(function(t) {
         return React.createElement('button', { key: t.id, onClick: function() { setTab(t.id); }, style: S.navBtn(tab === t.id) },
-          React.createElement('span', { style: { fontSize: 22 } }, t.icon),
-          React.createElement('span', { style: { fontSize: 10 } }, t.label)
+          React.createElement('span', { style: { position: 'relative', fontSize: 20 } },
+            t.icon,
+            t.badge > 0 && React.createElement('span', { style: { position: 'absolute', top: -4, right: -8, background: '#f59e0b', color: 'white', borderRadius: 10, fontSize: 9, padding: '1px 4px', fontWeight: 700 } }, t.badge)
+          ),
+          React.createElement('span', { style: { fontSize: 9 } }, t.label)
         );
       })
     )
@@ -556,6 +591,120 @@ function HwCfgTab(props) {
     React.createElement('button', { onClick: onSave, style: Object.assign({}, S.btn, { background: saved ? '#14532d' : '#3b82f6', color: saved ? '#4ade80' : 'white' }) },
       saved ? '✓ Gespeichert!' : 'Speichern'
     )
+  );
+}
+
+// ── ARQUIVO ──
+function HwArquivoTab(props) {
+  var archive = props.archive, updA = props.updA, S = props.S;
+  var _useStateOpen = React.useState({});
+  var openYears = _useStateOpen[0], setOpenYears = _useStateOpen[1];
+
+  var toggleYear = function(y) {
+    setOpenYears(function(p) { var n = Object.assign({}, p); n[y] = !n[y]; return n; });
+  };
+
+  var markPaid = function(id) {
+    updA(archive.map(function(a) {
+      return a.id === id ? Object.assign({}, a, { paid: true, datePaid: hwToday() }) : a;
+    }));
+  };
+
+  var delEntry = function(id) {
+    if (confirm('Apagar este registo do arquivo?')) updA(archive.filter(function(a) { return a.id !== id; }));
+  };
+
+  if (archive.length === 0) return React.createElement('div', null,
+    React.createElement(HwHdr, { title: 'Arquivo' }),
+    React.createElement(HwEmpty, { icon: '📁', text: 'Arquivo vazio', sub: 'As faturas arquivadas aparecem aqui organizadas por ano e trimestre' })
+  );
+
+  // Group by year
+  var byYear = {};
+  archive.forEach(function(a) {
+    if (!byYear[a.year]) byYear[a.year] = [];
+    byYear[a.year].push(a);
+  });
+  var years = Object.keys(byYear).sort(function(a, b) { return b - a; });
+
+  var totalPaid = archive.filter(function(a) { return a.paid; }).reduce(function(s, a) { return s + a.total; }, 0);
+  var totalOpen = archive.filter(function(a) { return !a.paid; }).reduce(function(s, a) { return s + a.total; }, 0);
+
+  return React.createElement('div', null,
+    React.createElement(HwHdr, { title: 'Arquivo' }),
+
+    // Summary
+    React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 14 } },
+      React.createElement('div', { style: Object.assign({}, S.card, { flex: 1, borderLeft: '3px solid #22c55e', marginBottom: 0 }) },
+        React.createElement('div', { style: { fontSize: 10, color: '#64748b' } }, 'Pagas'),
+        React.createElement('div', { style: { fontWeight: 700, fontSize: 16, color: '#22c55e' } }, hwChf(totalPaid))
+      ),
+      React.createElement('div', { style: Object.assign({}, S.card, { flex: 1, borderLeft: '3px solid #f59e0b', marginBottom: 0 }) },
+        React.createElement('div', { style: { fontSize: 10, color: '#64748b' } }, 'Em aberto'),
+        React.createElement('div', { style: { fontWeight: 700, fontSize: 16, color: '#f59e0b' } }, hwChf(totalOpen))
+      )
+    ),
+
+    // Year folders
+    years.map(function(year) {
+      var entries = byYear[year].sort(function(a, b) {
+        var qn = { Q1:1, Q2:2, Q3:3, Q4:4 };
+        return (qn[b.quarter] || 0) - (qn[a.quarter] || 0);
+      });
+      var isOpen = openYears[year] !== false; // open by default
+      var yearPaid = entries.every(function(a) { return a.paid; });
+      var yearTotal = entries.reduce(function(s, a) { return s + a.total; }, 0);
+
+      return React.createElement('div', { key: year, style: { marginBottom: 8 } },
+        // Year header
+        React.createElement('div', {
+          onClick: function() { toggleYear(year); },
+          style: { background: '#1e293b', borderRadius: isOpen ? '10px 10px 0 0' : 10, padding: '12px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderBottom: isOpen ? '1px solid #334155' : 'none' }
+        },
+          React.createElement('span', { style: { fontSize: 18 } }, isOpen ? '📂' : '📁'),
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('div', { style: { fontWeight: 700, fontSize: 15 } }, year + ''),
+            React.createElement('div', { style: { fontSize: 11, color: '#64748b' } }, entries.length + ' fatura(s) · ' + hwChf(yearTotal))
+          ),
+          yearPaid && React.createElement('span', { style: { fontSize: 11, background: '#14532d44', color: '#4ade80', borderRadius: 20, padding: '2px 8px' } }, '✓ Pago'),
+          React.createElement('span', { style: { color: '#64748b', fontSize: 14 } }, isOpen ? '▲' : '▼')
+        ),
+
+        // Entries
+        isOpen && React.createElement('div', { style: { background: '#1e293b', borderRadius: '0 0 10px 10px', overflow: 'hidden' } },
+          entries.map(function(a, i) {
+            return React.createElement('div', {
+              key: a.id,
+              style: { padding: '12px 14px', borderBottom: i < entries.length - 1 ? '1px solid #0f172a' : 'none', display: 'flex', alignItems: 'flex-start', gap: 10 }
+            },
+              // Quarter icon
+              React.createElement('div', { style: { fontSize: 20, flexShrink: 0, marginTop: 2 } }, a.paid ? '✅' : '📄'),
+              // Info
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 14 } }, a.invLabel || a.referenz),
+                React.createElement('div', { style: { fontSize: 11, color: '#64748b' } }, a.leistungszeitraum),
+                React.createElement('div', { style: { fontSize: 11, color: '#64748b' } }, 'Arquivado: ' + hwFmtDate(a.dateArchived)),
+                a.paid && React.createElement('div', { style: { fontSize: 11, color: '#4ade80', marginTop: 2 } }, '✓ Pago em ' + hwFmtDate(a.datePaid))
+              ),
+              // Right side
+              React.createElement('div', { style: { textAlign: 'right', flexShrink: 0 } },
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 15, color: a.paid ? '#22c55e' : '#f59e0b' } }, hwChf(a.total)),
+                React.createElement('div', { style: { display: 'flex', gap: 5, marginTop: 8, justifyContent: 'flex-end' } },
+                  !a.paid && React.createElement('button', {
+                    onClick: function() { markPaid(a.id); },
+                    style: { background: '#14532d', color: '#4ade80', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
+                  }, '✓ Pago'),
+                  React.createElement('button', {
+                    onClick: function() { delEntry(a.id); },
+                    style: { background: '#450a0a', color: '#f87171', border: 'none', borderRadius: 6, padding: '5px 8px', fontSize: 12, cursor: 'pointer' }
+                  }, '🗑️')
+                )
+              )
+            );
+          })
+        )
+      );
+    })
   );
 }
 
