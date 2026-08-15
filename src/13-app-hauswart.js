@@ -577,11 +577,9 @@ function HwPrintView(props) {
     return function() { window.removeEventListener('resize', update); };
   }, []);
 
-  var dateStr = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00').toLocaleDateString('de-CH') : new Date().toLocaleDateString('de-CH');
-  var qObjP = HW_QUARTERS.find(function(q) { return q.key === cfg.quarter; }) || HW_QUARTERS[2];
-  var qStartStr = new Date(cfg.year + '-' + qObjP.startDay + 'T12:00:00').toLocaleDateString('de-CH');
-  var qEndStr = new Date(cfg.year + '-' + qObjP.endDay + 'T12:00:00').toLocaleDateString('de-CH');
-  var leistungszeitraum = qStartStr + ' – ' + qEndStr;
+  var dateStr = cfg.invoiceDate
+    ? new Date(cfg.invoiceDate + 'T12:00:00').toLocaleDateString('de-CH')
+    : new Date().toLocaleDateString('de-CH');
 
   var Row = function(rp) {
     return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '11px 16px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
