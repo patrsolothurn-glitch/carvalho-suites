@@ -580,7 +580,7 @@ function HwInvoiceTab(props) {
 
     // Arbeit
     works.length > 0 && React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 10 }) },
-      React.createElement('div', { style: S.secLabel }, '🔧 Zusätzliche Arbeit (' + works.length + ')'),
+      React.createElement('div', { style: S.secLabel }, '🔧 Reise und Zeit (' + works.length + ')'),
       works.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(w) {
         return React.createElement('div', { key: w.id, style: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f172a' } },
           React.createElement('div', null,
@@ -1017,11 +1017,11 @@ function HwPrintView(props) {
                 React.createElement(Row, { label: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, value: pauschale.toFixed(2), sub: cfg.location })
               ),
               works.length > 0 && React.createElement('div', null,
-                React.createElement(SecHead, { title: 'Dienstleistungen' }),
+                React.createElement(SecHead, { title: 'Reise und Zeit' }),
                 works.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(w, i) {
                   return React.createElement(Row, { key: w.id, label: w.description, value: (w.hours * w.rate).toFixed(2), sub: hwFmtDate(w.date) + ' · ' + w.hours + ' Std. × CHF ' + w.rate + '.–', shade: i % 2 === 1 });
                 }),
-                works.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Dienstleistungen', value: totalWork.toFixed(2) })
+                works.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Reise und Zeit', value: totalWork.toFixed(2) })
               ),
               mats.length > 0 && React.createElement('div', null,
                 React.createElement(SecHead, { title: 'Materialeinkauf' }),
