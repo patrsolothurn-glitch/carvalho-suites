@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-16T21:24:12.450Z
+  Gerado em: 2026-08-16T21:31:36.988Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-157";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-158";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -6632,9 +6632,18 @@ function AgendaProApp(_ref13) {
           boxShadow:isDragging?'0 8px 20px rgba(0,0,0,0.22)':'0 2px 8px rgba(0,0,0,0.10)',
           opacity:isDragging?0.95:1,zIndex:isDragging?50:1,touchAction:isDragging?'none':'pan-y',userSelect:'none',
           transition:isDragging?'none':'box-shadow 0.15s'}},
-        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6}},
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},dHi+(dHf?'–'+dHf:'')),
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
+        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6,justifyContent:'space-between'}},
+          /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6,flex:1,minWidth:0}},
+            /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},dHi+(dHf?'–'+dHf:'')),
+            /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
+          !isDragging && /*#__PURE__*/React.createElement("button",{
+            onPointerDown:function(e){e.stopPropagation();},
+            onClick:function(e){
+              e.stopPropagation();
+              if(window.confirm('Apagar esta marcação?')){deleteAppt(a.id);}
+            },
+            style:{background:'none',border:'none',color:'#ccc',fontSize:14,lineHeight:1,padding:'0 2px',cursor:'pointer',flexShrink:0,fontWeight:700}
+          },'✕')),
         height > 46 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:12,fontWeight:700,color:'#222',marginTop:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
         height > 66 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:st.color,marginTop:2}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
     }),
