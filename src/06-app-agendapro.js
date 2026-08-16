@@ -1123,32 +1123,50 @@ function AgendaProApp(_ref13) {
       var dHf = isDragging ? minToTime(dragInfo.currentSMin + (a._eMin-a._sMin)) : a.hf;
       return /*#__PURE__*/React.createElement("div", {key:a.id,
         onPointerDown:function(e){
-          e.preventDefault();
-          e.currentTarget.setPointerCapture(e.pointerId);
-          var info={id:a.id,appt:origAppt,duration:a._eMin-a._sMin,startY:e.clientY,startTop:(a._sMin-S_H*60)*HOUR_PX/60,currentSMin:a._sMin,didMove:false};
-          dragRef.current=info; setDragInfo(Object.assign({},info));
+          var el=e.currentTarget, pid=e.pointerId;
+          var info={id:a.id,appt:origAppt,duration:a._eMin-a._sMin,
+            startY:e.clientY,startX:e.clientX,
+            startTop:(a._sMin-S_H*60)*HOUR_PX/60,currentSMin:a._sMin,
+            didMove:false,active:false,timer:null};
+          info.timer=setTimeout(function(){
+            if(dragRef.current&&dragRef.current.id===a.id&&!dragRef.current.didMove){
+              dragRef.current.active=true;
+              try{el.setPointerCapture(pid);}catch(ex){}
+              setDragInfo(Object.assign({},dragRef.current));
+            }
+          },450);
+          dragRef.current=info;
         },
         onPointerMove:function(e){
           var dr=dragRef.current; if(!dr||dr.id!==a.id)return;
+          if(!dr.active){
+            if(Math.abs(e.clientX-dr.startX)>8||Math.abs(e.clientY-dr.startY)>8){
+              clearTimeout(dr.timer); dragRef.current=null;
+            }
+            return;
+          }
+          e.preventDefault();
           var deltaY=e.clientY-dr.startY;
-          if(!dr.didMove&&Math.abs(deltaY)<=5)return;
           var rawSMin=Math.round(((dr.startTop+deltaY)*60/HOUR_PX+S_H*60)/15)*15;
           dr.currentSMin=Math.max(S_H*60,Math.min((E_H-1)*60,rawSMin));
           dr.didMove=true;
           setDragInfo(Object.assign({},dr));
         },
         onPointerUp:function(e){
-          var dr=dragRef.current; dragRef.current=null; setDragInfo(null);
-          if(!dr||dr.id!==a.id)return;
-          if(dr.didMove){ var ns=dr.currentSMin,ne=ns+dr.duration; updateApptTime(a.id,minToTime(ns),minToTime(ne)); }
-          else { setCalSelDay(a.date); openForm(origAppt); }
+          var dr=dragRef.current; if(!dr||dr.id!==a.id)return;
+          clearTimeout(dr.timer); dragRef.current=null; setDragInfo(null);
+          if(dr.active&&dr.didMove){ var ns=dr.currentSMin,ne=ns+dr.duration; updateApptTime(a.id,minToTime(ns),minToTime(ne)); }
+          else if(!dr.active){ setCalSelDay(a.date); openForm(origAppt); }
         },
-        onPointerCancel:function(e){ dragRef.current=null; setDragInfo(null); },
+        onPointerCancel:function(e){
+          if(dragRef.current)clearTimeout(dragRef.current.timer);
+          dragRef.current=null; setDragInfo(null);
+        },
         style:{position:'absolute',top:top+1,left:'calc('+a._col*colW+'% + 3px)',width:'calc('+colW+'% - 6px)',height:height-2,
           background:isDragging?'#EEF2FF':'#fff',borderLeft:'4px solid '+pc,borderRadius:'0 10px 10px 0',
           padding:'5px 10px',cursor:isDragging?'grabbing':'grab',overflow:'hidden',boxSizing:'border-box',
           boxShadow:isDragging?'0 8px 20px rgba(0,0,0,0.22)':'0 2px 8px rgba(0,0,0,0.10)',
-          opacity:isDragging?0.95:1,zIndex:isDragging?50:1,touchAction:'none',userSelect:'none',
+          opacity:isDragging?0.95:1,zIndex:isDragging?50:1,touchAction:isDragging?'none':'pan-y',userSelect:'none',
           transition:isDragging?'none':'box-shadow 0.15s'}},
         /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6}},
           /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},dHi+(dHf?'–'+dHf:'')),
