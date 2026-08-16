@@ -1168,9 +1168,18 @@ function AgendaProApp(_ref13) {
           boxShadow:isDragging?'0 8px 20px rgba(0,0,0,0.22)':'0 2px 8px rgba(0,0,0,0.10)',
           opacity:isDragging?0.95:1,zIndex:isDragging?50:1,touchAction:isDragging?'none':'pan-y',userSelect:'none',
           transition:isDragging?'none':'box-shadow 0.15s'}},
-        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6}},
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},dHi+(dHf?'–'+dHf:'')),
-          /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
+        /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6,justifyContent:'space-between'}},
+          /*#__PURE__*/React.createElement("div",{style:{display:'flex',alignItems:'center',gap:6,flex:1,minWidth:0}},
+            /*#__PURE__*/React.createElement("span",{style:{fontSize:11,fontWeight:800,color:pc}},dHi+(dHf?'–'+dHf:'')),
+            /*#__PURE__*/React.createElement("span",{style:{fontSize:9,fontWeight:800,background:pc+'18',color:pc,borderRadius:4,padding:'1px 5px'}},a.proj||'')),
+          !isDragging && /*#__PURE__*/React.createElement("button",{
+            onPointerDown:function(e){e.stopPropagation();},
+            onClick:function(e){
+              e.stopPropagation();
+              if(window.confirm('Apagar esta marcação?')){deleteAppt(a.id);}
+            },
+            style:{background:'none',border:'none',color:'#ccc',fontSize:14,lineHeight:1,padding:'0 2px',cursor:'pointer',flexShrink:0,fontWeight:700}
+          },'✕')),
         height > 46 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:12,fontWeight:700,color:'#222',marginTop:2,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}},a.morada) : null,
         height > 66 ? /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:st.color,marginTop:2}},st.label+(a.chf>0?' · CHF '+a.chf.toFixed(0):'')) : null);
     }),
