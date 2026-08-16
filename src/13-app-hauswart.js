@@ -594,7 +594,7 @@ function HwInvoiceTab(props) {
 
     // Material
     mats.length > 0 && React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 10 }) },
-      React.createElement('div', { style: S.secLabel }, '🛒 Reise, Zeit & Material (' + mats.length + ')'),
+      React.createElement('div', { style: S.secLabel }, '🛒 Materialeinkauf (' + mats.length + ')'),
       mats.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(m) {
         return React.createElement('div', { key: m.id, style: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0f172a' } },
           React.createElement('div', null,
@@ -1024,7 +1024,7 @@ function HwPrintView(props) {
                 works.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Dienstleistungen', value: totalWork.toFixed(2) })
               ),
               mats.length > 0 && React.createElement('div', null,
-                React.createElement(SecHead, { title: 'Reise, Zeit & Materialeinkauf' }),
+                React.createElement(SecHead, { title: 'Materialeinkauf' }),
                 mats.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(m, i) {
                   return React.createElement(Row, { key: m.id, label: m.description, value: m.price.toFixed(2), sub: hwFmtDate(m.date), shade: i % 2 === 1 });
                 }),
