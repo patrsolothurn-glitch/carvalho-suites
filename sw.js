@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-v131eb8b1';
+const CACHE = 'carvalho-vc3d900e8';
 const ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(ASSETS))
   );
@@ -43,7 +44,27 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for app shell + static libs
+  // Network-first para o documento principal (navegação / index.html):
+  // é aqui que vive TODO o código da app (é um único ficheiro), por isso
+  // é o único sítio onde é crítico não ficar preso numa versão antiga.
+  const isAppShell = e.request.mode === 'navigate' ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname === '/carvalho-suites/' ||
+    url.pathname.endsWith('/carvalho-suites/');
+  if (isAppShell) {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(e.request).then(cached => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache-first para bibliotecas estáticas externas (React, Supabase, etc.)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
