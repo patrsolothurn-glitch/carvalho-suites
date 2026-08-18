@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-18T17:56:38.540Z
+  Gerado em: 2026-08-18T17:59:18.574Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-163";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-164";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -15317,8 +15317,6 @@ function EscolarApp(_ref31) {
     _useState156 = _slicedToArray(_useState155, 2),
     showAddTPC = _useState156[0],
     setShowAddTPC = _useState156[1];
-  var showAddTPCRef = (0, _react.useRef)(false);
-  showAddTPCRef.current = showAddTPC;
   var _useState157 = (0, _react.useState)(null),
     _useState158 = _slicedToArray(_useState157, 2),
     editAula = _useState158[0],
@@ -15385,8 +15383,6 @@ function EscolarApp(_ref31) {
     _useStateEditTpc2 = _slicedToArray(_useStateEditTpc, 2),
     editTpcId = _useStateEditTpc2[0],
     setEditTpcId = _useStateEditTpc2[1];
-  var editTpcIdRef = (0, _react.useRef)(null);
-  editTpcIdRef.current = editTpcId;
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -15395,6 +15391,20 @@ function EscolarApp(_ref31) {
     _useStateEditNotaVal2 = _slicedToArray(_useStateEditNotaVal, 2),
     editNotaVal = _useStateEditNotaVal2[0],
     setEditNotaVal = _useStateEditNotaVal2[1];
+  // Ref único que junta TODOS os formulários de adicionar/editar desta app
+  // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
+  // aberto, o reload automático (visibilitychange) fica bloqueado — evita
+  // perder o que a pessoa está a escrever em QUALQUER campo da app, não só
+  // num formulário específico.
+  var algumFormularioAbertoRef = (0, _react.useRef)(false);
+  algumFormularioAbertoRef.current = !!(
+    showAddDisc || editDiscId !== null ||
+    showAddNota !== null ||
+    showAddTPC || editTpcId !== null ||
+    editAula !== null || showAddAula ||
+    editKlasse || editKlasseKey !== null ||
+    editNotaKey !== null
+  );
   var addEscolarToast = function addEscolarToast(msg) {
     var sub = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
     var id = Date.now() + Math.random();
@@ -15784,7 +15794,7 @@ function EscolarApp(_ref31) {
       // de novo TPC está aberto — evita perder o que a pessoa escreveu e
       // evita que o número de TPCs pareça 'travado' num valor antigo.
       var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
-      if (hasPending || showAddTPCRef.current || editTpcIdRef.current !== null) return;
+      if (hasPending || algumFormularioAbertoRef.current) return;
       loadEscolarData();
     };
     document.addEventListener('visibilitychange', onVisible);
