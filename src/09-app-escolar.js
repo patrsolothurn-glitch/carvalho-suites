@@ -636,8 +636,6 @@ function EscolarApp(_ref31) {
     _useState156 = _slicedToArray(_useState155, 2),
     showAddTPC = _useState156[0],
     setShowAddTPC = _useState156[1];
-  var showAddTPCRef = (0, _react.useRef)(false);
-  showAddTPCRef.current = showAddTPC;
   var _useState157 = (0, _react.useState)(null),
     _useState158 = _slicedToArray(_useState157, 2),
     editAula = _useState158[0],
@@ -704,8 +702,6 @@ function EscolarApp(_ref31) {
     _useStateEditTpc2 = _slicedToArray(_useStateEditTpc, 2),
     editTpcId = _useStateEditTpc2[0],
     setEditTpcId = _useStateEditTpc2[1];
-  var editTpcIdRef = (0, _react.useRef)(null);
-  editTpcIdRef.current = editTpcId;
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -714,6 +710,20 @@ function EscolarApp(_ref31) {
     _useStateEditNotaVal2 = _slicedToArray(_useStateEditNotaVal, 2),
     editNotaVal = _useStateEditNotaVal2[0],
     setEditNotaVal = _useStateEditNotaVal2[1];
+  // Ref único que junta TODOS os formulários de adicionar/editar desta app
+  // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
+  // aberto, o reload automático (visibilitychange) fica bloqueado — evita
+  // perder o que a pessoa está a escrever em QUALQUER campo da app, não só
+  // num formulário específico.
+  var algumFormularioAbertoRef = (0, _react.useRef)(false);
+  algumFormularioAbertoRef.current = !!(
+    showAddDisc || editDiscId !== null ||
+    showAddNota !== null ||
+    showAddTPC || editTpcId !== null ||
+    editAula !== null || showAddAula ||
+    editKlasse || editKlasseKey !== null ||
+    editNotaKey !== null
+  );
   var addEscolarToast = function addEscolarToast(msg) {
     var sub = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
     var id = Date.now() + Math.random();
@@ -1103,7 +1113,7 @@ function EscolarApp(_ref31) {
       // de novo TPC está aberto — evita perder o que a pessoa escreveu e
       // evita que o número de TPCs pareça 'travado' num valor antigo.
       var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
-      if (hasPending || showAddTPCRef.current || editTpcIdRef.current !== null) return;
+      if (hasPending || algumFormularioAbertoRef.current) return;
       loadEscolarData();
     };
     document.addEventListener('visibilitychange', onVisible);
