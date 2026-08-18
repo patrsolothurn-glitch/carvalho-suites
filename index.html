@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-18T17:12:03.861Z
+  Gerado em: 2026-08-18T17:20:29.082Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-161";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-162";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -18506,7 +18506,51 @@ function EscolarApp(_ref31) {
         borderTop: "1px solid ".concat(E.border),
         padding: '10px 14px'
       }
-    }, /*#__PURE__*/React.createElement("p", {
+    }, /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, marginBottom: 10 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { tipo: 'tpc' }) : x;
+            })
+          });
+        }, 'tpc');
+      },
+      style: {
+        flex: 1,
+        background: t.tipo !== 'teste' ? "".concat(E.purple, "18") : E.surface2,
+        border: "1px solid ".concat(t.tipo !== 'teste' ? E.purple : E.border),
+        borderRadius: 8,
+        padding: '7px',
+        color: t.tipo !== 'teste' ? E.purple : E.muted,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDCDD TPC"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { tipo: 'teste' }) : x;
+            })
+          });
+        }, 'tpc');
+      },
+      style: {
+        flex: 1,
+        background: t.tipo === 'teste' ? "".concat(E.purple, "18") : E.surface2,
+        border: "1px solid ".concat(t.tipo === 'teste' ? E.purple : E.border),
+        borderRadius: 8,
+        padding: '7px',
+        color: t.tipo === 'teste' ? E.purple : E.muted,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDCDA Teste/Exame")), /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
         fontSize: 10,
