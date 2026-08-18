@@ -3825,7 +3825,51 @@ function EscolarApp(_ref31) {
         borderTop: "1px solid ".concat(E.border),
         padding: '10px 14px'
       }
-    }, /*#__PURE__*/React.createElement("p", {
+    }, /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, marginBottom: 10 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { tipo: 'tpc' }) : x;
+            })
+          });
+        }, 'tpc');
+      },
+      style: {
+        flex: 1,
+        background: t.tipo !== 'teste' ? "".concat(E.purple, "18") : E.surface2,
+        border: "1px solid ".concat(t.tipo !== 'teste' ? E.purple : E.border),
+        borderRadius: 8,
+        padding: '7px',
+        color: t.tipo !== 'teste' ? E.purple : E.muted,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDCDD TPC"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { tipo: 'teste' }) : x;
+            })
+          });
+        }, 'tpc');
+      },
+      style: {
+        flex: 1,
+        background: t.tipo === 'teste' ? "".concat(E.purple, "18") : E.surface2,
+        border: "1px solid ".concat(t.tipo === 'teste' ? E.purple : E.border),
+        borderRadius: 8,
+        padding: '7px',
+        color: t.tipo === 'teste' ? E.purple : E.muted,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDCDA Teste/Exame")), /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
         fontSize: 10,
