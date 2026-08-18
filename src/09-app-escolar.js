@@ -704,6 +704,8 @@ function EscolarApp(_ref31) {
     _useStateEditTpc2 = _slicedToArray(_useStateEditTpc, 2),
     editTpcId = _useStateEditTpc2[0],
     setEditTpcId = _useStateEditTpc2[1];
+  var editTpcIdRef = (0, _react.useRef)(null);
+  editTpcIdRef.current = editTpcId;
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -1101,7 +1103,7 @@ function EscolarApp(_ref31) {
       // de novo TPC está aberto — evita perder o que a pessoa escreveu e
       // evita que o número de TPCs pareça 'travado' num valor antigo.
       var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
-      if (hasPending || showAddTPCRef.current) return;
+      if (hasPending || showAddTPCRef.current || editTpcIdRef.current !== null) return;
       loadEscolarData();
     };
     document.addEventListener('visibilitychange', onVisible);
