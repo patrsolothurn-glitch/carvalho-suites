@@ -636,6 +636,8 @@ function EscolarApp(_ref31) {
     _useState156 = _slicedToArray(_useState155, 2),
     showAddTPC = _useState156[0],
     setShowAddTPC = _useState156[1];
+  var showAddTPCRef = (0, _react.useRef)(false);
+  showAddTPCRef.current = showAddTPC;
   var _useState157 = (0, _react.useState)(null),
     _useState158 = _slicedToArray(_useState157, 2),
     editAula = _useState158[0],
@@ -1093,7 +1095,14 @@ function EscolarApp(_ref31) {
   // noutro telemovel nao aparecem ate forcar hard refresh.
   (0, _react.useEffect)(function () {
     var onVisible = function onVisible() {
-      if (document.visibilityState === 'visible') loadEscolarData();
+      if (document.visibilityState !== 'visible') return;
+      // Não recarregar por cima de edições ainda não guardadas (o save é
+      // feito 800ms depois de parar de escrever) nem enquanto o formulário
+      // de novo TPC está aberto — evita perder o que a pessoa escreveu e
+      // evita que o número de TPCs pareça 'travado' num valor antigo.
+      var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
+      if (hasPending || showAddTPCRef.current) return;
+      loadEscolarData();
     };
     document.addEventListener('visibilitychange', onVisible);
     return function () { document.removeEventListener('visibilitychange', onVisible); };
