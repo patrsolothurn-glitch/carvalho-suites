@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-18T17:20:29.082Z
+  Gerado em: 2026-08-18T17:56:38.540Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-162";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-163";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -15385,6 +15385,8 @@ function EscolarApp(_ref31) {
     _useStateEditTpc2 = _slicedToArray(_useStateEditTpc, 2),
     editTpcId = _useStateEditTpc2[0],
     setEditTpcId = _useStateEditTpc2[1];
+  var editTpcIdRef = (0, _react.useRef)(null);
+  editTpcIdRef.current = editTpcId;
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -15782,7 +15784,7 @@ function EscolarApp(_ref31) {
       // de novo TPC está aberto — evita perder o que a pessoa escreveu e
       // evita que o número de TPCs pareça 'travado' num valor antigo.
       var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
-      if (hasPending || showAddTPCRef.current) return;
+      if (hasPending || showAddTPCRef.current || editTpcIdRef.current !== null) return;
       loadEscolarData();
     };
     document.addEventListener('visibilitychange', onVisible);
