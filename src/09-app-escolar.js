@@ -4134,7 +4134,53 @@ function EscolarApp(_ref31) {
         fontWeight: 700,
         cursor: 'pointer'
       }
-    }, "Feito \u2713")));
+    }, "Feito \u2713"), t.feito && /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, alignItems: 'center' }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.1",
+      min: "1",
+      max: "6",
+      id: "nota-teste-".concat(t.id),
+      placeholder: "Nota",
+      style: {
+        width: 56,
+        background: E.surface2,
+        border: "1px solid ".concat(E.border),
+        borderRadius: 8,
+        padding: '6px 7px',
+        color: E.text,
+        fontSize: 13,
+        outline: 'none',
+        textAlign: 'center'
+      }
+    }), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        var _document$getElementNota;
+        var inputEl = document.getElementById("nota-teste-".concat(t.id));
+        var v = parseFloat((_document$getElementNota = inputEl) === null || _document$getElementNota === void 0 ? void 0 : _document$getElementNota.value);
+        if (!v && v !== 0) return;
+        setAluno(function (al) {
+          var _al$notas$t$discId;
+          return _objectSpread(_objectSpread({}, al), {}, {
+            notas: _objectSpread(_objectSpread({}, al.notas), {}, _defineProperty({}, t.discId, _objectSpread(_objectSpread({}, al.notas[t.discId] || {}), {}, _defineProperty({}, semestre, [].concat(_toConsumableArray(((_al$notas$t$discId = al.notas[t.discId]) === null || _al$notas$t$discId === void 0 ? void 0 : _al$notas$t$discId[semestre]) || []), [v])))))
+          });
+        }, 'notas');
+        if (inputEl) inputEl.value = '';
+        addEscolarToast('\uD83D\uDCCA Nota '.concat(v, ' guardada em ').concat(d.nome));
+      },
+      style: {
+        background: "".concat(E.purple, "22"),
+        border: "1px solid ".concat(E.purple, "44"),
+        borderRadius: 8,
+        padding: '6px 10px',
+        color: E.purple,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap'
+      }
+    }, "\uD83D\uDCCA Guardar nota"))));
   })), tab === 'notas' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px'
