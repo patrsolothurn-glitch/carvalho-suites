@@ -3573,6 +3573,7 @@ function EscolarApp(_ref31) {
   }, "Descri\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
     defaultValue: novaTPC.titulo || '',
     id: "novatpc-titulo",
+    list: "novatpc-titulo-sugestoes",
     autoComplete: "off",
     placeholder: "Ex: Seite 42-44",
     style: {
@@ -3587,7 +3588,18 @@ function EscolarApp(_ref31) {
       marginBottom: 8,
       boxSizing: 'border-box'
     }
-  }), /*#__PURE__*/React.createElement("p", {
+  }), /*#__PURE__*/React.createElement("datalist", {
+    id: "novatpc-titulo-sugestoes"
+  }, Array.from(new Set(aluno.tpc.filter(function (t) {
+    return t.discId === novaTPC.discId && t.titulo;
+  }).map(function (t) {
+    return t.titulo;
+  }))).map(function (s, i) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: i,
+      value: s
+    });
+  })), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
