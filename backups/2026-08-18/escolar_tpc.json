@@ -1,6 +1,6 @@
-[{"id":1787072044061,"aluno":"lucas","disc_id":19,"titulo":"Test","data":"2026-08-26","feito":false,"created_at":"2026-08-18T17:10:45.590587+00:00","tipo":"teste"}, 
- {"id":1787072106135,"aluno":"lucas","disc_id":9,"titulo":"Test","data":"2026-09-02","feito":false,"created_at":"2026-08-18T17:10:45.590587+00:00","tipo":"teste"}, 
- {"id":1787072138376,"aluno":"lucas","disc_id":5,"titulo":"Test Voci & Grammatik","data":"2026-09-03","feito":false,"created_at":"2026-08-18T17:10:45.590587+00:00","tipo":"teste"}, 
- {"id":1787072168038,"aluno":"lucas","disc_id":3,"titulo":"Test Voci leçon 1","data":"2026-09-10","feito":false,"created_at":"2026-08-18T17:10:45.590587+00:00","tipo":"teste"}, 
- {"id":1787072860739,"aluno":"lucas","disc_id":6,"titulo":"Test Grundkenntnisse","data":"2026-09-14","feito":false,"created_at":"2026-08-18T17:10:45.590587+00:00","tipo":"tpc"}, 
- {"id":1787073044155,"aluno":"lucas","disc_id":3,"titulo":"Gramatik leçon 1","data":"2026-09-17","feito":false,"created_at":"2026-08-18T17:10:45.590587+00:00","tipo":"tpc"}]
+[{"id":1787072044061,"aluno":"lucas","disc_id":19,"titulo":"Test","data":"2026-08-26","feito":false,"created_at":"2026-08-18T17:21:36.983486+00:00","tipo":"teste"}, 
+ {"id":1787072106135,"aluno":"lucas","disc_id":9,"titulo":"Test","data":"2026-09-02","feito":false,"created_at":"2026-08-18T17:21:36.983486+00:00","tipo":"teste"}, 
+ {"id":1787072138376,"aluno":"lucas","disc_id":5,"titulo":"Test Voci & Grammatik","data":"2026-09-03","feito":false,"created_at":"2026-08-18T17:21:36.983486+00:00","tipo":"teste"}, 
+ {"id":1787072168038,"aluno":"lucas","disc_id":3,"titulo":"Test Voci leçon 1","data":"2026-09-10","feito":false,"created_at":"2026-08-18T17:21:36.983486+00:00","tipo":"teste"}, 
+ {"id":1787072860739,"aluno":"lucas","disc_id":6,"titulo":"Test Grundkenntnisse","data":"2026-09-14","feito":false,"created_at":"2026-08-18T17:21:36.983486+00:00","tipo":"tpc"}, 
+ {"id":1787073044155,"aluno":"lucas","disc_id":3,"titulo":"Test Gramatik leçon 1","data":"2026-09-17","feito":false,"created_at":"2026-08-18T17:21:36.983486+00:00","tipo":"tpc"}]
