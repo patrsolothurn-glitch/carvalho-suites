@@ -146,4 +146,12 @@ var APPS_DATA = [{
   badge: null,
   color: '#0891b2',
   adminOnly: true
+}, {
+  id: 'rapport',
+  emoji: '📋',
+  name: 'Arnold Rapport',
+  desc: 'Planung · Tages- und Wochenrapport',
+  badge: null,
+  color: '#F59E0B',
+  adminOnly: true
 }];
