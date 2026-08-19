@@ -702,6 +702,10 @@ function EscolarApp(_ref31) {
     _useStateEditTpc2 = _slicedToArray(_useStateEditTpc, 2),
     editTpcId = _useStateEditTpc2[0],
     setEditTpcId = _useStateEditTpc2[1];
+  var _useStateEditTpcTitulo = (0, _react.useState)(''),
+    _useStateEditTpcTitulo2 = _slicedToArray(_useStateEditTpcTitulo, 2),
+    editTpcTitulo = _useStateEditTpcTitulo2[0],
+    setEditTpcTitulo = _useStateEditTpcTitulo2[1];
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -3583,7 +3587,13 @@ function EscolarApp(_ref31) {
       marginBottom: 4
     }
   }, "Descri\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
-    defaultValue: novaTPC.titulo || '',
+    value: novaTPC.titulo || '',
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovaTPC(function (prev) {
+        return _objectSpread(_objectSpread({}, prev), {}, { titulo: val });
+      });
+    },
     id: "novatpc-titulo",
     list: "novatpc-titulo-sugestoes",
     autoComplete: "off",
@@ -3658,9 +3668,8 @@ function EscolarApp(_ref31) {
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       var _aluno$disciplinas$;
-      var tituloEl = document.getElementById('novatpc-titulo');
       var dataEl = document.getElementById('novatpc-data');
-      var titulo = (tituloEl ? tituloEl.value : '').trim();
+      var titulo = (novaTPC.titulo || '').trim();
       var data = dataEl ? dataEl.value : '';
       if (!titulo || !data) return;
       var novoId = Date.now();
@@ -3801,6 +3810,7 @@ function EscolarApp(_ref31) {
       }
     }, "Feito \u2713"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        setEditTpcTitulo(isEdTpc ? '' : t.titulo);
         return setEditTpcId(isEdTpc ? null : t.id);
       },
       style: {
@@ -3917,7 +3927,11 @@ function EscolarApp(_ref31) {
         marginBottom: 4
       }
     }, "Descri\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
-      defaultValue: t.titulo,
+      value: editTpcTitulo,
+      onChange: function onChange(e) {
+        var val = e.target.value;
+        setEditTpcTitulo(val);
+      },
       id: "tpc-titulo-".concat(t.id),
       autoComplete: "off",
       style: {
@@ -3960,7 +3974,7 @@ function EscolarApp(_ref31) {
       onClick: function onClick() {
         var _document$getElementBT, _document$getElementBT2, _document$getElementBT3;
         var discId = parseInt(((_document$getElementBT = document.getElementById("tpc-disc-".concat(t.id))) === null || _document$getElementBT === void 0 ? void 0 : _document$getElementBT.value) || t.discId);
-        var titulo = ((_document$getElementBT2 = document.getElementById("tpc-titulo-".concat(t.id))) === null || _document$getElementBT2 === void 0 ? void 0 : _document$getElementBT2.value) || t.titulo;
+        var titulo = editTpcTitulo || t.titulo;
         var data = ((_document$getElementBT3 = document.getElementById("tpc-data-".concat(t.id))) === null || _document$getElementBT3 === void 0 ? void 0 : _document$getElementBT3.value) || t.data;
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
