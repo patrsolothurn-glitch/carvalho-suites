@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-20T19:14:12.510Z
+  Gerado em: 2026-08-20T19:20:13.419Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-172";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-173";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25495,6 +25495,8 @@ function RpPlanungView(props) {
   var fKanton = _fKanton[0], setFKanton = _fKanton[1];
   var _fTask = React.useState('muffe');
   var fTask = _fTask[0], setFTask = _fTask[1];
+  var _fTaskCustom = React.useState('');
+  var fTaskCustom = _fTaskCustom[0], setFTaskCustom = _fTaskCustom[1];
   var _fHS = React.useState('07:00');
   var fHS = _fHS[0], setFHS = _fHS[1];
   var _fHE = React.useState('17:00');
@@ -25535,7 +25537,7 @@ function RpPlanungView(props) {
 
   function openNew(date) {
     setFDate(date || rpToday());
-    setFBau(''); setFKanton('SO'); setFTask('muffe');
+    setFBau(''); setFKanton('SO'); setFTask('muffe'); setFTaskCustom('');
     setFHS('07:00'); setFHE('17:00'); setFTeam('');
     setFKm(''); setFStatus('planned'); setFNotiz('');
     setForm('new');
@@ -25543,7 +25545,9 @@ function RpPlanungView(props) {
 
   function openEdit(job) {
     setFDate(job.datum); setFBau(job.baustelle); setFKanton(job.kanton || 'SO');
-    setFTask(job.task_type || 'muffe'); setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
+    setFTask(RP_TASKS[job.task_type] ? job.task_type : 'andere');
+    setFTaskCustom(RP_TASKS[job.task_type] ? '' : (job.task_type || ''));
+    setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
     setFTeam(job.team || ''); setFKm(String(job.km || '')); setFStatus(job.status || 'planned');
     setFNotiz(job.notiz || '');
     setForm(job);
@@ -25557,7 +25561,7 @@ function RpPlanungView(props) {
       datum: fDate,
       baustelle: fBau.trim(),
       kanton: fKanton,
-      task_type: fTask,
+      task_type: fTask === 'andere' && fTaskCustom.trim() ? fTaskCustom.trim() : fTask,
       h_start: fHS,
       h_end: fHE,
       team: fTeam.trim(),
@@ -25687,10 +25691,11 @@ function RpPlanungView(props) {
       children: React.createElement('div', null,
         RpField({ label: L.date, children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
         RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Arbeitstyp' }), RpSelect({ value: fTask, onChange: setFTask, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: fTask === 'andere' ? 6 : 12 } },
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: L.p_type }), RpSelect({ value: fTask, onChange: function(v) { setFTask(v); if (v !== 'andere') setFTaskCustom(''); }, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: L.canton }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
         ),
+        fTask === 'andere' && RpField({ label: '🔧 Welche Arbeit?', children: RpInput({ value: fTaskCustom, onChange: setFTaskCustom, placeholder: 'z.B. Schachtdeckel, Tiefbau...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
