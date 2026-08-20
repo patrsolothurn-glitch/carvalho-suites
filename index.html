@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-20T19:22:52.153Z
+  Gerado em: 2026-08-20T19:30:31.810Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-174";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-175";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25267,43 +25267,43 @@ var RP_KANTONE = ['SO','BE','AG','ZH','BS','BL','FR','LU','JU','VS','TG','SH','G
 var RP_L = {
   DE: {
     tab_plan:'📋 Planung', tab_tages:'📄 Tagesrapport', tab_wochen:'📊 Wochenbericht',
-    save:'Speichern', cancel:'Abbrechen', today:L.today, status:'Status', note:'Notiz',
+    save:'Speichern', cancel:'Abbrechen', today:'HEUTE', status:'Status', note:'Notiz',
     date:'Datum', site:'Baustelle / Ort', canton:'Kanton', from:'Von', to:'Bis', team:'Team',
-    p_new:L.p_new, p_edit:L.p_edit, p_type:'Arbeitstyp',
-    p_empty:L.p_empty, p_jobs:' ' + L.p_jobs, p_done:' fertig',
-    t_new:L.t_new, t_edit:L.t_edit, t_btn:L.t_btn,
-    t_count:' ' + L.t_count, t_weather:'Wetter', t_work:'Ausgeführte Arbeiten',
+    p_new:'Neuer Auftrag', p_edit:'Auftrag bearbeiten', p_type:'Arbeitstyp',
+    p_empty:'Nix geplant', p_jobs:'Aufträge', p_done:'fertig',
+    t_new:'Neuer Tagesrapport', t_edit:'Rapport bearbeiten', t_btn:'+ Neuer Tagesrapport',
+    t_count:'Rapporte', t_weather:'Wetter', t_work:'Ausgeführte Arbeiten',
     t_mat:'Material Verwendet', t_prob:'Probleme / Bemerkungen',
     t_draft:'📝 Entwurf', t_sub:'✅ Abgegeben', t_submit:'✓ Abgeben', t_todraft:'↺ Entwurf',
-    bep_title:L.bep_title, bep_anz:'Anzahl BEPs', bep_typ:'BEP Typ',
+    bep_title:'🔌 BEP Spezifisch', bep_anz:'Anzahl BEPs', bep_typ:'BEP Typ',
     bep_godoo:'Godoo-Nr', bep_zust:'Zuständig (Godoo)',
-    bep_gag:'GAG Messung', bep_swiss:'Swisscom Messung', bep_foto:L.bep_foto,
-    m_title:L.m_title, m_anz:'Anzahl Muffes', m_typ:'Muffe Typ',
-    m_fasern:'Fasern gespleisst', m_otdr:L.m_otdr, m_foto:'📷 Fotos',
-    w_new:L.w_new, w_edit:L.w_edit,
-    w_btn:L.w_btn, w_count:' ' + L.w_count,
+    bep_gag:'GAG Messung', bep_swiss:'Swisscom Messung', bep_foto:'📷 Fotos gemacht',
+    m_title:'🔩 Muffe Spezifisch', m_anz:'Anzahl Muffes', m_typ:'Muffe Typ',
+    m_fasern:'Fasern gespleisst', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
+    w_new:'Neuer Wochenbericht', w_edit:'Wochenbericht bearbeiten',
+    w_btn:'+ Neuer Wochenbericht', w_count:'Wochenberichte',
     w_year:'Jahr', w_std:'Total Std.', w_km:'Total KM',
-    w_hint:L.w_hint,
+    w_hint:'💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.',
     w_sum:'Zusammenfassung der Woche', w_open:'Offene Arbeiten', w_rem:'Bemerkungen',
-    none_t:L.none_t, none_w:L.none_w,
+    none_t:'Noch keine Tagesrapporte.', none_w:'Noch keine Wochenberichte.',
   },
   PT: {
     tab_plan:'📋 Planeamento', tab_tages:'📄 Diário', tab_wochen:'📊 Semanal',
     save:'Guardar', cancel:'Cancelar', today:'HOJE', status:'Estado', note:'Nota',
     date:'Data', site:'Obra / Local', canton:'Cantão', from:'De', to:'Até', team:'Equipa',
     p_new:'Novo Serviço', p_edit:'Editar Serviço', p_type:'Tipo de Trabalho',
-    p_empty:'Nada planeado', p_jobs:' Serviços', p_done:' feitos',
+    p_empty:'Nada planeado', p_jobs:'Serviços', p_done:'feitos',
     t_new:'Novo Relatório Diário', t_edit:'Editar Relatório', t_btn:'+ Novo Relatório',
-    t_count:' Relatórios', t_weather:'Tempo', t_work:'Trabalhos Realizados',
+    t_count:'Relatórios', t_weather:'Tempo', t_work:'Trabalhos Realizados',
     t_mat:'Material Utilizado', t_prob:'Problemas / Observações',
     t_draft:'📝 Rascunho', t_sub:'✅ Entregue', t_submit:'✓ Entregar', t_todraft:'↺ Rascunho',
     bep_title:'🔌 BEP Específico', bep_anz:'Nº BEPs', bep_typ:'Tipo BEP',
     bep_godoo:'Nº Godoo', bep_zust:'Responsável (Godoo)',
     bep_gag:'Medição GAG', bep_swiss:'Medição Swisscom', bep_foto:'📷 Fotos tiradas',
     m_title:'🔩 Muffe Específico', m_anz:'Nº Muffes', m_typ:'Tipo Muffe',
-    m_fasern:'Fibras Spleissadas', m_otdr:L.m_otdr, m_foto:'📷 Fotos',
+    m_fasern:'Fibras Spleissadas', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
     w_new:'Novo Rel. Semanal', w_edit:'Editar Rel. Semanal',
-    w_btn:'+ Novo Rel. Semanal', w_count:' Relatórios Semanais',
+    w_btn:'+ Novo Rel. Semanal', w_count:'Relatórios Semanais',
     w_year:'Ano', w_std:'Total Horas', w_km:'Total KM',
     w_hint:'💡 Horas e KM calculadas automaticamente dos relatórios diários desta KW.',
     w_sum:'Resumo da Semana', w_open:'Trabalhos Pendentes', w_rem:'Observações',
