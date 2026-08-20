@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-20T18:39:58.588Z
+  Gerado em: 2026-08-20T19:00:10.914Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-170";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-171";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25927,15 +25927,33 @@ function RpTagesView(props) {
         React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, '🔩 Muffe Spezifisch'),
 
-          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
+          React.createElement('div', { style: { marginBottom: 10 } },
             React.createElement('div', { style: { flex: 1 } },
               RpLabel({ text: 'Anzahl Muffes' }),
               RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz, placeholder: '0' })
-            ),
-            React.createElement('div', { style: { flex: 2 } },
-              RpLabel({ text: 'Muffe Typ' }),
-              RpInput({ value: fMufTyp, onChange: setFMufTyp, placeholder: 'z.B. HF-96, FOSC-400...' })
             )
+          ),
+
+          // Muffe Typ quick-select
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Muffe Typ' }),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' } },
+              ['BC8', 'FD6', 'FD8', 'BF8', 'BE8'].map(function(t) {
+                var active = fMufTyp === t;
+                return React.createElement('button', {
+                  key: t,
+                  onClick: function() { setFMufTyp(active ? '' : t); },
+                  style: {
+                    flex: 1, minWidth: 48, padding: '7px 0', borderRadius: 8,
+                    border: '2px solid ' + (active ? '#a78bfa' : '#1E293B'),
+                    background: active ? '#a78bfa22' : '#0D1117',
+                    color: active ? '#a78bfa' : '#64748B',
+                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  }
+                }, t);
+              })
+            ),
+            RpInput({ value: fMufTyp, onChange: setFMufTyp, placeholder: 'oder eigener Typ…' })
           ),
 
           React.createElement('div', { style: { marginBottom: 10 } },
