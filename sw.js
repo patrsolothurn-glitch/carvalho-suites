@@ -1,14 +1,14 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
 const CACHE = 'carvalho-v88c8f15b';
+
+// Só guarda os ficheiros locais — CDNs externos nunca em precache
+// (causavam falha de instalação quando offline ou lentos)
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
 ];
 
 self.addEventListener('install', e => {
@@ -33,38 +33,38 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Never cache Supabase API calls — always go live (real-time data)
-  if (url.hostname.endsWith('supabase.co')) {
-    return; // let the browser handle it normally
-  }
+  // Supabase — sempre rede
+  if (url.hostname.endsWith('supabase.co')) return;
 
-  // Network-first for fonts (CSS can change)
-  if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    return;
-  }
-
-  // Network-first para o documento principal (navegação / index.html):
-  // é aqui que vive TODO o código da app (é um único ficheiro), por isso
-  // é o único sítio onde é crítico não ficar preso numa versão antiga.
+  // index.html e navegação — sempre rede primeiro
   const isAppShell = e.request.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
     url.pathname === '/carvalho-suites/' ||
     url.pathname.endsWith('/carvalho-suites/');
+
   if (isAppShell) {
     e.respondWith(
-      fetch(e.request).then(response => {
+      fetch(e.request, { cache: 'no-cache' }).then(response => {
         if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return response;
-      }).catch(() => caches.match(e.request).then(cached => cached || caches.match('./index.html')))
+      }).catch(() => caches.match('./index.html'))
     );
     return;
   }
 
-  // Cache-first para bibliotecas estáticas externas (React, Supabase, etc.)
+  // CDNs externos — rede primeiro, cache como fallback
+  if (url.hostname.includes('cdnjs') || url.hostname.includes('jsdelivr') ||
+      url.hostname.includes('googleapis') || url.hostname.includes('gstatic')) {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Resto — cache primeiro
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -81,14 +81,10 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ── Push notifications (real, mesmo com a app fechada) ──────────────
+// ── Push notifications ──────────────────────────────────────────────
 self.addEventListener('push', e => {
   let data = { title: 'Carvalho Suite', body: '' };
-  try {
-    if (e.data) data = e.data.json();
-  } catch (err) {
-    if (e.data) data.body = e.data.text();
-  }
+  try { if (e.data) data = e.data.json(); } catch (err) { if (e.data) data.body = e.data.text(); }
   e.waitUntil(
     self.registration.showNotification(data.title || 'Carvalho Suite', {
       body: data.body || '',
