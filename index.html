@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-20T18:27:31.338Z
+  Gerado em: 2026-08-20T18:33:18.169Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-168";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-169";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25707,6 +25707,12 @@ function RpTagesView(props) {
   var _fGAG    = React.useState('');        var fGAG    = _fGAG[0],    setFGAG    = _fGAG[1];
   var _fSwiss  = React.useState('');        var fSwiss  = _fSwiss[0],  setFSwiss  = _fSwiss[1];
   var _fFotos  = React.useState(false);     var fFotos  = _fFotos[0],  setFFotos  = _fFotos[1];
+  // Muffe-spezifisch
+  var _fMufAnz  = React.useState('');       var fMufAnz  = _fMufAnz[0],  setFMufAnz  = _fMufAnz[1];
+  var _fMufTyp  = React.useState('');       var fMufTyp  = _fMufTyp[0],  setFMufTyp  = _fMufTyp[1];
+  var _fFasern  = React.useState('');       var fFasern  = _fFasern[0],  setFFasern  = _fFasern[1];
+  var _fOTDR    = React.useState(false);    var fOTDR    = _fOTDR[0],    setFOTDR    = _fOTDR[1];
+  var _fMufFoto = React.useState(false);    var fMufFoto = _fMufFoto[0], setFMufFoto = _fMufFoto[1];
 
   function load() {
     if (!db) return;
@@ -25721,6 +25727,7 @@ function RpTagesView(props) {
     setFHS('07:00'); setFHE('17:00'); setFTeam(''); setFArbeit('');
     setFMat(''); setFKm(''); setFProb(''); setFStatus('draft');
     setFBepAnz(''); setFGodoo(''); setFZust(''); setFGAG(''); setFSwiss(''); setFFotos(false);
+    setFMufAnz(''); setFMufTyp(''); setFFasern(''); setFOTDR(false); setFMufFoto(false);
     setForm('new');
   }
   function openEdit(item) {
@@ -25732,13 +25739,16 @@ function RpTagesView(props) {
     setFGodoo(item.godoo_nr || ''); setFZust(item.zustaendig || '');
     setFGAG(item.messung_gag || ''); setFSwiss(item.messung_swisscom || '');
     setFFotos(item.fotos_ok || false);
+    setFMufAnz(item.anzahl_muffe > 0 ? String(item.anzahl_muffe) : '');
+    setFMufTyp(item.muffe_typ || ''); setFFasern(item.fasern_gespleisst > 0 ? String(item.fasern_gespleisst) : '');
+    setFOTDR(item.otdr_ok || false); setFMufFoto(item.muffe_fotos || false);
     setViewItem(null); setForm(item);
   }
   function save() {
     if (!fBau.trim()) return;
     setFSaving(true);
     var h = rpStunden(fHS, fHE);
-    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos };
+    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos, anzahl_muffe: parseInt(fMufAnz) || 0, muffe_typ: fMufTyp.trim(), fasern_gespleisst: parseInt(fFasern) || 0, otdr_ok: fOTDR, muffe_fotos: fMufFoto };
     var op = form === 'new' ? db.from('rapport_tages').insert(payload) : db.from('rapport_tages').update(payload).eq('id', form.id);
     op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
   }
@@ -25782,7 +25792,9 @@ function RpTagesView(props) {
           item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.km + ' km'),
           item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, color: '#3B82F6', fontWeight: 700 } }, '🔌 ' + item.anzahl_beps + ' BEP'),
           item.godoo_nr && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📱 ' + item.godoo_nr),
-          item.fotos_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📷✓')
+          item.fotos_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📷✓'),
+          item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, color: '#a78bfa', fontWeight: 700 } }, '🔩 ' + item.anzahl_muffe + ' Muffe'),
+          item.otdr_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📡✓')
         ),
 
         viewItem && viewItem.id === item.id && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
@@ -25804,6 +25816,17 @@ function RpTagesView(props) {
               item.messung_gag && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'GAG: ' + item.messung_gag),
               item.messung_swisscom && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Swisscom: ' + item.messung_swisscom),
               item.fotos_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
+            )
+          ),
+          // ── Muffe
+          (item.anzahl_muffe > 0 || item.otdr_ok) && React.createElement('div', { style: { background: '#a78bfa11', border: '1px solid #a78bfa33', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', marginBottom: 6 } }, '🔩 MUFFE'),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+              item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_muffe + ' Muffe'),
+              item.muffe_typ && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Typ: ' + item.muffe_typ),
+              item.fasern_gespleisst > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '✂️ ' + item.fasern_gespleisst + ' Fasern'),
+              item.otdr_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📡 OTDR ✓'),
+              item.muffe_fotos && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
             )
           ),
           item.probleme && React.createElement('div', { style: { marginBottom: 8 } },
@@ -25873,6 +25896,38 @@ function RpTagesView(props) {
           React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 10px', background: fFotos ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fFotos ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
             React.createElement('input', { type: 'checkbox', checked: fFotos, onChange: function(e) { setFFotos(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
             React.createElement('span', { style: { fontSize: 13, color: fFotos ? '#22c55e' : '#94A3B8', fontWeight: fFotos ? 700 : 400 } }, '📷 Fotos gemacht')
+          )
+        ),
+
+        // ── Muffe Spezifisch ──────────────────────────
+        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, '🔩 Muffe Spezifisch'),
+
+          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Anzahl Muffes' }),
+              RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz, placeholder: '0' })
+            ),
+            React.createElement('div', { style: { flex: 2 } },
+              RpLabel({ text: 'Muffe Typ' }),
+              RpInput({ value: fMufTyp, onChange: setFMufTyp, placeholder: 'z.B. HF-96, FOSC-400...' })
+            )
+          ),
+
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Fasern gespleisst' }),
+            RpInput({ type: 'number', value: fFasern, onChange: setFFasern, placeholder: '0' })
+          ),
+
+          React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDR ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fOTDR ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fOTDR, onChange: function(e) { setFOTDR(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fOTDR ? '#22c55e' : '#94A3B8', fontWeight: fOTDR ? 700 : 400 } }, '📡 OTDR OK')
+            ),
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fMufFoto ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fMufFoto ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fMufFoto, onChange: function(e) { setFMufFoto(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fMufFoto ? '#22c55e' : '#94A3B8', fontWeight: fMufFoto ? 700 : 400 } }, '📷 Fotos')
+            )
           )
         ),
 
