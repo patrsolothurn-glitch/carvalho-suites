@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-20T19:45:55.948Z
+  Gerado em: 2026-08-20T19:52:00.916Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-176";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-177";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26252,8 +26252,8 @@ function RapportApp(props) {
           )
         )
       ),
-      // ── Tab bar
-      React.createElement('div', { style: { display: 'flex', overflowX: 'auto' } },
+      // ── Tab bar com toggle de língua
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', overflowX: 'auto' } },
         TABS.map(function(t) {
           var active = tab === t.id;
           return React.createElement('button', {
@@ -26261,7 +26261,11 @@ function RapportApp(props) {
             onClick: function() { setTab(t.id); },
             style: { background: 'none', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : '#475569', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }
           }, t.label);
-        })
+        }),
+        React.createElement('button', {
+          onClick: toggleLang,
+          style: { marginLeft: 'auto', flexShrink: 0, background: '#F59E0B', border: 'none', borderRadius: 14, padding: '4px 12px', cursor: 'pointer', fontWeight: 900, fontSize: 12, color: '#0D1117', whiteSpace: 'nowrap' }
+        }, lang === 'DE' ? '🌐 PT' : '🌐 DE')
       )
     ),
 
