@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-21T04:28:42.775Z
+  Gerado em: 2026-08-21T04:34:52.957Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-179";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-180";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26237,34 +26237,34 @@ function RapportApp(props) {
     { id: 'wochen',  label: L.tab_wochen },
   ];
 
-  return React.createElement('div', { style: rpS.page },
+  return React.createElement('div', { style: { background: T.bg, minHeight: '100vh', color: T.text, fontFamily: "'Inter','Segoe UI',sans-serif", fontSize: 14 } },
     // ── Header
     React.createElement('div', {
-      style: { background: '#0D1117', borderBottom: '1px solid #1E293B', padding: '10px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
+      style: { background: T.surface, borderBottom: '1px solid ' + T.border, padding: '10px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
     },
-      // Linha 1: voltar + título + botão língua
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 } },
-        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: '#64748B', fontSize: 22, cursor: 'pointer', padding: 0, flexShrink: 0 } }, '‹'),
-        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flex: 1 } },
+      // Linha 1: voltar + título + botão língua (absolute)
+      React.createElement('div', { style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, paddingRight: 70 } },
+        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer', padding: 0, flexShrink: 0 } }, '‹'),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
           React.createElement('div', { style: { width: 28, height: 28, borderRadius: 7, background: '#F59E0B22', border: '1px solid #F59E0B44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 } }, '📋'),
           React.createElement('div', null,
-            React.createElement('div', { style: { fontWeight: 800, fontSize: 14 } }, 'Arnold Rapport'),
-            React.createElement('div', { style: { fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 14, color: T.text } }, 'Arnold Rapport'),
+            React.createElement('div', { style: { fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
           )
         ),
         React.createElement('button', {
           onClick: toggleLang,
-          style: { flexShrink: 0, background: '#F59E0B', border: 'none', borderRadius: 14, padding: '5px 14px', cursor: 'pointer', fontWeight: 900, fontSize: 13, color: '#0D1117' }
+          style: { position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: '#F59E0B', border: 'none', borderRadius: 14, padding: '5px 12px', cursor: 'pointer', fontWeight: 900, fontSize: 12, color: '#0D1117', whiteSpace: 'nowrap' }
         }, lang === 'DE' ? '🌐 PT' : '🌐 DE')
       ),
       // Linha 2: tabs centrados
-      React.createElement('div', { style: { display: 'flex', justifyContent: 'center' } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'center', borderTop: '1px solid ' + T.border } },
         TABS.map(function(t) {
           var active = tab === t.id;
           return React.createElement('button', {
             key: t.id,
             onClick: function() { setTab(t.id); },
-            style: { background: 'none', border: 'none', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), padding: '8px 12px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : '#475569', cursor: 'pointer', whiteSpace: 'nowrap' }
+            style: { background: 'none', border: 'none', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), padding: '8px 12px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : T.muted, cursor: 'pointer', whiteSpace: 'nowrap' }
           }, t.label);
         })
       )
