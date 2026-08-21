@@ -3713,8 +3713,6 @@ function EscolarApp(_ref31) {
           created_by: aluno.nome
         }).then(function () {}).catch(function () {});
       }
-      if (tituloEl) tituloEl.value = '';
-      if (dataEl) dataEl.value = '';
       setNovaTPC({
         discId: ((_aluno$disciplinas$ = aluno.disciplinas[0]) === null || _aluno$disciplinas$ === void 0 ? void 0 : _aluno$disciplinas$.id) || 1,
         titulo: '',
