@@ -706,6 +706,10 @@ function EscolarApp(_ref31) {
     _useStateEditTpcTitulo2 = _slicedToArray(_useStateEditTpcTitulo, 2),
     editTpcTitulo = _useStateEditTpcTitulo2[0],
     setEditTpcTitulo = _useStateEditTpcTitulo2[1];
+  var _useStateEditTpcData = (0, _react.useState)(''),
+    _useStateEditTpcData2 = _slicedToArray(_useStateEditTpcData, 2),
+    editTpcData = _useStateEditTpcData2[0],
+    setEditTpcData = _useStateEditTpcData2[1];
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -3631,7 +3635,13 @@ function EscolarApp(_ref31) {
     }
   }, "Para quando"), /*#__PURE__*/React.createElement("input", {
     type: "date",
-    defaultValue: novaTPC.data,
+    value: novaTPC.data || '',
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovaTPC(function (prev) {
+        return _objectSpread(_objectSpread({}, prev), {}, { data: val });
+      });
+    },
     id: "novatpc-data",
     style: {
       width: '100%',
@@ -3668,9 +3678,8 @@ function EscolarApp(_ref31) {
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       var _aluno$disciplinas$;
-      var dataEl = document.getElementById('novatpc-data');
       var titulo = (novaTPC.titulo || '').trim();
-      var data = dataEl ? dataEl.value : '';
+      var data = novaTPC.data || '';
       if (!titulo || !data) return;
       var novoId = Date.now();
       var tpcRow = _objectSpread(_objectSpread({}, novaTPC), {}, {
@@ -3728,6 +3737,8 @@ function EscolarApp(_ref31) {
     }
   }, "\u2713 Guardar"))), aluno.tpc.filter(function (t) {
     return !t.feito;
+  }).sort(function (a, b) {
+    return (a.data || '').localeCompare(b.data || '');
   }).map(function (t) {
     var d = getDisc(t.discId);
     var overdue = t.data && t.data < '2026-06-15';
@@ -3797,6 +3808,7 @@ function EscolarApp(_ref31) {
     }, "Feito \u2713"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setEditTpcTitulo(isEdTpc ? '' : t.titulo);
+        setEditTpcData(isEdTpc ? '' : t.data);
         return setEditTpcId(isEdTpc ? null : t.id);
       },
       style: {
@@ -3942,7 +3954,10 @@ function EscolarApp(_ref31) {
       }
     }, "Para quando"), /*#__PURE__*/React.createElement("input", {
       type: "date",
-      defaultValue: t.data,
+      value: editTpcData || '',
+      onChange: function onChange(e) {
+        setEditTpcData(e.target.value);
+      },
       id: "tpc-data-".concat(t.id),
       style: {
         width: '100%',
@@ -3961,7 +3976,7 @@ function EscolarApp(_ref31) {
         var _document$getElementBT, _document$getElementBT2, _document$getElementBT3;
         var discId = parseInt(((_document$getElementBT = document.getElementById("tpc-disc-".concat(t.id))) === null || _document$getElementBT === void 0 ? void 0 : _document$getElementBT.value) || t.discId);
         var titulo = editTpcTitulo || t.titulo;
-        var data = ((_document$getElementBT3 = document.getElementById("tpc-data-".concat(t.id))) === null || _document$getElementBT3 === void 0 ? void 0 : _document$getElementBT3.value) || t.data;
+        var data = editTpcData || t.data;
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.map(function (x) {
