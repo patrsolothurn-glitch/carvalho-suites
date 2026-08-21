@@ -3729,6 +3729,8 @@ function EscolarApp(_ref31) {
     }
   }, "\u2713 Guardar"))), aluno.tpc.filter(function (t) {
     return !t.feito;
+  }).sort(function (a, b) {
+    return (a.data || '').localeCompare(b.data || '');
   }).map(function (t) {
     var d = getDisc(t.discId);
     var overdue = t.data && t.data < '2026-06-15';
