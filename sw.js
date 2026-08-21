@@ -1,6 +1,6 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
 // Versão sem cache — carrega sempre da rede para evitar versões antigas
-const CACHE = 'carvalho-v7be5c048';
+const CACHE = 'carvalho-v5a8607cb';
 
 self.addEventListener('install', e => {
   self.skipWaiting(); // Ativa imediatamente
