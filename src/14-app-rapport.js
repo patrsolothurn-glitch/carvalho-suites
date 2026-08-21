@@ -1038,18 +1038,6 @@ function RapportApp(props) {
       )
     ),
 
-    // ── Barra de língua (sempre visível em cima do conteúdo)
-    React.createElement('div', { style: { display: 'flex', justifyContent: 'center', padding: '8px 16px', borderBottom: '1px solid #1E293B', background: '#0D1117' } },
-      React.createElement('button', {
-        onClick: toggleLang,
-        style: { background: lang === 'DE' ? '#F59E0B' : '#1E293B', border: '2px solid #F59E0B', borderRadius: 20, padding: '6px 20px', cursor: 'pointer', fontWeight: 900, fontSize: 13, color: lang === 'DE' ? '#0D1117' : '#F59E0B', marginRight: 4 }
-      }, '🇩🇪 DE'),
-      React.createElement('button', {
-        onClick: toggleLang,
-        style: { background: lang === 'PT' ? '#F59E0B' : '#1E293B', border: '2px solid #F59E0B', borderRadius: 20, padding: '6px 20px', cursor: 'pointer', fontWeight: 900, fontSize: 13, color: lang === 'PT' ? '#0D1117' : '#F59E0B' }
-      }, '🇵🇹 PT')
-    ),
-
     // ── Content
     tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId, lang: lang }),
     tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId, lang: lang }),
