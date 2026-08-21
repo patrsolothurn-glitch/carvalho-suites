@@ -3689,20 +3689,6 @@ function EscolarApp(_ref31) {
           return d.id === tpcRow.discId;
         });
         var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (titulo ? ' — ' + titulo : '');
-        window.supabaseClient.from('agenda_pro_jobs').insert({
-          job_date: data,
-          start_time: null,
-          end_time: null,
-          project: tituloTeste,
-          address: null,
-          monteur: aluno.nome,
-          chf: 0,
-          status: 'aberto',
-          note: 'Criado automaticamente pela Vida Escolar',
-          source: 'escolar',
-          source_id: novoId,
-          categoria: 'escola'
-        }).then(function () {}).catch(function () {});
         window.supabaseClient.from('family_events').insert({
           title: tituloTeste,
           emoji: '📚',
