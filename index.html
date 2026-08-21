@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-21T05:18:56.103Z
+  Gerado em: 2026-08-21T05:20:17.961Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-183";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-184";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26082,6 +26082,7 @@ function RpWochenView(props) {
   var _fSaving = React.useState(false);              var fSaving = _fSaving[0], setFSaving = _fSaving[1];
   var _kwTages = React.useState([]);                 var kwTages = _kwTages[0], setKwTages = _kwTages[1];
   var _expDay  = React.useState(null);               var expDay  = _expDay[0],  setExpDay  = _expDay[1];
+  var _inclDays = React.useState({});                var inclDays = _inclDays[0], setInclDays = _inclDays[1];
 
   function load() {
     if (!db) return;
@@ -26099,6 +26100,10 @@ function RpWochenView(props) {
       .then(function(r) {
         var items = r.data || [];
         setKwTages(items);
+        // Inicializa todos como incluídos
+        var inc = {};
+        items.forEach(function(i) { inc[i.id] = true; });
+        setInclDays(inc);
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
         var totalKm = items.reduce(function(s, i) { return s + (i.km || 0); }, 0);
         var arbeitList = items.map(function(i) { return i.arbeit; }).filter(Boolean).join('\n\n');
@@ -26204,30 +26209,51 @@ function RpWochenView(props) {
 
         // ── Tagesrapporte desta KW (só leitura, expansíveis)
         kwTages.length > 0 && React.createElement('div', { style: { marginBottom: 14 } },
-          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.5px', marginBottom: 8 } },
-            '📄 ' + (props.lang === 'PT' ? 'Relatórios desta KW' : 'Tagesrapporte dieser KW') + ' (' + kwTages.length + ')'
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.5px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+            React.createElement('span', null, '📄 ' + (props.lang === 'PT' ? 'Relatórios desta KW' : 'Tagesrapporte dieser KW') + ' (' + kwTages.length + ')'),
+            React.createElement('span', { style: { fontSize: 10, color: '#64748B' } }, props.lang === 'PT' ? 'toca ✓ para incluir/excluir' : 'tippen zum ein-/ausschliessen')
           ),
           kwTages.map(function(tr) {
             var isOpen = expDay === tr.id;
+            var included = inclDays[tr.id] !== false;
             var h = rpStunden(tr.h_start, tr.h_end);
             var wday = new Date(tr.datum + 'T12:00:00');
             return React.createElement('div', {
               key: tr.id,
-              style: { background: '#111827', border: '1px solid #1E293B', borderRadius: 10, marginBottom: 6, overflow: 'hidden' }
+              style: { background: included ? '#111827' : '#0a0a14', border: '1px solid ' + (included ? '#1E293B' : '#0f1629'), borderRadius: 10, marginBottom: 6, overflow: 'hidden', opacity: included ? 1 : 0.5 }
             },
               React.createElement('div', {
-                onClick: function() { setExpDay(isOpen ? null : tr.id); },
-                style: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }
+                style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }
               },
-                React.createElement('div', { style: { width: 36, height: 36, borderRadius: 8, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
-                  React.createElement('span', { style: { fontSize: 9, color: '#64748B' } }, wday.toLocaleDateString('de-CH', { weekday: 'short' }).toUpperCase()),
-                  React.createElement('span', { style: { fontSize: 15, fontWeight: 800, color: '#E2E8F0' } }, wday.getDate())
-                ),
-                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                  React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, tr.baustelle || '—'),
-                  React.createElement('div', { style: { fontSize: 11, color: '#64748B' } }, (tr.h_start || '—') + '–' + (tr.h_end || '—') + ' · ' + h.toFixed(1) + 'h' + (tr.km > 0 ? ' · ' + tr.km + ' km' : ''))
-                ),
-                React.createElement('span', { style: { color: '#475569', fontSize: 14, marginLeft: 4 } }, isOpen ? '▲' : '▼')
+                // Toggle checkbox
+                React.createElement('button', {
+                  onClick: function() {
+                    var newInc = Object.assign({}, inclDays);
+                    newInc[tr.id] = !included;
+                    setInclDays(newInc);
+                    // Recalculate totals
+                    var selH = 0, selKm = 0;
+                    kwTages.forEach(function(t) { if (newInc[t.id] !== false) { selH += rpStunden(t.h_start, t.h_end); selKm += (t.km || 0); } });
+                    setFStd(selH > 0 ? selH.toFixed(1) : '');
+                    setFKm(selKm > 0 ? String(selKm) : '');
+                  },
+                  style: { background: included ? '#22c55e22' : '#1E293B', border: '1px solid ' + (included ? '#22c55e' : '#334155'), borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: 14, color: included ? '#22c55e' : '#475569' }
+                }, included ? '✓' : '○'),
+                // Day info (tap to expand)
+                React.createElement('div', {
+                  onClick: function() { setExpDay(isOpen ? null : tr.id); },
+                  style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }
+                },
+                  React.createElement('div', { style: { width: 36, height: 36, borderRadius: 8, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                    React.createElement('span', { style: { fontSize: 9, color: '#64748B' } }, wday.toLocaleDateString('de-CH', { weekday: 'short' }).toUpperCase()),
+                    React.createElement('span', { style: { fontSize: 15, fontWeight: 800, color: '#E2E8F0' } }, wday.getDate())
+                  ),
+                  React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, tr.baustelle || '—'),
+                    React.createElement('div', { style: { fontSize: 11, color: '#64748B' } }, h.toFixed(1) + 'h' + (tr.km > 0 ? ' · ' + tr.km + ' km' : ''))
+                  ),
+                  React.createElement('span', { style: { color: '#475569', fontSize: 14 } }, isOpen ? '▲' : '▼')
+                )
               ),
               isOpen && React.createElement('div', { style: { padding: '8px 12px 12px', borderTop: '1px solid #1E293B' } },
                 tr.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
