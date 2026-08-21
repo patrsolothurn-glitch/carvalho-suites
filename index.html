@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-21T05:02:54.697Z
+  Gerado em: 2026-08-21T05:18:56.103Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-182";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-183";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26080,6 +26080,8 @@ function RpWochenView(props) {
   var _fBem = React.useState('');                    var fBem = _fBem[0], setFBem = _fBem[1];
   var _fStatus = React.useState('draft');            var fStatus = _fStatus[0], setFStatus = _fStatus[1];
   var _fSaving = React.useState(false);              var fSaving = _fSaving[0], setFSaving = _fSaving[1];
+  var _kwTages = React.useState([]);                 var kwTages = _kwTages[0], setKwTages = _kwTages[1];
+  var _expDay  = React.useState(null);               var expDay  = _expDay[0],  setExpDay  = _expDay[1];
 
   function load() {
     if (!db) return;
@@ -26090,13 +26092,13 @@ function RpWochenView(props) {
   React.useEffect(load, []);
 
   function autoFill(kw, jahr) {
-    // load tagesrapporte for that KW and compute totals
     if (!db) return;
     var monday = rpMondayOfKW(parseInt(kw), parseInt(jahr));
     var friday = rpShiftWeek(monday, 1);
-    db.from('rapport_tages').select('h_start,h_end,km,arbeit').eq('user_id', userId).gte('datum', monday).lt('datum', friday)
+    db.from('rapport_tages').select('*').eq('user_id', userId).gte('datum', monday).lt('datum', friday).order('datum', { ascending: true })
       .then(function(r) {
         var items = r.data || [];
+        setKwTages(items);
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
         var totalKm = items.reduce(function(s, i) { return s + (i.km || 0); }, 0);
         var arbeitList = items.map(function(i) { return i.arbeit; }).filter(Boolean).join('\n\n');
@@ -26199,7 +26201,58 @@ function RpWochenView(props) {
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
         React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, L.w_hint),
-        RpField({ label: L.w_sum, children: RpTextarea({ value: fZus, onChange: setFZus, rows: 5, placeholder: 'Was wurde diese Woche gemacht?' }) }),
+
+        // ── Tagesrapporte desta KW (só leitura, expansíveis)
+        kwTages.length > 0 && React.createElement('div', { style: { marginBottom: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.5px', marginBottom: 8 } },
+            '📄 ' + (props.lang === 'PT' ? 'Relatórios desta KW' : 'Tagesrapporte dieser KW') + ' (' + kwTages.length + ')'
+          ),
+          kwTages.map(function(tr) {
+            var isOpen = expDay === tr.id;
+            var h = rpStunden(tr.h_start, tr.h_end);
+            var wday = new Date(tr.datum + 'T12:00:00');
+            return React.createElement('div', {
+              key: tr.id,
+              style: { background: '#111827', border: '1px solid #1E293B', borderRadius: 10, marginBottom: 6, overflow: 'hidden' }
+            },
+              React.createElement('div', {
+                onClick: function() { setExpDay(isOpen ? null : tr.id); },
+                style: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer' }
+              },
+                React.createElement('div', { style: { width: 36, height: 36, borderRadius: 8, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                  React.createElement('span', { style: { fontSize: 9, color: '#64748B' } }, wday.toLocaleDateString('de-CH', { weekday: 'short' }).toUpperCase()),
+                  React.createElement('span', { style: { fontSize: 15, fontWeight: 800, color: '#E2E8F0' } }, wday.getDate())
+                ),
+                React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                  React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, tr.baustelle || '—'),
+                  React.createElement('div', { style: { fontSize: 11, color: '#64748B' } }, (tr.h_start || '—') + '–' + (tr.h_end || '—') + ' · ' + h.toFixed(1) + 'h' + (tr.km > 0 ? ' · ' + tr.km + ' km' : ''))
+                ),
+                React.createElement('span', { style: { color: '#475569', fontSize: 14, marginLeft: 4 } }, isOpen ? '▲' : '▼')
+              ),
+              isOpen && React.createElement('div', { style: { padding: '8px 12px 12px', borderTop: '1px solid #1E293B' } },
+                tr.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
+                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, props.lang === 'PT' ? 'TRABALHOS' : 'ARBEITEN'),
+                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', lineHeight: 1.6 } }, tr.arbeit)
+                ),
+                tr.material && React.createElement('div', { style: { marginBottom: 8 } },
+                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, 'MATERIAL'),
+                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, tr.material)
+                ),
+                (tr.anzahl_beps > 0 || tr.anzahl_muffe > 0 || tr.otdr_ok || tr.otdr_nok) && React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 } },
+                  tr.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, background: '#3B82F622', color: '#3B82F6', borderRadius: 6, padding: '2px 8px' } }, '🔌 ' + tr.anzahl_beps + ' BEP' + (tr.bep_typ ? ' ' + tr.bep_typ : '')),
+                  tr.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, background: '#a78bfa22', color: '#a78bfa', borderRadius: 6, padding: '2px 8px' } }, '🔩 ' + tr.anzahl_muffe + ' Muffe' + (tr.muffe_typ ? ' ' + tr.muffe_typ : '')),
+                  tr.otdr_ok && React.createElement('span', { style: { fontSize: 11, background: '#22c55e22', color: '#22c55e', borderRadius: 6, padding: '2px 8px' } }, '📡 OTDR ✓'),
+                  tr.otdr_nok && React.createElement('span', { style: { fontSize: 11, background: '#ef444422', color: '#ef4444', borderRadius: 6, padding: '2px 8px' } }, '⚠️ OTDR N.OK')
+                ),
+                tr.probleme && React.createElement('div', { style: { borderLeft: '3px solid #F59E0B', paddingLeft: 8 } },
+                  React.createElement('div', { style: { fontSize: 12, color: '#94A3B8' } }, tr.probleme)
+                )
+              )
+            );
+          })
+        ),
+
+        RpField({ label: L.w_sum, children: RpTextarea({ value: fZus, onChange: setFZus, rows: 4, placeholder: 'Was wurde diese Woche gemacht?' }) }),
         RpField({ label: L.w_open, children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
         RpField({ label: L.w_rem, children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
         RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
