@@ -1977,7 +1977,11 @@ function CarvalhoSuite() {
         key: app.id,
         style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: T.surface2, borderRadius: 10 }
       },
-        React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
+        app.id === 'rapport'
+          ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+              React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+              React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
+          : React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
         React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } },
           app.name,
           !app.active && React.createElement("span", { style: { color: T.muted, fontSize: 11, fontWeight: 600, marginLeft: 6 } }, "(em breve)")
@@ -2496,11 +2500,12 @@ function CarvalhoSuite() {
           borderRadius: 10,
           cursor: 'pointer'
         }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 16
-        }
-      }, app.emoji), /*#__PURE__*/React.createElement("span", {
+      }, app.id === 'rapport'
+        ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
+        : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
+      , /*#__PURE__*/React.createElement("span", {
         style: {
           flex: 1,
           fontSize: 13,
@@ -2643,11 +2648,12 @@ function CarvalhoSuite() {
           background: T.surface2,
           borderRadius: 10
         }
-      }, /*#__PURE__*/React.createElement("span", {
-        style: {
-          fontSize: 16
-        }
-      }, app.emoji), /*#__PURE__*/React.createElement("span", {
+      }, app.id === 'rapport'
+        ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
+        : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
+      , /*#__PURE__*/React.createElement("span", {
         style: {
           flex: 1,
           fontSize: 13,
@@ -3224,11 +3230,12 @@ function CarvalhoSuite() {
         justifyContent: 'center',
         flexShrink: 0
       }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 22
-      }
-    }, app.emoji)), /*#__PURE__*/React.createElement("div", {
+    }, app.id === 'rapport'
+      ? React.createElement('svg', { width: 28, height: 28, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+          React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+          React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
+      : /*#__PURE__*/React.createElement("span", { style: { fontSize: 22 } }, app.emoji)
+    ), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,
         minWidth: 0
