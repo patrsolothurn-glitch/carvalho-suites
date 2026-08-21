@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-21T05:20:17.961Z
+  Gerado em: 2026-08-21T07:31:02.708Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-184";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-168";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25264,53 +25264,6 @@ var RP_WETTER_OPTS = [
 
 var RP_KANTONE = ['SO','BE','AG','ZH','BS','BL','FR','LU','JU','VS','TG','SH','GR','GL','SG','AR','AI','NE','GE','VD','TI'];
 
-var RP_L = {
-  DE: {
-    tab_plan:'📋 Planung', tab_tages:'📄 Tagesrapport', tab_wochen:'📊 Wochenbericht',
-    save:'Speichern', cancel:'Abbrechen', today:'HEUTE', status:'Status', note:'Notiz',
-    date:'Datum', site:'Baustelle / Ort', canton:'Kanton', from:'Von', to:'Bis', team:'Team',
-    p_new:'Neuer Auftrag', p_edit:'Auftrag bearbeiten', p_type:'Arbeitstyp',
-    p_empty:'Nix geplant', p_jobs:'Aufträge', p_done:'fertig',
-    t_new:'Neuer Tagesrapport', t_edit:'Rapport bearbeiten', t_btn:'+ Neuer Tagesrapport',
-    t_count:'Rapporte', t_weather:'Wetter', t_work:'Ausgeführte Arbeiten',
-    t_mat:'Material Verwendet', t_prob:'Probleme / Bemerkungen',
-    t_draft:'📝 Entwurf', t_sub:'✅ Abgegeben', t_submit:'✓ Abgeben', t_todraft:'↺ Entwurf',
-    bep_title:'🔌 BEP Spezifisch', bep_anz:'Anzahl BEPs', bep_typ:'BEP Typ',
-    bep_godoo:'Godoo-Nr', bep_zust:'Zuständig (Godoo)',
-    bep_gag:'GAG Messung', bep_swiss:'Swisscom Messung', bep_foto:'📷 Fotos gemacht',
-    m_title:'🔩 Muffe Spezifisch', m_anz:'Anzahl Muffes', m_typ:'Muffe Typ',
-    m_fasern:'Fasern gespleisst', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
-    w_new:'Neuer Wochenbericht', w_edit:'Wochenbericht bearbeiten',
-    w_btn:'+ Neuer Wochenbericht', w_count:'Wochenberichte',
-    w_year:'Jahr', w_std:'Total Std.', w_km:'Total KM',
-    w_hint:'💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.',
-    w_sum:'Zusammenfassung der Woche', w_open:'Offene Arbeiten', w_rem:'Bemerkungen',
-    none_t:'Noch keine Tagesrapporte.', none_w:'Noch keine Wochenberichte.',
-  },
-  PT: {
-    tab_plan:'📋 Planeamento', tab_tages:'📄 Diário', tab_wochen:'📊 Semanal',
-    save:'Guardar', cancel:'Cancelar', today:'HOJE', status:'Estado', note:'Nota',
-    date:'Data', site:'Obra / Local', canton:'Cantão', from:'De', to:'Até', team:'Equipa',
-    p_new:'Novo Serviço', p_edit:'Editar Serviço', p_type:'Tipo de Trabalho',
-    p_empty:'Nada planeado', p_jobs:'Serviços', p_done:'feitos',
-    t_new:'Novo Relatório Diário', t_edit:'Editar Relatório', t_btn:'+ Novo Relatório',
-    t_count:'Relatórios', t_weather:'Tempo', t_work:'Trabalhos Realizados',
-    t_mat:'Material Utilizado', t_prob:'Problemas / Observações',
-    t_draft:'📝 Rascunho', t_sub:'✅ Entregue', t_submit:'✓ Entregar', t_todraft:'↺ Rascunho',
-    bep_title:'🔌 BEP Específico', bep_anz:'Nº BEPs', bep_typ:'Tipo BEP',
-    bep_godoo:'Nº Godoo', bep_zust:'Responsável (Godoo)',
-    bep_gag:'Medição GAG', bep_swiss:'Medição Swisscom', bep_foto:'📷 Fotos tiradas',
-    m_title:'🔩 Muffe Específico', m_anz:'Nº Muffes', m_typ:'Tipo Muffe',
-    m_fasern:'Fibras Spleissadas', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
-    w_new:'Novo Rel. Semanal', w_edit:'Editar Rel. Semanal',
-    w_btn:'+ Novo Rel. Semanal', w_count:'Relatórios Semanais',
-    w_year:'Ano', w_std:'Total Horas', w_km:'Total KM',
-    w_hint:'💡 Horas e KM calculadas automaticamente dos relatórios diários desta KW.',
-    w_sum:'Resumo da Semana', w_open:'Trabalhos Pendentes', w_rem:'Observações',
-    none_t:'Sem relatórios diários.', none_w:'Sem relatórios semanais.',
-  }
-};
-
 // ── utility ────────────────────────────────────────────────────────
 function rpToday() { return new Date().toISOString().slice(0, 10); }
 
@@ -25465,7 +25418,6 @@ function RpConfirm(props) {
 // ════════════════════════════════════════════════════════════════════
 function RpPlanungView(props) {
   var userId = props.userId;
-  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stMonday = React.useState(rpMondayOf(rpToday()));
@@ -25495,8 +25447,6 @@ function RpPlanungView(props) {
   var fKanton = _fKanton[0], setFKanton = _fKanton[1];
   var _fTask = React.useState('muffe');
   var fTask = _fTask[0], setFTask = _fTask[1];
-  var _fTaskCustom = React.useState('');
-  var fTaskCustom = _fTaskCustom[0], setFTaskCustom = _fTaskCustom[1];
   var _fHS = React.useState('07:00');
   var fHS = _fHS[0], setFHS = _fHS[1];
   var _fHE = React.useState('17:00');
@@ -25537,7 +25487,7 @@ function RpPlanungView(props) {
 
   function openNew(date) {
     setFDate(date || rpToday());
-    setFBau(''); setFKanton('SO'); setFTask('muffe'); setFTaskCustom('');
+    setFBau(''); setFKanton('SO'); setFTask('muffe');
     setFHS('07:00'); setFHE('17:00'); setFTeam('');
     setFKm(''); setFStatus('planned'); setFNotiz('');
     setForm('new');
@@ -25545,9 +25495,7 @@ function RpPlanungView(props) {
 
   function openEdit(job) {
     setFDate(job.datum); setFBau(job.baustelle); setFKanton(job.kanton || 'SO');
-    setFTask(RP_TASKS[job.task_type] ? job.task_type : 'andere');
-    setFTaskCustom(RP_TASKS[job.task_type] ? '' : (job.task_type || ''));
-    setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
+    setFTask(job.task_type || 'muffe'); setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
     setFTeam(job.team || ''); setFKm(String(job.km || '')); setFStatus(job.status || 'planned');
     setFNotiz(job.notiz || '');
     setForm(job);
@@ -25561,7 +25509,7 @@ function RpPlanungView(props) {
       datum: fDate,
       baustelle: fBau.trim(),
       kanton: fKanton,
-      task_type: fTask === 'andere' && fTaskCustom.trim() ? fTaskCustom.trim() : fTask,
+      task_type: fTask,
       h_start: fHS,
       h_end: fHE,
       team: fTeam.trim(),
@@ -25611,7 +25559,7 @@ function RpPlanungView(props) {
       ),
       // stats row
       React.createElement('div', { style: { display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10 } },
-        React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📋 ' + jobs.length + ' ' + L.p_jobs),
+        React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📋 ' + jobs.length + ' Aufträge'),
         React.createElement('span', { style: { fontSize: 11, color: '#10B981' } }, '✓ ' + doneCount + ' fertig'),
         React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ~' + totalKm + ' km')
       )
@@ -25634,7 +25582,7 @@ function RpPlanungView(props) {
               React.createElement('span', { style: { fontSize: 17, fontWeight: 800, lineHeight: 1.1 } }, day.num)
             ),
             React.createElement('div', { style: { flex: 1, height: 1, background: isToday ? '#F59E0B33' : '#1E293B' } }),
-            isToday && React.createElement('span', { style: { fontSize: 10, color: '#F59E0B', fontWeight: 700, letterSpacing: '0.5px' } }, L.today),
+            isToday && React.createElement('span', { style: { fontSize: 10, color: '#F59E0B', fontWeight: 700, letterSpacing: '0.5px' } }, 'HEUTE'),
             React.createElement('button', {
               onClick: function() { openNew(day.date); },
               style: { background: '#1E293B', border: '1px solid #263347', borderRadius: 8, width: 28, height: 28, color: '#94A3B8', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
@@ -25643,7 +25591,7 @@ function RpPlanungView(props) {
 
           // Job cards
           React.createElement('div', { style: { paddingLeft: 52, display: 'flex', flexDirection: 'column', gap: 6 } },
-            dayJobs.length === 0 && React.createElement('div', { style: { fontSize: 12, color: '#334155', padding: '6px 0' } }, L.p_empty),
+            dayJobs.length === 0 && React.createElement('div', { style: { fontSize: 12, color: '#334155', padding: '6px 0' } }, 'Nix geplant'),
             dayJobs.map(function(job) {
               var t = RP_TASKS[job.task_type] || RP_TASKS.andere;
               var s = RP_STATUS_MAP[job.status] || RP_STATUS_MAP.planned;
@@ -25689,21 +25637,20 @@ function RpPlanungView(props) {
       title: form === 'new' ? 'Neuer Auftrag' : 'Auftrag bearbeiten',
       onClose: function() { setForm(null); },
       children: React.createElement('div', null,
-        RpField({ label: L.date, children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
-        RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: fTask === 'andere' ? 6 : 12 } },
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: L.p_type }), RpSelect({ value: fTask, onChange: function(v) { setFTask(v); if (v !== 'andere') setFTaskCustom(''); }, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: L.canton }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
+        RpField({ label: 'Datum', children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
+        RpField({ label: 'Baustelle / Ort', children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Arbeitstyp' }), RpSelect({ value: fTask, onChange: setFTask, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
         ),
-        fTask === 'andere' && RpField({ label: '🔧 Welche Arbeit?', children: RpInput({ value: fTaskCustom, onChange: setFTaskCustom, placeholder: 'z.B. Schachtdeckel, Tiefbau...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm, placeholder: '0' }))
         ),
-        RpField({ label: L.team, children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
-        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: Object.keys(RP_STATUS_MAP).map(function(k) { return { value: k, label: RP_STATUS_MAP[k].label }; }) }) }),
-        RpField({ label: L.note, children: RpTextarea({ value: fNotiz, onChange: setFNotiz, placeholder: 'Bemerkungen, Material, Details...' }) }),
+        RpField({ label: 'Team / Equipa', children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
+        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: Object.keys(RP_STATUS_MAP).map(function(k) { return { value: k, label: RP_STATUS_MAP[k].label }; }) }) }),
+        RpField({ label: 'Notiz', children: RpTextarea({ value: fNotiz, onChange: setFNotiz, placeholder: 'Bemerkungen, Material, Details...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4 } },
           RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
           RpBtn({ label: fSaving ? '...' : (form === 'new' ? 'Speichern' : 'Aktualisieren'), onClick: saveJob })
@@ -25726,7 +25673,6 @@ function RpPlanungView(props) {
 // ════════════════════════════════════════════════════════════════════
 function RpTagesView(props) {
   var userId = props.userId;
-  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stList = React.useState([]);
@@ -25754,21 +25700,6 @@ function RpTagesView(props) {
   var _fProb = React.useState('');          var fProb = _fProb[0], setFProb = _fProb[1];
   var _fStatus = React.useState('draft');   var fStatus = _fStatus[0], setFStatus = _fStatus[1];
   var _fSaving = React.useState(false);     var fSaving = _fSaving[0], setFSaving = _fSaving[1];
-  // BEP-spezifisch
-  var _fBepAnz = React.useState('');        var fBepAnz = _fBepAnz[0], setFBepAnz = _fBepAnz[1];
-  var _fBepTyp = React.useState('');        var fBepTyp = _fBepTyp[0], setFBepTyp = _fBepTyp[1];
-  var _fGodoo  = React.useState('');        var fGodoo  = _fGodoo[0],  setFGodoo  = _fGodoo[1];
-  var _fZust   = React.useState('');        var fZust   = _fZust[0],   setFZust   = _fZust[1];
-  var _fGAG    = React.useState('');        var fGAG    = _fGAG[0],    setFGAG    = _fGAG[1];
-  var _fSwiss  = React.useState('');        var fSwiss  = _fSwiss[0],  setFSwiss  = _fSwiss[1];
-  var _fFotos  = React.useState(false);     var fFotos  = _fFotos[0],  setFFotos  = _fFotos[1];
-  // Muffe-spezifisch
-  var _fMufAnz  = React.useState('');       var fMufAnz  = _fMufAnz[0],  setFMufAnz  = _fMufAnz[1];
-  var _fMufTyp  = React.useState('');       var fMufTyp  = _fMufTyp[0],  setFMufTyp  = _fMufTyp[1];
-  var _fFasern  = React.useState('');       var fFasern  = _fFasern[0],  setFFasern  = _fFasern[1];
-  var _fOTDR    = React.useState(false);    var fOTDR    = _fOTDR[0],    setFOTDR    = _fOTDR[1];
-  var _fOTDRnok = React.useState(false);    var fOTDRnok = _fOTDRnok[0], setFOTDRnok = _fOTDRnok[1];
-  var _fMufFoto = React.useState(false);    var fMufFoto = _fMufFoto[0], setFMufFoto = _fMufFoto[1];
 
   function load() {
     if (!db) return;
@@ -25782,8 +25713,6 @@ function RpTagesView(props) {
     setFDate(rpToday()); setFBau(''); setFKant('SO'); setFWet('sonnig');
     setFHS('07:00'); setFHE('17:00'); setFTeam(''); setFArbeit('');
     setFMat(''); setFKm(''); setFProb(''); setFStatus('draft');
-    setFBepAnz(''); setFBepTyp(''); setFGodoo(''); setFZust(''); setFGAG(''); setFSwiss(''); setFFotos(false);
-    setFMufAnz(''); setFMufTyp(''); setFFasern(''); setFOTDR(false); setFOTDRnok(false); setFMufFoto(false);
     setForm('new');
   }
   function openEdit(item) {
@@ -25791,21 +25720,13 @@ function RpTagesView(props) {
     setFWet(item.wetter || 'sonnig'); setFHS(item.h_start || '07:00'); setFHE(item.h_end || '17:00');
     setFTeam(item.team || ''); setFArbeit(item.arbeit || ''); setFMat(item.material || '');
     setFKm(String(item.km || '')); setFProb(item.probleme || ''); setFStatus(item.status || 'draft');
-    setFBepAnz(item.anzahl_beps > 0 ? String(item.anzahl_beps) : '');
-    setFBepTyp(item.bep_typ || '');
-    setFGodoo(item.godoo_nr || ''); setFZust(item.zustaendig || '');
-    setFGAG(item.messung_gag || ''); setFSwiss(item.messung_swisscom || '');
-    setFFotos(item.fotos_ok || false);
-    setFMufAnz(item.anzahl_muffe > 0 ? String(item.anzahl_muffe) : '');
-    setFMufTyp(item.muffe_typ || ''); setFFasern(item.fasern_gespleisst > 0 ? String(item.fasern_gespleisst) : '');
-    setFOTDR(item.otdr_ok || false); setFOTDRnok(item.otdr_nok || false); setFMufFoto(item.muffe_fotos || false);
     setViewItem(null); setForm(item);
   }
   function save() {
     if (!fBau.trim()) return;
     setFSaving(true);
     var h = rpStunden(fHS, fHE);
-    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, bep_typ: fBepTyp.trim(), godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos, anzahl_muffe: parseInt(fMufAnz) || 0, muffe_typ: fMufTyp.trim(), fasern_gespleisst: parseInt(fFasern) || 0, otdr_ok: fOTDR, otdr_nok: fOTDRnok, muffe_fotos: fMufFoto };
+    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus };
     var op = form === 'new' ? db.from('rapport_tages').insert(payload) : db.from('rapport_tages').update(payload).eq('id', form.id);
     op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
   }
@@ -25817,13 +25738,13 @@ function RpTagesView(props) {
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' ' + L.t_count),
-      RpBtn({ label: L.t_btn, onClick: openNew })
+      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' Rapporte'),
+      RpBtn({ label: '+ Neuer Tagesrapport', onClick: openNew })
     ),
 
     loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: '#475569' } }, 'Lade...'),
 
-    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, L.none_t),
+    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, 'Noch keine Tagesrapporte.'),
 
     list.map(function(item) {
       var h = rpStunden(item.h_start, item.h_end);
@@ -25846,13 +25767,7 @@ function RpTagesView(props) {
         React.createElement('div', { style: { display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' } },
           React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🕐 ' + (item.h_start || '—') + '–' + (item.h_end || '—') + ' (' + h.toFixed(1) + ' h)'),
           item.team && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '👷 ' + item.team),
-          item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.km + ' km'),
-          item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, color: '#3B82F6', fontWeight: 700 } }, '🔌 ' + item.anzahl_beps + (item.bep_typ ? ' (' + item.bep_typ + ')' : '') + ' BEP'),
-          item.godoo_nr && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📱 ' + item.godoo_nr),
-          item.fotos_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📷✓'),
-          item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, color: '#a78bfa', fontWeight: 700 } }, '🔩 ' + item.anzahl_muffe + ' Muffe'),
-          item.otdr_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📡✓'),
-          item.otdr_nok && React.createElement('span', { style: { fontSize: 11, color: '#ef4444' } }, '📡✗')
+          item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.km + ' km')
         ),
 
         viewItem && viewItem.id === item.id && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
@@ -25864,38 +25779,13 @@ function RpTagesView(props) {
             React.createElement('div', { style: rpS.label }, 'Material'),
             React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, item.material)
           ),
-          // BEP info
-          (item.anzahl_beps > 0 || item.godoo_nr || item.messung_gag) && React.createElement('div', { style: { background: '#3B82F611', border: '1px solid #3B82F633', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
-            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', letterSpacing: '0.5px', marginBottom: 6 } }, '🔌 BEP'),
-            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
-              item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_beps + ' BEP' + (item.anzahl_beps > 1 ? 's' : '')),
-              item.bep_typ && React.createElement('span', { style: { fontSize: 12, color: '#3B82F6', fontWeight: 700, background: '#3B82F622', padding: '1px 8px', borderRadius: 6 } }, item.bep_typ),
-              item.godoo_nr && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📱 Godoo: ' + item.godoo_nr),
-              item.zustaendig && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '👤 ' + item.zustaendig),
-              item.messung_gag && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'GAG: ' + item.messung_gag),
-              item.messung_swisscom && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Swisscom: ' + item.messung_swisscom),
-              item.fotos_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
-            )
-          ),
-          // ── Muffe
-          (item.anzahl_muffe > 0 || item.otdr_ok) && React.createElement('div', { style: { background: '#a78bfa11', border: '1px solid #a78bfa33', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
-            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', marginBottom: 6 } }, '🔩 MUFFE'),
-            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
-              item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_muffe + ' Muffe'),
-              item.muffe_typ && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Typ: ' + item.muffe_typ),
-              item.fasern_gespleisst > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '✂️ ' + item.fasern_gespleisst + ' Fasern'),
-              item.otdr_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📡 OTDR ✓'),
-              item.otdr_nok && React.createElement('span', { style: { fontSize: 12, color: '#ef4444' } }, '⚠️ OTDR N.OK'),
-              item.muffe_fotos && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
-            )
-          ),
           item.probleme && React.createElement('div', { style: { marginBottom: 8 } },
             React.createElement('div', { style: rpS.label }, 'Probleme / Bemerkungen'),
             React.createElement('div', { style: { fontSize: 12, color: '#FCA5A5', whiteSpace: 'pre-wrap' } }, item.probleme)
           ),
           React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
             RpBtn({ label: '✏️ Bearbeiten', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: item.status === 'draft' ? L.t_submit : L.t_todraft, sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_tages').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
+            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_tages').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
             RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
         )
@@ -25910,134 +25800,21 @@ function RpTagesView(props) {
           React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: setFDate })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Wetter' }), RpSelect({ value: fWet, onChange: setFWet, opts: RP_WETTER_OPTS }))
         ),
-        RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
+        RpField({ label: 'Baustelle / Ort', children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKant, onChange: setFKant, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
-        RpField({ label: L.team, children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
-        RpField({ label: L.t_work, children: RpTextarea({ value: fArbeit, onChange: setFArbeit, placeholder: 'Was wurde gemacht? (Muffe, Splicing, BEP...)' }) }),
+        RpField({ label: 'Team / Equipa', children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
+        RpField({ label: 'Ausgeführte Arbeiten', children: RpTextarea({ value: fArbeit, onChange: setFArbeit, placeholder: 'Was wurde gemacht? (Muffe, Splicing, BEP...)' }) }),
         RpField({ label: 'Material verwendet', children: RpInput({ value: fMat, onChange: setFMat, placeholder: 'z.B. 2× Muffe 6×4, 50m Kabel...' }) }),
-        RpField({ label: L.t_prob, children: RpTextarea({ value: fProb, onChange: setFProb, rows: 2, placeholder: 'Probleme, offene Punkte...' }) }),
-
-        // ── BEP Spezifisch ────────────────────────────
-        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
-          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, L.bep_title),
-
-          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
-            React.createElement('div', { style: { flex: 1 } },
-              RpLabel({ text: 'Anzahl BEPs' }),
-              RpInput({ type: 'number', value: fBepAnz, onChange: setFBepAnz, placeholder: '0' })
-            ),
-            React.createElement('div', { style: { flex: 2 } },
-              RpLabel({ text: 'Godoo-Nr' }),
-              RpInput({ value: fGodoo, onChange: setFGodoo, placeholder: 'z.B. 12345678' })
-            )
-          ),
-
-          // BEP Typ quick-select
-          React.createElement('div', { style: { marginBottom: 10 } },
-            RpLabel({ text: 'BEP Typ' }),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6 } },
-              ['2S', '1S', 'S', 'M'].map(function(t) {
-                var active = fBepTyp === t;
-                return React.createElement('button', {
-                  key: t,
-                  onClick: function() { setFBepTyp(active ? '' : t); },
-                  style: {
-                    flex: 1, padding: '7px 0', borderRadius: 8, border: '2px solid ' + (active ? '#3B82F6' : '#1E293B'),
-                    background: active ? '#3B82F622' : '#0D1117',
-                    color: active ? '#3B82F6' : '#64748B',
-                    fontWeight: 800, fontSize: 14, cursor: 'pointer',
-                  }
-                }, t);
-              })
-            ),
-            RpInput({ value: fBepTyp, onChange: setFBepTyp, placeholder: 'oder eigener Typ…' })
-          ),
-
-          React.createElement('div', { style: { marginBottom: 10 } },
-            RpLabel({ text: 'Zuständig (Godoo)' }),
-            RpInput({ value: fZust, onChange: setFZust, placeholder: 'Name Zuständiger' })
-          ),
-
-          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
-            React.createElement('div', { style: { flex: 1 } },
-              RpLabel({ text: 'GAG Messung' }),
-              RpInput({ value: fGAG, onChange: setFGAG, placeholder: 'z.B. 1.2 dB' })
-            ),
-            React.createElement('div', { style: { flex: 1 } },
-              RpLabel({ text: 'Swisscom Messung' }),
-              RpInput({ value: fSwiss, onChange: setFSwiss, placeholder: 'z.B. 0.8 dB' })
-            )
-          ),
-
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 10px', background: fFotos ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fFotos ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
-            React.createElement('input', { type: 'checkbox', checked: fFotos, onChange: function(e) { setFFotos(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
-            React.createElement('span', { style: { fontSize: 13, color: fFotos ? '#22c55e' : '#94A3B8', fontWeight: fFotos ? 700 : 400 } }, L.bep_foto)
-          )
-        ),
-
-        // ── Muffe Spezifisch ──────────────────────────
-        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
-          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, L.m_title),
-
-          React.createElement('div', { style: { marginBottom: 10 } },
-            React.createElement('div', { style: { flex: 1 } },
-              RpLabel({ text: 'Anzahl Muffes' }),
-              RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz, placeholder: '0' })
-            )
-          ),
-
-          // Muffe Typ quick-select
-          React.createElement('div', { style: { marginBottom: 10 } },
-            RpLabel({ text: 'Muffe Typ' }),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' } },
-              ['BC8', 'FD6', 'FD8', 'BF8', 'BE8'].map(function(t) {
-                var active = fMufTyp === t;
-                return React.createElement('button', {
-                  key: t,
-                  onClick: function() { setFMufTyp(active ? '' : t); },
-                  style: {
-                    flex: 1, minWidth: 48, padding: '7px 0', borderRadius: 8,
-                    border: '2px solid ' + (active ? '#a78bfa' : '#1E293B'),
-                    background: active ? '#a78bfa22' : '#0D1117',
-                    color: active ? '#a78bfa' : '#64748B',
-                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
-                  }
-                }, t);
-              })
-            ),
-            RpInput({ value: fMufTyp, onChange: setFMufTyp, placeholder: 'oder eigener Typ…' })
-          ),
-
-          React.createElement('div', { style: { marginBottom: 10 } },
-            RpLabel({ text: 'Fasern gespleisst' }),
-            RpInput({ type: 'number', value: fFasern, onChange: setFFasern, placeholder: '0' })
-          ),
-
-          React.createElement('div', { style: { display: 'flex', gap: 8 } },
-            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDR ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fOTDR ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
-              React.createElement('input', { type: 'checkbox', checked: fOTDR, onChange: function(e) { setFOTDR(e.target.checked); if(e.target.checked) setFOTDRnok(false); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
-              React.createElement('span', { style: { fontSize: 13, color: fOTDR ? '#22c55e' : '#94A3B8', fontWeight: fOTDR ? 700 : 400 } }, L.m_otdr)
-            ),
-            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDRnok ? '#ef444418' : '#0D1117', border: '1px solid ' + (fOTDRnok ? '#ef444444' : '#1E293B'), borderRadius: 8 } },
-              React.createElement('input', { type: 'checkbox', checked: fOTDRnok, onChange: function(e) { setFOTDRnok(e.target.checked); if(e.target.checked) setFOTDR(false); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
-              React.createElement('span', { style: { fontSize: 13, color: fOTDRnok ? '#ef4444' : '#94A3B8', fontWeight: fOTDRnok ? 700 : 400 } }, '⚠️ OTDR N.OK')
-            ),
-            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fMufFoto ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fMufFoto ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
-              React.createElement('input', { type: 'checkbox', checked: fMufFoto, onChange: function(e) { setFMufFoto(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
-              React.createElement('span', { style: { fontSize: 13, color: fMufFoto ? '#22c55e' : '#94A3B8', fontWeight: fMufFoto ? 700 : 400 } }, '📷 Fotos')
-            )
-          )
-        ),
-
-        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
+        RpField({ label: 'Probleme / Bemerkungen', children: RpTextarea({ value: fProb, onChange: setFProb, rows: 2, placeholder: 'Probleme, offene Punkte...' }) }),
+        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
-          RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
-          RpBtn({ label: fSaving ? '...' : L.save, onClick: save })
+          RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
+          RpBtn({ label: fSaving ? '...' : 'Speichern', onClick: save })
         )
       )
     }),
@@ -26056,7 +25833,6 @@ function RpTagesView(props) {
 // ════════════════════════════════════════════════════════════════════
 function RpWochenView(props) {
   var userId = props.userId;
-  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stList = React.useState([]);
@@ -26080,9 +25856,6 @@ function RpWochenView(props) {
   var _fBem = React.useState('');                    var fBem = _fBem[0], setFBem = _fBem[1];
   var _fStatus = React.useState('draft');            var fStatus = _fStatus[0], setFStatus = _fStatus[1];
   var _fSaving = React.useState(false);              var fSaving = _fSaving[0], setFSaving = _fSaving[1];
-  var _kwTages = React.useState([]);                 var kwTages = _kwTages[0], setKwTages = _kwTages[1];
-  var _expDay  = React.useState(null);               var expDay  = _expDay[0],  setExpDay  = _expDay[1];
-  var _inclDays = React.useState({});                var inclDays = _inclDays[0], setInclDays = _inclDays[1];
 
   function load() {
     if (!db) return;
@@ -26093,17 +25866,13 @@ function RpWochenView(props) {
   React.useEffect(load, []);
 
   function autoFill(kw, jahr) {
+    // load tagesrapporte for that KW and compute totals
     if (!db) return;
     var monday = rpMondayOfKW(parseInt(kw), parseInt(jahr));
     var friday = rpShiftWeek(monday, 1);
-    db.from('rapport_tages').select('*').eq('user_id', userId).gte('datum', monday).lt('datum', friday).order('datum', { ascending: true })
+    db.from('rapport_tages').select('h_start,h_end,km,arbeit').eq('user_id', userId).gte('datum', monday).lt('datum', friday)
       .then(function(r) {
         var items = r.data || [];
-        setKwTages(items);
-        // Inicializa todos como incluídos
-        var inc = {};
-        items.forEach(function(i) { inc[i.id] = true; });
-        setInclDays(inc);
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
         var totalKm = items.reduce(function(s, i) { return s + (i.km || 0); }, 0);
         var arbeitList = items.map(function(i) { return i.arbeit; }).filter(Boolean).join('\n\n');
@@ -26141,13 +25910,13 @@ function RpWochenView(props) {
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' ' + L.w_count),
-      RpBtn({ label: L.w_btn, onClick: openNew })
+      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' Wochenberichte'),
+      RpBtn({ label: '+ Neuer Wochenbericht', onClick: openNew })
     ),
 
     loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: '#475569' } }, 'Lade...'),
 
-    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, L.none_w),
+    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, 'Noch keine Wochenberichte.'),
 
     list.map(function(item) {
       var isExp = expanded === item.id;
@@ -26188,7 +25957,7 @@ function RpWochenView(props) {
           ),
           React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
             RpBtn({ label: '✏️ Bearbeiten', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: item.status === 'draft' ? L.t_submit : L.t_todraft, sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
+            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
             RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
         )
@@ -26205,86 +25974,14 @@ function RpWochenView(props) {
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total Std.' }), RpInput({ type: 'number', value: fStd, onChange: setFStd, placeholder: '42.5' })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
-        React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, L.w_hint),
-
-        // ── Tagesrapporte desta KW (só leitura, expansíveis)
-        kwTages.length > 0 && React.createElement('div', { style: { marginBottom: 14 } },
-          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.5px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-            React.createElement('span', null, '📄 ' + (props.lang === 'PT' ? 'Relatórios desta KW' : 'Tagesrapporte dieser KW') + ' (' + kwTages.length + ')'),
-            React.createElement('span', { style: { fontSize: 10, color: '#64748B' } }, props.lang === 'PT' ? 'toca ✓ para incluir/excluir' : 'tippen zum ein-/ausschliessen')
-          ),
-          kwTages.map(function(tr) {
-            var isOpen = expDay === tr.id;
-            var included = inclDays[tr.id] !== false;
-            var h = rpStunden(tr.h_start, tr.h_end);
-            var wday = new Date(tr.datum + 'T12:00:00');
-            return React.createElement('div', {
-              key: tr.id,
-              style: { background: included ? '#111827' : '#0a0a14', border: '1px solid ' + (included ? '#1E293B' : '#0f1629'), borderRadius: 10, marginBottom: 6, overflow: 'hidden', opacity: included ? 1 : 0.5 }
-            },
-              React.createElement('div', {
-                style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }
-              },
-                // Toggle checkbox
-                React.createElement('button', {
-                  onClick: function() {
-                    var newInc = Object.assign({}, inclDays);
-                    newInc[tr.id] = !included;
-                    setInclDays(newInc);
-                    // Recalculate totals
-                    var selH = 0, selKm = 0;
-                    kwTages.forEach(function(t) { if (newInc[t.id] !== false) { selH += rpStunden(t.h_start, t.h_end); selKm += (t.km || 0); } });
-                    setFStd(selH > 0 ? selH.toFixed(1) : '');
-                    setFKm(selKm > 0 ? String(selKm) : '');
-                  },
-                  style: { background: included ? '#22c55e22' : '#1E293B', border: '1px solid ' + (included ? '#22c55e' : '#334155'), borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: 14, color: included ? '#22c55e' : '#475569' }
-                }, included ? '✓' : '○'),
-                // Day info (tap to expand)
-                React.createElement('div', {
-                  onClick: function() { setExpDay(isOpen ? null : tr.id); },
-                  style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }
-                },
-                  React.createElement('div', { style: { width: 36, height: 36, borderRadius: 8, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
-                    React.createElement('span', { style: { fontSize: 9, color: '#64748B' } }, wday.toLocaleDateString('de-CH', { weekday: 'short' }).toUpperCase()),
-                    React.createElement('span', { style: { fontSize: 15, fontWeight: 800, color: '#E2E8F0' } }, wday.getDate())
-                  ),
-                  React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, tr.baustelle || '—'),
-                    React.createElement('div', { style: { fontSize: 11, color: '#64748B' } }, h.toFixed(1) + 'h' + (tr.km > 0 ? ' · ' + tr.km + ' km' : ''))
-                  ),
-                  React.createElement('span', { style: { color: '#475569', fontSize: 14 } }, isOpen ? '▲' : '▼')
-                )
-              ),
-              isOpen && React.createElement('div', { style: { padding: '8px 12px 12px', borderTop: '1px solid #1E293B' } },
-                tr.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
-                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, props.lang === 'PT' ? 'TRABALHOS' : 'ARBEITEN'),
-                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', lineHeight: 1.6 } }, tr.arbeit)
-                ),
-                tr.material && React.createElement('div', { style: { marginBottom: 8 } },
-                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, 'MATERIAL'),
-                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, tr.material)
-                ),
-                (tr.anzahl_beps > 0 || tr.anzahl_muffe > 0 || tr.otdr_ok || tr.otdr_nok) && React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 } },
-                  tr.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, background: '#3B82F622', color: '#3B82F6', borderRadius: 6, padding: '2px 8px' } }, '🔌 ' + tr.anzahl_beps + ' BEP' + (tr.bep_typ ? ' ' + tr.bep_typ : '')),
-                  tr.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, background: '#a78bfa22', color: '#a78bfa', borderRadius: 6, padding: '2px 8px' } }, '🔩 ' + tr.anzahl_muffe + ' Muffe' + (tr.muffe_typ ? ' ' + tr.muffe_typ : '')),
-                  tr.otdr_ok && React.createElement('span', { style: { fontSize: 11, background: '#22c55e22', color: '#22c55e', borderRadius: 6, padding: '2px 8px' } }, '📡 OTDR ✓'),
-                  tr.otdr_nok && React.createElement('span', { style: { fontSize: 11, background: '#ef444422', color: '#ef4444', borderRadius: 6, padding: '2px 8px' } }, '⚠️ OTDR N.OK')
-                ),
-                tr.probleme && React.createElement('div', { style: { borderLeft: '3px solid #F59E0B', paddingLeft: 8 } },
-                  React.createElement('div', { style: { fontSize: 12, color: '#94A3B8' } }, tr.probleme)
-                )
-              )
-            );
-          })
-        ),
-
-        RpField({ label: L.w_sum, children: RpTextarea({ value: fZus, onChange: setFZus, rows: 4, placeholder: 'Was wurde diese Woche gemacht?' }) }),
-        RpField({ label: L.w_open, children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
-        RpField({ label: L.w_rem, children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
-        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
+        React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, '💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.'),
+        RpField({ label: 'Zusammenfassung der Woche', children: RpTextarea({ value: fZus, onChange: setFZus, rows: 5, placeholder: 'Was wurde diese Woche gemacht?' }) }),
+        RpField({ label: 'Offene Arbeiten', children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
+        RpField({ label: 'Bemerkungen', children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
+        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
-          RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
-          RpBtn({ label: fSaving ? '...' : L.save, onClick: save })
+          RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
+          RpBtn({ label: fSaving ? '...' : 'Speichern', onClick: save })
         )
       )
     }),
@@ -26308,58 +26005,47 @@ function RapportApp(props) {
   var _stTab = React.useState('planung');
   var tab = _stTab[0], setTab = _stTab[1];
 
-  var _stLang = React.useState(function() { try { return localStorage.getItem('rpLang') || 'DE'; } catch(e) { return 'DE'; } });
-  var lang = _stLang[0], setLang = _stLang[1];
-  function toggleLang() {
-    var nl = lang === 'DE' ? 'PT' : 'DE';
-    try { localStorage.setItem('rpLang', nl); } catch(e) {}
-    setLang(nl);
-  }
-  var L = RP_L[lang];
-
   var TABS = [
-    { id: 'planung',  label: L.tab_plan },
-    { id: 'tages',   label: L.tab_tages },
-    { id: 'wochen',  label: L.tab_wochen },
+    { id: 'planung',  label: '📋 Planung' },
+    { id: 'tages',   label: '📄 Tagesrapport' },
+    { id: 'wochen',  label: '📊 Wochenbericht' },
   ];
 
-  return React.createElement('div', { style: { background: T.bg, minHeight: '100vh', color: T.text, fontFamily: "'Inter','Segoe UI',sans-serif", fontSize: 14 } },
+  return React.createElement('div', { style: rpS.page },
     // ── Header
     React.createElement('div', {
-      style: { background: T.surface, borderBottom: '1px solid ' + T.border, padding: '10px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
+      style: { background: '#0D1117', borderBottom: '1px solid #1E293B', padding: '14px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
     },
-      // Linha 1: voltar + título + botão língua (absolute)
-      React.createElement('div', { style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, paddingRight: 70 } },
-        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer', padding: 0, flexShrink: 0 } }, '‹'),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 } },
+        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: '#64748B', fontSize: 22, cursor: 'pointer', padding: 0 } }, '‹'),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-          React.createElement('div', { style: { width: 28, height: 28, borderRadius: 7, background: '#F59E0B22', border: '1px solid #F59E0B44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 } }, '📋'),
+          React.createElement('svg', { width: 32, height: 32, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' })
+          ),
           React.createElement('div', null,
-            React.createElement('div', { style: { fontWeight: 800, fontSize: 14, color: T.text } }, 'Arnold Rapport'),
-            React.createElement('div', { style: { fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 15 } }, 'Arnold Rapport'),
+            React.createElement('div', { style: { fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
           )
-        ),
-        React.createElement('button', {
-          onClick: toggleLang,
-          style: { position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: '#F59E0B', border: 'none', borderRadius: 14, padding: '5px 12px', cursor: 'pointer', fontWeight: 900, fontSize: 12, color: '#0D1117', whiteSpace: 'nowrap' }
-        }, lang === 'DE' ? '🌐 PT' : '🌐 DE')
+        )
       ),
-      // Linha 2: tabs centrados
-      React.createElement('div', { style: { display: 'flex', justifyContent: 'center', borderTop: '1px solid ' + T.border } },
+      // ── Tab bar
+      React.createElement('div', { style: { display: 'flex', overflowX: 'auto' } },
         TABS.map(function(t) {
           var active = tab === t.id;
           return React.createElement('button', {
             key: t.id,
             onClick: function() { setTab(t.id); },
-            style: { background: 'none', border: 'none', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), padding: '8px 12px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : T.muted, cursor: 'pointer', whiteSpace: 'nowrap' }
+            style: { background: 'none', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : '#475569', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }
           }, t.label);
         })
       )
     ),
 
     // ── Content
-    tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId, lang: lang }),
-    tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId, lang: lang }),
-    tab === 'wochen'   && React.createElement(RpWochenView,  { userId: userId, lang: lang })
+    tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId }),
+    tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId }),
+    tab === 'wochen'   && React.createElement(RpWochenView,  { userId: userId })
   );
 }
 
