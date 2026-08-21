@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-vcf929f46';
+const CACHE = 'carvalho-v7be5c048';
 
 // Só guarda os ficheiros locais — CDNs externos nunca em precache
 // (causavam falha de instalação quando offline ou lentos)
