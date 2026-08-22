@@ -1,0 +1,112 @@
+// ── Carvalho Suite Service Worker ──────────────────────────────────
+const CACHE = 'carvalho-vc0ae6257';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js',
+];
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS))
+  );
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // Never cache Supabase API calls — always go live (real-time data)
+  if (url.hostname.endsWith('supabase.co')) {
+    return; // let the browser handle it normally
+  }
+
+  // Network-first for fonts (CSS can change)
+  if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
+
+  // Network-first para o documento principal (navegação / index.html):
+  // é aqui que vive TODO o código da app (é um único ficheiro), por isso
+  // é o único sítio onde é crítico não ficar preso numa versão antiga.
+  const isAppShell = e.request.mode === 'navigate' ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname === '/carvalho-suites/' ||
+    url.pathname.endsWith('/carvalho-suites/');
+  if (isAppShell) {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(e.request).then(cached => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache-first para bibliotecas estáticas externas (React, Supabase, etc.)
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(response => {
+        if (response && response.status === 200 && response.type !== 'opaque') {
+          const clone = response.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => {
+        if (e.request.mode === 'navigate') return caches.match('./index.html');
+      });
+    })
+  );
+});
+
+// ── Push notifications (real, mesmo com a app fechada) ──────────────
+self.addEventListener('push', e => {
+  let data = { title: 'Carvalho Suite', body: '' };
+  try {
+    if (e.data) data = e.data.json();
+  } catch (err) {
+    if (e.data) data.body = e.data.text();
+  }
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Carvalho Suite', {
+      body: data.body || '',
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || 'carvalho-push'
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('carvalho-suites') && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('./');
+    })
+  );
+});
