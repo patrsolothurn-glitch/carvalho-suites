@@ -234,10 +234,17 @@ function ViagensApp(props) {
   function load() {
     if (!db) { setLoading(false); return; }
     setLoading(true);
-    db.from('family_trips').select('*')
-      .order('ano', { ascending: false }).order('mes')
-      .then(function (r) { setTrips(r.data || []); setLoading(false); })
-      .catch(function () { setLoading(false); });
+    function doLoad() {
+      db.from('family_trips').select('*')
+        .order('ano', { ascending: false }).order('mes')
+        .then(function (r) { setTrips(r.data || []); setLoading(false); })
+        .catch(function (err) {
+          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
+            db.auth.refreshSession().then(function () { doLoad(); }).catch(function () { setLoading(false); });
+          } else { setLoading(false); }
+        });
+    }
+    db.auth.refreshSession().then(function () { doLoad(); }).catch(function () { doLoad(); });
   }
   React.useEffect(load, []);
 
