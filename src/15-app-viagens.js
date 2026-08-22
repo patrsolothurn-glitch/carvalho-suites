@@ -25,12 +25,35 @@ var VG_MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Ju
 var VG_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function vgBlankForm(mes) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '' };
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '', foto: null };
+}
+function vgResizeImage(dataUrl, maxSize) {
+  return new Promise(function (resolve) {
+    try {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var size = maxSize || 600;
+          var canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          var ctx = canvas.getContext('2d');
+          var scale = Math.max(size / img.width, size / img.height);
+          var w = img.width * scale, h = img.height * scale;
+          var x = (size - w) / 2, y = (size - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (e) { resolve(dataUrl); }
+      };
+      img.onerror = function () { resolve(dataUrl); };
+      img.src = dataUrl;
+    } catch (e) { resolve(dataUrl); }
+  });
 }
 
 // ── Cartão de entrada ────────────────────────────────────────────────
 function VgTripCard(props) {
-  var trip = props.trip, onEdit = props.onEdit, onDelete = props.onDelete;
+  var trip = props.trip, onEdit = props.onEdit, onDelete = props.onDelete, onPhotoClick = props.onPhotoClick;
   var ti = vgType(trip.tipo);
   var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_SHORT[trip.mes])
     : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_SHORT[trip.mes]) : null;
@@ -38,9 +61,13 @@ function VgTripCard(props) {
   return React.createElement(Card, {
     style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }
   },
+    trip.foto && React.createElement('img', {
+      src: trip.foto, onClick: function () { if (onPhotoClick) onPhotoClick(trip.foto); },
+      style: { width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: '1px solid ' + T.border, cursor: 'pointer' }
+    }),
     React.createElement('div', { style: { flex: 1, minWidth: 0 } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
-        React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: ti.color, background: vgBg(ti.color), padding: '2px 9px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
+        React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#fff', background: ti.color, padding: '3px 10px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
         days && React.createElement('span', { style: { fontSize: 11, color: T.muted } }, days)
       ),
       React.createElement('div', { style: { fontWeight: 800, fontSize: 15.5, marginBottom: 2, color: T.text } }, trip.titulo),
@@ -79,7 +106,7 @@ function VgForm(props) {
         return React.createElement('button', {
           key: t.id,
           onClick: function () { setForm(Object.assign({}, form, { tipo: t.id })); },
-          style: { padding: '10px 6px', borderRadius: 11, fontWeight: 700, cursor: 'pointer', fontSize: 13, border: '2px solid ' + (sel ? t.color : T.border), background: sel ? vgBg(t.color) : T.surface2, color: sel ? t.color : T.muted }
+          style: { padding: '10px 6px', borderRadius: 11, fontWeight: 800, cursor: 'pointer', fontSize: 13, border: '2px solid ' + (sel ? t.color : T.border), background: sel ? t.color : T.surface2, color: sel ? '#fff' : T.muted }
         }, t.emoji + ' ' + t.label);
       })
     ),
@@ -103,6 +130,35 @@ function VgForm(props) {
       field('DIA FIM', React.createElement('input', {
         type: 'number', min: 1, max: 31, value: form.dia_fim, onChange: function (e) { setForm(Object.assign({}, form, { dia_fim: e.target.value })); }, placeholder: '31', style: inputStyle
       }))
+    ),
+
+    field('FOTO (OPCIONAL)', form.foto
+      ? React.createElement('div', { style: { position: 'relative', width: 90, height: 90 } },
+          React.createElement('img', { src: form.foto, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, border: '1px solid ' + T.border } }),
+          React.createElement('button', {
+            onClick: function () { setForm(Object.assign({}, form, { foto: null })); },
+            style: { position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid ' + T.surface, fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+          }, '✕')
+        )
+      : React.createElement('label', {
+          style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 90, height: 90, borderRadius: 12, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24 }
+        },
+          '➕',
+          React.createElement('input', {
+            type: 'file', accept: 'image/*', style: { display: 'none' },
+            onChange: function (e) {
+              var file = e.target.files[0];
+              if (!file) return;
+              var reader = new FileReader();
+              reader.onload = function (ev2) {
+                vgResizeImage(ev2.target.result, 600).then(function (resized) {
+                  setForm(Object.assign({}, form, { foto: resized }));
+                });
+              };
+              reader.readAsDataURL(file);
+            }
+          })
+        )
     ),
 
     field('NOTAS', React.createElement('textarea', {
@@ -138,6 +194,8 @@ function ViagensApp(props) {
   var saving = _stSaving[0], setSaving = _stSaving[1];
   var _stConfirmDel = React.useState(null);
   var confirmDel = _stConfirmDel[0], setConfirmDel = _stConfirmDel[1];
+  var _stLightbox = React.useState(null);
+  var fotoLightbox = _stLightbox[0], setFotoLightbox = _stLightbox[1];
 
   function load() {
     if (!db) { setLoading(false); return; }
@@ -157,7 +215,7 @@ function ViagensApp(props) {
 
   function openAdd(mes) { setFormData(vgBlankForm(mes)); setForm('new'); }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '' });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', foto: trip.foto || null });
     setForm(trip);
   }
   function saveTrip() {
@@ -169,6 +227,7 @@ function ViagensApp(props) {
       dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null,
       dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null,
       notas: formData.notas.trim(),
+      foto: formData.foto || null,
       created_by: profile && profile.id
     };
     var op = (form === 'new')
@@ -210,6 +269,13 @@ function ViagensApp(props) {
     )
   );
 
+  var fotoLightboxModal = fotoLightbox && React.createElement('div', {
+    onClick: function () { setFotoLightbox(null); },
+    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 20 }
+  },
+    React.createElement('img', { src: fotoLightbox, style: { maxWidth: '100%', maxHeight: '85vh', borderRadius: 14, objectFit: 'contain' } })
+  );
+
   if (selMonth !== null) {
     var mTrips = byMonth(year, selMonth);
     return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
@@ -232,10 +298,11 @@ function ViagensApp(props) {
           React.createElement('button', { onClick: function () { openAdd(selMonth); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Adicionar entrada')
         ),
         !loading && mTrips.map(function (t) {
-          return React.createElement(VgTripCard, { key: t.id, trip: t, onEdit: function () { openEdit(t); }, onDelete: function () { setConfirmDel(t.id); } });
+          return React.createElement(VgTripCard, { key: t.id, trip: t, onEdit: function () { openEdit(t); }, onDelete: function () { setConfirmDel(t.id); }, onPhotoClick: function (foto) { setFotoLightbox(foto); } });
         })
       ),
-      confirmModal
+      confirmModal,
+      fotoLightboxModal
     );
   }
 
@@ -273,7 +340,7 @@ function ViagensApp(props) {
               : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3 } },
                   mTrips.slice(0, 3).map(function (t) {
                     var ti = vgType(t.tipo);
-                    return React.createElement('div', { key: t.id, style: { fontSize: 10, fontWeight: 600, color: ti.color, background: vgBg(ti.color), padding: '2px 6px', borderRadius: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, t.titulo);
+                    return React.createElement('div', { key: t.id, style: { fontSize: 10, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 6px', borderRadius: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, t.titulo);
                   }),
                   mTrips.length > 3 && React.createElement('div', { style: { fontSize: 10, color: T.muted } }, '+' + (mTrips.length - 3) + ' mais')
                 )
@@ -283,10 +350,11 @@ function ViagensApp(props) {
 
       React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 16, justifyContent: 'center' } },
         VG_TYPES.map(function (t) {
-          return React.createElement('span', { key: t.id, style: { fontSize: 11, fontWeight: 700, color: t.color, background: vgBg(t.color), padding: '3px 10px', borderRadius: 20 } }, t.emoji + ' ' + t.label);
+          return React.createElement('span', { key: t.id, style: { fontSize: 11, fontWeight: 800, color: '#fff', background: t.color, padding: '3px 10px', borderRadius: 20 } }, t.emoji + ' ' + t.label);
         })
       )
     ),
-    confirmModal
+    confirmModal,
+    fotoLightboxModal
   );
 }
