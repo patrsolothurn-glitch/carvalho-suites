@@ -200,7 +200,7 @@ function VgForm(props) {
     React.createElement('button', {
       onClick: onSave, disabled: !valid || saving,
       style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 }
-    }, saving ? 'A guardar…' : (isEdit ? 'Guardar Alterações' : '✚ Adicionar'))
+    }, saving ? (progress ? ('A guardar ' + progress.done + '/' + progress.total + '…') : 'A guardar…') : (isEdit ? 'Guardar Alterações' : '✚ Adicionar'))
   );
 }
 
@@ -224,6 +224,8 @@ function ViagensApp(props) {
   var formData = _stFormData[0], setFormData = _stFormData[1];
   var _stSaving = React.useState(false);
   var saving = _stSaving[0], setSaving = _stSaving[1];
+  var _stProgress = React.useState(null);
+  var progress = _stProgress[0], setProgress = _stProgress[1];
   var _stConfirmDel = React.useState(null);
   var confirmDel = _stConfirmDel[0], setConfirmDel = _stConfirmDel[1];
   var _stLightbox = React.useState(null);
@@ -280,15 +282,32 @@ function ViagensApp(props) {
       var op = (form === 'new')
         ? db.from('family_trips').insert(payload)
         : db.from('family_trips').update(payload).eq('id', form.id);
-      op.then(function () { setSaving(false); setForm(null); load(); })
-        .catch(function () { setSaving(false); });
+      op.then(function () { setSaving(false); setProgress(null); setForm(null); load(); })
+        .catch(function () { setSaving(false); setProgress(null); });
     }
 
     if (pendingFiles.length === 0) { doSave([]); return; }
 
     var tripId = form !== 'new' ? form.id : ('tmp_' + Date.now());
-    var promises = pendingFiles.map(function (file, i) { return vgUploadFoto(db, file, tripId, i); });
-    Promise.all(promises).then(function (urls) { doSave(urls); }).catch(function () { setSaving(false); });
+    var total = pendingFiles.length;
+    var done = 0;
+    var urls = new Array(total);
+    setProgress({ done: 0, total: total });
+
+    function uploadBatch(files, startIdx, cb) {
+      if (files.length === 0) { cb(); return; }
+      var batch = files.slice(0, 5);
+      var rest = files.slice(5);
+      var promises = batch.map(function(file, i) { return vgUploadFoto(db, file, tripId, startIdx + i); });
+      Promise.all(promises).then(function(batchUrls) {
+        for (var i = 0; i < batchUrls.length; i++) urls[startIdx + i] = batchUrls[i];
+        done += batch.length;
+        setProgress({ done: done, total: total });
+        uploadBatch(rest, startIdx + batch.length, cb);
+      }).catch(function() { setSaving(false); setProgress(null); });
+    }
+
+    uploadBatch(pendingFiles, 0, function() { doSave(urls.filter(Boolean)); });
   }
 
   function deleteTrip(id) {
