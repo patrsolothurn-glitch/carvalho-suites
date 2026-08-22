@@ -95,7 +95,11 @@
             return origThen.call(this, function (res) {
               try {
                 if (res && res.error && res.error.code !== 'PGRST116') {
-                  window.mostrarErro('Supabase', res.error);
+                  if (res.error.code === 'PGRST303' || (res.error.message && res.error.message.indexOf('future') !== -1)) {
+                    try { window.supabaseClient && window.supabaseClient.auth.refreshSession().catch(function(){}); } catch(e) {}
+                  } else {
+                    window.mostrarErro('Supabase', res.error);
+                  }
                 }
               } catch (e) {}
               return onf ? onf(res) : res;
