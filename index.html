@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-22T18:20:07.178Z
+  Gerado em: 2026-08-22T18:21:01.817Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-186";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-187";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26611,10 +26611,17 @@ function ViagensApp(props) {
   function load() {
     if (!db) { setLoading(false); return; }
     setLoading(true);
-    db.from('family_trips').select('*')
-      .order('ano', { ascending: false }).order('mes')
-      .then(function (r) { setTrips(r.data || []); setLoading(false); })
-      .catch(function () { setLoading(false); });
+    function doLoad() {
+      db.from('family_trips').select('*')
+        .order('ano', { ascending: false }).order('mes')
+        .then(function (r) { setTrips(r.data || []); setLoading(false); })
+        .catch(function (err) {
+          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
+            db.auth.refreshSession().then(function () { doLoad(); }).catch(function () { setLoading(false); });
+          } else { setLoading(false); }
+        });
+    }
+    db.auth.refreshSession().then(function () { doLoad(); }).catch(function () { doLoad(); });
   }
   React.useEffect(load, []);
 
