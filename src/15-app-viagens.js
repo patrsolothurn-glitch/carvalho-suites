@@ -1,7 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
 // VIAGENS & VISITAS — histórico de férias e visitas da família,
-// organizado por mês/ano. Tabela Supabase: family_trips (partilhada,
-// visível a quem tiver acesso — mesmo modelo de family_events).
+// organizado por mês/ano. Tabelas: family_trips + family_trip_photos
 // ══════════════════════════════════════════════════════════════════
 
 var VG_TYPES = [
@@ -14,18 +13,12 @@ function vgType(id) {
   for (var i = 0; i < VG_TYPES.length; i++) if (VG_TYPES[i].id === id) return VG_TYPES[i];
   return VG_TYPES[3];
 }
-function vgBg(color) {
-  var h = color.replace('#', '');
-  if (h.length !== 6) return 'rgba(122,122,144,0.14)';
-  var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-  return 'rgba(' + r + ',' + g + ',' + b + ',0.14)';
-}
 
 var VG_MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 var VG_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function vgBlankForm(mes) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '', foto: null };
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '', fotos: [] };
 }
 function vgResizeImage(dataUrl, maxSize) {
   return new Promise(function (resolve) {
@@ -35,13 +28,11 @@ function vgResizeImage(dataUrl, maxSize) {
         try {
           var size = maxSize || 600;
           var canvas = document.createElement('canvas');
-          canvas.width = size;
-          canvas.height = size;
+          canvas.width = size; canvas.height = size;
           var ctx = canvas.getContext('2d');
           var scale = Math.max(size / img.width, size / img.height);
           var w = img.width * scale, h = img.height * scale;
-          var x = (size - w) / 2, y = (size - h) / 2;
-          ctx.drawImage(img, x, y, w, h);
+          ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
           resolve(canvas.toDataURL('image/jpeg', 0.82));
         } catch (e) { resolve(dataUrl); }
       };
@@ -51,20 +42,29 @@ function vgResizeImage(dataUrl, maxSize) {
   });
 }
 
-// ── Cartão de entrada ────────────────────────────────────────────────
+// ── Cartão de entrada ─────────────────────────────────────────────
 function VgTripCard(props) {
   var trip = props.trip, onEdit = props.onEdit, onDelete = props.onDelete, onPhotoClick = props.onPhotoClick;
   var ti = vgType(trip.tipo);
   var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_SHORT[trip.mes])
     : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_SHORT[trip.mes]) : null;
+  var fotos = (trip.family_trip_photos || []).slice().sort(function (a, b) { return a.ordem - b.ordem; });
 
   return React.createElement(Card, {
     style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }
   },
-    trip.foto && React.createElement('img', {
-      src: trip.foto, onClick: function () { if (onPhotoClick) onPhotoClick(trip.foto); },
-      style: { width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: '1px solid ' + T.border, cursor: 'pointer' }
-    }),
+    fotos.length > 0 && React.createElement('div', {
+      onClick: function () { if (onPhotoClick) onPhotoClick(fotos.map(function (f) { return f.url; }), 0); },
+      style: { flexShrink: 0, cursor: 'pointer', position: 'relative', width: 64 }
+    },
+      React.createElement('img', {
+        src: fotos[0].url,
+        style: { width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid ' + T.border, display: 'block' }
+      }),
+      fotos.length > 1 && React.createElement('div', {
+        style: { position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '1px 5px' }
+      }, '+' + (fotos.length - 1))
+    ),
     React.createElement('div', { style: { flex: 1, minWidth: 0 } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
         React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#fff', background: ti.color, padding: '3px 10px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
@@ -81,10 +81,11 @@ function VgTripCard(props) {
   );
 }
 
-// ── Formulário (nova / editar) ──────────────────────────────────────
+// ── Formulário (nova / editar) ─────────────────────────────────────
 function VgForm(props) {
   var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving;
   var valid = form.titulo.trim() && form.local.trim();
+  var fotos = form.fotos || [];
 
   function field(label, input) {
     return React.createElement('div', { style: { marginBottom: 12 } },
@@ -93,6 +94,29 @@ function VgForm(props) {
     );
   }
   var inputStyle = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
+
+  function addFotos(files) {
+    var current = fotos.slice();
+    var promises = [];
+    for (var i = 0; i < files.length; i++) {
+      (function (file) {
+        promises.push(new Promise(function (resolve) {
+          var reader = new FileReader();
+          reader.onload = function (ev2) { vgResizeImage(ev2.target.result, 600).then(resolve); };
+          reader.readAsDataURL(file);
+        }));
+      })(files[i]);
+    }
+    Promise.all(promises).then(function (results) {
+      setForm(Object.assign({}, form, { fotos: current.concat(results) }));
+    });
+  }
+
+  function removePhoto(idx) {
+    var next = fotos.slice();
+    next.splice(idx, 1);
+    setForm(Object.assign({}, form, { fotos: next }));
+  }
 
   return React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 } },
@@ -125,44 +149,44 @@ function VgForm(props) {
 
     React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 } },
       field('DIA INÍCIO', React.createElement('input', {
-        type: 'number', min: 1, max: 31, value: form.dia_inicio, onChange: function (e) { setForm(Object.assign({}, form, { dia_inicio: e.target.value })); }, placeholder: '1', style: inputStyle
+        type: 'number', min: 1, max: 31, value: form.dia_inicio,
+        onChange: function (e) { setForm(Object.assign({}, form, { dia_inicio: e.target.value })); },
+        placeholder: '1', style: inputStyle
       })),
       field('DIA FIM', React.createElement('input', {
-        type: 'number', min: 1, max: 31, value: form.dia_fim, onChange: function (e) { setForm(Object.assign({}, form, { dia_fim: e.target.value })); }, placeholder: '31', style: inputStyle
+        type: 'number', min: 1, max: 31, value: form.dia_fim,
+        onChange: function (e) { setForm(Object.assign({}, form, { dia_fim: e.target.value })); },
+        placeholder: '31', style: inputStyle
       }))
     ),
 
-    field('FOTO (OPCIONAL)', form.foto
-      ? React.createElement('div', { style: { position: 'relative', width: 90, height: 90 } },
-          React.createElement('img', { src: form.foto, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, border: '1px solid ' + T.border } }),
-          React.createElement('button', {
-            onClick: function () { setForm(Object.assign({}, form, { foto: null })); },
-            style: { position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid ' + T.surface, fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }
-          }, '✕')
-        )
-      : React.createElement('label', {
-          style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 90, height: 90, borderRadius: 12, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24 }
+    field('FOTOS',
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' } },
+        fotos.map(function (url, idx) {
+          return React.createElement('div', { key: idx, style: { position: 'relative', width: 80, height: 80, flexShrink: 0 } },
+            React.createElement('img', { src: url, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11, border: '1px solid ' + T.border, display: 'block' } }),
+            React.createElement('button', {
+              onClick: function () { removePhoto(idx); },
+              style: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid ' + T.surface, fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
+            }, '✕')
+          );
+        }),
+        React.createElement('label', {
+          style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2, flexShrink: 0 }
         },
           '➕',
+          fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS'),
           React.createElement('input', {
-            type: 'file', accept: 'image/*', style: { display: 'none' },
-            onChange: function (e) {
-              var file = e.target.files[0];
-              if (!file) return;
-              var reader = new FileReader();
-              reader.onload = function (ev2) {
-                vgResizeImage(ev2.target.result, 600).then(function (resized) {
-                  setForm(Object.assign({}, form, { foto: resized }));
-                });
-              };
-              reader.readAsDataURL(file);
-            }
+            type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' },
+            onChange: function (e) { if (e.target.files && e.target.files.length) addFotos(e.target.files); }
           })
         )
+      )
     ),
 
     field('NOTAS', React.createElement('textarea', {
-      value: form.notas, onChange: function (e) { setForm(Object.assign({}, form, { notas: e.target.value })); }, placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inputStyle, { resize: 'vertical' })
+      value: form.notas, onChange: function (e) { setForm(Object.assign({}, form, { notas: e.target.value })); },
+      placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inputStyle, { resize: 'vertical' })
     })),
 
     React.createElement('button', {
@@ -172,7 +196,7 @@ function VgForm(props) {
   );
 }
 
-// ── App principal ────────────────────────────────────────────────────
+// ── App principal ─────────────────────────────────────────────────
 function ViagensApp(props) {
   var onBack = props.onBack;
   var profile = props.profile;
@@ -186,7 +210,7 @@ function ViagensApp(props) {
   var year = _stYear[0], setYear = _stYear[1];
   var _stSelMonth = React.useState(null);
   var selMonth = _stSelMonth[0], setSelMonth = _stSelMonth[1];
-  var _stForm = React.useState(null); // null | 'new' | trip object (edit)
+  var _stForm = React.useState(null);
   var form = _stForm[0], setForm = _stForm[1];
   var _stFormData = React.useState(vgBlankForm());
   var formData = _stFormData[0], setFormData = _stFormData[1];
@@ -197,13 +221,17 @@ function ViagensApp(props) {
   var _stLightbox = React.useState(null);
   var fotoLightbox = _stLightbox[0], setFotoLightbox = _stLightbox[1];
 
+  var wrap = { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif' };
+
   function load() {
     if (!db) { setLoading(false); return; }
     setLoading(true);
-    db.from('family_trips').select('*').order('ano', { ascending: false }).order('mes').then(function (r) {
-      setTrips(r.data || []);
-      setLoading(false);
-    }).catch(function () { setLoading(false); });
+    db.from('family_trips')
+      .select('*, family_trip_photos(id, url, ordem)')
+      .order('ano', { ascending: false })
+      .order('mes')
+      .then(function (r) { setTrips(r.data || []); setLoading(false); })
+      .catch(function () { setLoading(false); });
   }
   React.useEffect(load, []);
 
@@ -215,26 +243,49 @@ function ViagensApp(props) {
 
   function openAdd(mes) { setFormData(vgBlankForm(mes)); setForm('new'); }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', foto: trip.foto || null });
+    var fotos = (trip.family_trip_photos || []).slice()
+      .sort(function (a, b) { return a.ordem - b.ordem; })
+      .map(function (p) { return p.url; });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: fotos });
     setForm(trip);
   }
+
   function saveTrip() {
     if (!formData.titulo.trim() || !formData.local.trim()) return;
     setSaving(true);
+    var fotos = formData.fotos || [];
     var payload = {
       tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(),
       ano: year, mes: formData.mes,
       dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null,
       dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null,
       notas: formData.notas.trim(),
-      foto: formData.foto || null,
       created_by: profile && profile.id
     };
-    var op = (form === 'new')
-      ? db.from('family_trips').insert(payload)
-      : db.from('family_trips').update(payload).eq('id', form.id);
-    op.then(function () { setSaving(false); setForm(null); load(); }).catch(function () { setSaving(false); });
+
+    function savePhotos(tripId) {
+      return db.from('family_trip_photos').delete().eq('trip_id', tripId).then(function () {
+        if (fotos.length === 0) return Promise.resolve();
+        return db.from('family_trip_photos').insert(
+          fotos.map(function (url, i) { return { trip_id: tripId, url: url, ordem: i }; })
+        );
+      });
+    }
+
+    if (form === 'new') {
+      db.from('family_trips').insert(payload).select().then(function (r) {
+        var newTrip = r.data && r.data[0];
+        if (newTrip) {
+          savePhotos(newTrip.id).then(function () { setSaving(false); setForm(null); load(); });
+        } else { setSaving(false); setForm(null); load(); }
+      }).catch(function () { setSaving(false); });
+    } else {
+      db.from('family_trips').update(payload).eq('id', form.id).then(function () {
+        savePhotos(form.id).then(function () { setSaving(false); setForm(null); load(); });
+      }).catch(function () { setSaving(false); });
+    }
   }
+
   function deleteTrip(id) {
     db.from('family_trips').delete().eq('id', id).then(function () { setConfirmDel(null); load(); });
   }
@@ -271,9 +322,32 @@ function ViagensApp(props) {
 
   var fotoLightboxModal = fotoLightbox && React.createElement('div', {
     onClick: function () { setFotoLightbox(null); },
-    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 20 }
+    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 16 }
   },
-    React.createElement('img', { src: fotoLightbox, style: { maxWidth: '100%', maxHeight: '85vh', borderRadius: 14, objectFit: 'contain' } })
+    React.createElement('div', {
+      onClick: function (e) { e.stopPropagation(); },
+      style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '100%' }
+    },
+      React.createElement('img', {
+        src: fotoLightbox.urls[fotoLightbox.idx],
+        style: { maxWidth: '100%', maxHeight: '75vh', borderRadius: 14, objectFit: 'contain' }
+      }),
+      fotoLightbox.urls.length > 1 && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
+        React.createElement('button', {
+          onClick: function () { setFotoLightbox({ urls: fotoLightbox.urls, idx: (fotoLightbox.idx - 1 + fotoLightbox.urls.length) % fotoLightbox.urls.length }); },
+          style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' }
+        }, '‹'),
+        React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 700, minWidth: 40, textAlign: 'center' } }, (fotoLightbox.idx + 1) + ' / ' + fotoLightbox.urls.length),
+        React.createElement('button', {
+          onClick: function () { setFotoLightbox({ urls: fotoLightbox.urls, idx: (fotoLightbox.idx + 1) % fotoLightbox.urls.length }); },
+          style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' }
+        }, '›')
+      ),
+      React.createElement('button', {
+        onClick: function () { setFotoLightbox(null); },
+        style: { background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 22px', borderRadius: 20, cursor: 'pointer', fontSize: 13 }
+      }, 'Fechar')
+    )
   );
 
   if (selMonth !== null) {
@@ -298,7 +372,12 @@ function ViagensApp(props) {
           React.createElement('button', { onClick: function () { openAdd(selMonth); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Adicionar entrada')
         ),
         !loading && mTrips.map(function (t) {
-          return React.createElement(VgTripCard, { key: t.id, trip: t, onEdit: function () { openEdit(t); }, onDelete: function () { setConfirmDel(t.id); }, onPhotoClick: function (foto) { setFotoLightbox(foto); } });
+          return React.createElement(VgTripCard, {
+            key: t.id, trip: t,
+            onEdit: function () { openEdit(t); },
+            onDelete: function () { setConfirmDel(t.id); },
+            onPhotoClick: function (urls, idx) { setFotoLightbox({ urls: urls, idx: idx || 0 }); }
+          });
         })
       ),
       confirmModal,
@@ -357,4 +436,4 @@ function ViagensApp(props) {
     confirmModal,
     fotoLightboxModal
   );
-}
+                                         }
