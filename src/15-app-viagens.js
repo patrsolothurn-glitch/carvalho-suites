@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════════════
-// VIAGENS & VISITAS — histórico de férias e visitas da família,
-// organizado por mês/ano. Tabelas: family_trips + family_trip_photos
+// VIAGENS & VISITAS — histórico de férias e visitas da família
+// Tabela: family_trips (coluna fotos jsonb)
 // ══════════════════════════════════════════════════════════════════
 
 var VG_TYPES = [
@@ -48,17 +48,17 @@ function VgTripCard(props) {
   var ti = vgType(trip.tipo);
   var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_SHORT[trip.mes])
     : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_SHORT[trip.mes]) : null;
-  var fotos = (trip.family_trip_photos || []).slice().sort(function (a, b) { return a.ordem - b.ordem; });
+  var fotos = trip.fotos || [];
 
   return React.createElement(Card, {
     style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }
   },
     fotos.length > 0 && React.createElement('div', {
-      onClick: function () { if (onPhotoClick) onPhotoClick(fotos.map(function (f) { return f.url; }), 0); },
+      onClick: function () { if (onPhotoClick) onPhotoClick(fotos, 0); },
       style: { flexShrink: 0, cursor: 'pointer', position: 'relative', width: 64 }
     },
       React.createElement('img', {
-        src: fotos[0].url,
+        src: fotos[0],
         style: { width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid ' + T.border, display: 'block' }
       }),
       fotos.length > 1 && React.createElement('div', {
@@ -226,10 +226,8 @@ function ViagensApp(props) {
   function load() {
     if (!db) { setLoading(false); return; }
     setLoading(true);
-    db.from('family_trips')
-      .select('*, family_trip_photos(id, url, ordem)')
-      .order('ano', { ascending: false })
-      .order('mes')
+    db.from('family_trips').select('*')
+      .order('ano', { ascending: false }).order('mes')
       .then(function (r) { setTrips(r.data || []); setLoading(false); })
       .catch(function () { setLoading(false); });
   }
@@ -243,47 +241,27 @@ function ViagensApp(props) {
 
   function openAdd(mes) { setFormData(vgBlankForm(mes)); setForm('new'); }
   function openEdit(trip) {
-    var fotos = (trip.family_trip_photos || []).slice()
-      .sort(function (a, b) { return a.ordem - b.ordem; })
-      .map(function (p) { return p.url; });
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: fotos });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: trip.fotos || [] });
     setForm(trip);
   }
 
   function saveTrip() {
     if (!formData.titulo.trim() || !formData.local.trim()) return;
     setSaving(true);
-    var fotos = formData.fotos || [];
     var payload = {
       tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(),
       ano: year, mes: formData.mes,
       dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null,
       dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null,
       notas: formData.notas.trim(),
+      fotos: formData.fotos || [],
       created_by: profile && profile.id
     };
-
-    function savePhotos(tripId) {
-      return db.from('family_trip_photos').delete().eq('trip_id', tripId).then(function () {
-        if (fotos.length === 0) return Promise.resolve();
-        return db.from('family_trip_photos').insert(
-          fotos.map(function (url, i) { return { trip_id: tripId, url: url, ordem: i }; })
-        );
-      });
-    }
-
-    if (form === 'new') {
-      db.from('family_trips').insert(payload).select().then(function (r) {
-        var newTrip = r.data && r.data[0];
-        if (newTrip) {
-          savePhotos(newTrip.id).then(function () { setSaving(false); setForm(null); load(); });
-        } else { setSaving(false); setForm(null); load(); }
-      }).catch(function () { setSaving(false); });
-    } else {
-      db.from('family_trips').update(payload).eq('id', form.id).then(function () {
-        savePhotos(form.id).then(function () { setSaving(false); setForm(null); load(); });
-      }).catch(function () { setSaving(false); });
-    }
+    var op = (form === 'new')
+      ? db.from('family_trips').insert(payload)
+      : db.from('family_trips').update(payload).eq('id', form.id);
+    op.then(function () { setSaving(false); setForm(null); load(); })
+      .catch(function () { setSaving(false); });
   }
 
   function deleteTrip(id) {
@@ -393,25 +371,19 @@ function ViagensApp(props) {
         React.createElement('div', { style: { fontSize: 12.5, color: T.muted } }, yearTrips.length + ' entrada' + (yearTrips.length !== 1 ? 's' : '') + ' em ' + year),
         React.createElement(GoldBtn, { onClick: function () { openAdd(now.getMonth()); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
       ),
-
       React.createElement(Card, { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '11px 0', marginBottom: 14 } },
         React.createElement('button', { onClick: function () { setYear(year - 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '‹'),
         React.createElement('span', { style: { fontWeight: 900, fontSize: 22 } }, year),
         React.createElement('button', { onClick: function () { setYear(year + 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '›')
       ),
-
       loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-
       !loading && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
         VG_MONTHS.map(function (_, idx) {
           var mTrips = byMonth(year, idx);
           var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
           return React.createElement('button', {
             key: idx, onClick: function () { setSelMonth(idx); },
-            style: {
-              background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)),
-              borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left'
-            }
+            style: { background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left' }
           },
             React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : T.muted, marginBottom: 6 } }, VG_SHORT[idx]),
             mTrips.length === 0
@@ -426,7 +398,6 @@ function ViagensApp(props) {
           );
         })
       ),
-
       React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 16, justifyContent: 'center' } },
         VG_TYPES.map(function (t) {
           return React.createElement('span', { key: t.id, style: { fontSize: 11, fontWeight: 800, color: '#fff', background: t.color, padding: '3px 10px', borderRadius: 20 } }, t.emoji + ' ' + t.label);
@@ -436,4 +407,4 @@ function ViagensApp(props) {
     confirmModal,
     fotoLightboxModal
   );
-                                         }
+}
