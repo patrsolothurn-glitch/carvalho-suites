@@ -98,17 +98,22 @@ function VgForm(props) {
   }
   var inputStyle = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
 
+  var MAX_FOTOS = 20;
+
   function addFotos(files) {
     var current = fotos.slice();
+    var slots = MAX_FOTOS - current.length;
+    if (slots <= 0) return;
+    var toProcess = Array.prototype.slice.call(files, 0, slots);
     var promises = [];
-    for (var i = 0; i < files.length; i++) {
+    for (var i = 0; i < toProcess.length; i++) {
       (function (file) {
         promises.push(new Promise(function (resolve) {
           var reader = new FileReader();
           reader.onload = function (ev2) { vgResizeImage(ev2.target.result, 600).then(resolve); };
           reader.readAsDataURL(file);
         }));
-      })(files[i]);
+      })(toProcess[i]);
     }
     Promise.all(promises).then(function (results) {
       setForm(Object.assign({}, form, { fotos: current.concat(results) }));
