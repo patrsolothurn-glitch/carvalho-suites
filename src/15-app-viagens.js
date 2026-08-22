@@ -21,7 +21,7 @@ var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
 var VG_BUCKET = 'trip-photos';
 
 function vgBlankForm(mes) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '', fotos: [] };
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '', fotos: [], album_url: '' };
 }
 
 function vgUploadFoto(db, file, tripId, idx) {
@@ -56,6 +56,10 @@ function VgTripCard(props) {
       trip.notas && React.createElement('div', { style: { color: T.muted, fontSize: 12, marginTop: 5, lineHeight: 1.4, opacity: 0.85 } }, trip.notas)
     ),
     React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
+      trip.album_url && React.createElement('a', {
+        href: trip.album_url, target: '_blank', rel: 'noopener',
+        style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9, background: '#4285F4', border: 'none', fontSize: 16, cursor: 'pointer', textDecoration: 'none' }
+      }, '📷'),
       React.createElement('button', { onClick: onEdit, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '✏️'),
       React.createElement('button', { onClick: onDelete, style: { background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '🗑️')
     )
@@ -178,6 +182,11 @@ function VgForm(props) {
       )
     ),
 
+    field('ÁLBUM GOOGLE FOTOS (OPCIONAL)', React.createElement('input', {
+      value: form.album_url || '', onChange: function (e) { setForm(Object.assign({}, form, { album_url: e.target.value })); },
+      placeholder: 'https://photos.app.goo.gl/...', style: inputStyle
+    })),
+
     field('NOTAS', React.createElement('textarea', {
       value: form.notas, onChange: function (e) { setForm(Object.assign({}, form, { notas: e.target.value })); },
       placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inputStyle, { resize: 'vertical' })
@@ -223,7 +232,7 @@ function ViagensApp(props) {
     if (!db) { setLoading(false); return; }
     setLoading(true);
     function doLoad() {
-      db.from('family_trips').select('id,tipo,titulo,local,mes,ano,dia_inicio,dia_fim,notas,created_by')
+      db.from('family_trips').select('id,tipo,titulo,local,mes,ano,dia_inicio,dia_fim,notas,album_url,created_by')
         .order('ano', { ascending: false }).order('mes')
         .then(function (r) { setTrips(r.data || []); setLoading(false); })
         .catch(function (err) {
@@ -244,7 +253,7 @@ function ViagensApp(props) {
 
   function openAdd(mes) { setFormData(vgBlankForm(mes)); setForm('new'); }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], _pendingFiles: [] });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], album_url: trip.album_url || '', _pendingFiles: [] });
     setForm(trip);
     db.from('family_trips').select('fotos').eq('id', trip.id).single()
       .then(function(r) {
@@ -268,6 +277,7 @@ function ViagensApp(props) {
         dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null,
         dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null,
         notas: formData.notas.trim(),
+        album_url: formData.album_url || null,
         fotos: allFotos,
         created_by: profile && profile.id
       };
