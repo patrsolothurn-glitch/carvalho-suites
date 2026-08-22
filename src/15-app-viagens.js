@@ -43,23 +43,9 @@ function VgTripCard(props) {
   var ti = vgType(trip.tipo);
   var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_SHORT[trip.mes])
     : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_SHORT[trip.mes]) : null;
-  var fotos = trip.fotos || [];
-
   return React.createElement(Card, {
     style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }
   },
-    fotos.length > 0 && React.createElement('div', {
-      onClick: function () { if (onPhotoClick) onPhotoClick(fotos, 0); },
-      style: { flexShrink: 0, cursor: 'pointer', position: 'relative', width: 64 }
-    },
-      React.createElement('img', {
-        src: fotos[0],
-        style: { width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid ' + T.border, display: 'block' }
-      }),
-      fotos.length > 1 && React.createElement('div', {
-        style: { position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '1px 5px' }
-      }, '+' + (fotos.length - 1))
-    ),
     React.createElement('div', { style: { flex: 1, minWidth: 0 } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
         React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#fff', background: ti.color, padding: '3px 10px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
@@ -237,7 +223,7 @@ function ViagensApp(props) {
     if (!db) { setLoading(false); return; }
     setLoading(true);
     function doLoad() {
-      db.from('family_trips').select('*')
+      db.from('family_trips').select('id,tipo,titulo,local,mes,ano,dia_inicio,dia_fim,notas,created_by')
         .order('ano', { ascending: false }).order('mes')
         .then(function (r) { setTrips(r.data || []); setLoading(false); })
         .catch(function (err) {
@@ -258,8 +244,14 @@ function ViagensApp(props) {
 
   function openAdd(mes) { setFormData(vgBlankForm(mes)); setForm('new'); }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: trip.fotos || [], _pendingFiles: [] });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], _pendingFiles: [] });
     setForm(trip);
+    db.from('family_trips').select('fotos').eq('id', trip.id).single()
+      .then(function(r) {
+        if (r.data && r.data.fotos) {
+          setFormData(function(prev) { return Object.assign({}, prev, { fotos: r.data.fotos }); });
+        }
+      });
   }
 
   function saveTrip() {
@@ -427,12 +419,10 @@ function ViagensApp(props) {
         VG_MONTHS.map(function (_, idx) {
           var mTrips = byMonth(year, idx);
           var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
-          var firstPhoto = mTrips.length > 0 && mTrips[0].fotos && mTrips[0].fotos[0];
           return React.createElement('button', {
             key: idx, onClick: function () { setSelMonth(idx); },
-            style: { position: 'relative', overflow: 'hidden', background: firstPhoto ? 'transparent' : (isCurrent ? T.goldDim : T.surface), border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left', minHeight: 70 }
+            style: { position: 'relative', overflow: 'hidden', background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left', minHeight: 70 }
           },
-            firstPhoto && React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: 'url(' + firstPhoto + ')', backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: 11, opacity: 0.35 } }),
             React.createElement('div', { style: { position: 'relative', zIndex: 1 } },
               React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? '#fff' : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
               mTrips.length === 0
