@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-22T18:08:20.484Z
+  Gerado em: 2026-08-22T18:09:22.304Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-183";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-184";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26656,11 +26656,18 @@ function ViagensApp(props) {
       fotos: formData.fotos || [],
       created_by: profile && profile.id
     };
-    var op = (form === 'new')
-      ? db.from('family_trips').insert(payload)
-      : db.from('family_trips').update(payload).eq('id', form.id);
-    op.then(function () { setSaving(false); setForm(null); load(); })
-      .catch(function () { setSaving(false); });
+    function doSave() {
+      var op = (form === 'new')
+        ? db.from('family_trips').insert(payload)
+        : db.from('family_trips').update(payload).eq('id', form.id);
+      op.then(function () { setSaving(false); setForm(null); load(); })
+        .catch(function (err) {
+          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
+            db.auth.refreshSession().then(function () { doSave(); }).catch(function () { setSaving(false); });
+          } else { setSaving(false); }
+        });
+    }
+    db.auth.refreshSession().then(function () { doSave(); }).catch(function () { doSave(); });
   }
 
   function deleteTrip(id) {

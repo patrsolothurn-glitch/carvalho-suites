@@ -279,11 +279,18 @@ function ViagensApp(props) {
       fotos: formData.fotos || [],
       created_by: profile && profile.id
     };
-    var op = (form === 'new')
-      ? db.from('family_trips').insert(payload)
-      : db.from('family_trips').update(payload).eq('id', form.id);
-    op.then(function () { setSaving(false); setForm(null); load(); })
-      .catch(function () { setSaving(false); });
+    function doSave() {
+      var op = (form === 'new')
+        ? db.from('family_trips').insert(payload)
+        : db.from('family_trips').update(payload).eq('id', form.id);
+      op.then(function () { setSaving(false); setForm(null); load(); })
+        .catch(function (err) {
+          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
+            db.auth.refreshSession().then(function () { doSave(); }).catch(function () { setSaving(false); });
+          } else { setSaving(false); }
+        });
+    }
+    db.auth.refreshSession().then(function () { doSave(); }).catch(function () { doSave(); });
   }
 
   function deleteTrip(id) {
