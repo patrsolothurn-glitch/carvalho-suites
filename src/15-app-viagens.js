@@ -176,6 +176,7 @@ function VgForm(props) {
           fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS'),
           React.createElement('input', {
             type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' },
+            onClick: function (e) { e.target.value = ''; },
             onChange: function (e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); }
           })
         )
