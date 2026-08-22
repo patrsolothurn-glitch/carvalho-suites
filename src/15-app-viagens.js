@@ -86,6 +86,9 @@ function VgForm(props) {
   var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving;
   var valid = form.titulo.trim() && form.local.trim();
   var fotos = form.fotos || [];
+  var _stExp = React.useState(false);
+  var expanded = _stExp[0], setExpanded = _stExp[1];
+  var visiveis = (!expanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
 
   function field(label, input) {
     return React.createElement('div', { style: { marginBottom: 12 } },
@@ -162,7 +165,7 @@ function VgForm(props) {
 
     field('FOTOS',
       React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' } },
-        fotos.map(function (url, idx) {
+        visiveis.map(function (url, idx) {
           return React.createElement('div', { key: idx, style: { position: 'relative', width: 80, height: 80, flexShrink: 0 } },
             React.createElement('img', { src: url, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11, border: '1px solid ' + T.border, display: 'block' } }),
             React.createElement('button', {
@@ -171,6 +174,20 @@ function VgForm(props) {
             }, '✕')
           );
         }),
+        !expanded && fotos.length > 3 && React.createElement('button', {
+          onClick: function () { setExpanded(true); },
+          style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }
+        },
+          React.createElement('span', { style: { fontSize: 22 } }, '📁'),
+          React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, '+' + (fotos.length - 3) + ' fotos')
+        ),
+        expanded && fotos.length > 3 && React.createElement('button', {
+          onClick: function () { setExpanded(false); },
+          style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }
+        },
+          React.createElement('span', { style: { fontSize: 22 } }, '📁'),
+          React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, 'Fechar')
+        ),
         React.createElement('label', {
           style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2, flexShrink: 0 }
         },
