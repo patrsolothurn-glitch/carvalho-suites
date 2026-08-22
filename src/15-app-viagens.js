@@ -398,20 +398,34 @@ function ViagensApp(props) {
         VG_MONTHS.map(function (_, idx) {
           var mTrips = byMonth(year, idx);
           var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
+          var firstPhoto = mTrips.length > 0 && mTrips[0].fotos && mTrips[0].fotos[0];
           return React.createElement('button', {
             key: idx, onClick: function () { setSelMonth(idx); },
-            style: { background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left' }
+            style: {
+              position: 'relative', overflow: 'hidden',
+              background: firstPhoto ? 'transparent' : (isCurrent ? T.goldDim : T.surface),
+              border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)),
+              borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left',
+              minHeight: 70
+            }
           },
-            React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : T.muted, marginBottom: 6 } }, VG_SHORT[idx]),
-            mTrips.length === 0
-              ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
-              : React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3 } },
-                  mTrips.slice(0, 3).map(function (t) {
-                    var ti = vgType(t.tipo);
-                    return React.createElement('div', { key: t.id, style: { fontSize: 10, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 6px', borderRadius: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, t.titulo);
-                  }),
-                  mTrips.length > 3 && React.createElement('div', { style: { fontSize: 10, color: T.muted } }, '+' + (mTrips.length - 3) + ' mais')
-                )
+            firstPhoto && React.createElement('div', {
+              style: { position: 'absolute', inset: 0, backgroundImage: 'url(' + firstPhoto + ')', backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: 11, opacity: 0.35 }
+            }),
+            React.createElement('div', { style: { position: 'relative', zIndex: 1 } },
+              React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? '#fff' : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
+              mTrips.length === 0
+                ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
+                : React.createElement('div', null,
+                    React.createElement('div', { style: { display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 3 } },
+                      mTrips.slice(0, 2).map(function (t) {
+                        var ti = vgType(t.tipo);
+                        return React.createElement('div', { key: t.id, style: { fontSize: 10, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 6px', borderRadius: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, ti.emoji);
+                      })
+                    ),
+                    React.createElement('div', { style: { fontSize: 9, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.45)', padding: '2px 5px', borderRadius: 4, display: 'inline-block' } }, mTrips.length + (mTrips.length === 1 ? ' entrada' : ' entradas'))
+                  )
+            )
           );
         })
       ),
