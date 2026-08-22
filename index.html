@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-22T18:36:46.258Z
+  Gerado em: 2026-08-22T18:41:27.858Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-188";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-189";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26455,7 +26455,7 @@ function VgTripCard(props) {
 
 // ── Formulário (nova / editar) ─────────────────────────────────────
 function VgForm(props) {
-  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving;
+  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving, progress = props.progress;
   var valid = form.titulo.trim() && form.local.trim();
   var fotos = form.fotos || [];
   var _stExp = React.useState(false);
@@ -26704,7 +26704,7 @@ function ViagensApp(props) {
   if (form) {
     return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
       headerBar,
-      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving })
+      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving, progress: progress })
     );
   }
 

@@ -78,7 +78,7 @@ function VgTripCard(props) {
 
 // ── Formulário (nova / editar) ─────────────────────────────────────
 function VgForm(props) {
-  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving;
+  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving, progress = props.progress;
   var valid = form.titulo.trim() && form.local.trim();
   var fotos = form.fotos || [];
   var _stExp = React.useState(false);
@@ -327,7 +327,7 @@ function ViagensApp(props) {
   if (form) {
     return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
       headerBar,
-      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving })
+      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving, progress: progress })
     );
   }
 
