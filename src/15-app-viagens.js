@@ -98,7 +98,7 @@ function VgForm(props) {
   }
   var inputStyle = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
 
-  var MAX_FOTOS = 20;
+  var MAX_FOTOS = 50;
 
   function addFotos(files) {
     var current = fotos.slice();
@@ -110,7 +110,7 @@ function VgForm(props) {
       (function (file) {
         promises.push(new Promise(function (resolve) {
           var reader = new FileReader();
-          reader.onload = function (ev2) { vgResizeImage(ev2.target.result, 600).then(resolve); };
+          reader.onload = function (ev2) { vgResizeImage(ev2.target.result, 400).then(resolve); };
           reader.readAsDataURL(file);
         }));
       })(toProcess[i]);
