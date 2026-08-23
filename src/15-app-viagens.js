@@ -24,16 +24,37 @@ function vgBlankForm(mes) {
   return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, dia_inicio: '', dia_fim: '', notas: '', fotos: [], album_url: '' };
 }
 
+function vgResizeFoto(file) {
+  return new Promise(function(resolve) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var maxW = 1200, maxH = 1200;
+      var w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function(blob) { resolve(blob || file); }, 'image/jpeg', 0.82);
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 function vgUploadFoto(db, file, tripId, idx) {
   return new Promise(function (resolve, reject) {
-    var ext = file.name ? file.name.split('.').pop() : 'jpg';
-    var path = tripId + '/' + Date.now() + '_' + idx + '.' + ext;
-    db.storage.from(VG_BUCKET).upload(path, file, { upsert: true })
-      .then(function (r) {
-        if (r.error) { reject(r.error); return; }
-        var url = VG_SUPABASE_URL + '/storage/v1/object/public/' + VG_BUCKET + '/' + path;
-        resolve(url);
-      }).catch(reject);
+    vgResizeFoto(file).then(function(blob) {
+      var path = tripId + '/' + Date.now() + '_' + idx + '.jpg';
+      db.storage.from(VG_BUCKET).upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+        .then(function (r) {
+          if (r.error) { reject(r.error); return; }
+          var url = VG_SUPABASE_URL + '/storage/v1/object/public/' + VG_BUCKET + '/' + path;
+          resolve(url);
+        }).catch(reject);
+    }).catch(function() { reject(new Error('Erro ao redimensionar foto')); });
   });
 }
 
@@ -299,8 +320,8 @@ function ViagensApp(props) {
 
     function uploadBatch(files, startIdx, cb) {
       if (files.length === 0) { cb(); return; }
-      var batch = files.slice(0, 5);
-      var rest = files.slice(5);
+      var batch = files.slice(0, 8);
+      var rest = files.slice(8);
       var promises = batch.map(function(file, i) { return vgUploadFoto(db, file, tripId, startIdx + i); });
       Promise.all(promises).then(function(batchUrls) {
         for (var i = 0; i < batchUrls.length; i++) urls[startIdx + i] = batchUrls[i];
