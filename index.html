@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-23T08:30:09.804Z
+  Gerado em: 2026-08-23T08:32:55.840Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-198";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-199";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26475,7 +26475,38 @@ function VgForm(props) {
   var fotos = form.fotos || [];
   var _stExp = React.useState(false);
   var expanded = _stExp[0], setExpanded = _stExp[1];
+  var _stSrcPicker = React.useState(false);
+  var showSrcPicker = _stSrcPicker[0], setShowSrcPicker = _stSrcPicker[1];
+  var _stSrcPref = React.useState(null);
+  var srcPref = _stSrcPref[0], setSrcPref = _stSrcPref[1];
+  React.useEffect(function() {
+    try { setSrcPref(localStorage.getItem('vg_foto_src')); } catch(e) {}
+  }, []);
   var visiveis = (!expanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
+
+  var VG_SRCS = [
+    { id: 'galeria', label: 'Galeria', emoji: '🖼️', accept: 'image/*' },
+    { id: 'ficheiros', label: 'Ficheiros / Drive / OneDrive', emoji: '📁', accept: '*/*' },
+    { id: 'camara', label: 'Câmara', emoji: '📷', accept: 'image/*', capture: 'environment' },
+  ];
+
+  function openAddFotos() {
+    if (srcPref) {
+      var el = document.getElementById('vg-input-' + srcPref);
+      if (el) { el.value = ''; el.click(); return; }
+    }
+    setShowSrcPicker(true);
+  }
+
+  function pickSource(srcId) {
+    try { localStorage.setItem('vg_foto_src', srcId); } catch(e) {}
+    setSrcPref(srcId);
+    setShowSrcPicker(false);
+    setTimeout(function() {
+      var el = document.getElementById('vg-input-' + srcId);
+      if (el) { el.value = ''; el.click(); }
+    }, 50);
+  }
 
   function field(label, input) {
     return React.createElement('div', { style: { marginBottom: 12 } },
@@ -26580,16 +26611,53 @@ function VgForm(props) {
           onClick: function () { setExpanded(false); },
           style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }
         }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, 'Fechar')),
-        React.createElement('label', {
-          style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2, flexShrink: 0 }
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 } },
+          React.createElement('button', {
+            onClick: openAddFotos,
+            style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2 }
+          },
+            '➕',
+            fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS')
+          ),
+          srcPref && React.createElement('span', {
+            onClick: function() { setShowSrcPicker(true); },
+            style: { fontSize: 9, color: T.gold, cursor: 'pointer', fontWeight: 700 }
+          }, VG_SRCS.find(function(s) { return s.id === srcPref; }) ? VG_SRCS.find(function(s) { return s.id === srcPref; }).emoji + ' mudar' : 'mudar')
+        ),
+
+        VG_SRCS.map(function(src) {
+          var attrs = { id: 'vg-input-' + src.id, type: 'file', accept: src.accept, multiple: !src.capture, style: { display: 'none' }, onChange: function(e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); } };
+          if (src.capture) attrs.capture = src.capture;
+          return React.createElement('input', Object.assign({ key: src.id }, attrs));
+        }),
+
+        showSrcPicker && React.createElement('div', {
+          onClick: function() { setShowSrcPicker(false); },
+          style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'flex-end' }
         },
-          '➕',
-          fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS'),
-          React.createElement('input', {
-            type: 'file', accept: '*/*', multiple: true, style: { display: 'none' },
-            onClick: function (e) { e.target.value = ''; },
-            onChange: function (e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); }
-          })
+          React.createElement('div', {
+            onClick: function(e) { e.stopPropagation(); },
+            style: { width: '100%', background: T.surface, borderRadius: '18px 18px 0 0', padding: '18px 20px 32px', boxSizing: 'border-box' }
+          },
+            React.createElement('div', { style: { width: 36, height: 4, background: T.border, borderRadius: 99, margin: '0 auto 18px' } }),
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 15, marginBottom: 16, color: T.text } }, '📎 Onde estão as fotos?'),
+            VG_SRCS.map(function(src) {
+              var isActive = srcPref === src.id;
+              return React.createElement('div', {
+                key: src.id,
+                onClick: function() { pickSource(src.id); },
+                style: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid ' + T.border, cursor: 'pointer' }
+              },
+                React.createElement('span', { style: { fontSize: 22, width: 32, textAlign: 'center' } }, src.emoji),
+                React.createElement('span', { style: { flex: 1, fontWeight: 600, fontSize: 15, color: isActive ? T.gold : T.text } }, src.label),
+                isActive && React.createElement('span', { style: { fontSize: 12, color: T.gold, fontWeight: 800 } }, '✓ Em uso')
+              );
+            }),
+            React.createElement('button', {
+              onClick: function() { setShowSrcPicker(false); },
+              style: { width: '100%', marginTop: 16, padding: '12px 0', borderRadius: 11, border: '1px solid ' + T.border, background: 'none', color: T.muted, fontWeight: 700, fontSize: 15, cursor: 'pointer' }
+            }, 'Cancelar')
+          )
         )
       )
     ),
