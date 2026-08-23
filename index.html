@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-23T08:36:28.065Z
+  Gerado em: 2026-08-23T08:47:55.927Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-200";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-201";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26923,13 +26923,14 @@ function ViagensApp(props) {
               mTrips.length === 0
                 ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
                 : React.createElement('div', null,
-                    React.createElement('div', { style: { display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 3 } },
-                      mTrips.slice(0, 2).map(function (t) {
-                        var ti = vgType(t.tipo);
-                        return React.createElement('div', { key: t.id, style: { fontSize: 10, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 6px', borderRadius: 5 } }, ti.emoji);
-                      })
-                    ),
-                    React.createElement('div', { style: { fontSize: 9, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.45)', padding: '2px 5px', borderRadius: 4, display: 'inline-block' } }, mTrips.length + (mTrips.length === 1 ? ' entrada' : ' entradas'))
+                    mTrips.slice(0, 3).map(function (t) {
+                      var ti = vgType(t.tipo);
+                      return React.createElement('div', { key: t.id, style: { display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 } },
+                        React.createElement('span', { style: { fontSize: 9, flexShrink: 0, color: ti.color } }, ti.emoji),
+                        React.createElement('span', { style: { fontSize: 9, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo || t.local)
+                      );
+                    }),
+                    mTrips.length > 3 && React.createElement('div', { style: { fontSize: 8, color: T.muted, marginTop: 1 } }, '+' + (mTrips.length - 3) + ' mais')
                   )
             )
           );
