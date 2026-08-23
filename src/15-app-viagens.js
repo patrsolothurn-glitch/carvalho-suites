@@ -21,7 +21,7 @@ var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
 var VG_BUCKET = 'trip-photos';
 
 function vgBlankForm(mes, ano) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, ano: ano || new Date().getFullYear(), dia_inicio: '', dia_fim: '', notas: '', fotos: [], album_url: '' };
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, ano: ano || new Date().getFullYear(), dia_inicio: '', dia_fim: '', notas: 'Toda a Família', fotos: [], album_url: '' };
 }
 
 function vgResizeFoto(file) {
