@@ -105,17 +105,19 @@ function VgForm(props) {
   var inputStyle = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
 
   function addFiles(files) {
-    var newFiles = (form._pendingFiles || []).concat(Array.prototype.slice.call(files));
+    var imgFiles = Array.prototype.slice.call(files).filter(function(f) { return f.type.indexOf('image/') === 0; });
+    if (!imgFiles.length) return;
+    var newFiles = (form._pendingFiles || []).concat(imgFiles);
     var previews = fotos.slice();
     var promises = [];
-    for (var i = 0; i < files.length; i++) {
+    for (var i = 0; i < imgFiles.length; i++) {
       (function(file) {
         promises.push(new Promise(function(resolve) {
           var reader = new FileReader();
           reader.onload = function(e) { resolve(e.target.result); };
           reader.readAsDataURL(file);
         }));
-      })(files[i]);
+      })(imgFiles[i]);
     }
     Promise.all(promises).then(function(results) {
       setForm(Object.assign({}, form, { fotos: previews.concat(results), _pendingFiles: newFiles }));
@@ -196,7 +198,7 @@ function VgForm(props) {
           '➕',
           fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS'),
           React.createElement('input', {
-            type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' },
+            type: 'file', accept: '*/*', multiple: true, style: { display: 'none' },
             onClick: function (e) { e.target.value = ''; },
             onChange: function (e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); }
           })
