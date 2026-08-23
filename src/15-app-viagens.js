@@ -89,7 +89,7 @@ function VgTripCard(props) {
 
 // ── Formulário (nova / editar) ─────────────────────────────────────
 function VgForm(props) {
-  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving, progress = props.progress;
+  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving, progress = props.progress, fotosLoading = props.fotosLoading;
   var valid = form.titulo.trim() && form.local.trim();
   var fotos = form.fotos || [];
   var _stExp = React.useState(false);
@@ -215,9 +215,9 @@ function VgForm(props) {
     })),
 
     React.createElement('button', {
-      onClick: onSave, disabled: !valid || saving,
-      style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 }
-    }, saving ? (progress ? ('A guardar ' + progress.done + '/' + progress.total + '…') : 'A guardar…') : (isEdit ? 'Guardar Alterações' : '✚ Adicionar'))
+      onClick: onSave, disabled: !valid || saving || fotosLoading,
+      style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving || fotosLoading) ? 0.45 : 1 }
+    }, saving ? (progress ? ('A guardar ' + progress.done + '/' + progress.total + '…') : 'A guardar…') : fotosLoading ? '⏳ A carregar fotos…' : (isEdit ? 'Guardar Alterações' : '✚ Adicionar'))
   );
 }
 
@@ -275,13 +275,18 @@ function ViagensApp(props) {
 
   function openAdd(mes) { setFormData(vgBlankForm(mes)); setForm('new'); }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], album_url: trip.album_url || '', _pendingFiles: [] });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], album_url: trip.album_url || '', _pendingFiles: [], _fotosLoading: true });
     setForm(trip);
     db.from('family_trips').select('fotos').eq('id', trip.id).single()
       .then(function(r) {
         if (r.data && r.data.fotos) {
-          setFormData(function(prev) { return Object.assign({}, prev, { fotos: r.data.fotos }); });
+          setFormData(function(prev) { return Object.assign({}, prev, { fotos: r.data.fotos, _fotosLoading: false }); });
+        } else {
+          setFormData(function(prev) { return Object.assign({}, prev, { _fotosLoading: false }); });
         }
+      })
+      .catch(function() {
+        setFormData(function(prev) { return Object.assign({}, prev, { _fotosLoading: false }); });
       });
   }
 
@@ -351,7 +356,7 @@ function ViagensApp(props) {
   if (form) {
     return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
       headerBar,
-      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving, progress: progress })
+      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving, progress: progress, fotosLoading: !!formData._fotosLoading })
     );
   }
 
