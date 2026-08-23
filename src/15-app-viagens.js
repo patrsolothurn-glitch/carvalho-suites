@@ -94,8 +94,6 @@ function VgForm(props) {
   var fotos = form.fotos || [];
   var _stExp = React.useState(false);
   var expanded = _stExp[0], setExpanded = _stExp[1];
-  var _stSrcPicker = React.useState(false);
-  var showSrcPicker = _stSrcPicker[0], setShowSrcPicker = _stSrcPicker[1];
   var visiveis = (!expanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
 
   function field(label, input) {
@@ -192,43 +190,16 @@ function VgForm(props) {
           onClick: function () { setExpanded(false); },
           style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }
         }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, 'Fechar')),
-        React.createElement('button', {
-          onClick: function () { setShowSrcPicker(true); },
+        React.createElement('label', {
           style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2, flexShrink: 0 }
         },
           '➕',
-          fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS')
-        ),
-
-        showSrcPicker && React.createElement('div', {
-          onClick: function () { setShowSrcPicker(false); },
-          style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'flex-end' }
-        },
-          React.createElement('div', {
-            onClick: function (e) { e.stopPropagation(); },
-            style: { width: '100%', background: T.surface, borderRadius: '18px 18px 0 0', padding: '18px 20px 32px', boxSizing: 'border-box' }
-          },
-            React.createElement('div', { style: { width: 36, height: 4, background: T.border, borderRadius: 99, margin: '0 auto 18px' } }),
-            React.createElement('div', { style: { fontWeight: 800, fontSize: 15, marginBottom: 16, color: T.text } }, '📎 Adicionar fotos'),
-            ['📷 Câmara|image/*|environment', '🖼️ Galeria & Google Fotos|image/*|', '📁 Ficheiros / OneDrive|*/*|'].map(function(opt) {
-              var parts = opt.split('|');
-              var label = parts[0], accept = parts[1], capture = parts[2];
-              var attrs = { type: 'file', multiple: !capture, accept: accept, style: { display: 'none' }, onClick: function(e) { e.target.value = ''; }, onChange: function(e) { if (e.target.files && e.target.files.length) { addFiles(e.target.files); setShowSrcPicker(false); } } };
-              if (capture) { attrs.capture = capture; attrs.multiple = false; }
-              return React.createElement('label', {
-                key: label,
-                style: { display: 'flex', alignItems: 'center', gap: 14, padding: '13px 0', borderBottom: '1px solid ' + T.border, cursor: 'pointer', color: T.text, fontWeight: 600, fontSize: 15 }
-              },
-                React.createElement('span', { style: { fontSize: 22, width: 32, textAlign: 'center' } }, label.split(' ')[0]),
-                React.createElement('span', null, label.split(' ').slice(1).join(' ')),
-                React.createElement('input', attrs)
-              );
-            }),
-            React.createElement('button', {
-              onClick: function () { setShowSrcPicker(false); },
-              style: { width: '100%', marginTop: 16, padding: '12px 0', borderRadius: 11, border: '1px solid ' + T.border, background: 'none', color: T.muted, fontWeight: 700, fontSize: 15, cursor: 'pointer' }
-            }, 'Cancelar')
-          )
+          fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS'),
+          React.createElement('input', {
+            type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' },
+            onClick: function (e) { e.target.value = ''; },
+            onChange: function (e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); }
+          })
         )
       )
     ),
