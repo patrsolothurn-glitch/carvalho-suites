@@ -542,13 +542,14 @@ function ViagensApp(props) {
               mTrips.length === 0
                 ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
                 : React.createElement('div', null,
-                    React.createElement('div', { style: { display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 3 } },
-                      mTrips.slice(0, 2).map(function (t) {
-                        var ti = vgType(t.tipo);
-                        return React.createElement('div', { key: t.id, style: { fontSize: 10, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 6px', borderRadius: 5 } }, ti.emoji);
-                      })
-                    ),
-                    React.createElement('div', { style: { fontSize: 9, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.45)', padding: '2px 5px', borderRadius: 4, display: 'inline-block' } }, mTrips.length + (mTrips.length === 1 ? ' entrada' : ' entradas'))
+                    mTrips.slice(0, 3).map(function (t) {
+                      var ti = vgType(t.tipo);
+                      return React.createElement('div', { key: t.id, style: { display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 } },
+                        React.createElement('span', { style: { fontSize: 9, flexShrink: 0, color: ti.color } }, ti.emoji),
+                        React.createElement('span', { style: { fontSize: 9, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo || t.local)
+                      );
+                    }),
+                    mTrips.length > 3 && React.createElement('div', { style: { fontSize: 8, color: T.muted, marginTop: 1 } }, '+' + (mTrips.length - 3) + ' mais')
                   )
             )
           );
