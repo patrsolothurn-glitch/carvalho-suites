@@ -546,7 +546,7 @@ function ViagensApp(props) {
                       var ti = vgType(t.tipo);
                       return React.createElement('div', { key: t.id, style: { display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 } },
                         React.createElement('span', { style: { fontSize: 9, flexShrink: 0, color: ti.color } }, ti.emoji),
-                        React.createElement('span', { style: { fontSize: 9, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo || t.local)
+                        React.createElement('span', { style: { fontSize: 9, fontWeight: 700, color: ti.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo || t.local)
                       );
                     }),
                     mTrips.length > 3 && React.createElement('div', { style: { fontSize: 8, color: T.muted, marginTop: 1 } }, '+' + (mTrips.length - 3) + ' mais')
