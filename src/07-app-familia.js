@@ -2671,8 +2671,9 @@ function FamiliaApp(_ref19) {
     var todayStr2 = "".concat(now.getFullYear(), "-").concat(String(now.getMonth() + 1).padStart(2, '0'), "-").concat(String(now.getDate()).padStart(2, '0'));
     var weekEnd = new Date(now);
     weekEnd.setDate(weekEnd.getDate() + 7);
+    weekEnd.setHours(23, 59, 59, 999);
     var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     // Collect all events with dates
     var allEvs = Object.entries(events).flatMap(function (_ref21) {
