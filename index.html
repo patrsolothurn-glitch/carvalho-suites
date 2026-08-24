@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-24T16:03:43.131Z
+  Gerado em: 2026-08-24T19:31:12.441Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-206";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-207";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24416,6 +24416,8 @@ var HauswartApp = function(props) {
       .eq('member_id', owner)
       .single()
       .then(function(res) {
+        // Se tabela não existe (PGRST205) ou erro → usa localStorage silenciosamente
+        if (res.error) { setReady(true); return; }
         if (res.data) {
           var d = res.data;
           if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
@@ -24427,20 +24429,23 @@ var HauswartApp = function(props) {
           if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
         }
         setReady(true);
-      })
-      .catch(function() { setReady(true); });
+      });
   }, []);
 
-  // ── Sync to Supabase (fire-and-forget, localStorage is the immediate backup) ──
+  // ── Sync to Supabase (fire-and-forget, localStorage é o backup imediato) ──
   var hwSync = function(w, m, c, a) {
     hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
     if (!window.supabaseClient) return;
+    // Supabase v2: sem .catch() — erros ficam em res.error
     window.supabaseClient.from('hauswart_data').upsert({
       member_id: owner,
       works: w, mats: m, cfg: c, archive: a,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'member_id' })
-    .catch(function(e) { console.error('Hauswart sync error:', e); });
+    }, { onConflict: 'member_id' }).then(function(res) {
+      if (res && res.error && res.error.code !== 'PGRST205') {
+        console.warn('Hauswart sync:', res.error.message);
+      }
+    });
   };
 
   var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
