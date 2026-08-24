@@ -39,17 +39,8 @@ var wrap = {
   color: T.text,
   overflowX: 'hidden'
 };
-function resolveThemeName(themeName) {
-  if (themeName === 'auto') {
-    try {
-      return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-    } catch (e) { return 'dark'; }
-  }
-  return themeName;
-}
 function applyTheme(themeName) {
-  var resolved = resolveThemeName(themeName);
-  var src = resolved === 'light' ? T_LIGHT : T_DARK;
+  var src = themeName === 'light' ? T_LIGHT : T_DARK;
   Object.assign(T, src);
   wrap.background = T.bg;
   wrap.color = T.text;
@@ -163,11 +154,4 @@ var APPS_DATA = [{
   badge: null,
   color: '#F59E0B',
   adminOnly: true
-}, {
-  id: 'viagens',
-  emoji: '✈️',
-  name: 'Viagens & Visitas',
-  desc: 'Onde fomos e quando',
-  badge: null,
-  color: '#F97316'
 }];
