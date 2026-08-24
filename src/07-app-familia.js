@@ -2671,6 +2671,7 @@ function FamiliaApp(_ref19) {
     var todayStr2 = "".concat(now.getFullYear(), "-").concat(String(now.getMonth() + 1).padStart(2, '0'), "-").concat(String(now.getDate()).padStart(2, '0'));
     var weekEnd = new Date(now);
     weekEnd.setDate(weekEnd.getDate() + 7);
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Collect all events with dates
@@ -2699,7 +2700,7 @@ function FamiliaApp(_ref19) {
       if (selMember !== 'todos' && evIds.indexOf('todos') === -1 && evIds.indexOf(selMember) === -1) return false;
       if (timeTab === 'Hoje') return ev.date === todayStr2;
       if (timeTab === 'Semana') return d >= now && d <= weekEnd;
-      return d >= now && d <= monthEnd;
+      return d >= monthStart && d <= monthEnd;
     }).sort(function (a, b) {
       return a.date.localeCompare(b.date);
     });
