@@ -91,7 +91,10 @@ function FamiliaApp(_ref19) {
       diaTodo: false,
       nota: '',
       lembrete: null,
-      foto: null
+      foto: null,
+      repetir: false,
+      diasSemana: [],
+      repetirAte: ''
     }),
     _useState106 = _slicedToArray(_useState105, 2),
     form = _useState106[0],
@@ -536,15 +539,29 @@ function FamiliaApp(_ref19) {
       foto: form.foto || null,
       nota: form.nota
     };
-    var ate = form.dataATE && form.dataATE >= form.dataDE ? form.dataATE : form.dataDE;
-    // Gerar todos os dias do intervalo
-    var cur = new Date(form.dataDE + 'T12:00:00');
-    var fim = new Date(ate + 'T12:00:00');
     var updates = {};
-    while (cur <= fim) {
-      var d = cur.toISOString().slice(0, 10);
-      updates[d] = true;
-      cur.setDate(cur.getDate() + 1);
+    if (form.repetir && form.diasSemana && form.diasSemana.length > 0 && form.repetirAte) {
+      // Repetição semanal: só nos dias da semana escolhidos, até à data limite
+      var curR = new Date(form.dataDE + 'T12:00:00');
+      var fimR = new Date(form.repetirAte + 'T12:00:00');
+      // getDay(): 0=Dom,1=Seg,...6=Sáb — diasSemana guarda 1=Seg..7=Dom
+      while (curR <= fimR) {
+        var dow = curR.getDay() === 0 ? 7 : curR.getDay();
+        if (form.diasSemana.indexOf(dow) !== -1) {
+          updates[curR.toISOString().slice(0, 10)] = true;
+        }
+        curR.setDate(curR.getDate() + 1);
+      }
+    } else {
+      var ate = form.dataATE && form.dataATE >= form.dataDE ? form.dataATE : form.dataDE;
+      // Gerar todos os dias do intervalo
+      var cur = new Date(form.dataDE + 'T12:00:00');
+      var fim = new Date(ate + 'T12:00:00');
+      while (cur <= fim) {
+        var d = cur.toISOString().slice(0, 10);
+        updates[d] = true;
+        cur.setDate(cur.getDate() + 1);
+      }
     }
     setEvents(function (p) {
       var np = _objectSpread({}, p);
@@ -596,7 +613,10 @@ function FamiliaApp(_ref19) {
       diaTodo: false,
       nota: '',
       lembrete: null,
-      foto: null
+      foto: null,
+      repetir: false,
+      diasSemana: [],
+      repetirAte: ''
     });
     setAddingEvent(false);
     setShowAdd(false);
@@ -738,6 +758,13 @@ function FamiliaApp(_ref19) {
     }
   }, "\uD83D\uDCE6")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
+      var todayISO = new Date().toISOString().slice(0, 10);
+      setForm(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, {
+          dataDE: p.dataDE || todayISO,
+          dataATE: p.dataATE || todayISO
+        });
+      });
       return setShowAdd(true);
     },
     style: {
@@ -3313,7 +3340,87 @@ function FamiliaApp(_ref19) {
       fontSize: 12,
       fontWeight: 700
     }
-  }, "\uD83D\uDCC5 ", Math.round((new Date(form.dataATE) - new Date(form.dataDE)) / 86400000) + 1, " dias marcados")), /*#__PURE__*/React.createElement("p", {
+  }, "\uD83D\uDCC5 ", Math.round((new Date(form.dataATE) - new Date(form.dataDE)) / 86400000) + 1, " dias marcados")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: form.repetir ? 10 : 16,
+      cursor: 'pointer'
+    },
+    onClick: function onClick() {
+      return setForm(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, { repetir: !p.repetir });
+      });
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 20, height: 20, borderRadius: 6,
+      border: "2px solid ".concat(form.repetir ? F.coral : F.border),
+      background: form.repetir ? F.coral : 'transparent',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: '#fff', fontSize: 12, fontWeight: 900, flexShrink: 0
+    }
+  }, form.repetir ? '✓' : ''), /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 13, fontWeight: 700, color: F.text }
+  }, "\uD83D\uDD01 Repetir semanalmente")), form.repetir && /*#__PURE__*/React.createElement("div", {
+    style: { marginBottom: 16, background: F.surface2, borderRadius: 12, padding: 12, border: "1px solid ".concat(F.border) }
+  },
+    /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
+    }, "Repete \xE0s"),
+    /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }
+    }, [
+      { label: 'Seg', val: 1 }, { label: 'Ter', val: 2 }, { label: 'Qua', val: 3 },
+      { label: 'Qui', val: 4 }, { label: 'Sex', val: 5 }, { label: 'Sáb', val: 6 }, { label: 'Dom', val: 7 }
+    ].map(function (dOpt) {
+      var isSel = (form.diasSemana || []).indexOf(dOpt.val) !== -1;
+      return /*#__PURE__*/React.createElement("button", {
+        key: dOpt.val,
+        onClick: function onClick() {
+          return setForm(function (p) {
+            var cur = p.diasSemana || [];
+            var next = cur.indexOf(dOpt.val) !== -1 ? cur.filter(function (x) { return x !== dOpt.val; }) : [].concat(_toConsumableArray(cur), [dOpt.val]);
+            return _objectSpread(_objectSpread({}, p), {}, { diasSemana: next });
+          });
+        },
+        style: {
+          width: 40, height: 36, borderRadius: 10,
+          border: isSel ? "1.5px solid ".concat(F.coral) : "1.5px solid ".concat(F.border),
+          background: isSel ? F.coral : F.surface,
+          color: isSel ? '#fff' : F.muted,
+          fontSize: 11, fontWeight: 800, cursor: 'pointer'
+        }
+      }, dOpt.label);
+    })),
+    /*#__PURE__*/React.createElement("p", {
+      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+    }, "At\xE9 quando"),
+    /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      value: form.repetirAte,
+      min: form.dataDE,
+      onChange: function onChange(e) {
+        return setForm(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, { repetirAte: e.target.value });
+        });
+      },
+      style: {
+        width: '100%',
+        background: F.surface,
+        border: "1px solid ".concat(form.repetirAte ? F.coral : F.border),
+        borderRadius: 10,
+        padding: '9px 10px',
+        color: F.text,
+        fontSize: 13,
+        outline: 'none',
+        boxSizing: 'border-box'
+      }
+    }), form.diasSemana && form.diasSemana.length > 0 && form.repetirAte && form.dataDE && /*#__PURE__*/React.createElement("p", {
+      style: { color: F.coral, fontSize: 11, fontWeight: 700, marginTop: 8, textAlign: 'center' }
+    }, "\uD83D\uDD01 Vai criar eventos todas as semanas nos dias escolhidos, at\xE9 ", new Date(form.repetirAte + 'T12:00:00').toLocaleDateString('pt-PT'))
+  ), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 10,
