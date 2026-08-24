@@ -1238,12 +1238,26 @@ function FamiliaApp(_ref19) {
       var _todayMidS = new Date(); _todayMidS.setHours(0, 0, 0, 0);
       var _endDateS = new Date(weekStart.getTime() + _endDay * 86400000);
       var _isDoneSpan = !!g.ev.arquivado && _endDateS < _todayMidS;
+      // Calcular o intervalo REAL (todas as datas, não só as desta semana)
+      var _titleKey = (g.ev.t || '').toLowerCase().trim();
+      var _allMatchDates = Object.keys(events).filter(function (dk) {
+        return (events[dk] || []).some(function (e) { return (e.t || '').toLowerCase().trim() === _titleKey; });
+      }).sort();
+      var _realStart = _allMatchDates[0];
+      var _realEnd = _allMatchDates[_allMatchDates.length - 1];
+      var _fmtShort = function (ds) { return ds ? new Date(ds + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }) : ''; };
       return /*#__PURE__*/React.createElement("div", {
         key: si,
         style: { display: 'grid', gridTemplateColumns: '52px repeat(7, 1fr)', height: 22, marginBottom: si < _spans.length - 1 ? 2 : 0 }
       },
       /*#__PURE__*/React.createElement("div"),
       /*#__PURE__*/React.createElement("div", {
+        onClick: function () {
+          skipDayResetRef.current = true;
+          setCurMonth(new Date(weekStart.getFullYear(), weekStart.getMonth(), 1));
+          setSelDay(new Date(weekStart.getTime() + _startDay * 86400000).getDate());
+          setMainView('mes');
+        },
         style: {
           gridColumn: "".concat(_startDay + 2, " / ").concat(_endDay + 3),
           background: _isDoneSpan ? 'rgba(37,99,235,0.08)' : "".concat(g.ev.color, "18"),
@@ -1258,9 +1272,12 @@ function FamiliaApp(_ref19) {
           gap: 3,
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          textDecoration: _isDoneSpan ? 'line-through' : 'none'
+          textDecoration: _isDoneSpan ? 'line-through' : 'none',
+          cursor: 'pointer'
         }
-      }, _isDoneSpan ? '\u2713' : g.ev.emoji, " ", g.ev.t));
+      }, _isDoneSpan ? '\u2713' : g.ev.emoji, " ", g.ev.t, /*#__PURE__*/React.createElement("span", {
+        style: { fontWeight: 600, opacity: 0.75, marginLeft: 2 }
+      }, _realStart && _realEnd ? "(".concat(_fmtShort(_realStart), "\u2013").concat(_fmtShort(_realEnd), ")") : '')));
     }));
   })(), Array.from({
     length: 7
@@ -1280,6 +1297,7 @@ function FamiliaApp(_ref19) {
       (events[_mds] || []).forEach(function (ev) { var k = (ev.t || '').toLowerCase().trim(); if (!_seenM.has(k)) { _seenM.add(k); _mdMap[k] = (_mdMap[k] || 0) + 1; } });
     }
     var dayEvs = (events[dStr] || []).filter(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) < 3; });
+    var _spanEvOnDay = (events[dStr] || []).find(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) >= 3; });
     var dayShared = sharedDias.filter(function (x) {
       return x.date === dStr;
     });
@@ -1291,7 +1309,7 @@ function FamiliaApp(_ref19) {
           return m.id !== 'todos';
         }).length, ",1fr)"),
         borderBottom: di < 6 ? "1px solid ".concat(F.border) : 'none',
-        background: isToday ? 'rgba(232,119,58,0.04)' : isWeekend ? 'rgba(0,0,0,0.01)' : 'transparent'
+        background: isToday ? 'rgba(232,119,58,0.04)' : _spanEvOnDay ? "".concat(_spanEvOnDay.color, "0c") : isWeekend ? 'rgba(0,0,0,0.01)' : 'transparent'
       }
     }, /*#__PURE__*/React.createElement("div", {
       onClick: function() {
@@ -1344,8 +1362,9 @@ function FamiliaApp(_ref19) {
         var toMin = function(h) { if (!h) return 9999; var p = h.split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0); };
         return toMin(a.hora) - toMin(b.hora);
       });
+      var spanVisibleHere = _spanEvOnDay && eventVisibleTo(_spanEvOnDay, m.id);
       var mShared = dayShared.length > 0 && m.id === 'patricio';
-      var isEmptyCell = mEvs.length === 0 && !mShared;
+      var isEmptyCell = mEvs.length === 0 && !mShared && !spanVisibleHere;
       return /*#__PURE__*/React.createElement("div", {
         key: m.id,
         onClick: isEmptyCell ? function () {
@@ -1369,7 +1388,17 @@ function FamiliaApp(_ref19) {
           boxSizing: 'border-box',
           cursor: isEmptyCell ? 'pointer' : 'default'
         }
-      }, mShared && dayShared.map(function (s, si) {
+      }, spanVisibleHere && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: 'flex', alignItems: 'center', gap: 3,
+          background: "".concat(_spanEvOnDay.color, "15"),
+          border: "1px dashed ".concat(_spanEvOnDay.color, "50"),
+          borderRadius: 5,
+          padding: '2px 4px'
+        }
+      }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 8 } }, _spanEvOnDay.emoji), /*#__PURE__*/React.createElement("span", {
+        style: { fontSize: 7, fontWeight: 700, color: _spanEvOnDay.color }
+      }, "\u25CF")), mShared && dayShared.map(function (s, si) {
         return /*#__PURE__*/React.createElement("div", {
           key: si,
           style: {
