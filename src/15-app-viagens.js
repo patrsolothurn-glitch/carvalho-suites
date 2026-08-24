@@ -74,7 +74,11 @@ function VgTripCard(props) {
         days && React.createElement('span', { style: { fontSize: 11, color: T.muted } }, days)
       ),
       React.createElement('div', { style: { fontWeight: 800, fontSize: 15.5, marginBottom: 2, color: T.text } }, trip.titulo),
-      React.createElement('div', { style: { color: T.muted, fontSize: 13 } }, '📍 ' + trip.local),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
+        React.createElement('div', { style: { color: T.muted, fontSize: 13 } }, '📍 ' + trip.local),
+        trip.fotos_count > 0 && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: T.gold, background: 'rgba(212,169,65,0.15)', padding: '2px 8px', borderRadius: 10 } }, '📷 ' + trip.fotos_count),
+        trip.album_url && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#4285F4', background: 'rgba(66,133,244,0.12)', padding: '2px 8px', borderRadius: 10 } }, '🔗 álbum')
+      ),
       trip.notas && React.createElement('div', { style: { color: T.muted, fontSize: 12, marginTop: 5, lineHeight: 1.4, opacity: 0.85 } }, trip.notas)
     ),
     React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
@@ -408,7 +412,7 @@ function ViagensApp(props) {
     if (!db) { setLoading(false); return; }
     setLoading(true);
     function doLoad() {
-      db.from('family_trips').select('id,tipo,titulo,local,mes,ano,dia_inicio,dia_fim,notas,album_url,created_by')
+      db.from('family_trips_list').select('*')
         .order('ano', { ascending: false }).order('mes')
         .then(function (r) { setTrips(r.data || []); setLoading(false); })
         .catch(function (err) {

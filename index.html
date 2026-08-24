@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-24T13:28:54.383Z
+  Gerado em: 2026-08-24T15:00:43.068Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-204";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-205";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26501,7 +26501,11 @@ function VgTripCard(props) {
         days && React.createElement('span', { style: { fontSize: 11, color: T.muted } }, days)
       ),
       React.createElement('div', { style: { fontWeight: 800, fontSize: 15.5, marginBottom: 2, color: T.text } }, trip.titulo),
-      React.createElement('div', { style: { color: T.muted, fontSize: 13 } }, '📍 ' + trip.local),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
+        React.createElement('div', { style: { color: T.muted, fontSize: 13 } }, '📍 ' + trip.local),
+        trip.fotos_count > 0 && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: T.gold, background: 'rgba(212,169,65,0.15)', padding: '2px 8px', borderRadius: 10 } }, '📷 ' + trip.fotos_count),
+        trip.album_url && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#4285F4', background: 'rgba(66,133,244,0.12)', padding: '2px 8px', borderRadius: 10 } }, '🔗 álbum')
+      ),
       trip.notas && React.createElement('div', { style: { color: T.muted, fontSize: 12, marginTop: 5, lineHeight: 1.4, opacity: 0.85 } }, trip.notas)
     ),
     React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
@@ -26835,7 +26839,7 @@ function ViagensApp(props) {
     if (!db) { setLoading(false); return; }
     setLoading(true);
     function doLoad() {
-      db.from('family_trips').select('id,tipo,titulo,local,mes,ano,dia_inicio,dia_fim,notas,album_url,created_by')
+      db.from('family_trips_list').select('*')
         .order('ano', { ascending: false }).order('mes')
         .then(function (r) { setTrips(r.data || []); setLoading(false); })
         .catch(function (err) {
