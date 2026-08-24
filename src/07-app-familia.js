@@ -91,10 +91,7 @@ function FamiliaApp(_ref19) {
       diaTodo: false,
       nota: '',
       lembrete: null,
-      foto: null,
-      repetir: false,
-      diasSemana: [],
-      repetirAte: ''
+      foto: null
     }),
     _useState106 = _slicedToArray(_useState105, 2),
     form = _useState106[0],
@@ -539,29 +536,15 @@ function FamiliaApp(_ref19) {
       foto: form.foto || null,
       nota: form.nota
     };
+    var ate = form.dataATE && form.dataATE >= form.dataDE ? form.dataATE : form.dataDE;
+    // Gerar todos os dias do intervalo
+    var cur = new Date(form.dataDE + 'T12:00:00');
+    var fim = new Date(ate + 'T12:00:00');
     var updates = {};
-    if (form.repetir && form.diasSemana && form.diasSemana.length > 0 && form.repetirAte) {
-      // Repetição semanal: só nos dias da semana escolhidos, até à data limite
-      var curR = new Date(form.dataDE + 'T12:00:00');
-      var fimR = new Date(form.repetirAte + 'T12:00:00');
-      // getDay(): 0=Dom,1=Seg,...6=Sáb — diasSemana guarda 1=Seg..7=Dom
-      while (curR <= fimR) {
-        var dow = curR.getDay() === 0 ? 7 : curR.getDay();
-        if (form.diasSemana.indexOf(dow) !== -1) {
-          updates[curR.toISOString().slice(0, 10)] = true;
-        }
-        curR.setDate(curR.getDate() + 1);
-      }
-    } else {
-      var ate = form.dataATE && form.dataATE >= form.dataDE ? form.dataATE : form.dataDE;
-      // Gerar todos os dias do intervalo
-      var cur = new Date(form.dataDE + 'T12:00:00');
-      var fim = new Date(ate + 'T12:00:00');
-      while (cur <= fim) {
-        var d = cur.toISOString().slice(0, 10);
-        updates[d] = true;
-        cur.setDate(cur.getDate() + 1);
-      }
+    while (cur <= fim) {
+      var d = cur.toISOString().slice(0, 10);
+      updates[d] = true;
+      cur.setDate(cur.getDate() + 1);
     }
     setEvents(function (p) {
       var np = _objectSpread({}, p);
@@ -613,10 +596,7 @@ function FamiliaApp(_ref19) {
       diaTodo: false,
       nota: '',
       lembrete: null,
-      foto: null,
-      repetir: false,
-      diasSemana: [],
-      repetirAte: ''
+      foto: null
     });
     setAddingEvent(false);
     setShowAdd(false);
@@ -758,13 +738,6 @@ function FamiliaApp(_ref19) {
     }
   }, "\uD83D\uDCE6")), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      var todayISO = new Date().toISOString().slice(0, 10);
-      setForm(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, {
-          dataDE: p.dataDE || todayISO,
-          dataATE: p.dataATE || todayISO
-        });
-      });
       return setShowAdd(true);
     },
     style: {
@@ -1238,26 +1211,12 @@ function FamiliaApp(_ref19) {
       var _todayMidS = new Date(); _todayMidS.setHours(0, 0, 0, 0);
       var _endDateS = new Date(weekStart.getTime() + _endDay * 86400000);
       var _isDoneSpan = !!g.ev.arquivado && _endDateS < _todayMidS;
-      // Calcular o intervalo REAL (todas as datas, não só as desta semana)
-      var _titleKey = (g.ev.t || '').toLowerCase().trim();
-      var _allMatchDates = Object.keys(events).filter(function (dk) {
-        return (events[dk] || []).some(function (e) { return (e.t || '').toLowerCase().trim() === _titleKey; });
-      }).sort();
-      var _realStart = _allMatchDates[0];
-      var _realEnd = _allMatchDates[_allMatchDates.length - 1];
-      var _fmtShort = function (ds) { return ds ? new Date(ds + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' }) : ''; };
       return /*#__PURE__*/React.createElement("div", {
         key: si,
         style: { display: 'grid', gridTemplateColumns: '52px repeat(7, 1fr)', height: 22, marginBottom: si < _spans.length - 1 ? 2 : 0 }
       },
       /*#__PURE__*/React.createElement("div"),
       /*#__PURE__*/React.createElement("div", {
-        onClick: function () {
-          skipDayResetRef.current = true;
-          setCurMonth(new Date(weekStart.getFullYear(), weekStart.getMonth(), 1));
-          setSelDay(new Date(weekStart.getTime() + _startDay * 86400000).getDate());
-          setMainView('mes');
-        },
         style: {
           gridColumn: "".concat(_startDay + 2, " / ").concat(_endDay + 3),
           background: _isDoneSpan ? 'rgba(37,99,235,0.08)' : "".concat(g.ev.color, "18"),
@@ -1272,12 +1231,9 @@ function FamiliaApp(_ref19) {
           gap: 3,
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          textDecoration: _isDoneSpan ? 'line-through' : 'none',
-          cursor: 'pointer'
+          textDecoration: _isDoneSpan ? 'line-through' : 'none'
         }
-      }, _isDoneSpan ? '\u2713' : g.ev.emoji, " ", g.ev.t, /*#__PURE__*/React.createElement("span", {
-        style: { fontWeight: 600, opacity: 0.75, marginLeft: 2 }
-      }, _realStart && _realEnd ? "(".concat(_fmtShort(_realStart), "\u2013").concat(_fmtShort(_realEnd), ")") : '')));
+      }, _isDoneSpan ? '\u2713' : g.ev.emoji, " ", g.ev.t));
     }));
   })(), Array.from({
     length: 7
@@ -1297,7 +1253,6 @@ function FamiliaApp(_ref19) {
       (events[_mds] || []).forEach(function (ev) { var k = (ev.t || '').toLowerCase().trim(); if (!_seenM.has(k)) { _seenM.add(k); _mdMap[k] = (_mdMap[k] || 0) + 1; } });
     }
     var dayEvs = (events[dStr] || []).filter(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) < 3; });
-    var _spanEvOnDay = (events[dStr] || []).find(function (ev) { return (_mdMap[(ev.t || '').toLowerCase().trim()] || 0) >= 3; });
     var dayShared = sharedDias.filter(function (x) {
       return x.date === dStr;
     });
@@ -1309,7 +1264,7 @@ function FamiliaApp(_ref19) {
           return m.id !== 'todos';
         }).length, ",1fr)"),
         borderBottom: di < 6 ? "1px solid ".concat(F.border) : 'none',
-        background: isToday ? 'rgba(232,119,58,0.04)' : _spanEvOnDay ? "".concat(_spanEvOnDay.color, "0c") : isWeekend ? 'rgba(0,0,0,0.01)' : 'transparent'
+        background: isToday ? 'rgba(232,119,58,0.04)' : isWeekend ? 'rgba(0,0,0,0.01)' : 'transparent'
       }
     }, /*#__PURE__*/React.createElement("div", {
       onClick: function() {
@@ -1362,9 +1317,8 @@ function FamiliaApp(_ref19) {
         var toMin = function(h) { if (!h) return 9999; var p = h.split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0); };
         return toMin(a.hora) - toMin(b.hora);
       });
-      var spanVisibleHere = _spanEvOnDay && eventVisibleTo(_spanEvOnDay, m.id);
       var mShared = dayShared.length > 0 && m.id === 'patricio';
-      var isEmptyCell = mEvs.length === 0 && !mShared && !spanVisibleHere;
+      var isEmptyCell = mEvs.length === 0 && !mShared;
       return /*#__PURE__*/React.createElement("div", {
         key: m.id,
         onClick: isEmptyCell ? function () {
@@ -1388,17 +1342,7 @@ function FamiliaApp(_ref19) {
           boxSizing: 'border-box',
           cursor: isEmptyCell ? 'pointer' : 'default'
         }
-      }, spanVisibleHere && /*#__PURE__*/React.createElement("div", {
-        style: {
-          display: 'flex', alignItems: 'center', gap: 3,
-          background: "".concat(_spanEvOnDay.color, "15"),
-          border: "1px dashed ".concat(_spanEvOnDay.color, "50"),
-          borderRadius: 5,
-          padding: '2px 4px'
-        }
-      }, /*#__PURE__*/React.createElement("span", { style: { fontSize: 8 } }, _spanEvOnDay.emoji), /*#__PURE__*/React.createElement("span", {
-        style: { fontSize: 7, fontWeight: 700, color: _spanEvOnDay.color }
-      }, "\u25CF")), mShared && dayShared.map(function (s, si) {
+      }, mShared && dayShared.map(function (s, si) {
         return /*#__PURE__*/React.createElement("div", {
           key: si,
           style: {
@@ -2669,11 +2613,9 @@ function FamiliaApp(_ref19) {
   })), function () {
     var now = new Date();
     var todayStr2 = "".concat(now.getFullYear(), "-").concat(String(now.getMonth() + 1).padStart(2, '0'), "-").concat(String(now.getDate()).padStart(2, '0'));
-    var dow2 = now.getDay() === 0 ? 7 : now.getDay(); // 1=Seg..7=Dom
-    var weekStart2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (dow2 - 1));
-    var weekEnd = new Date(weekStart2.getFullYear(), weekStart2.getMonth(), weekStart2.getDate() + 6, 23, 59, 59);
-    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    var weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Collect all events with dates
     var allEvs = Object.entries(events).flatMap(function (_ref21) {
@@ -2700,8 +2642,8 @@ function FamiliaApp(_ref19) {
       if (ev.arquivado) return false;
       if (selMember !== 'todos' && evIds.indexOf('todos') === -1 && evIds.indexOf(selMember) === -1) return false;
       if (timeTab === 'Hoje') return ev.date === todayStr2;
-      if (timeTab === 'Semana') return d >= weekStart2 && d <= weekEnd;
-      return d >= monthStart && d <= monthEnd;
+      if (timeTab === 'Semana') return d >= now && d <= weekEnd;
+      return d >= now && d <= monthEnd;
     }).sort(function (a, b) {
       return a.date.localeCompare(b.date);
     });
@@ -3371,87 +3313,7 @@ function FamiliaApp(_ref19) {
       fontSize: 12,
       fontWeight: 700
     }
-  }, "\uD83D\uDCC5 ", Math.round((new Date(form.dataATE) - new Date(form.dataDE)) / 86400000) + 1, " dias marcados")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: form.repetir ? 10 : 16,
-      cursor: 'pointer'
-    },
-    onClick: function onClick() {
-      return setForm(function (p) {
-        return _objectSpread(_objectSpread({}, p), {}, { repetir: !p.repetir });
-      });
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 20, height: 20, borderRadius: 6,
-      border: "2px solid ".concat(form.repetir ? F.coral : F.border),
-      background: form.repetir ? F.coral : 'transparent',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: '#fff', fontSize: 12, fontWeight: 900, flexShrink: 0
-    }
-  }, form.repetir ? '✓' : ''), /*#__PURE__*/React.createElement("span", {
-    style: { fontSize: 13, fontWeight: 700, color: F.text }
-  }, "\uD83D\uDD01 Repetir semanalmente")), form.repetir && /*#__PURE__*/React.createElement("div", {
-    style: { marginBottom: 16, background: F.surface2, borderRadius: 12, padding: 12, border: "1px solid ".concat(F.border) }
-  },
-    /*#__PURE__*/React.createElement("p", {
-      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
-    }, "Repete \xE0s"),
-    /*#__PURE__*/React.createElement("div", {
-      style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }
-    }, [
-      { label: 'Seg', val: 1 }, { label: 'Ter', val: 2 }, { label: 'Qua', val: 3 },
-      { label: 'Qui', val: 4 }, { label: 'Sex', val: 5 }, { label: 'Sáb', val: 6 }, { label: 'Dom', val: 7 }
-    ].map(function (dOpt) {
-      var isSel = (form.diasSemana || []).indexOf(dOpt.val) !== -1;
-      return /*#__PURE__*/React.createElement("button", {
-        key: dOpt.val,
-        onClick: function onClick() {
-          return setForm(function (p) {
-            var cur = p.diasSemana || [];
-            var next = cur.indexOf(dOpt.val) !== -1 ? cur.filter(function (x) { return x !== dOpt.val; }) : [].concat(_toConsumableArray(cur), [dOpt.val]);
-            return _objectSpread(_objectSpread({}, p), {}, { diasSemana: next });
-          });
-        },
-        style: {
-          width: 40, height: 36, borderRadius: 10,
-          border: isSel ? "1.5px solid ".concat(F.coral) : "1.5px solid ".concat(F.border),
-          background: isSel ? F.coral : F.surface,
-          color: isSel ? '#fff' : F.muted,
-          fontSize: 11, fontWeight: 800, cursor: 'pointer'
-        }
-      }, dOpt.label);
-    })),
-    /*#__PURE__*/React.createElement("p", {
-      style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
-    }, "At\xE9 quando"),
-    /*#__PURE__*/React.createElement("input", {
-      type: "date",
-      value: form.repetirAte,
-      min: form.dataDE,
-      onChange: function onChange(e) {
-        return setForm(function (p) {
-          return _objectSpread(_objectSpread({}, p), {}, { repetirAte: e.target.value });
-        });
-      },
-      style: {
-        width: '100%',
-        background: F.surface,
-        border: "1px solid ".concat(form.repetirAte ? F.coral : F.border),
-        borderRadius: 10,
-        padding: '9px 10px',
-        color: F.text,
-        fontSize: 13,
-        outline: 'none',
-        boxSizing: 'border-box'
-      }
-    }), form.diasSemana && form.diasSemana.length > 0 && form.repetirAte && form.dataDE && /*#__PURE__*/React.createElement("p", {
-      style: { color: F.coral, fontSize: 11, fontWeight: 700, marginTop: 8, textAlign: 'center' }
-    }, "\uD83D\uDD01 Vai criar eventos todas as semanas nos dias escolhidos, at\xE9 ", new Date(form.repetirAte + 'T12:00:00').toLocaleDateString('pt-PT'))
-  ), /*#__PURE__*/React.createElement("p", {
+  }, "\uD83D\uDCC5 ", Math.round((new Date(form.dataATE) - new Date(form.dataDE)) / 86400000) + 1, " dias marcados")), /*#__PURE__*/React.createElement("p", {
     style: {
       color: F.muted,
       fontSize: 10,
