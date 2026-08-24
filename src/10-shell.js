@@ -33,19 +33,6 @@ function CarvalhoSuite() {
     _useStateProfile2 = _slicedToArray(_useStateProfile, 2),
     profile = _useStateProfile2[0],
     setProfile = _useStateProfile2[1];
-  var _useStateAutoTick = (0, _react.useState)(0),
-    _useStateAutoTick2 = _slicedToArray(_useStateAutoTick, 2),
-    autoThemeTick = _useStateAutoTick2[0],
-    setAutoThemeTick = _useStateAutoTick2[1];
-  (0, _react.useEffect)(function () {
-    if (!(profile && profile.theme === 'auto') || !window.matchMedia) return;
-    var mq = window.matchMedia('(prefers-color-scheme: dark)');
-    var onChange = function () { applyTheme('auto'); setAutoThemeTick(function (n) { return n + 1; }); };
-    try { mq.addEventListener('change', onChange); } catch (e) { mq.addListener(onChange); }
-    return function () {
-      try { mq.removeEventListener('change', onChange); } catch (e) { mq.removeListener(onChange); }
-    };
-  }, [profile && profile.theme]);
   var _useStateProfiles = (0, _react.useState)([]),
     _useStateProfiles2 = _slicedToArray(_useStateProfiles, 2),
     allProfiles = _useStateProfiles2[0],
@@ -1333,7 +1320,6 @@ function CarvalhoSuite() {
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'hauswart' && isAdmin) return /*#__PURE__*/React.createElement(HauswartApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'rapport' && isAdmin) return /*#__PURE__*/React.createElement(RapportApp, { profile: profile, onBack: function() { setApp(null); } });
-    if (activeApp === 'viagens') return /*#__PURE__*/React.createElement(ViagensApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
@@ -2062,7 +2048,7 @@ function CarvalhoSuite() {
     }, "Tema"),
     React.createElement("div", {
       style: { display: 'flex', gap: 8 }
-    }, [{ id: 'dark', emoji: '🌙', name: 'Escuro' }, { id: 'light', emoji: '☀️', name: 'Claro' }, { id: 'auto', emoji: '🌓', name: 'Auto' }].map(function (opt) {
+    }, [{ id: 'dark', emoji: '🌙', name: 'Escuro' }, { id: 'light', emoji: '☀️', name: 'Claro' }].map(function (opt) {
       var isSel = (profile && profile.theme) === opt.id || (!(profile && profile.theme) && opt.id === 'dark');
       return React.createElement("button", {
         key: opt.id,
@@ -2071,8 +2057,8 @@ function CarvalhoSuite() {
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           background: isSel ? T.goldDim : T.surface2,
           border: '1px solid ' + (isSel ? T.gold : T.goldBrd),
-          borderRadius: 10, padding: '10px 6px', color: isSel ? T.gold : T.text,
-          fontSize: 12.5, fontWeight: isSel ? 700 : 400, cursor: 'pointer'
+          borderRadius: 10, padding: '10px', color: isSel ? T.gold : T.text,
+          fontSize: 13, fontWeight: isSel ? 700 : 400, cursor: 'pointer'
         }
       }, opt.emoji, " ", opt.name);
     }))
