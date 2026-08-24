@@ -2669,9 +2669,9 @@ function FamiliaApp(_ref19) {
   })), function () {
     var now = new Date();
     var todayStr2 = "".concat(now.getFullYear(), "-").concat(String(now.getMonth() + 1).padStart(2, '0'), "-").concat(String(now.getDate()).padStart(2, '0'));
-    var weekEnd = new Date(now);
-    weekEnd.setDate(weekEnd.getDate() + 7);
-    weekEnd.setHours(23, 59, 59, 999);
+    var dow2 = now.getDay() === 0 ? 7 : now.getDay(); // 1=Seg..7=Dom
+    var weekStart2 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (dow2 - 1));
+    var weekEnd = new Date(weekStart2.getFullYear(), weekStart2.getMonth(), weekStart2.getDate() + 6, 23, 59, 59);
     var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
@@ -2700,7 +2700,7 @@ function FamiliaApp(_ref19) {
       if (ev.arquivado) return false;
       if (selMember !== 'todos' && evIds.indexOf('todos') === -1 && evIds.indexOf(selMember) === -1) return false;
       if (timeTab === 'Hoje') return ev.date === todayStr2;
-      if (timeTab === 'Semana') return d >= now && d <= weekEnd;
+      if (timeTab === 'Semana') return d >= weekStart2 && d <= weekEnd;
       return d >= monthStart && d <= monthEnd;
     }).sort(function (a, b) {
       return a.date.localeCompare(b.date);
