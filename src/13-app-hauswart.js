@@ -266,6 +266,8 @@ var HauswartApp = function(props) {
       .eq('member_id', owner)
       .single()
       .then(function(res) {
+        // Se tabela não existe (PGRST205) ou erro → usa localStorage silenciosamente
+        if (res.error) { setReady(true); return; }
         if (res.data) {
           var d = res.data;
           if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
@@ -277,20 +279,23 @@ var HauswartApp = function(props) {
           if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
         }
         setReady(true);
-      })
-      .catch(function() { setReady(true); });
+      });
   }, []);
 
-  // ── Sync to Supabase (fire-and-forget, localStorage is the immediate backup) ──
+  // ── Sync to Supabase (fire-and-forget, localStorage é o backup imediato) ──
   var hwSync = function(w, m, c, a) {
     hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
     if (!window.supabaseClient) return;
+    // Supabase v2: sem .catch() — erros ficam em res.error
     window.supabaseClient.from('hauswart_data').upsert({
       member_id: owner,
       works: w, mats: m, cfg: c, archive: a,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'member_id' })
-    .catch(function(e) { console.error('Hauswart sync error:', e); });
+    }, { onConflict: 'member_id' }).then(function(res) {
+      if (res && res.error && res.error.code !== 'PGRST205') {
+        console.warn('Hauswart sync:', res.error.message);
+      }
+    });
   };
 
   var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
