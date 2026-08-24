@@ -34,7 +34,6 @@ const JS_SECTIONS = [
   '12-app-lucas.js', // app Escola Grenchen — gestão admin do transporte escolar
   '13-app-hauswart.js', // app Hauswart — faturação trimestral pessoal (admin only)
   '14-app-rapport.js', // app Arnold Rapport — Wochen Planung, Tages- e Wochenrapport
-  '15-app-viagens.js', // app Viagens & Visitas — histórico de férias/visitas por mês/ano
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
