@@ -65,7 +65,8 @@ function VgTripCard(props) {
   var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_SHORT[trip.mes])
     : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_SHORT[trip.mes]) : null;
   return React.createElement(Card, {
-    style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }
+    onClick: props.onOpen,
+    style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' }
   },
     React.createElement('div', { style: { flex: 1, minWidth: 0 } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
@@ -81,8 +82,8 @@ function VgTripCard(props) {
         href: trip.album_url, target: '_blank', rel: 'noopener',
         style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9, background: '#4285F4', border: 'none', fontSize: 16, cursor: 'pointer', textDecoration: 'none' }
       }, '📷'),
-      React.createElement('button', { onClick: onEdit, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '✏️'),
-      React.createElement('button', { onClick: onDelete, style: { background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '🗑️')
+      React.createElement('button', { onClick: function(e) { e.stopPropagation(); onEdit(); }, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '✏️'),
+      React.createElement('button', { onClick: function(e) { e.stopPropagation(); onDelete(); }, style: { background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '🗑️')
     )
   );
 }
@@ -298,6 +299,80 @@ function VgForm(props) {
   );
 }
 
+
+// ── Vista de detalhe ──────────────────────────────────────────────
+function VgTripDetail(props) {
+  var trip = props.trip, onEdit = props.onEdit, onClose = props.onClose, db = props.db;
+  var ti = vgType(trip.tipo);
+  var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_MONTHS[trip.mes])
+    : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_MONTHS[trip.mes]) : VG_MONTHS[trip.mes];
+  var _stFotos = React.useState([]);
+  var fotos = _stFotos[0], setFotos = _stFotos[1];
+  var _stLoadingF = React.useState(true);
+  var loadingF = _stLoadingF[0], setLoadingF = _stLoadingF[1];
+  var _stLightbox = React.useState(null);
+  var lightbox = _stLightbox[0], setLightbox = _stLightbox[1];
+
+  React.useEffect(function() {
+    db.from('family_trips').select('fotos').eq('id', trip.id).single()
+      .then(function(r) { setFotos((r.data && r.data.fotos) || []); setLoadingF(false); })
+      .catch(function() { setLoadingF(false); });
+  }, [trip.id]);
+
+  return React.createElement('div', { style: { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif', paddingBottom: 40 } },
+    React.createElement('div', {
+      style: { background: T.surface, borderBottom: '1px solid ' + T.goldBrd, padding: '13px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200 }
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+        React.createElement('button', { onClick: onClose, style: { background: 'none', border: 'none', color: T.gold, fontSize: 26, cursor: 'pointer', lineHeight: 1, padding: 0 } }, '‹'),
+        React.createElement('span', { style: { fontWeight: 800, fontSize: 17 } }, trip.titulo)
+      ),
+      React.createElement('button', { onClick: onEdit, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: 700, color: T.text } }, '✏️ Editar')
+    ),
+    React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
+      React.createElement(Card, { style: { padding: 16, marginBottom: 14 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' } },
+          React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#fff', background: ti.color, padding: '4px 12px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
+          React.createElement('span', { style: { fontSize: 13, color: T.muted } }, days)
+        ),
+        React.createElement('div', { style: { fontSize: 15, fontWeight: 700, marginBottom: 4 } }, '📍 ' + trip.local),
+        trip.notas && React.createElement('div', { style: { fontSize: 13, color: T.muted, lineHeight: 1.6, marginTop: 8 } }, trip.notas),
+        trip.album_url && React.createElement('a', {
+          href: trip.album_url, target: '_blank', rel: 'noopener',
+          style: { display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '9px 16px', background: '#4285F4', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: 'none' }
+        }, '📷 Abrir Álbum Google Fotos')
+      ),
+      React.createElement('div', { style: { fontWeight: 700, fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.06em' } }, 'FOTOS'),
+      loadingF && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar fotos…'),
+      !loadingF && fotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
+      !loadingF && fotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
+        fotos.map(function(url, idx) {
+          return React.createElement('div', {
+            key: idx, onClick: function() { setLightbox({ urls: fotos, idx: idx }); },
+            style: { position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: T.surface2 }
+          },
+            React.createElement('img', { src: url, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } })
+          );
+        })
+      )
+    ),
+    lightbox && React.createElement('div', {
+      onClick: function() { setLightbox(null); },
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 16 }
+    },
+      React.createElement('div', { onClick: function(e) { e.stopPropagation(); }, style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '100%' } },
+        React.createElement('img', { src: lightbox.urls[lightbox.idx], style: { maxWidth: '100%', maxHeight: '75vh', borderRadius: 14, objectFit: 'contain' } }),
+        lightbox.urls.length > 1 && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
+          React.createElement('button', { onClick: function() { setLightbox({ urls: lightbox.urls, idx: (lightbox.idx - 1 + lightbox.urls.length) % lightbox.urls.length }); }, style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' } }, '‹'),
+          React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 700 } }, (lightbox.idx + 1) + ' / ' + lightbox.urls.length),
+          React.createElement('button', { onClick: function() { setLightbox({ urls: lightbox.urls, idx: (lightbox.idx + 1) % lightbox.urls.length }); }, style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' } }, '›')
+        ),
+        React.createElement('button', { onClick: function() { setLightbox(null); }, style: { background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 22px', borderRadius: 20, cursor: 'pointer', fontSize: 13 } }, 'Fechar')
+      )
+    )
+  );
+}
+
 // ── App principal ─────────────────────────────────────────────────
 function ViagensApp(props) {
   var onBack = props.onBack;
@@ -322,6 +397,8 @@ function ViagensApp(props) {
   var progress = _stProgress[0], setProgress = _stProgress[1];
   var _stConfirmDel = React.useState(null);
   var confirmDel = _stConfirmDel[0], setConfirmDel = _stConfirmDel[1];
+  var _stDetail = React.useState(null);
+  var detailTrip = _stDetail[0], setDetailTrip = _stDetail[1];
   var _stLightbox = React.useState(null);
   var fotoLightbox = _stLightbox[0], setFotoLightbox = _stLightbox[1];
 
@@ -430,6 +507,10 @@ function ViagensApp(props) {
     )
   );
 
+  if (detailTrip) {
+    return React.createElement(VgTripDetail, { trip: detailTrip, db: db, onClose: function() { setDetailTrip(null); }, onEdit: function() { openEdit(detailTrip); setDetailTrip(null); } });
+  }
+
   if (form) {
     return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
       headerBar,
@@ -504,6 +585,7 @@ function ViagensApp(props) {
         !loading && mTrips.map(function (t) {
           return React.createElement(VgTripCard, {
             key: t.id, trip: t,
+            onOpen: function () { setDetailTrip(t); },
             onEdit: function () { openEdit(t); },
             onDelete: function () { setConfirmDel(t.id); },
             onPhotoClick: function (urls, idx) { setFotoLightbox({ urls: urls, idx: idx || 0 }); }
