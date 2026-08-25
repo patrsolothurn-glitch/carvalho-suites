@@ -154,4 +154,12 @@ var APPS_DATA = [{
   badge: null,
   color: '#F59E0B',
   adminOnly: true
+}, {
+  id: 'viagens',
+  emoji: '✈️',
+  name: 'Viagens Família',
+  desc: 'Férias e visitas da família',
+  badge: null,
+  color: '#0EA5E9',
+  adminOnly: true
 }];
