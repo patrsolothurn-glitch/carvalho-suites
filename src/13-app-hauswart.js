@@ -1,6 +1,6 @@
 // ── HAUSWART APP ──────────────────────────────────────────────────────
 // Faturação trimestral pessoal do Patricio (trabalho independente).
-// Admin only. Dados em Supabase (tabela hauswart_data) + localStorage backup.
+// Admin only. Dados em localStorage (prefixo hw_).
 // ─────────────────────────────────────────────────────────────────────
 
 var HW_DEFAULTS = {
@@ -232,8 +232,6 @@ function HwEmpty(props) {
 // ── MAIN APP ──
 var HauswartApp = function(props) {
   var onBack = props.onBack;
-  var profile = props.profile;
-  var owner = (profile && profile.member_id) || 'patricio';
   var T = window.T || { bg: '#0f172a', surface: '#1e293b', surface2: '#0f172a', text: '#e2e8f0', muted: '#64748b', gold: '#C9A847' };
 
   var _useState = React.useState('dash');
@@ -250,57 +248,13 @@ var HauswartApp = function(props) {
 
   var _useStateA = React.useState(hwLoad('archive') || []);
   var archive = _useStateA[0], setArchiveRaw = _useStateA[1];
-
-  var _useStateReady = React.useState(false);
-  var ready = _useStateReady[0], setReady = _useStateReady[1];
-
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
-  // ── Load from Supabase on startup ─────────────────────────────────
-  React.useEffect(function() {
-    if (!window.supabaseClient) { setReady(true); return; }
-    window.supabaseClient
-      .from('hauswart_data')
-      .select('*')
-      .eq('member_id', owner)
-      .single()
-      .then(function(res) {
-        if (res.data) {
-          var d = res.data;
-          if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
-          if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats', d.mats); }
-          if (d.cfg   && Object.keys(d.cfg).length) {
-            var merged = Object.assign({}, HW_DEFAULTS, d.cfg);
-            setCfgRaw(merged); hwSave('cfg', merged);
-          }
-          if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
-        }
-        setReady(true);
-      })
-      .catch(function() { setReady(true); });
-  }, []);
-
-  // ── Sync to Supabase (fire-and-forget, localStorage is the immediate backup) ──
-  var hwSync = function(w, m, c, a) {
-    hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
-    if (!window.supabaseClient) return;
-    window.supabaseClient.from('hauswart_data').upsert({
-      member_id: owner,
-      works: w, mats: m, cfg: c, archive: a,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'member_id' })
-    .catch(function(e) { console.error('Hauswart sync error:', e); });
-  };
-
-  var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
-  var updM = function(v) { setMatsRaw(v);  hwSync(works, v, cfg, archive); };
-  var updC = function(v) { setCfgRaw(v);   hwSync(works, mats, v, archive); };
-  var updA = function(v) { setArchiveRaw(v); hwSync(works, mats, cfg, v); };
-
-  if (!ready) return React.createElement('div', {
-    style: { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#0f172a', color:'#64748b', fontFamily:'system-ui', fontSize:16 }
-  }, '🔧 A carregar Hauswart...');
+  var updW = function(v) { setWorksRaw(v); hwSave('works', v); };
+  var updM = function(v) { setMatsRaw(v); hwSave('mats', v); };
+  var updC = function(v) { setCfgRaw(v); hwSave('cfg', v); };
+  var updA = function(v) { setArchiveRaw(v); hwSave('archive', v); };
 
   var pauschale = cfg.pauschale || 0;
   var totalWork = works.reduce(function(s, w) { return s + w.hours * w.rate; }, 0);
