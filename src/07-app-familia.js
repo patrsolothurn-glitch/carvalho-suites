@@ -1267,12 +1267,6 @@ function FamiliaApp(_ref19) {
         background: isToday ? 'rgba(232,119,58,0.04)' : isWeekend ? 'rgba(0,0,0,0.01)' : 'transparent'
       }
     }, /*#__PURE__*/React.createElement("div", {
-      onClick: function() {
-        skipDayResetRef.current = true;
-        setCurMonth(new Date(date.getFullYear(), date.getMonth(), 1));
-        setSelDay(date.getDate());
-        setMainView('mes');
-      },
       style: {
         padding: '8px 4px',
         textAlign: 'center',
@@ -1281,8 +1275,7 @@ function FamiliaApp(_ref19) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer'
+        justifyContent: 'center'
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
