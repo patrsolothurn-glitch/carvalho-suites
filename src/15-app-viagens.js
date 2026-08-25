@@ -1,657 +1,276 @@
-// ══════════════════════════════════════════════════════════════════
-// VIAGENS & VISITAS — histórico de férias e visitas da família
-// Tabela: family_trips (coluna fotos jsonb com URLs do Storage)
-// Storage: trip-photos bucket
-// ══════════════════════════════════════════════════════════════════
+// ── VIAGENS FAMÍLIA ─────────────────────────────────────────────────
+// Registo de férias e visitas importantes por mês/ano
+// Tabela Supabase: family_trips (fotos jsonb)
+// ─────────────────────────────────────────────────────────────────────
 
-var VG_TYPES = [
-  { id: 'ferias', emoji: '🏖️', label: 'Férias', color: T.orange },
-  { id: 'visita', emoji: '👥', label: 'Visita', color: T.green },
-  { id: 'evento', emoji: '🎉', label: 'Evento', color: '#A855F7' },
-  { id: 'outro',  emoji: '📍', label: 'Outro',  color: T.muted }
-];
-function vgType(id) {
-  for (var i = 0; i < VG_TYPES.length; i++) if (VG_TYPES[i].id === id) return VG_TYPES[i];
-  return VG_TYPES[3];
-}
+var MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-var VG_MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-var VG_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
-var VG_BUCKET = 'trip-photos';
-
-function vgBlankForm(mes, ano) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes || 0, ano: ano || new Date().getFullYear(), dia_inicio: '', dia_fim: '', notas: 'Toda a Família', fotos: [], album_url: '' };
-}
-
-function vgResizeFoto(file) {
-  return new Promise(function(resolve) {
-    var img = new Image();
-    var url = URL.createObjectURL(file);
-    img.onload = function() {
-      URL.revokeObjectURL(url);
-      var maxW = 1200, maxH = 1200;
-      var w = img.width, h = img.height;
-      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
-      var canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      canvas.toBlob(function(blob) { resolve(blob || file); }, 'image/jpeg', 0.82);
-    };
-    img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
-    img.src = url;
-  });
-}
-
-function vgUploadFoto(db, file, tripId, idx) {
-  return new Promise(function (resolve, reject) {
-    vgResizeFoto(file).then(function(blob) {
-      var path = tripId + '/' + Date.now() + '_' + idx + '.jpg';
-      db.storage.from(VG_BUCKET).upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-        .then(function (r) {
-          if (r.error) { reject(r.error); return; }
-          var url = VG_SUPABASE_URL + '/storage/v1/object/public/' + VG_BUCKET + '/' + path;
-          resolve(url);
-        }).catch(reject);
-    }).catch(function() { reject(new Error('Erro ao redimensionar foto')); });
-  });
-}
-
-// ── Cartão de entrada ─────────────────────────────────────────────
-function VgTripCard(props) {
-  var trip = props.trip, onEdit = props.onEdit, onDelete = props.onDelete, onPhotoClick = props.onPhotoClick;
-  var ti = vgType(trip.tipo);
-  var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_SHORT[trip.mes])
-    : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_SHORT[trip.mes]) : null;
-  return React.createElement(Card, {
-    onClick: props.onOpen,
-    style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' }
+function ViagemCard(props) {
+  var v = props.viagem;
+  var onClick = props.onClick;
+  var fotos = v.fotos || [];
+  var mesNome = MESES_PT[(v.mes || 1) - 1];
+  return React.createElement('div', {
+    onClick: onClick,
+    style: { background: T.surface, border: '1px solid ' + T.border, borderLeft: '3px solid #06B6D4', borderRadius: 14, padding: '12px 14px', cursor: 'pointer', marginBottom: 10 }
   },
-    React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
-        React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#fff', background: ti.color, padding: '3px 10px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
-        days && React.createElement('span', { style: { fontSize: 11, color: T.muted } }, days)
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+      React.createElement('div', { style: { flex: 1 } },
+        React.createElement('div', { style: { fontWeight: 700, fontSize: 15, color: T.text } }, v.destino || '—'),
+        React.createElement('div', { style: { fontSize: 12, color: '#06B6D4', fontWeight: 600, marginTop: 2 } },
+          mesNome + ' ' + v.ano + (v.data_inicio ? ' · ' + v.data_inicio : '') + (v.data_fim ? ' – ' + v.data_fim : '')
+        ),
+        v.descricao && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 4 } }, v.descricao)
       ),
-      React.createElement('div', { style: { fontWeight: 800, fontSize: 15.5, marginBottom: 2, color: T.text } }, trip.titulo),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' } },
-        React.createElement('div', { style: { color: T.muted, fontSize: 13 } }, '📍 ' + trip.local),
-        trip.fotos_count > 0 && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: T.gold, background: 'rgba(212,169,65,0.15)', padding: '2px 8px', borderRadius: 10 } }, '📷 ' + trip.fotos_count),
-        trip.album_url && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#4285F4', background: 'rgba(66,133,244,0.12)', padding: '2px 8px', borderRadius: 10 } }, '🔗 álbum')
-      ),
-      trip.notas && React.createElement('div', { style: { color: T.muted, fontSize: 12, marginTop: 5, lineHeight: 1.4, opacity: 0.85 } }, trip.notas)
+      fotos.length > 0 && React.createElement('div', { style: { width: 52, height: 52, borderRadius: 10, overflow: 'hidden', flexShrink: 0, marginLeft: 10 } },
+        React.createElement('img', { src: fotos[0], style: { width: '100%', height: '100%', objectFit: 'cover' }, alt: '' })
+      )
     ),
-    React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
-      trip.album_url && React.createElement('a', {
-        href: trip.album_url, target: '_blank', rel: 'noopener',
-        style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9, background: '#4285F4', border: 'none', fontSize: 16, cursor: 'pointer', textDecoration: 'none' }
-      }, '📷'),
-      React.createElement('button', { onClick: function(e) { e.stopPropagation(); onEdit(); }, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '✏️'),
-      React.createElement('button', { onClick: function(e) { e.stopPropagation(); onDelete(); }, style: { background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '🗑️')
+    fotos.length > 1 && React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, overflowX: 'auto' } },
+      fotos.slice(1, 5).map(function(f, i) {
+        return React.createElement('img', { key: i, src: f, style: { width: 44, height: 44, borderRadius: 7, objectFit: 'cover', flexShrink: 0 }, alt: '' });
+      }),
+      fotos.length > 5 && React.createElement('div', { style: { width: 44, height: 44, borderRadius: 7, background: T.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: T.muted, flexShrink: 0 } }, '+' + (fotos.length - 5))
     )
   );
 }
 
-// ── Formulário (nova / editar) ─────────────────────────────────────
-function VgForm(props) {
-  var form = props.form, setForm = props.setForm, onSave = props.onSave, onCancel = props.onCancel, isEdit = props.isEdit, saving = props.saving, progress = props.progress, fotosLoading = props.fotosLoading;
-  var valid = form.titulo.trim() && form.local.trim();
-  var fotos = form.fotos || [];
-  var _stExp = React.useState(false);
-  var expanded = _stExp[0], setExpanded = _stExp[1];
-  var _stSrcPicker = React.useState(false);
-  var showSrcPicker = _stSrcPicker[0], setShowSrcPicker = _stSrcPicker[1];
-  var _stSrcPref = React.useState(null);
-  var srcPref = _stSrcPref[0], setSrcPref = _stSrcPref[1];
-  React.useEffect(function() {
-    try { setSrcPref(localStorage.getItem('vg_foto_src')); } catch(e) {}
-  }, []);
-  var visiveis = (!expanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
+function ViagensApp(props) {
+  var userId = props.userId;
+  var db = window.supabaseClient;
 
-  var VG_SRCS = [
-    { id: 'galeria', label: 'Galeria', emoji: '🖼️', accept: 'image/*' },
-    { id: 'ficheiros', label: 'Ficheiros / Drive / OneDrive', emoji: '📁', accept: '*/*' },
-    { id: 'camara', label: 'Câmara', emoji: '📷', accept: 'image/*', capture: 'environment' },
-  ];
+  var _stList = React.useState([]);  var list = _stList[0], setList = _stList[1];
+  var _stLoading = React.useState(true); var loading = _stLoading[0], setLoading = _stLoading[1];
+  var _stAno = React.useState(new Date().getFullYear()); var filtroAno = _stAno[0], setFiltroAno = _stAno[1];
+  var _stForm = React.useState(null); var form = _stForm[0], setForm = _stForm[1];
+  var _stDetail = React.useState(null); var detail = _stDetail[0], setDetail = _stDetail[1];
+  var _stLightbox = React.useState(null); var lightbox = _stLightbox[0], setLightbox = _stLightbox[1];
+  var _stConfirm = React.useState(null); var confirm = _stConfirm[0], setConfirm = _stConfirm[1];
 
-  function openAddFotos() {
-    if (srcPref) {
-      var el = document.getElementById('vg-input-' + srcPref);
-      if (el) { el.value = ''; el.click(); return; }
-    }
-    setShowSrcPicker(true);
-  }
+  // form state
+  var _fDest = React.useState('');    var fDest = _fDest[0], setFDest = _fDest[1];
+  var _fAno = React.useState(String(new Date().getFullYear()));  var fAno = _fAno[0], setFAno = _fAno[1];
+  var _fMes = React.useState(String(new Date().getMonth() + 1)); var fMes = _fMes[0], setFMes = _fMes[1];
+  var _fDi = React.useState('');      var fDi = _fDi[0], setFDi = _fDi[1];
+  var _fDf = React.useState('');      var fDf = _fDf[0], setFDf = _fDf[1];
+  var _fDesc = React.useState('');    var fDesc = _fDesc[0], setFDesc = _fDesc[1];
+  var _fFotos = React.useState([]);   var fFotos = _fFotos[0], setFFotos = _fFotos[1];
+  var _fSaving = React.useState(false); var fSaving = _fSaving[0], setFSaving = _fSaving[1];
 
-  function pickSource(srcId) {
-    try { localStorage.setItem('vg_foto_src', srcId); } catch(e) {}
-    setSrcPref(srcId);
-    setShowSrcPicker(false);
-    setTimeout(function() {
-      var el = document.getElementById('vg-input-' + srcId);
-      if (el) { el.value = ''; el.click(); }
-    }, 50);
-  }
-
-  function field(label, input) {
-    return React.createElement('div', { style: { marginBottom: 12 } },
-      React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, label),
-      input
-    );
-  }
-  var inputStyle = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
-
-  var MAX_FOTOS = 100;
-  function addFiles(files) {
-    var imgFiles = Array.prototype.slice.call(files).filter(function(f) { return f.type.indexOf('image/') === 0; });
-    if (!imgFiles.length) return;
-    var disponiveis = MAX_FOTOS - fotos.length;
-    if (disponiveis <= 0) { alert('Limite de ' + MAX_FOTOS + ' fotos por viagem atingido.'); return; }
-    if (imgFiles.length > disponiveis) { alert('Só podem ser adicionadas mais ' + disponiveis + ' fotos (limite: ' + MAX_FOTOS + ').'); imgFiles = imgFiles.slice(0, disponiveis); }
-    var newFiles = (form._pendingFiles || []).concat(imgFiles);
-    var previews = fotos.slice();
-    var promises = [];
-    for (var i = 0; i < imgFiles.length; i++) {
-      (function(file) {
-        promises.push(new Promise(function(resolve) {
-          var reader = new FileReader();
-          reader.onload = function(e) { resolve(e.target.result); };
-          reader.readAsDataURL(file);
-        }));
-      })(imgFiles[i]);
-    }
-    Promise.all(promises).then(function(results) {
-      setForm(Object.assign({}, form, { fotos: previews.concat(results), _pendingFiles: newFiles }));
+  function load() {
+    if (!db) return;
+    db.from('family_trips').select('*').order('ano', { ascending: false }).then(function(r) {
+      setList(r.data || []); setLoading(false);
     });
   }
+  React.useEffect(load, []);
 
-  function removePhoto(idx) {
-    var newFotos = fotos.slice(); newFotos.splice(idx, 1);
-    var newFiles = (form._pendingFiles || []).slice();
-    var existingCount = fotos.length - (form._pendingFiles || []).length;
-    if (idx >= existingCount) newFiles.splice(idx - existingCount, 1);
-    setForm(Object.assign({}, form, { fotos: newFotos, _pendingFiles: newFiles }));
+  var anos = [];
+  list.forEach(function(v) { if (v.ano && !anos.includes(v.ano)) anos.push(v.ano); });
+  if (!anos.includes(filtroAno)) anos.push(filtroAno);
+  anos.sort(function(a, b) { return b - a; });
+
+  var listFiltrada = list.filter(function(v) { return v.ano === filtroAno; });
+
+  function resetForm() {
+    setFDest(''); setFAno(String(new Date().getFullYear())); setFMes(String(new Date().getMonth() + 1));
+    setFDi(''); setFDf(''); setFDesc(''); setFFotos([]);
+  }
+  function openNew() { resetForm(); setForm('new'); setDetail(null); }
+  function openEdit(v) {
+    setFDest(v.destino || ''); setFAno(String(v.ano || new Date().getFullYear())); setFMes(String(v.mes || 1));
+    setFDi(v.data_inicio || ''); setFDf(v.data_fim || ''); setFDesc(v.descricao || ''); setFFotos(v.fotos || []);
+    setDetail(null); setForm(v);
   }
 
-  return React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
-    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 } },
-      React.createElement('button', { onClick: onCancel, style: { background: 'none', border: 'none', color: T.muted, fontSize: 24, cursor: 'pointer' } }, '‹'),
-      React.createElement('span', { style: { fontWeight: 800, fontSize: 18 } }, isEdit ? 'Editar Entrada' : 'Nova Entrada')
+  function addFotos(e) {
+    var files = Array.from(e.target.files);
+    files.forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var max = 800;
+          var ratio = Math.min(max / img.width, max / img.height, 1);
+          canvas.width = Math.round(img.width * ratio);
+          canvas.height = Math.round(img.height * ratio);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+          setFFotos(function(prev) { return prev.concat([dataUrl]); });
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  function removeFoto(i) { setFFotos(function(prev) { return prev.filter(function(_, j) { return j !== i; }); }); }
+
+  function save() {
+    if (!fDest.trim()) return;
+    setFSaving(true);
+    var payload = {
+      user_id: userId,
+      destino: fDest.trim(),
+      ano: parseInt(fAno),
+      mes: parseInt(fMes),
+      data_inicio: fDi || null,
+      data_fim: fDf || null,
+      descricao: fDesc.trim(),
+      fotos: fFotos
+    };
+    var op = form === 'new'
+      ? db.from('family_trips').insert(payload)
+      : db.from('family_trips').update(payload).eq('id', form.id);
+    op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
+  }
+  function del(id) {
+    db.from('family_trips').delete().eq('id', id).then(function() { setConfirm(null); setDetail(null); load(); });
+  }
+
+  var btnBase = { borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, padding: '9px 16px' };
+  var s = { input: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 8, color: T.text, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box', outline: 'none' }, label: { fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4, display: 'block' } };
+
+  function Inp(p) { return React.createElement('input', Object.assign({ style: s.input }, p)); }
+  function Lbl(p) { return React.createElement('label', { style: s.label }, p.text); }
+  function Fld(p) { return React.createElement('div', { style: { marginBottom: 12 } }, p.children); }
+
+  return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
+
+    // Header + ano filter
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
+      React.createElement('div', { style: { display: 'flex', gap: 6, alignItems: 'center' } },
+        React.createElement('button', { onClick: function() { setFiltroAno(function(y) { return y - 1; }); }, style: Object.assign({}, btnBase, { padding: '6px 12px', background: T.surface2, color: T.text }) }, '‹'),
+        React.createElement('div', { style: { fontWeight: 800, fontSize: 16, color: '#06B6D4', minWidth: 50, textAlign: 'center' } }, filtroAno),
+        React.createElement('button', { onClick: function() { setFiltroAno(function(y) { return y + 1; }); }, style: Object.assign({}, btnBase, { padding: '6px 12px', background: T.surface2, color: T.text }) }, '›')
+      ),
+      React.createElement('button', { onClick: openNew, style: Object.assign({}, btnBase, { background: '#06B6D4', color: '#fff', padding: '9px 16px' }) }, '+ Nova Viagem')
     ),
 
-    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 } },
-      VG_TYPES.map(function (t) {
-        var sel = form.tipo === t.id;
-        return React.createElement('button', {
-          key: t.id, onClick: function () { setForm(Object.assign({}, form, { tipo: t.id })); },
-          style: { padding: '10px 6px', borderRadius: 11, fontWeight: 800, cursor: 'pointer', fontSize: 13, border: '2px solid ' + (sel ? t.color : T.border), background: sel ? t.color : T.surface2, color: sel ? '#fff' : T.muted }
-        }, t.emoji + ' ' + t.label);
-      })
-    ),
+    loading && React.createElement('div', { style: { textAlign: 'center', padding: 32, color: T.muted } }, 'A carregar...'),
 
-    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginBottom: 12 } },
-      field('MÊS', React.createElement('select', {
-        value: form.mes, onChange: function (e) { setForm(Object.assign({}, form, { mes: parseInt(e.target.value, 10) })); }, style: inputStyle
-      }, VG_MONTHS.map(function (m, i) { return React.createElement('option', { key: i, value: i }, m); }))),
-      field('ANO', React.createElement('input', {
-        type: 'number', value: form.ano || new Date().getFullYear(), min: 2000, max: 2099,
-        onChange: function (e) { setForm(Object.assign({}, form, { ano: parseInt(e.target.value, 10) || new Date().getFullYear() })); },
-        style: Object.assign({}, inputStyle, { width: 90 })
-      }))
-    ),
+    !loading && listFiltrada.length === 0 && React.createElement('div', {
+      style: { textAlign: 'center', padding: 40, color: T.muted, fontSize: 14 }
+    }, React.createElement('div', { style: { fontSize: 36, marginBottom: 8 } }, '✈️'), 'Sem viagens em ' + filtroAno),
 
-    field('TÍTULO', React.createElement('input', {
-      value: form.titulo, onChange: function (e) { setForm(Object.assign({}, form, { titulo: e.target.value })); }, placeholder: 'Ex: Férias em família', style: inputStyle
-    })),
+    listFiltrada.sort(function(a, b) { return b.mes - a.mes; }).map(function(v) {
+      return React.createElement(ViagemCard, {
+        key: v.id, viagem: v,
+        onClick: function() { setDetail(detail && detail.id === v.id ? null : v); }
+      });
+    }),
 
-    field('LOCAL', React.createElement('input', {
-      value: form.local, onChange: function (e) { setForm(Object.assign({}, form, { local: e.target.value })); }, placeholder: 'Ex: Fafe, Portugal', style: inputStyle
-    })),
-
-    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 } },
-      field('DIA INÍCIO', React.createElement('input', {
-        type: 'number', min: 1, max: 31, value: form.dia_inicio,
-        onChange: function (e) { setForm(Object.assign({}, form, { dia_inicio: e.target.value })); },
-        placeholder: '1', style: inputStyle
-      })),
-      field('DIA FIM', React.createElement('input', {
-        type: 'number', min: 1, max: 31, value: form.dia_fim,
-        onChange: function (e) { setForm(Object.assign({}, form, { dia_fim: e.target.value })); },
-        placeholder: '31', style: inputStyle
-      }))
-    ),
-
-    field('FOTOS',
-      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' } },
-        visiveis.map(function (url, idx) {
-          return React.createElement('div', { key: idx, style: { position: 'relative', width: 80, height: 80, flexShrink: 0 } },
-            React.createElement('img', { src: url, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11, border: '1px solid ' + T.border, display: 'block' } }),
-            React.createElement('button', {
-              onClick: function () { removePhoto(idx); },
-              style: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid ' + T.surface, fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
-            }, '✕')
-          );
-        }),
-        !expanded && fotos.length > 3 && React.createElement('button', {
-          onClick: function () { setExpanded(true); },
-          style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }
-        }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, '+' + (fotos.length - 3))),
-        expanded && fotos.length > 3 && React.createElement('button', {
-          onClick: function () { setExpanded(false); },
-          style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }
-        }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, 'Fechar')),
-        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 } },
-          React.createElement('button', {
-            onClick: openAddFotos,
-            style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2 }
-          },
-            '➕',
-            fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' } }, 'MAIS')
-          ),
-          srcPref && React.createElement('span', {
-            onClick: function() { setShowSrcPicker(true); },
-            style: { fontSize: 9, color: T.gold, cursor: 'pointer', fontWeight: 700 }
-          }, VG_SRCS.find(function(s) { return s.id === srcPref; }) ? VG_SRCS.find(function(s) { return s.id === srcPref; }).emoji + ' mudar' : 'mudar')
+    // Detail overlay
+    detail && React.createElement('div', {
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'auto' },
+      onClick: function(e) { if (e.target === e.currentTarget) setDetail(null); }
+    },
+      React.createElement('div', { style: { background: T.surface, margin: '20px 14px', borderRadius: 18, padding: 18, maxWidth: 560, width: '100%', alignSelf: 'center' } },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
+          React.createElement('div', { style: { fontWeight: 800, fontSize: 18, color: T.text } }, detail.destino),
+          React.createElement('button', { onClick: function() { setDetail(null); }, style: { background: 'transparent', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '×')
         ),
-
-        VG_SRCS.map(function(src) {
-          var attrs = { id: 'vg-input-' + src.id, type: 'file', accept: src.accept, multiple: !src.capture, style: { display: 'none' }, onChange: function(e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); } };
-          if (src.capture) attrs.capture = src.capture;
-          return React.createElement('input', Object.assign({ key: src.id }, attrs));
-        }),
-
-        showSrcPicker && React.createElement('div', {
-          onClick: function() { setShowSrcPicker(false); },
-          style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'flex-end' }
-        },
-          React.createElement('div', {
-            onClick: function(e) { e.stopPropagation(); },
-            style: { width: '100%', background: T.surface, borderRadius: '18px 18px 0 0', padding: '18px 20px 32px', boxSizing: 'border-box' }
-          },
-            React.createElement('div', { style: { width: 36, height: 4, background: T.border, borderRadius: 99, margin: '0 auto 18px' } }),
-            React.createElement('div', { style: { fontWeight: 800, fontSize: 15, marginBottom: 16, color: T.text } }, '📎 Onde estão as fotos?'),
-            VG_SRCS.map(function(src) {
-              var isActive = srcPref === src.id;
-              return React.createElement('div', {
-                key: src.id,
-                onClick: function() { pickSource(src.id); },
-                style: { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid ' + T.border, cursor: 'pointer' }
-              },
-                React.createElement('span', { style: { fontSize: 22, width: 32, textAlign: 'center' } }, src.emoji),
-                React.createElement('span', { style: { flex: 1, fontWeight: 600, fontSize: 15, color: isActive ? T.gold : T.text } }, src.label),
-                isActive && React.createElement('span', { style: { fontSize: 12, color: T.gold, fontWeight: 800 } }, '✓ Em uso')
-              );
-            }),
-            React.createElement('button', {
-              onClick: function() { setShowSrcPicker(false); },
-              style: { width: '100%', marginTop: 16, padding: '12px 0', borderRadius: 11, border: '1px solid ' + T.border, background: 'none', color: T.muted, fontWeight: 700, fontSize: 15, cursor: 'pointer' }
-            }, 'Cancelar')
-          )
+        React.createElement('div', { style: { fontSize: 13, color: '#06B6D4', fontWeight: 600, marginBottom: 10 } },
+          MESES_PT[(detail.mes || 1) - 1] + ' ' + detail.ano +
+          (detail.data_inicio ? ' · ' + detail.data_inicio : '') +
+          (detail.data_fim ? ' – ' + detail.data_fim : '')
+        ),
+        detail.descricao && React.createElement('p', { style: { fontSize: 13, color: T.muted, marginBottom: 12 } }, detail.descricao),
+        (detail.fotos || []).length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 } },
+          (detail.fotos || []).map(function(f, i) {
+            return React.createElement('img', {
+              key: i, src: f,
+              style: { width: 'calc(33% - 6px)', aspectRatio: '1', objectFit: 'cover', borderRadius: 10, cursor: 'pointer' },
+              onClick: function() { setLightbox({ fotos: detail.fotos, idx: i }); },
+              alt: ''
+            });
+          })
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+          React.createElement('button', { onClick: function() { openEdit(detail); }, style: Object.assign({}, btnBase, { background: T.surface2, color: T.text, flex: 1 }) }, '✏️ Editar'),
+          React.createElement('button', { onClick: function() { setConfirm(detail.id); }, style: Object.assign({}, btnBase, { background: '#EF4444', color: '#fff' }) }, '🗑️')
         )
       )
     ),
 
-    field('🔗 LINK GOOGLE DRIVE / GOOGLE FOTOS (OPCIONAL)', React.createElement('input', {
-      value: form.album_url || '', onChange: function (e) { setForm(Object.assign({}, form, { album_url: e.target.value })); },
-      placeholder: 'https://drive.google.com/... ou https://photos.app.goo.gl/...', style: inputStyle
-    })),
-
-    field('NOTAS', React.createElement('textarea', {
-      value: form.notas, onChange: function (e) { setForm(Object.assign({}, form, { notas: e.target.value })); },
-      placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inputStyle, { resize: 'vertical' })
-    })),
-
-    React.createElement('button', {
-      onClick: onSave, disabled: !valid || saving || fotosLoading,
-      style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving || fotosLoading) ? 0.45 : 1 }
-    }, saving ? (progress ? ('A guardar ' + progress.done + '/' + progress.total + '…') : 'A guardar…') : fotosLoading ? '⏳ A carregar fotos…' : (isEdit ? 'Guardar Alterações' : '✚ Adicionar'))
-  );
-}
-
-
-// ── Vista de detalhe ──────────────────────────────────────────────
-function VgTripDetail(props) {
-  var trip = props.trip, onEdit = props.onEdit, onClose = props.onClose, db = props.db;
-  var ti = vgType(trip.tipo);
-  var days = (trip.dia_inicio && trip.dia_fim) ? (trip.dia_inicio + '–' + trip.dia_fim + ' ' + VG_MONTHS[trip.mes])
-    : trip.dia_inicio ? (trip.dia_inicio + ' ' + VG_MONTHS[trip.mes]) : VG_MONTHS[trip.mes];
-  var _stFotos = React.useState([]);
-  var fotos = _stFotos[0], setFotos = _stFotos[1];
-  var _stLoadingF = React.useState(true);
-  var loadingF = _stLoadingF[0], setLoadingF = _stLoadingF[1];
-  var _stLightbox = React.useState(null);
-  var lightbox = _stLightbox[0], setLightbox = _stLightbox[1];
-
-  React.useEffect(function() {
-    db.from('family_trips').select('fotos').eq('id', trip.id).single()
-      .then(function(r) { setFotos((r.data && r.data.fotos) || []); setLoadingF(false); })
-      .catch(function() { setLoadingF(false); });
-  }, [trip.id]);
-
-  return React.createElement('div', { style: { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif', paddingBottom: 40 } },
-    React.createElement('div', {
-      style: { background: T.surface, borderBottom: '1px solid ' + T.goldBrd, padding: '13px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200 }
-    },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
-        React.createElement('button', { onClick: onClose, style: { background: 'none', border: 'none', color: T.gold, fontSize: 26, cursor: 'pointer', lineHeight: 1, padding: 0 } }, '‹'),
-        React.createElement('span', { style: { fontWeight: 800, fontSize: 17 } }, trip.titulo)
-      ),
-      React.createElement('button', { onClick: onEdit, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: 700, color: T.text } }, '✏️ Editar')
-    ),
-    React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
-      React.createElement(Card, { style: { padding: 16, marginBottom: 14 } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' } },
-          React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#fff', background: ti.color, padding: '4px 12px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
-          React.createElement('span', { style: { fontSize: 13, color: T.muted } }, days)
-        ),
-        React.createElement('div', { style: { fontSize: 15, fontWeight: 700, marginBottom: 4 } }, '📍 ' + trip.local),
-        trip.notas && React.createElement('div', { style: { fontSize: 13, color: T.muted, lineHeight: 1.6, marginTop: 8 } }, trip.notas),
-        trip.album_url && React.createElement('a', {
-          href: trip.album_url, target: '_blank', rel: 'noopener',
-          style: { display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '9px 16px', background: '#4285F4', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: 'none' }
-        }, '📷 Abrir Álbum Google Fotos')
-      ),
-      React.createElement('div', { style: { fontWeight: 700, fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.06em' } }, 'FOTOS'),
-      loadingF && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar fotos…'),
-      !loadingF && fotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
-      !loadingF && fotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
-        fotos.map(function(url, idx) {
-          return React.createElement('div', {
-            key: idx, onClick: function() { setLightbox({ urls: fotos, idx: idx }); },
-            style: { position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: T.surface2 }
-          },
-            React.createElement('img', { src: url, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } })
-          );
-        })
-      )
-    ),
+    // Lightbox
     lightbox && React.createElement('div', {
-      onClick: function() { setLightbox(null); },
-      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 16 }
+      style: { position: 'fixed', inset: 0, background: '#000', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+      onClick: function() { setLightbox(null); }
     },
-      React.createElement('div', { onClick: function(e) { e.stopPropagation(); }, style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '100%' } },
-        React.createElement('img', { src: lightbox.urls[lightbox.idx], style: { maxWidth: '100%', maxHeight: '75vh', borderRadius: 14, objectFit: 'contain' } }),
-        lightbox.urls.length > 1 && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
-          React.createElement('button', { onClick: function() { setLightbox({ urls: lightbox.urls, idx: (lightbox.idx - 1 + lightbox.urls.length) % lightbox.urls.length }); }, style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' } }, '‹'),
-          React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 700 } }, (lightbox.idx + 1) + ' / ' + lightbox.urls.length),
-          React.createElement('button', { onClick: function() { setLightbox({ urls: lightbox.urls, idx: (lightbox.idx + 1) % lightbox.urls.length }); }, style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' } }, '›')
+      React.createElement('img', { src: lightbox.fotos[lightbox.idx], style: { maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 12 }, onClick: function(e) { e.stopPropagation(); }, alt: '' }),
+      lightbox.idx > 0 && React.createElement('button', {
+        onClick: function(e) { e.stopPropagation(); setLightbox(function(lb) { return { fotos: lb.fotos, idx: lb.idx - 1 }; }); },
+        style: { position: 'fixed', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontSize: 28, borderRadius: '50%', width: 48, height: 48, cursor: 'pointer' }
+      }, '‹'),
+      lightbox.idx < lightbox.fotos.length - 1 && React.createElement('button', {
+        onClick: function(e) { e.stopPropagation(); setLightbox(function(lb) { return { fotos: lb.fotos, idx: lb.idx + 1 }; }); },
+        style: { position: 'fixed', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontSize: 28, borderRadius: '50%', width: 48, height: 48, cursor: 'pointer' }
+      }, '›'),
+      React.createElement('button', { onClick: function() { setLightbox(null); }, style: { position: 'fixed', top: 16, right: 16, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontSize: 22, borderRadius: '50%', width: 40, height: 40, cursor: 'pointer' } }, '×'),
+      React.createElement('div', { style: { position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.6)', fontSize: 13 } }, (lightbox.idx + 1) + ' / ' + lightbox.fotos.length)
+    ),
+
+    // Form overlay
+    form !== null && React.createElement('div', {
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'flex-start', overflowY: 'auto' }
+    },
+      React.createElement('div', { style: { background: T.surface, margin: '20px 14px', borderRadius: 18, padding: 18, maxWidth: 560, width: '100%', alignSelf: 'flex-start' } },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
+          React.createElement('div', { style: { fontWeight: 800, fontSize: 16 } }, form === 'new' ? '✈️ Nova Viagem' : '✏️ Editar Viagem'),
+          React.createElement('button', { onClick: function() { setForm(null); }, style: { background: 'transparent', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '×')
         ),
-        React.createElement('button', { onClick: function() { setLightbox(null); }, style: { background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 22px', borderRadius: 20, cursor: 'pointer', fontSize: 13 } }, 'Fechar')
-      )
-    )
-  );
-}
-
-// ── App principal ─────────────────────────────────────────────────
-function ViagensApp(props) {
-  var onBack = props.onBack;
-  var profile = props.profile;
-  var db = window.supabaseClient;
-
-  var _stTrips = React.useState([]);
-  var trips = _stTrips[0], setTrips = _stTrips[1];
-  var _stLoading = React.useState(true);
-  var loading = _stLoading[0], setLoading = _stLoading[1];
-  var _stYear = React.useState(new Date().getFullYear());
-  var year = _stYear[0], setYear = _stYear[1];
-  var _stSelMonth = React.useState(null);
-  var selMonth = _stSelMonth[0], setSelMonth = _stSelMonth[1];
-  var _stForm = React.useState(null);
-  var form = _stForm[0], setForm = _stForm[1];
-  var _stFormData = React.useState(vgBlankForm());
-  var formData = _stFormData[0], setFormData = _stFormData[1];
-  var _stSaving = React.useState(false);
-  var saving = _stSaving[0], setSaving = _stSaving[1];
-  var _stProgress = React.useState(null);
-  var progress = _stProgress[0], setProgress = _stProgress[1];
-  var _stConfirmDel = React.useState(null);
-  var confirmDel = _stConfirmDel[0], setConfirmDel = _stConfirmDel[1];
-  var _stDetail = React.useState(null);
-  var detailTrip = _stDetail[0], setDetailTrip = _stDetail[1];
-  var _stLightbox = React.useState(null);
-  var fotoLightbox = _stLightbox[0], setFotoLightbox = _stLightbox[1];
-
-  var wrap = { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif' };
-
-  function load() {
-    if (!db) { setLoading(false); return; }
-    setLoading(true);
-    function doLoad() {
-      db.from('family_trips_list').select('*')
-        .order('ano', { ascending: false }).order('mes')
-        .then(function (r) { setTrips(r.data || []); setLoading(false); })
-        .catch(function (err) {
-          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
-            db.auth.refreshSession().then(function () { doLoad(); }).catch(function () { setLoading(false); });
-          } else { setLoading(false); }
-        });
-    }
-    db.auth.refreshSession().then(function () { doLoad(); }).catch(function () { doLoad(); });
-  }
-  React.useEffect(load, []);
-
-  function byMonth(y, m) {
-    return trips.filter(function (t) { return t.ano === y && t.mes === m; })
-      .sort(function (a, b) { return (parseInt(a.dia_inicio, 10) || 0) - (parseInt(b.dia_inicio, 10) || 0); });
-  }
-  var yearTrips = trips.filter(function (t) { return t.ano === year; });
-
-  function openAdd(mes) { setFormData(vgBlankForm(mes, year)); setForm('new'); }
-  function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, ano: trip.ano || year, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], album_url: trip.album_url || '', _pendingFiles: [], _fotosLoading: true });
-    setForm(trip);
-    db.from('family_trips').select('fotos').eq('id', trip.id).single()
-      .then(function(r) {
-        if (r.data && r.data.fotos) {
-          setFormData(function(prev) { return Object.assign({}, prev, { fotos: r.data.fotos, _fotosLoading: false }); });
-        } else {
-          setFormData(function(prev) { return Object.assign({}, prev, { _fotosLoading: false }); });
-        }
-      })
-      .catch(function() {
-        setFormData(function(prev) { return Object.assign({}, prev, { _fotosLoading: false }); });
-      });
-  }
-
-  function saveTrip() {
-    if (!formData.titulo.trim() || !formData.local.trim()) return;
-    setSaving(true);
-    var pendingFiles = formData._pendingFiles || [];
-    var existingUrls = formData.fotos.slice(0, formData.fotos.length - pendingFiles.length);
-
-    function doSave(uploadedUrls) {
-      var allFotos = existingUrls.concat(uploadedUrls);
-      var payload = {
-        tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(),
-        ano: formData.ano || year, mes: formData.mes,
-        dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null,
-        dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null,
-        notas: formData.notas.trim(),
-        album_url: formData.album_url || null,
-        fotos: allFotos,
-        created_by: profile && profile.id
-      };
-      var op = (form === 'new')
-        ? db.from('family_trips').insert(payload)
-        : db.from('family_trips').update(payload).eq('id', form.id);
-      op.then(function () { setSaving(false); setProgress(null); setForm(null); load(); })
-        .catch(function () { setSaving(false); setProgress(null); });
-    }
-
-    if (pendingFiles.length === 0) { doSave([]); return; }
-
-    var tripId = form !== 'new' ? form.id : ('tmp_' + Date.now());
-    var total = pendingFiles.length;
-    var done = 0;
-    var urls = new Array(total);
-    setProgress({ done: 0, total: total });
-
-    function uploadBatch(files, startIdx, cb) {
-      if (files.length === 0) { cb(); return; }
-      var batch = files.slice(0, 8);
-      var rest = files.slice(8);
-      var promises = batch.map(function(file, i) { return vgUploadFoto(db, file, tripId, startIdx + i); });
-      Promise.all(promises).then(function(batchUrls) {
-        for (var i = 0; i < batchUrls.length; i++) urls[startIdx + i] = batchUrls[i];
-        done += batch.length;
-        setProgress({ done: done, total: total });
-        uploadBatch(rest, startIdx + batch.length, cb);
-      }).catch(function() { setSaving(false); setProgress(null); });
-    }
-
-    uploadBatch(pendingFiles, 0, function() { doSave(urls.filter(Boolean)); });
-  }
-
-  function deleteTrip(id) {
-    db.from('family_trips').delete().eq('id', id).then(function () { setConfirmDel(null); load(); });
-  }
-
-  var headerBar = React.createElement('div', {
-    style: { background: T.surface, borderBottom: '1px solid ' + T.goldBrd, padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 200 }
-  },
-    React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: T.gold, fontSize: 26, cursor: 'pointer', lineHeight: 1, padding: 0 } }, '‹'),
-    React.createElement('div', null,
-      React.createElement('div', { style: { fontWeight: 800, fontSize: 17 } }, '✈️ Viagens & Visitas'),
-      React.createElement('div', { style: { fontSize: 11, color: T.muted } }, 'Onde fomos e quando')
-    )
-  );
-
-  if (detailTrip) {
-    return React.createElement(VgTripDetail, { trip: detailTrip, db: db, onClose: function() { setDetailTrip(null); }, onEdit: function() { openEdit(detailTrip); setDetailTrip(null); } });
-  }
-
-  if (form) {
-    return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
-      headerBar,
-      React.createElement(VgForm, { form: formData, setForm: setFormData, onSave: saveTrip, onCancel: function () { setForm(null); }, isEdit: form !== 'new', saving: saving, progress: progress, fotosLoading: !!formData._fotosLoading })
-    );
-  }
-
-  var confirmModal = confirmDel && React.createElement('div', {
-    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 24 }
-  },
-    React.createElement(Card, { style: { padding: 22, maxWidth: 340, width: '100%' } },
-      React.createElement('div', { style: { fontWeight: 800, fontSize: 16, marginBottom: 8 } }, 'Apagar esta entrada?'),
-      React.createElement('div', { style: { color: T.muted, fontSize: 13, marginBottom: 18 } }, 'Esta ação não pode ser desfeita.'),
-      React.createElement('div', { style: { display: 'flex', gap: 10 } },
-        React.createElement('button', { onClick: function () { setConfirmDel(null); }, style: { flex: 1, padding: 11, borderRadius: 10, border: '1px solid ' + T.border, background: 'none', color: T.muted, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
-        React.createElement('button', { onClick: function () { deleteTrip(confirmDel); }, style: { flex: 1, padding: 11, borderRadius: 10, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer' } }, 'Apagar')
-      )
-    )
-  );
-
-  var fotoLightboxModal = fotoLightbox && React.createElement('div', {
-    onClick: function () { setFotoLightbox(null); },
-    style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 16 }
-  },
-    React.createElement('div', {
-      onClick: function (e) { e.stopPropagation(); },
-      style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '100%' }
-    },
-      React.createElement('img', {
-        src: fotoLightbox.urls[fotoLightbox.idx],
-        style: { maxWidth: '100%', maxHeight: '75vh', borderRadius: 14, objectFit: 'contain' }
-      }),
-      fotoLightbox.urls.length > 1 && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
-        React.createElement('button', {
-          onClick: function () { setFotoLightbox({ urls: fotoLightbox.urls, idx: (fotoLightbox.idx - 1 + fotoLightbox.urls.length) % fotoLightbox.urls.length }); },
-          style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' }
-        }, '‹'),
-        React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 700, minWidth: 40, textAlign: 'center' } }, (fotoLightbox.idx + 1) + ' / ' + fotoLightbox.urls.length),
-        React.createElement('button', {
-          onClick: function () { setFotoLightbox({ urls: fotoLightbox.urls, idx: (fotoLightbox.idx + 1) % fotoLightbox.urls.length }); },
-          style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' }
-        }, '›')
-      ),
-      React.createElement('button', {
-        onClick: function () { setFotoLightbox(null); },
-        style: { background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 22px', borderRadius: 20, cursor: 'pointer', fontSize: 13 }
-      }, 'Fechar')
-    )
-  );
-
-  if (selMonth !== null) {
-    var mTrips = byMonth(year, selMonth);
-    return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
-      headerBar,
-      React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 } },
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-            React.createElement('button', { onClick: function () { setSelMonth(null); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '←'),
-            React.createElement('div', null,
-              React.createElement('div', { style: { fontWeight: 800, fontSize: 19 } }, VG_MONTHS[selMonth]),
-              React.createElement('div', { style: { fontSize: 12, color: T.muted } }, year + ' · ' + mTrips.length + ' entrada' + (mTrips.length !== 1 ? 's' : ''))
+        Fld({ children: [Lbl({ text: 'Destino' }), Inp({ value: fDest, onChange: function(e) { setFDest(e.target.value); }, placeholder: 'Ex: Algarve, Portugal' })] }),
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 1 } }, Lbl({ text: 'Ano' }), Inp({ type: 'number', value: fAno, onChange: function(e) { setFAno(e.target.value); } })),
+          React.createElement('div', { style: { flex: 1 } }, Lbl({ text: 'Mês' }),
+            React.createElement('select', { value: fMes, onChange: function(e) { setFMes(e.target.value); }, style: s.input },
+              MESES_PT.map(function(m, i) { return React.createElement('option', { key: i, value: i + 1 }, m); })
             )
+          )
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 1 } }, Lbl({ text: 'Início' }), Inp({ type: 'date', value: fDi, onChange: function(e) { setFDi(e.target.value); } })),
+          React.createElement('div', { style: { flex: 1 } }, Lbl({ text: 'Fim' }), Inp({ type: 'date', value: fDf, onChange: function(e) { setFDf(e.target.value); } }))
+        ),
+        Fld({ children: [Lbl({ text: 'Notas' }), React.createElement('textarea', { value: fDesc, onChange: function(e) { setFDesc(e.target.value); }, placeholder: 'Onde ficaram, o que fizeram...', rows: 3, style: Object.assign({}, s.input, { resize: 'vertical', fontFamily: 'inherit' }) })] }),
+        // Photos
+        React.createElement('div', { style: { marginBottom: 14 } },
+          Lbl({ text: 'Fotos' }),
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', background: T.surface2, border: '1px dashed ' + T.border, borderRadius: 8, padding: '10px 14px', marginBottom: 8 } },
+            React.createElement('span', { style: { fontSize: 18 } }, '📷'),
+            React.createElement('span', { style: { fontSize: 13, color: T.muted } }, 'Adicionar fotos'),
+            React.createElement('input', { type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' }, onChange: addFotos })
           ),
-          React.createElement(GoldBtn, { onClick: function () { openAdd(selMonth); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
+          fFotos.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
+            fFotos.map(function(f, i) {
+              return React.createElement('div', { key: i, style: { position: 'relative' } },
+                React.createElement('img', { src: f, style: { width: 70, height: 70, objectFit: 'cover', borderRadius: 8 }, alt: '' }),
+                React.createElement('button', { onClick: function() { removeFoto(i); }, style: { position: 'absolute', top: -6, right: -6, background: '#EF4444', border: 'none', color: '#fff', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer', lineHeight: '20px', textAlign: 'center' } }, '×')
+              );
+            })
+          )
         ),
-        loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-        !loading && mTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '46px 16px', color: T.muted } },
-          React.createElement('div', { style: { fontSize: 44, marginBottom: 10 } }, '📅'),
-          React.createElement('div', { style: { fontSize: 14, marginBottom: 14 } }, 'Nenhuma entrada neste mês'),
-          React.createElement('button', { onClick: function () { openAdd(selMonth); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Adicionar entrada')
-        ),
-        !loading && mTrips.map(function (t) {
-          return React.createElement(VgTripCard, {
-            key: t.id, trip: t,
-            onOpen: function () { setDetailTrip(t); },
-            onEdit: function () { openEdit(t); },
-            onDelete: function () { setConfirmDel(t.id); },
-            onPhotoClick: function (urls, idx) { setFotoLightbox({ urls: urls, idx: idx || 0 }); }
-          });
-        })
-      ),
-      confirmModal,
-      fotoLightboxModal
-    );
-  }
-
-  var now = new Date();
-  return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 40 }) },
-    headerBar,
-    React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 } },
-        React.createElement('div', { style: { fontSize: 12.5, color: T.muted } }, yearTrips.length + ' entrada' + (yearTrips.length !== 1 ? 's' : '') + ' em ' + year),
-        React.createElement(GoldBtn, { onClick: function () { openAdd(now.getMonth()); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
-      ),
-      React.createElement(Card, { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '11px 0', marginBottom: 14 } },
-        React.createElement('button', { onClick: function () { setYear(year - 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '‹'),
-        React.createElement('span', { style: { fontWeight: 900, fontSize: 22 } }, year),
-        React.createElement('button', { onClick: function () { setYear(year + 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '›')
-      ),
-      loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-      !loading && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
-        VG_MONTHS.map(function (_, idx) {
-          var mTrips = byMonth(year, idx);
-          var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
-          return React.createElement('button', {
-            key: idx, onClick: function () { setSelMonth(idx); },
-            style: { position: 'relative', overflow: 'hidden', background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left', minHeight: 70 }
-          },
-            React.createElement('div', { style: { position: 'relative', zIndex: 1 } },
-              React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? '#fff' : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
-              mTrips.length === 0
-                ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
-                : React.createElement('div', null,
-                    mTrips.slice(0, 3).map(function (t) {
-                      var ti = vgType(t.tipo);
-                      return React.createElement('div', { key: t.id, style: { display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 } },
-                        React.createElement('span', { style: { fontSize: 9, flexShrink: 0, color: ti.color } }, ti.emoji),
-                        React.createElement('span', { style: { fontSize: 9, fontWeight: 700, color: ti.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo || t.local)
-                      );
-                    }),
-                    mTrips.length > 3 && React.createElement('div', { style: { fontSize: 8, color: T.muted, marginTop: 1 } }, '+' + (mTrips.length - 3) + ' mais')
-                  )
-            )
-          );
-        })
-      ),
-      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 16, justifyContent: 'center' } },
-        VG_TYPES.map(function (t) {
-          return React.createElement('span', { key: t.id, style: { fontSize: 11, fontWeight: 800, color: '#fff', background: t.color, padding: '3px 10px', borderRadius: 20 } }, t.emoji + ' ' + t.label);
-        })
+        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+          React.createElement('button', { onClick: function() { setForm(null); }, style: Object.assign({}, btnBase, { background: T.surface2, color: T.text, flex: 1 }) }, 'Cancelar'),
+          React.createElement('button', { onClick: save, style: Object.assign({}, btnBase, { background: '#06B6D4', color: '#fff', flex: 2 }) }, fSaving ? '...' : '💾 Guardar')
+        )
       )
     ),
-    confirmModal,
-    fotoLightboxModal
+
+    // Confirm delete
+    confirm && React.createElement('div', {
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }
+    },
+      React.createElement('div', { style: { background: T.surface, borderRadius: 16, padding: 24, maxWidth: 340, width: '100%', textAlign: 'center' } },
+        React.createElement('div', { style: { fontSize: 22, marginBottom: 8 } }, '🗑️'),
+        React.createElement('div', { style: { fontWeight: 700, marginBottom: 8 } }, 'Apagar viagem?'),
+        React.createElement('div', { style: { fontSize: 13, color: T.muted, marginBottom: 20 } }, 'Esta acção não pode ser desfeita.'),
+        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+          React.createElement('button', { onClick: function() { setConfirm(null); }, style: Object.assign({}, btnBase, { background: T.surface2, color: T.text, flex: 1 }) }, 'Cancelar'),
+          React.createElement('button', { onClick: function() { del(confirm); }, style: Object.assign({}, btnBase, { background: '#EF4444', color: '#fff', flex: 1 }) }, 'Apagar')
+        )
+      )
+    )
   );
 }
