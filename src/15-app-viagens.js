@@ -290,9 +290,9 @@ function VgForm(props) {
       )
     ),
 
-    field('ÁLBUM GOOGLE FOTOS (OPCIONAL)', React.createElement('input', {
+    field('🔗 LINK GOOGLE DRIVE / GOOGLE FOTOS (OPCIONAL)', React.createElement('input', {
       value: form.album_url || '', onChange: function (e) { setForm(Object.assign({}, form, { album_url: e.target.value })); },
-      placeholder: 'https://photos.app.goo.gl/...', style: inputStyle
+      placeholder: 'https://drive.google.com/... ou https://photos.app.goo.gl/...', style: inputStyle
     })),
 
     field('NOTAS', React.createElement('textarea', {
