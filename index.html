@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-25T16:26:55.977Z
+  Gerado em: 2026-08-25T17:51:44.440Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-187";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-188";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24029,7 +24029,7 @@ function LucasApp(_ref) {
 
 // ── HAUSWART APP ──────────────────────────────────────────────────────
 // Faturação trimestral pessoal do Patricio (trabalho independente).
-// Admin only. Dados em localStorage (prefixo hw_).
+// Admin only. Dados em Supabase (tabela hauswart_data) + localStorage backup.
 // ─────────────────────────────────────────────────────────────────────
 
 var HW_DEFAULTS = {
@@ -24261,6 +24261,8 @@ function HwEmpty(props) {
 // ── MAIN APP ──
 var HauswartApp = function(props) {
   var onBack = props.onBack;
+  var profile = props.profile;
+  var owner = (profile && profile.member_id) || 'patricio';
   var T = window.T || { bg: '#0f172a', surface: '#1e293b', surface2: '#0f172a', text: '#e2e8f0', muted: '#64748b', gold: '#C9A847' };
 
   var _useState = React.useState('dash');
@@ -24277,13 +24279,57 @@ var HauswartApp = function(props) {
 
   var _useStateA = React.useState(hwLoad('archive') || []);
   var archive = _useStateA[0], setArchiveRaw = _useStateA[1];
+
+  var _useStateReady = React.useState(false);
+  var ready = _useStateReady[0], setReady = _useStateReady[1];
+
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
-  var updW = function(v) { setWorksRaw(v); hwSave('works', v); };
-  var updM = function(v) { setMatsRaw(v); hwSave('mats', v); };
-  var updC = function(v) { setCfgRaw(v); hwSave('cfg', v); };
-  var updA = function(v) { setArchiveRaw(v); hwSave('archive', v); };
+  // ── Load from Supabase on startup ─────────────────────────────────
+  React.useEffect(function() {
+    if (!window.supabaseClient) { setReady(true); return; }
+    window.supabaseClient
+      .from('hauswart_data')
+      .select('*')
+      .eq('member_id', owner)
+      .single()
+      .then(function(res) {
+        if (res.data) {
+          var d = res.data;
+          if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
+          if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats', d.mats); }
+          if (d.cfg   && Object.keys(d.cfg).length) {
+            var merged = Object.assign({}, HW_DEFAULTS, d.cfg);
+            setCfgRaw(merged); hwSave('cfg', merged);
+          }
+          if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
+        }
+        setReady(true);
+      })
+      .catch(function() { setReady(true); });
+  }, []);
+
+  // ── Sync to Supabase (fire-and-forget, localStorage is the immediate backup) ──
+  var hwSync = function(w, m, c, a) {
+    hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('hauswart_data').upsert({
+      member_id: owner,
+      works: w, mats: m, cfg: c, archive: a,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'member_id' })
+    .catch(function(e) { console.error('Hauswart sync error:', e); });
+  };
+
+  var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
+  var updM = function(v) { setMatsRaw(v);  hwSync(works, v, cfg, archive); };
+  var updC = function(v) { setCfgRaw(v);   hwSync(works, mats, v, archive); };
+  var updA = function(v) { setArchiveRaw(v); hwSync(works, mats, cfg, v); };
+
+  if (!ready) return React.createElement('div', {
+    style: { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#0f172a', color:'#64748b', fontFamily:'system-ui', fontSize:16 }
+  }, '🔧 A carregar Hauswart...');
 
   var pauschale = cfg.pauschale || 0;
   var totalWork = works.reduce(function(s, w) { return s + w.hours * w.rate; }, 0);
@@ -25266,6 +25312,53 @@ var RP_WETTER_OPTS = [
 
 var RP_KANTONE = ['SO','BE','AG','ZH','BS','BL','FR','LU','JU','VS','TG','SH','GR','GL','SG','AR','AI','NE','GE','VD','TI'];
 
+var RP_L = {
+  DE: {
+    tab_plan:'📋 Planung', tab_tages:'📄 Tagesrapport', tab_wochen:'📊 Wochenbericht',
+    save:'Speichern', cancel:'Abbrechen', today:'HEUTE', status:'Status', note:'Notiz',
+    date:'Datum', site:'Baustelle / Ort', canton:'Kanton', from:'Von', to:'Bis', team:'Team',
+    p_new:'Neuer Auftrag', p_edit:'Auftrag bearbeiten', p_type:'Arbeitstyp',
+    p_empty:'Nix geplant', p_jobs:'Aufträge', p_done:'fertig',
+    t_new:'Neuer Tagesrapport', t_edit:'Rapport bearbeiten', t_btn:'+ Neuer Tagesrapport',
+    t_count:'Rapporte', t_weather:'Wetter', t_work:'Ausgeführte Arbeiten',
+    t_mat:'Material Verwendet', t_prob:'Probleme / Bemerkungen',
+    t_draft:'📝 Entwurf', t_sub:'✅ Abgegeben', t_submit:'✓ Abgeben', t_todraft:'↺ Entwurf',
+    bep_title:'🔌 BEP Spezifisch', bep_anz:'Anzahl BEPs', bep_typ:'BEP Typ',
+    bep_godoo:'Godoo-Nr', bep_zust:'Zuständig (Godoo)',
+    bep_gag:'GAG Messung', bep_swiss:'Swisscom Messung', bep_foto:'📷 Fotos gemacht',
+    m_title:'🔩 Muffe Spezifisch', m_anz:'Anzahl Muffes', m_typ:'Muffe Typ',
+    m_fasern:'Fasern gespleisst', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos', m_bem:'Bemerkungen',
+    w_new:'Neuer Wochenbericht', w_edit:'Wochenbericht bearbeiten',
+    w_btn:'+ Neuer Wochenbericht', w_count:'Wochenberichte',
+    w_year:'Jahr', w_std:'Total Std.', w_km:'Total KM',
+    w_hint:'💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.',
+    w_sum:'Zusammenfassung der Woche', w_open:'Offene Arbeiten', w_rem:'Bemerkungen',
+    none_t:'Noch keine Tagesrapporte.', none_w:'Noch keine Wochenberichte.',
+  },
+  PT: {
+    tab_plan:'📋 Planeamento', tab_tages:'📄 Diário', tab_wochen:'📊 Semanal',
+    save:'Guardar', cancel:'Cancelar', today:'HOJE', status:'Estado', note:'Nota',
+    date:'Data', site:'Obra / Local', canton:'Cantão', from:'De', to:'Até', team:'Equipa',
+    p_new:'Novo Serviço', p_edit:'Editar Serviço', p_type:'Tipo de Trabalho',
+    p_empty:'Nada planeado', p_jobs:'Serviços', p_done:'feitos',
+    t_new:'Novo Relatório Diário', t_edit:'Editar Relatório', t_btn:'+ Novo Relatório',
+    t_count:'Relatórios', t_weather:'Tempo', t_work:'Trabalhos Realizados',
+    t_mat:'Material Utilizado', t_prob:'Problemas / Observações',
+    t_draft:'📝 Rascunho', t_sub:'✅ Entregue', t_submit:'✓ Entregar', t_todraft:'↺ Rascunho',
+    bep_title:'🔌 BEP Específico', bep_anz:'Nº BEPs', bep_typ:'Tipo BEP',
+    bep_godoo:'Nº Godoo', bep_zust:'Responsável (Godoo)',
+    bep_gag:'Medição GAG', bep_swiss:'Medição Swisscom', bep_foto:'📷 Fotos tiradas',
+    m_title:'🔩 Muffe Específico', m_anz:'Nº Muffes', m_typ:'Tipo Muffe',
+    m_fasern:'Fibras Spleissadas', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos', m_bem:'Observações',
+    w_new:'Novo Rel. Semanal', w_edit:'Editar Rel. Semanal',
+    w_btn:'+ Novo Rel. Semanal', w_count:'Relatórios Semanais',
+    w_year:'Ano', w_std:'Total Horas', w_km:'Total KM',
+    w_hint:'💡 Horas e KM calculadas automaticamente dos relatórios diários desta KW.',
+    w_sum:'Resumo da Semana', w_open:'Trabalhos Pendentes', w_rem:'Observações',
+    none_t:'Sem relatórios diários.', none_w:'Sem relatórios semanais.',
+  }
+};
+
 // ── utility ────────────────────────────────────────────────────────
 function rpToday() { return new Date().toISOString().slice(0, 10); }
 
@@ -25420,6 +25513,7 @@ function RpConfirm(props) {
 // ════════════════════════════════════════════════════════════════════
 function RpPlanungView(props) {
   var userId = props.userId;
+  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stMonday = React.useState(rpMondayOf(rpToday()));
@@ -25449,6 +25543,8 @@ function RpPlanungView(props) {
   var fKanton = _fKanton[0], setFKanton = _fKanton[1];
   var _fTask = React.useState('muffe');
   var fTask = _fTask[0], setFTask = _fTask[1];
+  var _fTaskCustom = React.useState('');
+  var fTaskCustom = _fTaskCustom[0], setFTaskCustom = _fTaskCustom[1];
   var _fHS = React.useState('07:00');
   var fHS = _fHS[0], setFHS = _fHS[1];
   var _fHE = React.useState('17:00');
@@ -25489,7 +25585,7 @@ function RpPlanungView(props) {
 
   function openNew(date) {
     setFDate(date || rpToday());
-    setFBau(''); setFKanton('SO'); setFTask('muffe');
+    setFBau(''); setFKanton('SO'); setFTask('muffe'); setFTaskCustom('');
     setFHS('07:00'); setFHE('17:00'); setFTeam('');
     setFKm(''); setFStatus('planned'); setFNotiz('');
     setForm('new');
@@ -25497,7 +25593,9 @@ function RpPlanungView(props) {
 
   function openEdit(job) {
     setFDate(job.datum); setFBau(job.baustelle); setFKanton(job.kanton || 'SO');
-    setFTask(job.task_type || 'muffe'); setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
+    setFTask(RP_TASKS[job.task_type] ? job.task_type : 'andere');
+    setFTaskCustom(RP_TASKS[job.task_type] ? '' : (job.task_type || ''));
+    setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
     setFTeam(job.team || ''); setFKm(String(job.km || '')); setFStatus(job.status || 'planned');
     setFNotiz(job.notiz || '');
     setForm(job);
@@ -25511,7 +25609,7 @@ function RpPlanungView(props) {
       datum: fDate,
       baustelle: fBau.trim(),
       kanton: fKanton,
-      task_type: fTask,
+      task_type: fTask === 'andere' && fTaskCustom.trim() ? fTaskCustom.trim() : fTask,
       h_start: fHS,
       h_end: fHE,
       team: fTeam.trim(),
@@ -25561,7 +25659,7 @@ function RpPlanungView(props) {
       ),
       // stats row
       React.createElement('div', { style: { display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10 } },
-        React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📋 ' + jobs.length + ' Aufträge'),
+        React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📋 ' + jobs.length + ' ' + L.p_jobs),
         React.createElement('span', { style: { fontSize: 11, color: '#10B981' } }, '✓ ' + doneCount + ' fertig'),
         React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ~' + totalKm + ' km')
       )
@@ -25584,7 +25682,7 @@ function RpPlanungView(props) {
               React.createElement('span', { style: { fontSize: 17, fontWeight: 800, lineHeight: 1.1 } }, day.num)
             ),
             React.createElement('div', { style: { flex: 1, height: 1, background: isToday ? '#F59E0B33' : '#1E293B' } }),
-            isToday && React.createElement('span', { style: { fontSize: 10, color: '#F59E0B', fontWeight: 700, letterSpacing: '0.5px' } }, 'HEUTE'),
+            isToday && React.createElement('span', { style: { fontSize: 10, color: '#F59E0B', fontWeight: 700, letterSpacing: '0.5px' } }, L.today),
             React.createElement('button', {
               onClick: function() { openNew(day.date); },
               style: { background: '#1E293B', border: '1px solid #263347', borderRadius: 8, width: 28, height: 28, color: '#94A3B8', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
@@ -25593,7 +25691,7 @@ function RpPlanungView(props) {
 
           // Job cards
           React.createElement('div', { style: { paddingLeft: 52, display: 'flex', flexDirection: 'column', gap: 6 } },
-            dayJobs.length === 0 && React.createElement('div', { style: { fontSize: 12, color: '#334155', padding: '6px 0' } }, 'Nix geplant'),
+            dayJobs.length === 0 && React.createElement('div', { style: { fontSize: 12, color: '#334155', padding: '6px 0' } }, L.p_empty),
             dayJobs.map(function(job) {
               var t = RP_TASKS[job.task_type] || RP_TASKS.andere;
               var s = RP_STATUS_MAP[job.status] || RP_STATUS_MAP.planned;
@@ -25639,20 +25737,21 @@ function RpPlanungView(props) {
       title: form === 'new' ? 'Neuer Auftrag' : 'Auftrag bearbeiten',
       onClose: function() { setForm(null); },
       children: React.createElement('div', null,
-        RpField({ label: 'Datum', children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
-        RpField({ label: 'Baustelle / Ort', children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Arbeitstyp' }), RpSelect({ value: fTask, onChange: setFTask, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
+        RpField({ label: L.date, children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
+        RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: fTask === 'andere' ? 6 : 12 } },
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: L.p_type }), RpSelect({ value: fTask, onChange: function(v) { setFTask(v); if (v !== 'andere') setFTaskCustom(''); }, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: L.canton }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
         ),
+        fTask === 'andere' && RpField({ label: '🔧 Welche Arbeit?', children: RpInput({ value: fTaskCustom, onChange: setFTaskCustom, placeholder: 'z.B. Schachtdeckel, Tiefbau...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm, placeholder: '0' }))
         ),
-        RpField({ label: 'Team / Equipa', children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
-        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: Object.keys(RP_STATUS_MAP).map(function(k) { return { value: k, label: RP_STATUS_MAP[k].label }; }) }) }),
-        RpField({ label: 'Notiz', children: RpTextarea({ value: fNotiz, onChange: setFNotiz, placeholder: 'Bemerkungen, Material, Details...' }) }),
+        RpField({ label: L.team, children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
+        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: Object.keys(RP_STATUS_MAP).map(function(k) { return { value: k, label: RP_STATUS_MAP[k].label }; }) }) }),
+        RpField({ label: L.note, children: RpTextarea({ value: fNotiz, onChange: setFNotiz, placeholder: 'Bemerkungen, Material, Details...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4 } },
           RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
           RpBtn({ label: fSaving ? '...' : (form === 'new' ? 'Speichern' : 'Aktualisieren'), onClick: saveJob })
@@ -25673,78 +25772,9 @@ function RpPlanungView(props) {
 // ════════════════════════════════════════════════════════════════════
 // TAGESRAPPORT VIEW
 // ════════════════════════════════════════════════════════════════════
-var RP_FAHRZEUG_OPTS = [
-  { value: 'PW',     label: 'PW' },
-  { value: 'GFz',    label: 'GFz' },
-  { value: 'Jeep',   label: 'Jeep' },
-  { value: 'andere', label: 'Andere' },
-];
-var RP_BEP_KABEL = ['2S','1S','S','M'];
-var RP_MUFFE_TYP = ['BC8','FD6','FD8','BF8','BE8'];
-
-function rpPrintTages(item) {
-  var w = window.open('', '_blank');
-  var typ   = item.typ === 'regierapport' ? 'Tagesregierapport' : 'Tagesarbeitsrapport';
-  var datum = item.datum ? new Date(item.datum+'T12:00:00').toLocaleDateString('de-CH',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-  function row(label, val) { return val ? '<tr><td class="lbl">'+label+'</td><td class="val">'+val+'</td></tr>' : ''; }
-  function chk(label, val) { return '<span style="margin-right:12px">'+(val?'☑':'☐')+' '+label+'</span>'; }
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+typ+' '+datum+'</title>'
-    +'<style>'
-    +'body{font-family:Arial,sans-serif;font-size:11px;margin:12mm;color:#000}'
-    +'.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #F06400;padding-bottom:6px;margin-bottom:10px}'
-    +'.mark{width:10px;height:10px;background:#F06400;display:inline-block;margin-right:4px;vertical-align:middle}'
-    +'.logo-name{font-size:18px;font-weight:900;vertical-align:middle}'
-    +'.logo-sub{font-size:9px;color:#555;margin-top:1px}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:8px}'
-    +'th.sec{background:#F06400;color:#fff;font-size:10px;text-align:left;padding:3px 6px;text-transform:uppercase;letter-spacing:.5px}'
-    +'.lbl{width:32%;background:#f5f5f5;border:1px solid #ccc;padding:3px 5px;font-weight:bold;font-size:9px;text-transform:uppercase;vertical-align:top}'
-    +'.val{border:1px solid #ccc;padding:3px 5px;vertical-align:top}'
-    +'.sig{display:flex;gap:15px;margin-top:14px}'
-    +'.sig-box{flex:1;border:1px solid #000;height:50px;position:relative}'
-    +'.sig-lbl{position:absolute;top:-8px;left:6px;background:#fff;padding:0 3px;font-size:9px;font-weight:bold}'
-    +'@media print{@page{margin:10mm}button{display:none}}'
-    +'</style></head><body>'
-    +'<div class="hdr"><div><span class="mark"></span><span class="logo-name">Arnold</span><div class="logo-sub">Infra Services</div></div>'
-    +'<div style="text-align:right"><div style="font-size:10px">'+typ+'</div>'
-    +(item.rapport_nr?'<div>Nr. <strong>'+item.rapport_nr+'</strong></div>':'')+'</div></div>'
-    +'<table><tr><th class="sec" colspan="2">Auftragsdaten</th></tr>'
-    +row('Datum',datum)+row('Kunde',item.kunde)+row('Montageort',item.montageort)
-    +row('Auftrag Nr.',item.auftrag_nr)+'</table>'
-    +'<table><tr><th class="sec" colspan="2">Beschrieb der Arbeiten</th></tr>'
-    +'<tr><td colspan="2" class="val" style="min-height:60px;white-space:pre-wrap">'+(item.beschrieb||'')+'</td></tr></table>'
-    +'<table><tr><th class="sec" colspan="2">Personal / Arbeitszeit</th></tr>'
-    +row('Team',item.team)+row('Arbeitszeit',(item.h_start||'—')+' – '+(item.h_end||'—'))
-    +row('Fahrzeug / KM',(item.fahrzeug||'')+(item.km?' · '+item.km+' km':''))+'</table>'
-    +(item.bep_kabel_typ||item.bep_godoo||item.bep_gag
-      ?'<table><tr><th class="sec" colspan="2">BEP Spezifisch</th></tr>'
-       +row('Kabel Typ',item.bep_kabel_typ+(item.bep_kabel_typ_custom?' / '+item.bep_kabel_typ_custom:''))
-       +row('Zuständig (Godoo)',item.bep_godoo)
-       +row('GAG Messung',item.bep_gag?item.bep_gag+' dB':'')
-       +row('Swisscom Messung',item.bep_swisscom?item.bep_swisscom+' dB':'')
-       +(item.bep_fotos?'<tr><td colspan="2" class="val">☑ Fotos gemacht</td></tr>':'')
-       +'</table>':''  )
-    +(item.muffe_anzahl>0||item.muffe_typ
-      ?'<table><tr><th class="sec" colspan="2">Muffe Spezifisch</th></tr>'
-       +row('Anzahl Muffes',item.muffe_anzahl)
-       +row('Muffe Typ',item.muffe_typ+(item.muffe_typ_custom?' / '+item.muffe_typ_custom:''))
-       +row('Fasern Gespleisst',item.muffe_fasern)
-       +'<tr><td colspan="2" class="val">'+chk('OTDR OK',item.otdr_ok)+chk('OTDR N.OK',item.otdr_nok)+chk('Fotos',item.muffe_fotos)+'</td></tr>'
-       +'</table>':''  )
-    +(item.material?'<table><tr><th class="sec" colspan="2">Material</th></tr>'
-       +'<tr><td colspan="2" class="val" style="white-space:pre-wrap">'+item.material+'</td></tr></table>':'')
-    +'<div class="sig">'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Kunde</span></div>'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Arnold AG</span></div>'
-    +'</div>'
-    +'<div style="text-align:right;margin-top:4px;font-size:9px;color:#888">Arnold Infra Services · Selzach · BKW Gruppe</div>'
-    +'</body></html>';
-  w.document.write(html);
-  w.document.close();
-  w.onload = function() { w.print(); };
-}
-
 function RpTagesView(props) {
   var userId = props.userId;
+  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stList = React.useState([]);
@@ -25758,37 +25788,36 @@ function RpTagesView(props) {
   var _stConfirm = React.useState(null);
   var confirm = _stConfirm[0], setConfirm = _stConfirm[1];
 
-  // form fields matching paper rapport
-  var _fTyp     = React.useState('arbeitsrapport'); var fTyp = _fTyp[0], setFTyp = _fTyp[1];
-  var _fNr      = React.useState('');               var fNr = _fNr[0], setFNr = _fNr[1];
-  var _fDate    = React.useState(rpToday());        var fDate = _fDate[0], setFDate = _fDate[1];
-  var _fKunde   = React.useState('');               var fKunde = _fKunde[0], setFKunde = _fKunde[1];
-  var _fOrt     = React.useState('');               var fOrt = _fOrt[0], setFOrt = _fOrt[1];
-  var _fAuftrag = React.useState('');               var fAuftrag = _fAuftrag[0], setFAuftrag = _fAuftrag[1];
-  var _fBeschrieb = React.useState('');             var fBeschrieb = _fBeschrieb[0], setFBeschrieb = _fBeschrieb[1];
-  var _fTeam    = React.useState('');               var fTeam = _fTeam[0], setFTeam = _fTeam[1];
-  var _fHS      = React.useState('07:00');          var fHS = _fHS[0], setFHS = _fHS[1];
-  var _fHE      = React.useState('17:00');          var fHE = _fHE[0], setFHE = _fHE[1];
-  var _fFahrzeug = React.useState('PW');            var fFahrzeug = _fFahrzeug[0], setFFahrzeug = _fFahrzeug[1];
-  var _fKm      = React.useState('');               var fKm = _fKm[0], setFKm = _fKm[1];
-  var _fMat     = React.useState('');               var fMat = _fMat[0], setFMat = _fMat[1];
-  var _fStatus  = React.useState('draft');          var fStatus = _fStatus[0], setFStatus = _fStatus[1];
-  var _fSaving  = React.useState(false);            var fSaving = _fSaving[0], setFSaving = _fSaving[1];
-  // BEP Spezifisch
-  var _fBepKab  = React.useState('');               var fBepKab = _fBepKab[0], setFBepKab = _fBepKab[1];
-  var _fBepKabC = React.useState('');               var fBepKabC = _fBepKabC[0], setFBepKabC = _fBepKabC[1];
-  var _fBepGod  = React.useState('');               var fBepGod = _fBepGod[0], setFBepGod = _fBepGod[1];
-  var _fBepGAG  = React.useState('');               var fBepGAG = _fBepGAG[0], setFBepGAG = _fBepGAG[1];
-  var _fBepSws  = React.useState('');               var fBepSws = _fBepSws[0], setFBepSws = _fBepSws[1];
-  var _fBepFot  = React.useState(false);            var fBepFot = _fBepFot[0], setFBepFot = _fBepFot[1];
-  // Muffe Spezifisch
-  var _fMufAnz  = React.useState('0');              var fMufAnz = _fMufAnz[0], setFMufAnz = _fMufAnz[1];
-  var _fMufTyp  = React.useState('');               var fMufTyp = _fMufTyp[0], setFMufTyp = _fMufTyp[1];
-  var _fMufTypC = React.useState('');               var fMufTypC = _fMufTypC[0], setFMufTypC = _fMufTypC[1];
-  var _fMufFas  = React.useState('0');              var fMufFas = _fMufFas[0], setFMufFas = _fMufFas[1];
-  var _fOtdrOk  = React.useState(false);            var fOtdrOk = _fOtdrOk[0], setFOtdrOk = _fOtdrOk[1];
-  var _fOtdrNok = React.useState(false);            var fOtdrNok = _fOtdrNok[0], setFOtdrNok = _fOtdrNok[1];
-  var _fMufFot  = React.useState(false);            var fMufFot = _fMufFot[0], setFMufFot = _fMufFot[1];
+  // form state
+  var _fDate = React.useState(rpToday());   var fDate = _fDate[0], setFDate = _fDate[1];
+  var _fBau = React.useState('');           var fBau = _fBau[0], setFBau = _fBau[1];
+  var _fKant = React.useState('SO');        var fKant = _fKant[0], setFKant = _fKant[1];
+  var _fWet = React.useState('sonnig');     var fWet = _fWet[0], setFWet = _fWet[1];
+  var _fHS = React.useState('07:00');       var fHS = _fHS[0], setFHS = _fHS[1];
+  var _fHE = React.useState('17:00');       var fHE = _fHE[0], setFHE = _fHE[1];
+  var _fTeam = React.useState('');          var fTeam = _fTeam[0], setFTeam = _fTeam[1];
+  var _fArbeit = React.useState('');        var fArbeit = _fArbeit[0], setFArbeit = _fArbeit[1];
+  var _fMat = React.useState('');           var fMat = _fMat[0], setFMat = _fMat[1];
+  var _fKm = React.useState('');            var fKm = _fKm[0], setFKm = _fKm[1];
+  var _fProb = React.useState('');          var fProb = _fProb[0], setFProb = _fProb[1];
+  var _fStatus = React.useState('draft');   var fStatus = _fStatus[0], setFStatus = _fStatus[1];
+  var _fSaving = React.useState(false);     var fSaving = _fSaving[0], setFSaving = _fSaving[1];
+  // BEP-spezifisch
+  var _fBepAnz = React.useState('');        var fBepAnz = _fBepAnz[0], setFBepAnz = _fBepAnz[1];
+  var _fBepTyp = React.useState('');        var fBepTyp = _fBepTyp[0], setFBepTyp = _fBepTyp[1];
+  var _fGodoo  = React.useState('');        var fGodoo  = _fGodoo[0],  setFGodoo  = _fGodoo[1];
+  var _fZust   = React.useState('');        var fZust   = _fZust[0],   setFZust   = _fZust[1];
+  var _fGAG    = React.useState('');        var fGAG    = _fGAG[0],    setFGAG    = _fGAG[1];
+  var _fSwiss  = React.useState('');        var fSwiss  = _fSwiss[0],  setFSwiss  = _fSwiss[1];
+  var _fFotos  = React.useState(false);     var fFotos  = _fFotos[0],  setFFotos  = _fFotos[1];
+  // Muffe-spezifisch
+  var _fMufAnz  = React.useState('');       var fMufAnz  = _fMufAnz[0],  setFMufAnz  = _fMufAnz[1];
+  var _fMufTyp  = React.useState('');       var fMufTyp  = _fMufTyp[0],  setFMufTyp  = _fMufTyp[1];
+  var _fFasern  = React.useState('');       var fFasern  = _fFasern[0],  setFFasern  = _fFasern[1];
+  var _fOTDR    = React.useState(false);    var fOTDR    = _fOTDR[0],    setFOTDR    = _fOTDR[1];
+  var _fOTDRnok = React.useState(false);    var fOTDRnok = _fOTDRnok[0], setFOTDRnok = _fOTDRnok[1];
+  var _fMufFoto = React.useState(false);    var fMufFoto = _fMufFoto[0], setFMufFoto = _fMufFoto[1];
+  var _fBem     = React.useState('');       var fBem     = _fBem[0],     setFBem     = _fBem[1];
 
   function load() {
     if (!db) return;
@@ -25798,283 +25827,267 @@ function RpTagesView(props) {
   }
   React.useEffect(load, []);
 
-  function resetForm() {
-    setFTyp('arbeitsrapport'); setFNr(''); setFDate(rpToday());
-    setFKunde(''); setFOrt(''); setFAuftrag(''); setFBeschrieb('');
-    setFTeam(''); setFHS('07:00'); setFHE('17:00');
-    setFFahrzeug('PW'); setFKm(''); setFMat(''); setFStatus('draft');
-    setFBepKab(''); setFBepKabC(''); setFBepGod(''); setFBepGAG(''); setFBepSws(''); setFBepFot(false);
-    setFMufAnz('0'); setFMufTyp(''); setFMufTypC(''); setFMufFas('0'); setFOtdrOk(false); setFOtdrNok(false); setFMufFot(false);
+  function openNew() {
+    setFDate(rpToday()); setFBau(''); setFKant('SO'); setFWet('sonnig');
+    setFHS('07:00'); setFHE('17:00'); setFTeam(''); setFArbeit('');
+    setFMat(''); setFKm(''); setFProb(''); setFStatus('draft');
+    setFBepAnz(''); setFBepTyp(''); setFGodoo(''); setFZust(''); setFGAG(''); setFSwiss(''); setFFotos(false);
+    setFMufAnz(''); setFMufTyp(''); setFFasern(''); setFOTDR(false); setFOTDRnok(false); setFMufFoto(false); setFBem('');
+    setForm('new');
   }
-  function openNew() { resetForm(); setForm('new'); }
   function openEdit(item) {
-    setFTyp(item.typ || 'arbeitsrapport');
-    setFNr(item.rapport_nr || '');
-    setFDate(item.datum);
-    setFKunde(item.kunde || item.baustelle || '');
-    setFOrt(item.montageort || '');
-    setFAuftrag(item.auftrag_nr || '');
-    setFBeschrieb(item.beschrieb || item.arbeit || '');
-    setFTeam(item.team || '');
-    setFHS(item.h_start || '07:00');
-    setFHE(item.h_end || '17:00');
-    setFFahrzeug(item.fahrzeug || 'PW');
-    setFKm(String(item.km || ''));
-    setFMat(item.material || '');
-    setFStatus(item.status || 'draft');
-    setFBepKab(item.bep_kabel_typ||''); setFBepKabC(item.bep_kabel_typ_custom||'');
-    setFBepGod(item.bep_godoo||''); setFBepGAG(item.bep_gag||''); setFBepSws(item.bep_swisscom||''); setFBepFot(!!item.bep_fotos);
-    setFMufAnz(String(item.muffe_anzahl||0)); setFMufTyp(item.muffe_typ||''); setFMufTypC(item.muffe_typ_custom||'');
-    setFMufFas(String(item.muffe_fasern||0)); setFOtdrOk(!!item.otdr_ok); setFOtdrNok(!!item.otdr_nok); setFMufFot(!!item.muffe_fotos);
+    setFDate(item.datum); setFBau(item.baustelle || ''); setFKant(item.kanton || 'SO');
+    setFWet(item.wetter || 'sonnig'); setFHS(item.h_start || '07:00'); setFHE(item.h_end || '17:00');
+    setFTeam(item.team || ''); setFArbeit(item.arbeit || ''); setFMat(item.material || '');
+    setFKm(String(item.km || '')); setFProb(item.probleme || ''); setFStatus(item.status || 'draft');
+    setFBepAnz(item.anzahl_beps > 0 ? String(item.anzahl_beps) : '');
+    setFBepTyp(item.bep_typ || '');
+    setFGodoo(item.godoo_nr || ''); setFZust(item.zustaendig || '');
+    setFGAG(item.messung_gag || ''); setFSwiss(item.messung_swisscom || '');
+    setFFotos(item.fotos_ok || false);
+    setFMufAnz(item.anzahl_muffe > 0 ? String(item.anzahl_muffe) : '');
+    setFMufTyp(item.muffe_typ || ''); setFFasern(item.fasern_gespleisst > 0 ? String(item.fasern_gespleisst) : '');
+    setFOTDR(item.otdr_ok || false); setFOTDRnok(item.otdr_nok || false); setFMufFoto(item.muffe_fotos || false); setFBem(item.bemerkungen || '');
     setViewItem(null); setForm(item);
   }
   function save() {
-    if (!fKunde.trim() && !fOrt.trim()) return;
+    if (!fBau.trim()) return;
     setFSaving(true);
     var h = rpStunden(fHS, fHE);
-    var payload = {
-      user_id: userId,
-      typ: fTyp,
-      rapport_nr: fNr.trim(),
-      datum: fDate,
-      kunde: fKunde.trim(),
-      montageort: fOrt.trim(),
-      auftrag_nr: fAuftrag.trim(),
-      beschrieb: fBeschrieb.trim(),
-      team: fTeam.trim(),
-      h_start: fHS,
-      h_end: fHE,
-      stunden: h,
-      fahrzeug: fFahrzeug,
-      km: parseInt(fKm) || 0,
-      material: fMat.trim(),
-      status: fStatus,
-      bep_kabel_typ: fBepKab, bep_kabel_typ_custom: fBepKabC.trim(),
-      bep_godoo: fBepGod.trim(), bep_gag: fBepGAG.trim(), bep_swisscom: fBepSws.trim(), bep_fotos: fBepFot,
-      muffe_anzahl: parseInt(fMufAnz)||0, muffe_typ: fMufTyp, muffe_typ_custom: fMufTypC.trim(),
-      muffe_fasern: parseInt(fMufFas)||0, otdr_ok: fOtdrOk, otdr_nok: fOtdrNok, muffe_fotos: fMufFot
-    };
-    var op = form === 'new'
-      ? db.from('rapport_tages').insert(payload)
-      : db.from('rapport_tages').update(payload).eq('id', form.id);
-    op.then(function() { setForm(null); setFSaving(false); load(); })
-      .catch(function() { setFSaving(false); });
+    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, bep_typ: fBepTyp.trim(), godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos, anzahl_muffe: parseInt(fMufAnz) || 0, muffe_typ: fMufTyp.trim(), fasern_gespleisst: parseInt(fFasern) || 0, otdr_ok: fOTDR, otdr_nok: fOTDRnok, muffe_fotos: fMufFoto, bemerkungen: fBem.trim() };
+    var op = form === 'new' ? db.from('rapport_tages').insert(payload) : db.from('rapport_tages').update(payload).eq('id', form.id);
+    op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
   }
   function del(id) {
-    db.from('rapport_tages').delete().eq('id', id)
-      .then(function() { setConfirm(null); setViewItem(null); load(); });
+    db.from('rapport_tages').delete().eq('id', id).then(function() { setConfirm(null); setViewItem(null); load(); });
   }
-  function toggleStatus(item) {
-    var next = item.status === 'draft' ? 'submitted' : 'draft';
-    db.from('rapport_tages').update({ status: next }).eq('id', item.id).then(load);
-  }
+
+  var wetterLabel = { sonnig: '☀️', bewoelkt: '⛅', regnerisch: '🌧️', schnee: '❄️', windig: '💨' };
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
-
-    // header
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' Rapporte'),
-      RpBtn({ label: '+ Neuer Rapport', onClick: openNew })
+      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' ' + L.t_count),
+      RpBtn({ label: L.t_btn, onClick: openNew })
     ),
 
     loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: '#475569' } }, 'Lade...'),
-    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, 'Noch keine Tagesrapporte.'),
 
-    // list
+    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, L.none_t),
+
     list.map(function(item) {
       var h = rpStunden(item.h_start, item.h_end);
-      var isSubmitted = item.status === 'submitted';
-      var statusColor = isSubmitted ? '#10B981' : '#F59E0B';
-      var isOpen = viewItem && viewItem.id === item.id;
-      var titel = item.kunde || item.baustelle || item.montageort || '—';
-      var subtitel = [item.montageort, item.auftrag_nr ? 'Auftrag: ' + item.auftrag_nr : ''].filter(Boolean).join(' · ');
+      var statusColor = item.status === 'submitted' ? '#10B981' : '#F59E0B';
       return React.createElement('div', {
         key: item.id,
-        onClick: function() { setViewItem(isOpen ? null : item); },
+        onClick: function() { setViewItem(viewItem && viewItem.id === item.id ? null : item); },
         style: Object.assign({}, rpS.card, { cursor: 'pointer', borderLeft: '3px solid ' + statusColor })
       },
-        // top row
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
-          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-            React.createElement('div', { style: { fontWeight: 700, fontSize: 13 } },
-              rpFmtD(item.datum, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
-              + (item.rapport_nr ? '  ·  Nr. ' + item.rapport_nr : '')
-            ),
-            React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, titel),
-            subtitel && React.createElement('div', { style: { fontSize: 11, color: '#64748B', marginTop: 1 } }, subtitel)
+          React.createElement('div', null,
+            React.createElement('div', { style: { fontWeight: 700, fontSize: 14 } }, rpFmtD(item.datum, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })),
+            React.createElement('div', { style: { fontSize: 12, color: '#94A3B8', marginTop: 2 } }, item.baustelle + (item.kanton ? ' [' + item.kanton + ']' : ''))
           ),
-          React.createElement('div', { style: { textAlign: 'right', flexShrink: 0, marginLeft: 8 } },
-            React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, isSubmitted ? 'Abgegeben' : 'Entwurf'),
-            React.createElement('div', { style: { fontSize: 10, color: '#64748B', marginTop: 2 } }, item.typ === 'regierapport' ? 'Regie' : 'Arbeitsrapport'),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }, onClick: function(e) { e.stopPropagation(); } },
-              RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-              RpBtn({ label: '🖨️', sm: true, color: '#3B82F6', onClick: function() { rpPrintTages(item); } }),
-              RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
-            )
+          React.createElement('div', { style: { textAlign: 'right' } },
+            React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, item.status === 'submitted' ? 'Abgegeben' : 'Entwurf'),
+            React.createElement('div', { style: { fontSize: 11, color: '#64748B', marginTop: 2 } }, wetterLabel[item.wetter] || '☀️' )
           )
         ),
-        // stats row
-        React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' } },
-          React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🕐 ' + (item.h_start || '—') + '–' + (item.h_end || '—') + ' (' + h.toFixed(1) + 'h)'),
+        React.createElement('div', { style: { display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' } },
+          React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🕐 ' + (item.h_start || '—') + '–' + (item.h_end || '—') + ' (' + h.toFixed(1) + ' h)'),
           item.team && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '👷 ' + item.team),
-          item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.fahrzeug + ' ' + item.km + ' km')
+          item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.km + ' km'),
+          item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, color: '#3B82F6', fontWeight: 700 } }, '🔌 ' + item.anzahl_beps + (item.bep_typ ? ' (' + item.bep_typ + ')' : '') + ' BEP'),
+          item.godoo_nr && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📱 ' + item.godoo_nr),
+          item.fotos_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📷✓'),
+          item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, color: '#a78bfa', fontWeight: 700 } }, '🔩 ' + item.anzahl_muffe + ' Muffe'),
+          item.otdr_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📡✓'),
+          item.otdr_nok && React.createElement('span', { style: { fontSize: 11, color: '#ef4444' } }, '📡✗')
         ),
-        // expanded detail
-        isOpen && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
-          (item.beschrieb || item.arbeit) && React.createElement('div', { style: { marginBottom: 8 } },
-            React.createElement('div', { style: rpS.label }, 'Beschrieb der Arbeiten'),
-            React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', whiteSpace: 'pre-wrap' } }, item.beschrieb || item.arbeit)
+
+        viewItem && viewItem.id === item.id && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
+          item.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
+            React.createElement('div', { style: rpS.label }, 'Ausgeführte Arbeiten'),
+            React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', whiteSpace: 'pre-wrap' } }, item.arbeit)
           ),
-          (item.material) && React.createElement('div', { style: { marginBottom: 8 } },
+          item.material && React.createElement('div', { style: { marginBottom: 8 } },
             React.createElement('div', { style: rpS.label }, 'Material'),
             React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, item.material)
           ),
-          // Probleme (old field, backward compat)
+          // BEP info
+          (item.anzahl_beps > 0 || item.godoo_nr || item.messung_gag) && React.createElement('div', { style: { background: '#3B82F611', border: '1px solid #3B82F633', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', letterSpacing: '0.5px', marginBottom: 6 } }, '🔌 BEP'),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+              item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_beps + ' BEP' + (item.anzahl_beps > 1 ? 's' : '')),
+              item.bep_typ && React.createElement('span', { style: { fontSize: 12, color: '#3B82F6', fontWeight: 700, background: '#3B82F622', padding: '1px 8px', borderRadius: 6 } }, item.bep_typ),
+              item.godoo_nr && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📱 Godoo: ' + item.godoo_nr),
+              item.zustaendig && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '👤 ' + item.zustaendig),
+              item.messung_gag && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'GAG: ' + item.messung_gag),
+              item.messung_swisscom && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Swisscom: ' + item.messung_swisscom),
+              item.fotos_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
+            )
+          ),
+          // ── Muffe
+          (item.anzahl_muffe > 0 || item.otdr_ok) && React.createElement('div', { style: { background: '#a78bfa11', border: '1px solid #a78bfa33', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', marginBottom: 6 } }, '🔩 MUFFE'),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+              item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_muffe + ' Muffe'),
+              item.muffe_typ && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Typ: ' + item.muffe_typ),
+              item.fasern_gespleisst > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '✂️ ' + item.fasern_gespleisst + ' Fasern'),
+              item.otdr_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📡 OTDR ✓'),
+              item.otdr_nok && React.createElement('span', { style: { fontSize: 12, color: '#ef4444' } }, '⚠️ OTDR N.OK'),
+              item.muffe_fotos && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
+            )
+          ),
           item.probleme && React.createElement('div', { style: { marginBottom: 8 } },
             React.createElement('div', { style: rpS.label }, 'Probleme / Bemerkungen'),
             React.createElement('div', { style: { fontSize: 12, color: '#FCA5A5', whiteSpace: 'pre-wrap' } }, item.probleme)
           ),
-          // BEP summary card
-          (item.bep_kabel_typ || item.bep_godoo || item.bep_gag) && React.createElement('div', {
-            style: { background: '#1E3A5F', border: '1px solid #3B82F644', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
-          },
-            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', marginBottom: 5 } }, '📦 BEP'),
-            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#CBD5E1' } },
-              item.bep_kabel_typ && React.createElement('span', null, '🗂 ' + item.bep_kabel_typ + (item.bep_kabel_typ_custom ? ' / ' + item.bep_kabel_typ_custom : '')),
-              item.bep_godoo && React.createElement('span', null, '📱 Godoo: ' + item.bep_godoo)
-            ),
-            (item.bep_godoo || item.bep_gag || item.bep_swisscom) && React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#94A3B8', marginTop: 3 } },
-              item.bep_godoo && React.createElement('span', null, '📍 ' + item.bep_godoo),
-              item.bep_gag && React.createElement('span', null, 'GAG: ' + item.bep_gag),
-              item.bep_swisscom && React.createElement('span', null, 'Swisscom: ' + item.bep_swisscom)
-            ),
-            item.bep_fotos && React.createElement('div', { style: { fontSize: 11, color: '#10B981', marginTop: 3 } }, '📷 Fotos ✓')
-          ),
-          // Muffe summary card
-          (item.muffe_anzahl > 0 || item.muffe_typ) && React.createElement('div', {
-            style: { background: '#2D1F00', border: '1px solid #F59E0B44', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
-          },
-            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 5 } }, '🔩 Muffe'),
-            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#CBD5E1' } },
-              item.muffe_anzahl > 0 && React.createElement('span', null, item.muffe_anzahl + ' Muffe'),
-              item.muffe_typ && React.createElement('span', { style: { background: '#F59E0B22', border: '1px solid #F59E0B44', borderRadius: 4, padding: '1px 6px', fontWeight: 700 } }, item.muffe_typ),
-              item.muffe_fasern > 0 && React.createElement('span', null, item.muffe_fasern + ' Fasern')
-            ),
-            React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4, fontSize: 11 } },
-              React.createElement('span', { style: { color: item.otdr_ok ? '#10B981' : '#475569' } }, (item.otdr_ok ? '✅' : '⬜') + ' OTDR OK'),
-              React.createElement('span', { style: { color: item.otdr_nok ? '#EF4444' : '#475569' } }, (item.otdr_nok ? '⚠️' : '⬜') + ' OTDR N.OK'),
-              item.muffe_fotos && React.createElement('span', { style: { color: '#10B981' } }, '📷 Fotos ✓')
-            )
+          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
+            RpBtn({ label: '✏️ Bearbeiten', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
+            RpBtn({ label: item.status === 'draft' ? L.t_submit : L.t_todraft, sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_tages').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
+            RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
         )
       );
     }),
 
-    // form overlay
     form !== null && RpOverlay({
       title: form === 'new' ? 'Neuer Tagesrapport' : 'Rapport bearbeiten',
       onClose: function() { setForm(null); },
       children: React.createElement('div', null,
-
-        // Typ toggle
-        React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 14 } },
-          ['arbeitsrapport', 'regierapport'].map(function(t) {
-            var active = fTyp === t;
-            return React.createElement('button', {
-              key: t, onClick: function() { setFTyp(t); },
-              style: { flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid ' + (active ? '#F06400' : '#2A2A38'), background: active ? '#F0640022' : 'transparent', color: active ? '#F06400' : '#64748B', fontSize: 12, fontWeight: active ? 700 : 400, cursor: 'pointer' }
-            }, t === 'arbeitsrapport' ? 'Tagesarbeitsrapport' : 'Tagesregierapport');
-          })
-        ),
-
-        // Rapport Nr + Datum
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Rapport Nr.' }), RpInput({ value: fNr, onChange: setFNr, placeholder: 'z.B. 2151' })),
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: setFDate }))
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: setFDate })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Wetter' }), RpSelect({ value: fWet, onChange: setFWet, opts: RP_WETTER_OPTS }))
         ),
-
-        // Kunde + Montageort
-        RpField({ label: 'Kunde', children: RpInput({ value: fKunde, onChange: setFKunde, placeholder: 'Kundenname' }) }),
-        RpField({ label: 'Montageort', children: RpInput({ value: fOrt, onChange: setFOrt, placeholder: 'z.B. Grenchen, Industriestrasse 5' }) }),
-
-        // Auftrag Nr.
-        RpField({ label: 'Auftrag Nr. Arnold', children: RpInput({ value: fAuftrag, onChange: setFAuftrag, placeholder: 'Interne Auftragsnummer' }) }),
-
-        // Beschrieb der Arbeiten
-        RpField({ label: 'Beschrieb der Arbeiten', children: RpTextarea({ value: fBeschrieb, onChange: setFBeschrieb, placeholder: 'Was wurde gemacht? (Muffe, Splicing, BEP, Kabelzug...)' }) }),
-
-        // Team + Zeiten
-        RpField({ label: 'Personal / Team', children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Carvalho' }) }),
+        RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKant, onChange: setFKant, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE }))
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
+        RpField({ label: L.team, children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
+        RpField({ label: L.t_work, children: RpTextarea({ value: fArbeit, onChange: setFArbeit, placeholder: 'Was wurde gemacht? (Muffe, Splicing, BEP...)' }) }),
+        RpField({ label: 'Material verwendet', children: RpInput({ value: fMat, onChange: setFMat, placeholder: 'z.B. 2× Muffe 6×4, 50m Kabel...' }) }),
+        RpField({ label: L.t_prob, children: RpTextarea({ value: fProb, onChange: setFProb, rows: 2, placeholder: 'Probleme, offene Punkte...' }) }),
 
-        // Fahrzeug + KM
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Fahrzeug' }), RpSelect({ value: fFahrzeug, onChange: setFFahrzeug, opts: RP_FAHRZEUG_OPTS })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm, placeholder: '0' }))
-        ),
+        // ── BEP Spezifisch ────────────────────────────
+        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, L.bep_title),
 
-        // Material
-        RpField({ label: 'Material', children: RpTextarea({ value: fMat, onChange: setFMat, rows: 2, placeholder: 'z.B. 2× Muffe 6×4, 50m Kabel...' }) }),
-
-        // BEP Spezifisch
-        React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', marginBottom: 6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 } }, '📦 BEP Spezifisch'),
-        React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 } },
-          RP_BEP_KABEL.map(function(k) {
-            return React.createElement('button', { key: k, onClick: function() { setFBepKab(fBepKab === k ? '' : k); },
-              style: { padding: '5px 12px', borderRadius: 6, border: '1px solid ' + (fBepKab === k ? '#3B82F6' : '#2A2A38'),
-                background: fBepKab === k ? '#3B82F622' : 'transparent', color: fBepKab === k ? '#3B82F6' : '#94A3B8', fontSize: 12, fontWeight: 700, cursor: 'pointer' } }, k);
-          }),
-          RpInput({ value: fBepKabC, onChange: setFBepKabC, placeholder: 'oder eigener Typ...' })
-        ),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 8 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Zuständig (Godoo)' }), RpInput({ value: fBepGod, onChange: setFBepGod, placeholder: 'Name Zuständiger' })),
-        ),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 8 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'GAG Messung' }), RpInput({ value: fBepGAG, onChange: setFBepGAG, placeholder: 'z.B. 1.2 dB' })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Swisscom Messung' }), RpInput({ value: fBepSws, onChange: setFBepSws, placeholder: 'z.B. 0.8 dB' }))
-        ),
-        React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' } },
-          React.createElement('input', { type: 'checkbox', checked: fBepFot, onChange: function(e) { setFBepFot(e.target.checked); } }),
-          React.createElement('span', { style: { fontSize: 12 } }, '📷 Fotos gemacht')
-        ),
-
-        // Muffe Spezifisch
-        React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 } }, '🔩 Muffe Spezifisch'),
-        RpField({ label: 'Anzahl Muffes', children: RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 } },
-          RP_MUFFE_TYP.map(function(t) {
-            return React.createElement('button', { key: t, onClick: function() { setFMufTyp(fMufTyp === t ? '' : t); },
-              style: { padding: '5px 12px', borderRadius: 6, border: '1px solid ' + (fMufTyp === t ? '#F59E0B' : '#2A2A38'),
-                background: fMufTyp === t ? '#F59E0B22' : 'transparent', color: fMufTyp === t ? '#F59E0B' : '#94A3B8', fontSize: 12, fontWeight: 700, cursor: 'pointer' } }, t);
-          }),
-          RpInput({ value: fMufTypC, onChange: setFMufTypC, placeholder: 'oder eigener Typ...' })
-        ),
-        RpField({ label: 'Fasern Gespleisst', children: RpInput({ type: 'number', value: fMufFas, onChange: setFMufFas }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' } },
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' } },
-            React.createElement('input', { type: 'checkbox', checked: fOtdrOk, onChange: function(e) { setFOtdrOk(e.target.checked); } }),
-            React.createElement('span', { style: { fontSize: 12 } }, '✅ OTDR OK')
+          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Anzahl BEPs' }),
+              RpInput({ type: 'number', value: fBepAnz, onChange: setFBepAnz, placeholder: '0' })
+            ),
+            React.createElement('div', { style: { flex: 2 } },
+              RpLabel({ text: 'Godoo-Nr' }),
+              RpInput({ value: fGodoo, onChange: setFGodoo, placeholder: 'z.B. 12345678' })
+            )
           ),
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' } },
-            React.createElement('input', { type: 'checkbox', checked: fOtdrNok, onChange: function(e) { setFOtdrNok(e.target.checked); } }),
-            React.createElement('span', { style: { fontSize: 12 } }, '⚠️ OTDR N.OK')
+
+          // BEP Typ quick-select
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'BEP Typ' }),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6 } },
+              ['2S', '1S', 'S', 'M'].map(function(t) {
+                var active = fBepTyp === t;
+                return React.createElement('button', {
+                  key: t,
+                  onClick: function() { setFBepTyp(active ? '' : t); },
+                  style: {
+                    flex: 1, padding: '7px 0', borderRadius: 8, border: '2px solid ' + (active ? '#3B82F6' : '#1E293B'),
+                    background: active ? '#3B82F622' : '#0D1117',
+                    color: active ? '#3B82F6' : '#64748B',
+                    fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                  }
+                }, t);
+              })
+            ),
+            RpInput({ value: fBepTyp, onChange: setFBepTyp, placeholder: 'oder eigener Typ…' })
           ),
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' } },
-            React.createElement('input', { type: 'checkbox', checked: fMufFot, onChange: function(e) { setFMufFot(e.target.checked); } }),
-            React.createElement('span', { style: { fontSize: 12 } }, '📷 Fotos')
+
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Zuständig (Godoo)' }),
+            RpInput({ value: fZust, onChange: setFZust, placeholder: 'Name Zuständiger' })
+          ),
+
+          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'GAG Messung' }),
+              RpInput({ value: fGAG, onChange: setFGAG, placeholder: 'z.B. 1.2 dB' })
+            ),
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Swisscom Messung' }),
+              RpInput({ value: fSwiss, onChange: setFSwiss, placeholder: 'z.B. 0.8 dB' })
+            )
+          ),
+
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 10px', background: fFotos ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fFotos ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+            React.createElement('input', { type: 'checkbox', checked: fFotos, onChange: function(e) { setFFotos(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+            React.createElement('span', { style: { fontSize: 13, color: fFotos ? '#22c55e' : '#94A3B8', fontWeight: fFotos ? 700 : 400 } }, L.bep_foto)
           )
         ),
 
-        // Status
-        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
+        // ── Muffe Spezifisch ──────────────────────────
+        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, L.m_title),
 
-        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-          RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
-          form !== 'new' && RpBtn({ label: '🖨️ Drucken', color: '#3B82F6', onClick: function() { rpPrintTages(form); } }),
-          RpBtn({ label: fSaving ? '...' : '💾 Speichern', onClick: save })
+          React.createElement('div', { style: { marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Anzahl Muffes' }),
+              RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz, placeholder: '0' })
+            )
+          ),
+
+          // Muffe Typ quick-select
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Muffe Typ' }),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' } },
+              ['BC8', 'FD6', 'FD8', 'BF8', 'BE8'].map(function(t) {
+                var active = fMufTyp === t;
+                return React.createElement('button', {
+                  key: t,
+                  onClick: function() { setFMufTyp(active ? '' : t); },
+                  style: {
+                    flex: 1, minWidth: 48, padding: '7px 0', borderRadius: 8,
+                    border: '2px solid ' + (active ? '#a78bfa' : '#1E293B'),
+                    background: active ? '#a78bfa22' : '#0D1117',
+                    color: active ? '#a78bfa' : '#64748B',
+                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  }
+                }, t);
+              })
+            ),
+            RpInput({ value: fMufTyp, onChange: setFMufTyp, placeholder: 'oder eigener Typ…' })
+          ),
+
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Fasern gespleisst' }),
+            RpInput({ type: 'number', value: fFasern, onChange: setFFasern, placeholder: '0' })
+          ),
+
+          React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDR ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fOTDR ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fOTDR, onChange: function(e) { setFOTDR(e.target.checked); if(e.target.checked) setFOTDRnok(false); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fOTDR ? '#22c55e' : '#94A3B8', fontWeight: fOTDR ? 700 : 400 } }, L.m_otdr)
+            ),
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDRnok ? '#ef444418' : '#0D1117', border: '1px solid ' + (fOTDRnok ? '#ef444444' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fOTDRnok, onChange: function(e) { setFOTDRnok(e.target.checked); if(e.target.checked) setFOTDR(false); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fOTDRnok ? '#ef4444' : '#94A3B8', fontWeight: fOTDRnok ? 700 : 400 } }, '⚠️ OTDR N.OK')
+            ),
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fMufFoto ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fMufFoto ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fMufFoto, onChange: function(e) { setFMufFoto(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fMufFoto ? '#22c55e' : '#94A3B8', fontWeight: fMufFoto ? 700 : 400 } }, '📷 Fotos')
+            )
+          )
+        ),
+
+        RpField({ label: L.m_bem, children: React.createElement('textarea', { value: fBem, onChange: function(e) { setFBem(e.target.value); }, rows: 3, placeholder: '...', style: { width: '100%', background: '#0D1117', border: '1px solid #1E293B', borderRadius: 8, color: '#F1F5F9', padding: '10px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' } }) }),
+        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+          RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
+          RpBtn({ label: fSaving ? '...' : L.save, onClick: save })
         )
       )
     }),
@@ -26091,51 +26104,9 @@ function RpTagesView(props) {
 // ════════════════════════════════════════════════════════════════════
 // WOCHENRAPPORT VIEW
 // ════════════════════════════════════════════════════════════════════
-function rpPrintWochen(item) {
-  var w = window.open('', '_blank');
-  function row(label, val) { return val ? '<tr><td class="lbl">'+label+'</td><td class="val">'+val+'</td></tr>' : ''; }
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Wochenbericht KW'+item.kw+'/'+item.jahr+'</title>'
-    +'<style>'
-    +'body{font-family:Arial,sans-serif;font-size:11px;margin:12mm;color:#000}'
-    +'.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #F06400;padding-bottom:6px;margin-bottom:10px}'
-    +'.mark{width:10px;height:10px;background:#F06400;display:inline-block;margin-right:4px;vertical-align:middle}'
-    +'.logo-name{font-size:18px;font-weight:900;vertical-align:middle}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:8px}'
-    +'th.sec{background:#F06400;color:#fff;font-size:10px;text-align:left;padding:3px 6px;text-transform:uppercase;letter-spacing:.5px}'
-    +'.lbl{width:32%;background:#f5f5f5;border:1px solid #ccc;padding:3px 5px;font-weight:bold;font-size:9px;text-transform:uppercase;vertical-align:top}'
-    +'.val{border:1px solid #ccc;padding:3px 5px;vertical-align:top}'
-    +'.sig{display:flex;gap:15px;margin-top:14px}'
-    +'.sig-box{flex:1;border:1px solid #000;height:50px;position:relative}'
-    +'.sig-lbl{position:absolute;top:-8px;left:6px;background:#fff;padding:0 3px;font-size:9px;font-weight:bold}'
-    +'@media print{@page{margin:10mm}}'
-    +'</style></head><body>'
-    +'<div class="hdr"><div><span class="mark"></span><span class="logo-name">Arnold</span><div style="font-size:9px;color:#555">Infra Services</div></div>'
-    +'<div style="text-align:right"><div style="font-size:10px">Wochenbericht</div><div><strong>KW '+item.kw+' / '+item.jahr+'</strong></div>'
-    +(item.datum_von&&item.datum_bis?'<div style="font-size:9px">'+item.datum_von+' – '+item.datum_bis+'</div>':'')+'</div></div>'
-    +'<table><tr><th class="sec" colspan="2">Übersicht</th></tr>'
-    +row('Total Stunden',item.total_stunden?item.total_stunden+' h':'')
-    +row('Total KM',item.total_km?item.total_km+' km':'')
-    +row('Status',item.status==='submitted'?'Abgegeben':'Entwurf')+'</table>'
-    +'<table><tr><th class="sec" colspan="2">Zusammenfassung der Woche</th></tr>'
-    +'<tr><td colspan="2" class="val" style="min-height:80px;white-space:pre-wrap">'+(item.zusammenfassung||'')+'</td></tr></table>'
-    +(item.offene_arbeiten?'<table><tr><th class="sec" colspan="2">Offene Arbeiten</th></tr>'
-      +'<tr><td colspan="2" class="val" style="white-space:pre-wrap">'+item.offene_arbeiten+'</td></tr></table>':'')
-    +(item.bemerkungen?'<table><tr><th class="sec" colspan="2">Bemerkungen</th></tr>'
-      +'<tr><td colspan="2" class="val" style="white-space:pre-wrap">'+item.bemerkungen+'</td></tr></table>':'')
-    +'<div class="sig">'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Monteur</span></div>'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Arnold AG</span></div>'
-    +'<div class="sig-box"><span class="sig-lbl">Datum</span></div>'
-    +'</div>'
-    +'<div style="text-align:right;margin-top:4px;font-size:9px;color:#888">Arnold Infra Services · Selzach · BKW Gruppe</div>'
-    +'</body></html>';
-  w.document.write(html);
-  w.document.close();
-  w.onload = function() { w.print(); };
-}
-
 function RpWochenView(props) {
   var userId = props.userId;
+  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stList = React.useState([]);
@@ -26159,6 +26130,9 @@ function RpWochenView(props) {
   var _fBem = React.useState('');                    var fBem = _fBem[0], setFBem = _fBem[1];
   var _fStatus = React.useState('draft');            var fStatus = _fStatus[0], setFStatus = _fStatus[1];
   var _fSaving = React.useState(false);              var fSaving = _fSaving[0], setFSaving = _fSaving[1];
+  var _kwTages = React.useState([]);                 var kwTages = _kwTages[0], setKwTages = _kwTages[1];
+  var _expDay  = React.useState(null);               var expDay  = _expDay[0],  setExpDay  = _expDay[1];
+  var _inclDays = React.useState({});                var inclDays = _inclDays[0], setInclDays = _inclDays[1];
 
   function load() {
     if (!db) return;
@@ -26169,15 +26143,18 @@ function RpWochenView(props) {
   React.useEffect(load, []);
 
   function autoFill(kw, jahr) {
-    // load tagesrapporte for that KW and compute totals
     if (!db) return;
     var monday = rpMondayOfKW(parseInt(kw), parseInt(jahr));
     var friday = rpShiftWeek(monday, 1);
-    db.from('rapport_tages').select('h_start,h_end,km,beschrieb,arbeit').eq('user_id', userId).gte('datum', monday).lt('datum', friday)
+    db.from('rapport_tages').select('*').eq('user_id', userId).gte('datum', monday).lt('datum', friday).order('datum', { ascending: true })
       .then(function(r) {
         var items = r.data || [];
+        setKwTages(items);
+        // Inicializa todos como incluídos
+        var inc = {};
+        items.forEach(function(i) { inc[i.id] = true; });
+        setInclDays(inc);
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
-        var beschriebe = items.map(function(i) { return i.beschrieb || i.arbeit || ''; }).filter(Boolean);
         var totalKm = items.reduce(function(s, i) { return s + (i.km || 0); }, 0);
         var arbeitList = items.map(function(i) { return i.arbeit; }).filter(Boolean).join('\n\n');
         setFStd(totalH > 0 ? totalH.toFixed(1) : '');
@@ -26214,13 +26191,13 @@ function RpWochenView(props) {
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' Wochenberichte'),
-      RpBtn({ label: '+ Neuer Wochenbericht', onClick: openNew })
+      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' ' + L.w_count),
+      RpBtn({ label: L.w_btn, onClick: openNew })
     ),
 
     loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: '#475569' } }, 'Lade...'),
 
-    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, 'Noch keine Wochenberichte.'),
+    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, L.none_w),
 
     list.map(function(item) {
       var isExp = expanded === item.id;
@@ -26239,14 +26216,9 @@ function RpWochenView(props) {
           ),
           React.createElement('div', { style: { textAlign: 'right' } },
             React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, item.status === 'submitted' ? 'Abgegeben' : 'Entwurf'),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' } },
+            React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4, justifyContent: 'flex-end' } },
               item.total_stunden > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '⏱ ' + item.total_stunden + ' h'),
               item.total_km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.total_km + ' km')
-            ),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }, onClick: function(e) { e.stopPropagation(); } },
-              RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-              RpBtn({ label: '🖨️', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
-              RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
             )
           )
         ),
@@ -26264,10 +26236,9 @@ function RpWochenView(props) {
             React.createElement('div', { style: rpS.label }, 'Bemerkungen'),
             React.createElement('div', { style: { fontSize: 12, color: '#94A3B8', whiteSpace: 'pre-wrap' } }, item.bemerkungen)
           ),
-          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
-            RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
-            RpBtn({ label: '🖨️ Drucken', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
+          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
+            RpBtn({ label: '✏️ Bearbeiten', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
+            RpBtn({ label: item.status === 'draft' ? L.t_submit : L.t_todraft, sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
             RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
         )
@@ -26284,15 +26255,86 @@ function RpWochenView(props) {
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total Std.' }), RpInput({ type: 'number', value: fStd, onChange: setFStd, placeholder: '42.5' })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
-        React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, '💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.'),
-        RpField({ label: 'Zusammenfassung der Woche', children: RpTextarea({ value: fZus, onChange: setFZus, rows: 5, placeholder: 'Was wurde diese Woche gemacht?' }) }),
-        RpField({ label: 'Offene Arbeiten', children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
-        RpField({ label: 'Bemerkungen', children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
-        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-          RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
-          form !== 'new' && RpBtn({ label: '🖨️ Drucken', color: '#3B82F6', onClick: function() { rpPrintWochen(form); } }),
-          RpBtn({ label: fSaving ? '...' : '💾 Speichern', onClick: save })
+        React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, L.w_hint),
+
+        // ── Tagesrapporte desta KW (só leitura, expansíveis)
+        kwTages.length > 0 && React.createElement('div', { style: { marginBottom: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.5px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+            React.createElement('span', null, '📄 ' + (props.lang === 'PT' ? 'Relatórios desta KW' : 'Tagesrapporte dieser KW') + ' (' + kwTages.length + ')'),
+            React.createElement('span', { style: { fontSize: 10, color: '#64748B' } }, props.lang === 'PT' ? 'toca ✓ para incluir/excluir' : 'tippen zum ein-/ausschliessen')
+          ),
+          kwTages.map(function(tr) {
+            var isOpen = expDay === tr.id;
+            var included = inclDays[tr.id] !== false;
+            var h = rpStunden(tr.h_start, tr.h_end);
+            var wday = new Date(tr.datum + 'T12:00:00');
+            return React.createElement('div', {
+              key: tr.id,
+              style: { background: included ? '#111827' : '#0a0a14', border: '1px solid ' + (included ? '#1E293B' : '#0f1629'), borderRadius: 10, marginBottom: 6, overflow: 'hidden', opacity: included ? 1 : 0.5 }
+            },
+              React.createElement('div', {
+                style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }
+              },
+                // Toggle checkbox
+                React.createElement('button', {
+                  onClick: function() {
+                    var newInc = Object.assign({}, inclDays);
+                    newInc[tr.id] = !included;
+                    setInclDays(newInc);
+                    // Recalculate totals
+                    var selH = 0, selKm = 0;
+                    kwTages.forEach(function(t) { if (newInc[t.id] !== false) { selH += rpStunden(t.h_start, t.h_end); selKm += (t.km || 0); } });
+                    setFStd(selH > 0 ? selH.toFixed(1) : '');
+                    setFKm(selKm > 0 ? String(selKm) : '');
+                  },
+                  style: { background: included ? '#22c55e22' : '#1E293B', border: '1px solid ' + (included ? '#22c55e' : '#334155'), borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: 14, color: included ? '#22c55e' : '#475569' }
+                }, included ? '✓' : '○'),
+                // Day info (tap to expand)
+                React.createElement('div', {
+                  onClick: function() { setExpDay(isOpen ? null : tr.id); },
+                  style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }
+                },
+                  React.createElement('div', { style: { width: 36, height: 36, borderRadius: 8, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                    React.createElement('span', { style: { fontSize: 9, color: '#64748B' } }, wday.toLocaleDateString('de-CH', { weekday: 'short' }).toUpperCase()),
+                    React.createElement('span', { style: { fontSize: 15, fontWeight: 800, color: '#E2E8F0' } }, wday.getDate())
+                  ),
+                  React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, tr.baustelle || '—'),
+                    React.createElement('div', { style: { fontSize: 11, color: '#64748B' } }, h.toFixed(1) + 'h' + (tr.km > 0 ? ' · ' + tr.km + ' km' : ''))
+                  ),
+                  React.createElement('span', { style: { color: '#475569', fontSize: 14 } }, isOpen ? '▲' : '▼')
+                )
+              ),
+              isOpen && React.createElement('div', { style: { padding: '8px 12px 12px', borderTop: '1px solid #1E293B' } },
+                tr.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
+                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, props.lang === 'PT' ? 'TRABALHOS' : 'ARBEITEN'),
+                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', lineHeight: 1.6 } }, tr.arbeit)
+                ),
+                tr.material && React.createElement('div', { style: { marginBottom: 8 } },
+                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, 'MATERIAL'),
+                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, tr.material)
+                ),
+                (tr.anzahl_beps > 0 || tr.anzahl_muffe > 0 || tr.otdr_ok || tr.otdr_nok) && React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 } },
+                  tr.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, background: '#3B82F622', color: '#3B82F6', borderRadius: 6, padding: '2px 8px' } }, '🔌 ' + tr.anzahl_beps + ' BEP' + (tr.bep_typ ? ' ' + tr.bep_typ : '')),
+                  tr.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, background: '#a78bfa22', color: '#a78bfa', borderRadius: 6, padding: '2px 8px' } }, '🔩 ' + tr.anzahl_muffe + ' Muffe' + (tr.muffe_typ ? ' ' + tr.muffe_typ : '')),
+                  tr.otdr_ok && React.createElement('span', { style: { fontSize: 11, background: '#22c55e22', color: '#22c55e', borderRadius: 6, padding: '2px 8px' } }, '📡 OTDR ✓'),
+                  tr.otdr_nok && React.createElement('span', { style: { fontSize: 11, background: '#ef444422', color: '#ef4444', borderRadius: 6, padding: '2px 8px' } }, '⚠️ OTDR N.OK')
+                ),
+                tr.probleme && React.createElement('div', { style: { borderLeft: '3px solid #F59E0B', paddingLeft: 8 } },
+                  React.createElement('div', { style: { fontSize: 12, color: '#94A3B8' } }, tr.probleme)
+                )
+              )
+            );
+          })
+        ),
+
+        RpField({ label: L.w_sum, children: RpTextarea({ value: fZus, onChange: setFZus, rows: 4, placeholder: 'Was wurde diese Woche gemacht?' }) }),
+        RpField({ label: L.w_open, children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
+        RpField({ label: L.w_rem, children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
+        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+          RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
+          RpBtn({ label: fSaving ? '...' : L.save, onClick: save })
         )
       )
     }),
@@ -26316,47 +26358,58 @@ function RapportApp(props) {
   var _stTab = React.useState('planung');
   var tab = _stTab[0], setTab = _stTab[1];
 
+  var _stLang = React.useState(function() { try { return localStorage.getItem('rpLang') || 'DE'; } catch(e) { return 'DE'; } });
+  var lang = _stLang[0], setLang = _stLang[1];
+  function toggleLang() {
+    var nl = lang === 'DE' ? 'PT' : 'DE';
+    try { localStorage.setItem('rpLang', nl); } catch(e) {}
+    setLang(nl);
+  }
+  var L = RP_L[lang];
+
   var TABS = [
-    { id: 'planung',  label: '📋 Planung' },
-    { id: 'tages',   label: '📄 Tagesrapport' },
-    { id: 'wochen',  label: '📊 Wochenbericht' },
+    { id: 'planung',  label: L.tab_plan },
+    { id: 'tages',   label: L.tab_tages },
+    { id: 'wochen',  label: L.tab_wochen },
   ];
 
-  return React.createElement('div', { style: rpS.page },
+  return React.createElement('div', { style: { background: T.bg, minHeight: '100vh', color: T.text, fontFamily: "'Inter','Segoe UI',sans-serif", fontSize: 14 } },
     // ── Header
     React.createElement('div', {
-      style: { background: '#0D1117', borderBottom: '1px solid #1E293B', padding: '14px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
+      style: { background: T.surface, borderBottom: '1px solid ' + T.border, padding: '10px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
     },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 } },
-        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: '#64748B', fontSize: 22, cursor: 'pointer', padding: 0 } }, '‹'),
+      // Linha 1: voltar + título + botão língua (absolute)
+      React.createElement('div', { style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, paddingRight: 70 } },
+        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer', padding: 0, flexShrink: 0 } }, '‹'),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-          React.createElement('svg', { width: 32, height: 32, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
-            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
-            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F06400' })
-          ),
+          React.createElement('div', { style: { width: 28, height: 28, borderRadius: 7, background: '#F59E0B22', border: '1px solid #F59E0B44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 } }, '📋'),
           React.createElement('div', null,
-            React.createElement('div', { style: { fontWeight: 800, fontSize: 15 } }, 'Arnold Rapport'),
-            React.createElement('div', { style: { fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 14, color: T.text } }, 'Arnold Rapport'),
+            React.createElement('div', { style: { fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
           )
-        )
+        ),
+        React.createElement('button', {
+          onClick: toggleLang,
+          style: { position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: '#F59E0B', border: 'none', borderRadius: 14, padding: '5px 12px', cursor: 'pointer', fontWeight: 900, fontSize: 12, color: '#0D1117', whiteSpace: 'nowrap' }
+        }, lang === 'DE' ? '🌐 PT' : '🌐 DE')
       ),
-      // ── Tab bar
-      React.createElement('div', { style: { display: 'flex', overflowX: 'auto' } },
+      // Linha 2: tabs centrados
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'center', borderTop: '1px solid ' + T.border } },
         TABS.map(function(t) {
           var active = tab === t.id;
           return React.createElement('button', {
             key: t.id,
             onClick: function() { setTab(t.id); },
-            style: { background: 'none', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : '#475569', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }
+            style: { background: 'none', border: 'none', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), padding: '8px 12px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : T.muted, cursor: 'pointer', whiteSpace: 'nowrap' }
           }, t.label);
         })
       )
     ),
 
     // ── Content
-    tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId }),
-    tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId }),
-    tab === 'wochen'   && React.createElement(RpWochenView,  { userId: userId })
+    tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId, lang: lang }),
+    tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId, lang: lang }),
+    tab === 'wochen'   && React.createElement(RpWochenView,  { userId: userId, lang: lang })
   );
 }
 
