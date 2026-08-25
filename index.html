@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-25T14:59:43.841Z
+  Gerado em: 2026-08-25T15:02:36.251Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-174";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-175";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25928,11 +25928,37 @@ function RpTagesView(props) {
             React.createElement('div', { style: rpS.label }, 'Material'),
             React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, item.material)
           ),
-          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
-            RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: isSubmitted ? '↺' : '✓ Abgeben', sm: true, color: isSubmitted ? '#475569' : '#10B981', onClick: function() { toggleStatus(item); } }),
-            RpBtn({ label: '🖨️ Drucken', sm: true, color: '#3B82F6', onClick: function() { rpPrintTages(item); } }),
-            RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
+          // BEP summary card
+          (item.bep_kabel_typ || item.bep_godoo || item.bep_gag) && React.createElement('div', {
+            style: { background: '#1E3A5F', border: '1px solid #3B82F644', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
+          },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', marginBottom: 5 } }, '📦 BEP'),
+            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#CBD5E1' } },
+              item.bep_kabel_typ && React.createElement('span', null, '🗂 ' + item.bep_kabel_typ + (item.bep_kabel_typ_custom ? ' / ' + item.bep_kabel_typ_custom : '')),
+              item.bep_godoo && React.createElement('span', null, '📱 Godoo: ' + item.bep_godoo)
+            ),
+            (item.bep_godoo || item.bep_gag || item.bep_swisscom) && React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#94A3B8', marginTop: 3 } },
+              item.bep_godoo && React.createElement('span', null, '📍 ' + item.bep_godoo),
+              item.bep_gag && React.createElement('span', null, 'GAG: ' + item.bep_gag),
+              item.bep_swisscom && React.createElement('span', null, 'Swisscom: ' + item.bep_swisscom)
+            ),
+            item.bep_fotos && React.createElement('div', { style: { fontSize: 11, color: '#10B981', marginTop: 3 } }, '📷 Fotos ✓')
+          ),
+          // Muffe summary card
+          (item.muffe_anzahl > 0 || item.muffe_typ) && React.createElement('div', {
+            style: { background: '#2D1F00', border: '1px solid #F59E0B44', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
+          },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 5 } }, '🔩 Muffe'),
+            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#CBD5E1' } },
+              item.muffe_anzahl > 0 && React.createElement('span', null, item.muffe_anzahl + ' Muffe'),
+              item.muffe_typ && React.createElement('span', { style: { background: '#F59E0B22', border: '1px solid #F59E0B44', borderRadius: 4, padding: '1px 6px', fontWeight: 700 } }, item.muffe_typ),
+              item.muffe_fasern > 0 && React.createElement('span', null, item.muffe_fasern + ' Fasern')
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4, fontSize: 11 } },
+              React.createElement('span', { style: { color: item.otdr_ok ? '#10B981' : '#475569' } }, (item.otdr_ok ? '✅' : '⬜') + ' OTDR OK'),
+              React.createElement('span', { style: { color: item.otdr_nok ? '#EF4444' : '#475569' } }, (item.otdr_nok ? '⚠️' : '⬜') + ' OTDR N.OK'),
+              item.muffe_fotos && React.createElement('span', { style: { color: '#10B981' } }, '📷 Fotos ✓')
+            )
           )
         )
       );
