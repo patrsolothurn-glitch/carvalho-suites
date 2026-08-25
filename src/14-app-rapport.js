@@ -47,7 +47,7 @@ var RP_L = {
     bep_godoo:'Godoo-Nr', bep_zust:'Zuständig (Godoo)',
     bep_gag:'GAG Messung', bep_swiss:'Swisscom Messung', bep_foto:'📷 Fotos gemacht',
     m_title:'🔩 Muffe Spezifisch', m_anz:'Anzahl Muffes', m_typ:'Muffe Typ',
-    m_fasern:'Fasern gespleisst', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
+    m_fasern:'Fasern gespleisst', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos', m_bem:'Bemerkungen',
     w_new:'Neuer Wochenbericht', w_edit:'Wochenbericht bearbeiten',
     w_btn:'+ Neuer Wochenbericht', w_count:'Wochenberichte',
     w_year:'Jahr', w_std:'Total Std.', w_km:'Total KM',
@@ -69,7 +69,7 @@ var RP_L = {
     bep_godoo:'Nº Godoo', bep_zust:'Responsável (Godoo)',
     bep_gag:'Medição GAG', bep_swiss:'Medição Swisscom', bep_foto:'📷 Fotos tiradas',
     m_title:'🔩 Muffe Específico', m_anz:'Nº Muffes', m_typ:'Tipo Muffe',
-    m_fasern:'Fibras Spleissadas', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
+    m_fasern:'Fibras Spleissadas', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos', m_bem:'Observações',
     w_new:'Novo Rel. Semanal', w_edit:'Editar Rel. Semanal',
     w_btn:'+ Novo Rel. Semanal', w_count:'Relatórios Semanais',
     w_year:'Ano', w_std:'Total Horas', w_km:'Total KM',
@@ -537,6 +537,7 @@ function RpTagesView(props) {
   var _fOTDR    = React.useState(false);    var fOTDR    = _fOTDR[0],    setFOTDR    = _fOTDR[1];
   var _fOTDRnok = React.useState(false);    var fOTDRnok = _fOTDRnok[0], setFOTDRnok = _fOTDRnok[1];
   var _fMufFoto = React.useState(false);    var fMufFoto = _fMufFoto[0], setFMufFoto = _fMufFoto[1];
+  var _fBem     = React.useState('');       var fBem     = _fBem[0],     setFBem     = _fBem[1];
 
   function load() {
     if (!db) return;
@@ -551,7 +552,7 @@ function RpTagesView(props) {
     setFHS('07:00'); setFHE('17:00'); setFTeam(''); setFArbeit('');
     setFMat(''); setFKm(''); setFProb(''); setFStatus('draft');
     setFBepAnz(''); setFBepTyp(''); setFGodoo(''); setFZust(''); setFGAG(''); setFSwiss(''); setFFotos(false);
-    setFMufAnz(''); setFMufTyp(''); setFFasern(''); setFOTDR(false); setFOTDRnok(false); setFMufFoto(false);
+    setFMufAnz(''); setFMufTyp(''); setFFasern(''); setFOTDR(false); setFOTDRnok(false); setFMufFoto(false); setFBem('');
     setForm('new');
   }
   function openEdit(item) {
@@ -566,14 +567,14 @@ function RpTagesView(props) {
     setFFotos(item.fotos_ok || false);
     setFMufAnz(item.anzahl_muffe > 0 ? String(item.anzahl_muffe) : '');
     setFMufTyp(item.muffe_typ || ''); setFFasern(item.fasern_gespleisst > 0 ? String(item.fasern_gespleisst) : '');
-    setFOTDR(item.otdr_ok || false); setFOTDRnok(item.otdr_nok || false); setFMufFoto(item.muffe_fotos || false);
+    setFOTDR(item.otdr_ok || false); setFOTDRnok(item.otdr_nok || false); setFMufFoto(item.muffe_fotos || false); setFBem(item.bemerkungen || '');
     setViewItem(null); setForm(item);
   }
   function save() {
     if (!fBau.trim()) return;
     setFSaving(true);
     var h = rpStunden(fHS, fHE);
-    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, bep_typ: fBepTyp.trim(), godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos, anzahl_muffe: parseInt(fMufAnz) || 0, muffe_typ: fMufTyp.trim(), fasern_gespleisst: parseInt(fFasern) || 0, otdr_ok: fOTDR, otdr_nok: fOTDRnok, muffe_fotos: fMufFoto };
+    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, bep_typ: fBepTyp.trim(), godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos, anzahl_muffe: parseInt(fMufAnz) || 0, muffe_typ: fMufTyp.trim(), fasern_gespleisst: parseInt(fFasern) || 0, otdr_ok: fOTDR, otdr_nok: fOTDRnok, muffe_fotos: fMufFoto, bemerkungen: fBem.trim() };
     var op = form === 'new' ? db.from('rapport_tages').insert(payload) : db.from('rapport_tages').update(payload).eq('id', form.id);
     op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
   }
@@ -802,6 +803,7 @@ function RpTagesView(props) {
           )
         ),
 
+        RpField({ label: L.m_bem, children: React.createElement('textarea', { value: fBem, onChange: function(e) { setFBem(e.target.value); }, rows: 3, placeholder: '...', style: { width: '100%', background: '#0D1117', border: '1px solid #1E293B', borderRadius: 8, color: '#F1F5F9', padding: '10px 12px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' } }) }),
         RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
