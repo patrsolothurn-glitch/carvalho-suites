@@ -689,6 +689,10 @@ function RpTagesView(props) {
           item.team && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '👷 ' + item.team),
           item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.fahrzeug + ' ' + item.km + ' km')
         ),
+        // Probleme highlight
+        item.probleme && React.createElement('div', {
+          style: { marginTop: 6, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 7, padding: '4px 8px', fontSize: 11, color: '#FCA5A5', fontWeight: 600 }
+        }, '⚠️ ' + item.probleme),
         // expanded detail
         isOpen && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
           (item.beschrieb || item.arbeit) && React.createElement('div', { style: { marginBottom: 8 } },
