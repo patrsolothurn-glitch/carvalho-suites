@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-25T14:21:42.011Z
+  Gerado em: 2026-08-25T14:57:31.567Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-172";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-173";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25904,7 +25904,12 @@ function RpTagesView(props) {
           ),
           React.createElement('div', { style: { textAlign: 'right', flexShrink: 0, marginLeft: 8 } },
             React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, isSubmitted ? 'Abgegeben' : 'Entwurf'),
-            React.createElement('div', { style: { fontSize: 10, color: '#64748B', marginTop: 2 } }, item.typ === 'regierapport' ? 'Regie' : 'Arbeitsrapport')
+            React.createElement('div', { style: { fontSize: 10, color: '#64748B', marginTop: 2 } }, item.typ === 'regierapport' ? 'Regie' : 'Arbeitsrapport'),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }, onClick: function(e) { e.stopPropagation(); } },
+              RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
+              RpBtn({ label: '🖨️', sm: true, color: '#3B82F6', onClick: function() { rpPrintTages(item); } }),
+              RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
+            )
           )
         ),
         // stats row
@@ -26201,9 +26206,14 @@ function RpWochenView(props) {
           ),
           React.createElement('div', { style: { textAlign: 'right' } },
             React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, item.status === 'submitted' ? 'Abgegeben' : 'Entwurf'),
-            React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4, justifyContent: 'flex-end' } },
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' } },
               item.total_stunden > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '⏱ ' + item.total_stunden + ' h'),
               item.total_km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.total_km + ' km')
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }, onClick: function(e) { e.stopPropagation(); } },
+              RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
+              RpBtn({ label: '🖨️', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
+              RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
             )
           )
         ),
