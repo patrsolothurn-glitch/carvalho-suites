@@ -140,9 +140,13 @@ function VgForm(props) {
   }
   var inputStyle = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
 
+  var MAX_FOTOS = 100;
   function addFiles(files) {
     var imgFiles = Array.prototype.slice.call(files).filter(function(f) { return f.type.indexOf('image/') === 0; });
     if (!imgFiles.length) return;
+    var disponiveis = MAX_FOTOS - fotos.length;
+    if (disponiveis <= 0) { alert('Limite de ' + MAX_FOTOS + ' fotos por viagem atingido.'); return; }
+    if (imgFiles.length > disponiveis) { alert('Só podem ser adicionadas mais ' + disponiveis + ' fotos (limite: ' + MAX_FOTOS + ').'); imgFiles = imgFiles.slice(0, disponiveis); }
     var newFiles = (form._pendingFiles || []).concat(imgFiles);
     var previews = fotos.slice();
     var promises = [];
