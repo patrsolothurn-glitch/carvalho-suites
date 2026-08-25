@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-25T14:57:31.567Z
+  Gerado em: 2026-08-25T14:59:43.841Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-173";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-174";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26039,9 +26039,10 @@ function RpTagesView(props) {
         // Status
         RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
 
-        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
           RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
-          RpBtn({ label: fSaving ? '...' : 'Speichern', onClick: save })
+          form !== 'new' && RpBtn({ label: '🖨️ Drucken', color: '#3B82F6', onClick: function() { rpPrintTages(form); } }),
+          RpBtn({ label: fSaving ? '...' : '💾 Speichern', onClick: save })
         )
       )
     }),
@@ -26256,9 +26257,10 @@ function RpWochenView(props) {
         RpField({ label: 'Offene Arbeiten', children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
         RpField({ label: 'Bemerkungen', children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
         RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
           RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
-          RpBtn({ label: fSaving ? '...' : 'Speichern', onClick: save })
+          form !== 'new' && RpBtn({ label: '🖨️ Drucken', color: '#3B82F6', onClick: function() { rpPrintWochen(form); } }),
+          RpBtn({ label: fSaving ? '...' : '💾 Speichern', onClick: save })
         )
       )
     }),
