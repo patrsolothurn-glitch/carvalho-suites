@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-25T04:25:14.228Z
+  Gerado em: 2026-08-25T04:55:32.330Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-177";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-178";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26738,9 +26738,9 @@ function VgForm(props) {
       )
     ),
 
-    field('ÁLBUM GOOGLE FOTOS (OPCIONAL)', React.createElement('input', {
+    field('🔗 LINK GOOGLE DRIVE / GOOGLE FOTOS (OPCIONAL)', React.createElement('input', {
       value: form.album_url || '', onChange: function (e) { setForm(Object.assign({}, form, { album_url: e.target.value })); },
-      placeholder: 'https://photos.app.goo.gl/...', style: inputStyle
+      placeholder: 'https://drive.google.com/... ou https://photos.app.goo.gl/...', style: inputStyle
     })),
 
     field('NOTAS', React.createElement('textarea', {
