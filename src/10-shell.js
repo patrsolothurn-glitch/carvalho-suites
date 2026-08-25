@@ -1143,11 +1143,22 @@ function CarvalhoSuite() {
         return;
       }
       var found = false;
-      reg.onupdatefound = function () { found = true; };
+      reg.onupdatefound = function () {
+        found = true;
+        var installing = reg.installing;
+        if (installing) {
+          installing.onstatechange = function () {
+            if (installing.state === 'activated') {
+              setUpdMsg('✓ Nova versão instalada — a reiniciar...');
+              setTimeout(function () { window.location.reload(); }, 800);
+            }
+          };
+        }
+      };
       reg.update().then(function () {
         setTimeout(function () {
           setUpdChecking(false);
-          setUpdMsg(found ? '✓ Nova versão encontrada — a aplicar e reiniciar...' : '✓ Já tens a versão mais recente.');
+          if (!found) setUpdMsg('✓ Já tens a versão mais recente.');
         }, 1200);
       }).catch(function (err) {
         setUpdChecking(false);
