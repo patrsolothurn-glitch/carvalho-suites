@@ -555,6 +555,7 @@ function RpTagesView(props) {
   var _fOtdrOk  = React.useState(false);            var fOtdrOk = _fOtdrOk[0], setFOtdrOk = _fOtdrOk[1];
   var _fOtdrNok = React.useState(false);            var fOtdrNok = _fOtdrNok[0], setFOtdrNok = _fOtdrNok[1];
   var _fMufFot  = React.useState(false);            var fMufFot = _fMufFot[0], setFMufFot = _fMufFot[1];
+  var _fProb    = React.useState('');               var fProb = _fProb[0], setFProb = _fProb[1];
 
   function load() {
     if (!db) return;
@@ -571,6 +572,7 @@ function RpTagesView(props) {
     setFFahrzeug('PW'); setFKm(''); setFMat(''); setFStatus('draft');
     setFBepKab(''); setFBepKabC(''); setFBepGod(''); setFBepGAG(''); setFBepSws(''); setFBepFot(false);
     setFMufAnz('0'); setFMufTyp(''); setFMufTypC(''); setFMufFas('0'); setFOtdrOk(false); setFOtdrNok(false); setFMufFot(false);
+    setFProb('');
   }
   function openNew() { resetForm(); setForm('new'); }
   function openEdit(item) {
@@ -592,6 +594,7 @@ function RpTagesView(props) {
     setFBepGod(item.bep_godoo||''); setFBepGAG(item.bep_gag||''); setFBepSws(item.bep_swisscom||''); setFBepFot(!!item.bep_fotos);
     setFMufAnz(String(item.muffe_anzahl||0)); setFMufTyp(item.muffe_typ||''); setFMufTypC(item.muffe_typ_custom||'');
     setFMufFas(String(item.muffe_fasern||0)); setFOtdrOk(!!item.otdr_ok); setFOtdrNok(!!item.otdr_nok); setFMufFot(!!item.muffe_fotos);
+    setFProb(item.probleme || item.bemerkungen || '');
     setViewItem(null); setForm(item);
   }
   function save() {
@@ -618,7 +621,8 @@ function RpTagesView(props) {
       bep_kabel_typ: fBepKab, bep_kabel_typ_custom: fBepKabC.trim(),
       bep_godoo: fBepGod.trim(), bep_gag: fBepGAG.trim(), bep_swisscom: fBepSws.trim(), bep_fotos: fBepFot,
       muffe_anzahl: parseInt(fMufAnz)||0, muffe_typ: fMufTyp, muffe_typ_custom: fMufTypC.trim(),
-      muffe_fasern: parseInt(fMufFas)||0, otdr_ok: fOtdrOk, otdr_nok: fOtdrNok, muffe_fotos: fMufFot
+      muffe_fasern: parseInt(fMufFas)||0, otdr_ok: fOtdrOk, otdr_nok: fOtdrNok, muffe_fotos: fMufFot,
+      probleme: fProb.trim()
     };
     var op = form === 'new'
       ? db.from('rapport_tages').insert(payload)
@@ -833,6 +837,9 @@ function RpTagesView(props) {
             React.createElement('span', { style: { fontSize: 12 } }, '📷 Fotos')
           )
         ),
+
+        // Probleme / Bemerkungen
+        RpField({ label: 'Probleme / Bemerkungen', children: RpTextarea({ value: fProb, onChange: setFProb, rows: 2, placeholder: 'OTDR Messung, offene Punkte...' }) }),
 
         // Status
         RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
