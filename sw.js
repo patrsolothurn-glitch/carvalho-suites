@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-vb2bbe666';
+const CACHE = 'carvalho-va1a43014';
 const ASSETS = [
   './',
   './index.html',
@@ -110,5 +110,4 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
-
-// deployed: 20260825T153258Z
+// v185-20260825T155000Z
