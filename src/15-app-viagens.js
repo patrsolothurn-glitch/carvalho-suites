@@ -196,6 +196,38 @@ function VgForm(props) {
   );
 }
 
+
+// ── Célula de mês com foto lazy ───────────────────────────────────
+function VgMonthCell(props) {
+  var idx = props.idx, mTrips = props.mTrips, isCurrent = props.isCurrent, db = props.db, onClick = props.onClick;
+  var _stThumb = React.useState(null);
+  var thumb = _stThumb[0], setThumb = _stThumb[1];
+  React.useEffect(function() {
+    if (mTrips.length > 0 && mTrips[0].fotos_count > 0) {
+      db.from('family_trips').select('fotos').eq('id', mTrips[0].id).single()
+        .then(function(r) { if (r.data && r.data.fotos && r.data.fotos[0]) setThumb(r.data.fotos[0]); })
+        .catch(function() {});
+    }
+  }, [mTrips.length > 0 ? mTrips[0].id : null]);
+  return React.createElement('button', {
+    onClick: onClick,
+    style: { position: 'relative', overflow: 'hidden', background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left', minHeight: 80 }
+  },
+    thumb && React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: 'url(' + thumb + ')', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.3, borderRadius: 11 } }),
+    React.createElement('div', { style: { position: 'relative', zIndex: 1 } },
+      React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? '#fff' : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
+      mTrips.length === 0
+        ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
+        : React.createElement('div', null,
+            React.createElement('div', { style: { display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 3 } },
+              mTrips.slice(0, 3).map(function(t) { var ti = vgType(t.tipo); return React.createElement('span', { key: t.id, style: { fontSize: 14 } }, ti.emoji); })
+            ),
+            React.createElement('div', { style: { fontSize: 9, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '2px 5px', borderRadius: 4, display: 'inline-block' } }, mTrips.length + (mTrips.length === 1 ? ' entrada' : ' entradas'))
+          )
+    )
+  );
+}
+
 // ── App principal ─────────────────────────────────────────────────
 function ViagensApp(props) {
   var onBack = props.onBack, profile = props.profile;
@@ -316,39 +348,56 @@ function ViagensApp(props) {
     );
   }
 
-  // ── Lista do ano completo (todos os meses) ────────────────────
+  // ── Grelha de meses (vista principal) ─────────────────────────
   return React.createElement('div', { style: { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif', paddingBottom: 40 } },
     headerBar,
-    React.createElement('div', { style: { padding: '12px 16px 0', maxWidth: 520, margin: '0 auto' } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 } },
-        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 14 } },
-          React.createElement('button', { onClick: function() { setYear(year - 1); }, style: { background: T.surface, border: '1px solid ' + T.border, borderRadius: 10, width: 34, height: 34, fontSize: 18, cursor: 'pointer', color: T.text } }, '‹'),
-          React.createElement('span', { style: { fontWeight: 900, fontSize: 22 } }, year),
-          React.createElement('button', { onClick: function() { setYear(year + 1); }, style: { background: T.surface, border: '1px solid ' + T.border, borderRadius: 10, width: 34, height: 34, fontSize: 18, cursor: 'pointer', color: T.text } }, '›')
-        ),
+    React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 } },
+        React.createElement('div', { style: { fontSize: 12.5, color: T.muted } }, yearTrips.length + ' entrada' + (yearTrips.length !== 1 ? 's' : '') + ' em ' + year),
         React.createElement(GoldBtn, { onClick: function() { openAdd(now.getMonth()); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
-      )
-    ),
-    React.createElement('div', { style: { padding: '0 16px', maxWidth: 520, margin: '0 auto' } },
-      loading && React.createElement('div', { style: { textAlign: 'center', padding: 40, color: T.muted } }, 'A carregar…'),
-      !loading && yearTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '60px 16px', color: T.muted } },
-        React.createElement('div', { style: { fontSize: 48, marginBottom: 12 } }, '✈️'),
-        React.createElement('div', { style: { fontSize: 15 } }, 'Nenhuma viagem em ' + year)
       ),
-      !loading && VG_MONTHS.map(function(mesNome, idx) {
-        var mTrips = byMonth(idx);
-        var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
-        return React.createElement('div', { key: idx, style: { marginBottom: mTrips.length ? 8 : 0 } },
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, paddingTop: 14, paddingBottom: 6 } },
-            React.createElement('div', { style: { height: 1, width: 12, background: isCurrent ? T.gold : T.border } }),
-            React.createElement('span', { style: { fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: isCurrent ? T.gold : (mTrips.length ? T.text : T.muted) } }, mesNome.toUpperCase()),
-            mTrips.length > 0 && React.createElement('span', { style: { fontSize: 10, color: T.muted } }, mTrips.length + (mTrips.length === 1 ? ' entrada' : ' entradas'))
-          ),
-          mTrips.map(function(t) {
-            return React.createElement(VgTripCard, { key: t.id, trip: t, db: db, onOpen: function() { setDetailTrip(t); }, onEdit: function() { openEdit(t); }, onDelete: function() { setConfirmDel(t.id); } });
-          })
-        );
-      })
+      React.createElement(Card, { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '11px 0', marginBottom: 14 } },
+        React.createElement('button', { onClick: function() { setYear(year - 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '‹'),
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 22 } }, year),
+        React.createElement('button', { onClick: function() { setYear(year + 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '›')
+      ),
+      loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
+      !loading && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
+        VG_MONTHS.map(function(_, idx) {
+          var mTrips = byMonth(idx);
+          var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
+          var firstTrip = mTrips[0];
+          var _stThumbCell = React.useState(null);
+          var thumbCell = _stThumbCell[0], setThumbCell = _stThumbCell[1];
+          React.useEffect(function() {
+            if (firstTrip && firstTrip.fotos_count > 0) {
+              db.from('family_trips').select('fotos').eq('id', firstTrip.id).single()
+                .then(function(r) { if (r.data && r.data.fotos && r.data.fotos[0]) setThumbCell(r.data.fotos[0]); })
+                .catch(function() {});
+            }
+          }, [firstTrip && firstTrip.id]);
+          return React.createElement('button', {
+            key: idx, onClick: function() { setSelMonth(idx); },
+            style: { position: 'relative', overflow: 'hidden', background: thumbCell ? 'transparent' : (isCurrent ? T.goldDim : T.surface), border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left', minHeight: 72 }
+          },
+            thumbCell && React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: 'url(' + thumbCell + ')', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.4 } }),
+            React.createElement('div', { style: { position: 'relative', zIndex: 1 } },
+              React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? '#fff' : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
+              mTrips.length === 0
+                ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
+                : React.createElement('div', null,
+                    React.createElement('div', { style: { display: 'flex', gap: 3, marginBottom: 3 } },
+                      mTrips.slice(0, 3).map(function(t) { var ti = vgType(t.tipo); return React.createElement('span', { key: t.id, style: { fontSize: 12 } }, ti.emoji); })
+                    ),
+                    React.createElement('div', { style: { fontSize: 9, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,0.5)', padding: '2px 5px', borderRadius: 4, display: 'inline-block' } }, mTrips.length + (mTrips.length === 1 ? ' entrada' : ' entradas'))
+                  )
+            )
+          );
+        })
+      ),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 16, justifyContent: 'center' } },
+        VG_TYPES.map(function(t) { return React.createElement('span', { key: t.id, style: { fontSize: 11, fontWeight: 800, color: '#fff', background: t.color, padding: '3px 10px', borderRadius: 20 } }, t.emoji + ' ' + t.label); })
+      )
     ),
     confirmModal
   );
