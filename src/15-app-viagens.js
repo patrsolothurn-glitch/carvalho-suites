@@ -204,7 +204,13 @@ function ViagensApp(props) {
       var current = fotos.slice(), pf = (formData._pendingFiles || []).slice();
       var slots = MAX_FOTOS - current.length;
       if (slots <= 0) return;
-      var arr = Array.prototype.slice.call(files, 0, slots);
+      var existingKeys = pf.map(function(f) { return f.name + '_' + f.size; });
+      var arr = Array.prototype.slice.call(files).filter(function(f) {
+        var key = f.name + '_' + f.size;
+        if (existingKeys.indexOf(key) !== -1) return false;
+        existingKeys.push(key);
+        return true;
+      }).slice(0, slots);
       Promise.all(arr.map(function(f) { return new Promise(function(res) { var r = new FileReader(); r.onload = function(e) { res(e.target.result); }; r.readAsDataURL(f); }); }))
         .then(function(results) { setFormData(Object.assign({}, formData, { fotos: current.concat(results), _pendingFiles: pf.concat(arr) })); });
     }
