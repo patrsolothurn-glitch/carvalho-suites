@@ -349,7 +349,7 @@ function ViagensApp(props) {
             key: idx, onClick: function() { setSelMonth(idx); },
             style: { background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left' }
           },
-            React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : T.muted, marginBottom: 6 } }, VG_SHORT[idx]),
+            React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? vgType(mTrips[0].tipo).color : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
             mTrips.length === 0
               ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
               : React.createElement('div', null,
