@@ -199,8 +199,12 @@ function ViagensApp(props) {
   if (form) {
     var fotos = formData.fotos || [];
     var visiveis = (!formExpanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
+    var MAX_FOTOS = 100;
     function addFiles(files) {
-      var current = fotos.slice(), pf = (formData._pendingFiles || []).slice(), arr = Array.prototype.slice.call(files);
+      var current = fotos.slice(), pf = (formData._pendingFiles || []).slice();
+      var slots = MAX_FOTOS - current.length;
+      if (slots <= 0) return;
+      var arr = Array.prototype.slice.call(files, 0, slots);
       Promise.all(arr.map(function(f) { return new Promise(function(res) { var r = new FileReader(); r.onload = function(e) { res(e.target.result); }; r.readAsDataURL(f); }); }))
         .then(function(results) { setFormData(Object.assign({}, formData, { fotos: current.concat(results), _pendingFiles: pf.concat(arr) })); });
     }
