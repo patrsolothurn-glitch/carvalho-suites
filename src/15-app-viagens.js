@@ -34,30 +34,13 @@ function vgUploadFoto(db, file, tripId, idx) {
 
 // ── Card de entrada na lista do mês ───────────────────────────────
 function VgTripCard(props) {
-  var trip = props.trip, onOpen = props.onOpen, onEdit = props.onEdit, onDelete = props.onDelete, db = props.db;
+  var trip = props.trip, onOpen = props.onOpen, onEdit = props.onEdit, onDelete = props.onDelete;
   var ti = vgType(trip.tipo);
   var days = trip.dia_inicio ? (trip.dia_inicio + (trip.dia_fim ? '–' + trip.dia_fim : '') + ' ' + VG_SHORT[trip.mes]) : VG_SHORT[trip.mes];
-  var _stThumb = React.useState(null);
-  var thumb = _stThumb[0], setThumb = _stThumb[1];
-  React.useEffect(function() {
-    if (trip.fotos_count > 0) {
-      db.from('family_trips').select('fotos').eq('id', trip.id).single()
-        .then(function(r) { if (r.data && r.data.fotos && r.data.fotos[0]) setThumb(r.data.fotos[0]); })
-        .catch(function() {});
-    }
-  }, [trip.id]);
   return React.createElement(Card, {
     style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' },
     onClick: onOpen
   },
-    (thumb || trip.fotos_count > 0) && React.createElement('div', { style: { flexShrink: 0, width: 64, height: 64 }, onClick: function(e) { e.stopPropagation(); onOpen(); } },
-      thumb
-        ? React.createElement('div', { style: { position: 'relative', width: 64, height: 64 } },
-            React.createElement('img', { src: thumb, style: { width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid ' + T.border, display: 'block' } }),
-            trip.fotos_count > 1 && React.createElement('div', { style: { position: 'absolute', bottom: 4, right: 4, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '1px 5px' } }, '+' + (trip.fotos_count - 1))
-          )
-        : React.createElement('div', { style: { width: 64, height: 64, borderRadius: 12, background: T.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 } }, '📷')
-    ),
     React.createElement('div', { style: { flex: 1, minWidth: 0 } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
         React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#fff', background: ti.color, padding: '3px 10px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
@@ -197,23 +180,13 @@ function VgForm(props) {
 }
 
 
-// ── Célula de mês com foto lazy ───────────────────────────────────
+// ── Célula de mês ────────────────────────────────────────────────
 function VgMonthCell(props) {
-  var idx = props.idx, mTrips = props.mTrips, isCurrent = props.isCurrent, db = props.db, onClick = props.onClick;
-  var _stThumb = React.useState(null);
-  var thumb = _stThumb[0], setThumb = _stThumb[1];
-  React.useEffect(function() {
-    if (mTrips.length > 0 && mTrips[0].fotos_count > 0) {
-      db.from('family_trips').select('fotos').eq('id', mTrips[0].id).single()
-        .then(function(r) { if (r.data && r.data.fotos && r.data.fotos[0]) setThumb(r.data.fotos[0]); })
-        .catch(function() {});
-    }
-  }, [mTrips.length > 0 ? mTrips[0].id : null]);
+  var idx = props.idx, mTrips = props.mTrips, isCurrent = props.isCurrent, onClick = props.onClick;
   return React.createElement('button', {
     onClick: onClick,
-    style: { position: 'relative', overflow: 'hidden', background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left', minHeight: 80 }
+    style: { background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left' }
   },
-    thumb && React.createElement('div', { style: { position: 'absolute', inset: 0, backgroundImage: 'url(' + thumb + ')', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.3, borderRadius: 11 } }),
     React.createElement('div', { style: { position: 'relative', zIndex: 1 } },
       React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? '#fff' : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
       mTrips.length === 0
