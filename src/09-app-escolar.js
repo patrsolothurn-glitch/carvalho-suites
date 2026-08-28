@@ -584,6 +584,32 @@ var ALUNOS_DEF = {
     tpc: []
   }
 };
+var E = {
+  bg: '#09090E',
+  surface: '#131319',
+  surface2: '#1C1C26',
+  purple: '#7C3AED',
+  purpleL: '#9F67FF',
+  text: '#F0EEE8',
+  muted: '#7A7A90',
+  border: 'rgba(124,58,237,0.2)',
+  green: '#16A34A',
+  red: '#DC2626',
+  gold: '#C9A847',
+  orange: '#F97316'
+};
+var ECard = function ECard(_ref32) {
+  var children = _ref32.children,
+    _ref32$style = _ref32.style,
+    style = _ref32$style === void 0 ? {} : _ref32$style;
+  return /*#__PURE__*/React.createElement("div", {
+    style: _objectSpread({
+      background: E.surface,
+      borderRadius: 16,
+      border: "1px solid ".concat(E.border)
+    }, style)
+  }, children);
+};
 function EscolarApp(_ref31) {
   var onBack = _ref31.onBack,
     _ref31$sharedDias = _ref31.sharedDias,
@@ -1211,33 +1237,6 @@ function EscolarApp(_ref31) {
   var testesPendentes = aluno.tpc.filter(function (t) {
     return t.tipo === 'teste' && !t.feito;
   }).length;
-  var E = {
-    bg: '#09090E',
-    surface: '#131319',
-    surface2: '#1C1C26',
-    purple: '#7C3AED',
-    purpleL: '#9F67FF',
-    text: '#F0EEE8',
-    muted: '#7A7A90',
-    border: 'rgba(124,58,237,0.2)',
-    green: '#16A34A',
-    red: '#DC2626',
-    gold: '#C9A847',
-    orange: '#F97316'
-  };
-  var ECard = function ECard(_ref32) {
-    var children = _ref32.children,
-      _ref32$style = _ref32.style,
-      style = _ref32$style === void 0 ? {} : _ref32$style;
-    return /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread({
-        background: E.surface,
-        borderRadius: 16,
-        border: "1px solid ".concat(E.border)
-      }, style)
-    }, children);
-  };
-
   // Calendar helpers
   var yr = calMonth.getFullYear(),
     mo = calMonth.getMonth();
@@ -3631,7 +3630,13 @@ function EscolarApp(_ref31) {
     }
   }, "Para quando"), /*#__PURE__*/React.createElement("input", {
     type: "date",
-    defaultValue: novaTPC.data,
+    value: novaTPC.data || '',
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovaTPC(function (prev) {
+        return _objectSpread(_objectSpread({}, prev), {}, { data: val });
+      });
+    },
     id: "novatpc-data",
     style: {
       width: '100%',
@@ -3689,20 +3694,6 @@ function EscolarApp(_ref31) {
           return d.id === tpcRow.discId;
         });
         var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (titulo ? ' — ' + titulo : '');
-        window.supabaseClient.from('agenda_pro_jobs').insert({
-          job_date: data,
-          start_time: null,
-          end_time: null,
-          project: tituloTeste,
-          address: null,
-          monteur: aluno.nome,
-          chf: 0,
-          status: 'aberto',
-          note: 'Criado automaticamente pela Vida Escolar',
-          source: 'escolar',
-          source_id: novoId,
-          categoria: 'escola'
-        }).then(function () {}).catch(function () {});
         window.supabaseClient.from('family_events').insert({
           title: tituloTeste,
           emoji: '📚',
@@ -3711,12 +3702,15 @@ function EscolarApp(_ref31) {
           description: aluno.nome + ' tem teste',
           color: '#A855F7',
           categoria: 'escola',
-          participant_ids: ['todos'],
+          participant_ids: [alunoKey],
           member_id: null,
           source: 'escolar',
           source_id: novoId,
           created_by: aluno.nome
-        }).then(function () {}).catch(function () {});
+        }).then(function () {}).catch(function (err) {
+          console.error('[escolar] falha ao criar evento em family_events:', err);
+          addEscolarToast('⚠️ Falha ao avisar a Família sobre o teste: ' + tituloTeste);
+        });
       }
       if (tituloEl) tituloEl.value = '';
       if (dataEl) dataEl.value = '';

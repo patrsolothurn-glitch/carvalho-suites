@@ -1570,6 +1570,7 @@ function CarvalhoSuite() {
     }
   }, "O teu nome"), /*#__PURE__*/React.createElement("input", {
     type: "text",
+    autoComplete: "off",
     value: signupName,
     onChange: function onChange(e) {
       setSignupName(e.target.value);

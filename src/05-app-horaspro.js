@@ -3778,6 +3778,7 @@ function HorasProApp(_ref9) {
   })), /*#__PURE__*/React.createElement("input", {
     key: saldoJanAbrModo,
     type: "text",
+    autoComplete: "off",
     inputMode: "decimal",
     defaultValue: saldoJanAbrInput,
     onChange: function onChange(e) {
