@@ -1416,6 +1416,7 @@ function EscolarApp(_ref31) {
   var testesPendentes = aluno.tpc.filter(function (t) {
     return t.tipo === 'teste' && !t.feito;
   }).length;
+  var eventosCount = (aluno.eventos || []).length;
   // Eventos escolares (Projektwoche, Kantonallehrertag, etc.) — vivem no
   // snapshot de cada aluno (tal como tpc/notas/horario), mas um evento
   // marcado para "ambos" aparece nos dois. Aqui juntamo-los numa lista só,
@@ -1966,7 +1967,7 @@ function EscolarApp(_ref31) {
     l: '🗓'
   }, {
     v: 'eventos',
-    l: '📢'
+    l: "\uD83D\uDCE2".concat(eventosCount > 0 ? " ".concat(eventosCount) : '')
   }, {
     v: 'tpc',
     l: "\uD83D\uDCCB".concat(tpcPendentes > 0 ? " ".concat(tpcPendentes) : '')
