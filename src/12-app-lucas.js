@@ -890,7 +890,7 @@ function LucasApp(_ref) {
   }
   function _setVisitanteCode() {
     _setVisitanteCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(id, code) {
-      var val;
+      var val, res, error;
       return _regenerator().w(function (_context0) {
         while (1) switch (_context0.n) {
           case 0:
@@ -900,14 +900,21 @@ function LucasApp(_ref) {
               access_code: val
             }).eq('id', id);
           case 1:
-            setVisitantes(function (p) {
-              return p.map(function (v) {
-                return v.id === id ? Object.assign({}, v, {
-                  access_code: val
-                }) : v;
+            res = _context0.v;
+            error = res.error;
+            if (!error) {
+              setVisitantes(function (p) {
+                return p.map(function (v) {
+                  return v.id === id ? Object.assign({}, v, {
+                    access_code: val
+                  }) : v;
+                });
               });
-            });
-            flash(val ? '✓ Código definido' : '⛔ Código removido');
+              flash(val ? '✓ Código definido' : '⛔ Código removido');
+            } else {
+              console.error('[lucas] falha ao atualizar código de visitante em lucas_visitantes:', error);
+              flash('Erro ao guardar código', true);
+            }
           case 2:
             return _context0.a(2);
         }
@@ -923,18 +930,26 @@ function LucasApp(_ref) {
   }
   function _authorizeVisitanteWithCode() {
     _authorizeVisitanteWithCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1b(id, code) {
+      var res, error;
       return _regenerator().w(function (_context1b) {
         while (1) switch (_context1b.n) {
           case 0:
             _context1b.n = 1;
             return supabase.from('lucas_visitantes').update({ autorizado: true, access_code: code }).eq('id', id);
           case 1:
-            setVisitantes(function (p) {
-              return p.map(function (v) {
-                return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
+            res = _context1b.v;
+            error = res.error;
+            if (!error) {
+              setVisitantes(function (p) {
+                return p.map(function (v) {
+                  return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
+                });
               });
-            });
             flash('\u2713 Autorizado com código');
+            } else {
+              console.error('[lucas] falha ao autorizar visitante em lucas_visitantes:', error);
+              flash('Erro ao autorizar', true);
+            }
           case 2:
             return _context1b.a(2);
         }

@@ -3111,6 +3111,7 @@ function FamiliaApp(_ref19) {
       }
     }, f.l), /*#__PURE__*/React.createElement("input", {
       type: f.type,
+      autoComplete: f.type === 'text' ? 'off' : undefined,
       value: form[f.k],
       onChange: function onChange(e) {
         return setForm(function (p) {
