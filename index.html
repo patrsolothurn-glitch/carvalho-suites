@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-28T10:18:27.329Z
+  Gerado em: 2026-08-28T15:10:23.980Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-210";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-211";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -16119,6 +16119,7 @@ function EscolarApp(_ref31) {
   var testesPendentes = aluno.tpc.filter(function (t) {
     return t.tipo === 'teste' && !t.feito;
   }).length;
+  var eventosCount = (aluno.eventos || []).length;
   // Eventos escolares (Projektwoche, Kantonallehrertag, etc.) — vivem no
   // snapshot de cada aluno (tal como tpc/notas/horario), mas um evento
   // marcado para "ambos" aparece nos dois. Aqui juntamo-los numa lista só,
@@ -16669,7 +16670,7 @@ function EscolarApp(_ref31) {
     l: '🗓'
   }, {
     v: 'eventos',
-    l: '📢'
+    l: "\uD83D\uDCE2".concat(eventosCount > 0 ? " ".concat(eventosCount) : '')
   }, {
     v: 'tpc',
     l: "\uD83D\uDCCB".concat(tpcPendentes > 0 ? " ".concat(tpcPendentes) : '')
