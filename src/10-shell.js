@@ -1,3 +1,33 @@
+var UpdateStatusCard = function UpdateStatusCard(_ref0) {
+  var installed = _ref0.installed,
+    published = _ref0.published,
+    checking = _ref0.checking,
+    failed = _ref0.failed,
+    cacheVer = _ref0.cacheVer,
+    onUpdateNow = _ref0.onUpdateNow;
+  var mismatch = installed != null && published != null && installed !== published;
+  var publicadaLabel = checking ? '...' : failed ? '?' : (published != null ? published : '?');
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { color: T.muted, fontSize: 13 }
+  }, "Versão"), /*#__PURE__*/React.createElement("div", {
+    style: { textAlign: 'right' }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { color: mismatch ? '#F97316' : T.text, fontSize: 13, fontWeight: 800 }
+  }, "Instalada: ", installed != null ? installed : '?', " \xB7 Publicada: ", publicadaLabel), /*#__PURE__*/React.createElement("div", {
+    style: { color: T.muted, fontSize: 9.5, fontFamily: 'monospace', marginTop: 1 }
+  }, cacheVer || '...'))), failed && /*#__PURE__*/React.createElement("p", {
+    style: { color: '#F97316', fontSize: 12.5, marginBottom: 10, lineHeight: 1.4 }
+  }, "⚠ Não foi possível verificar a versão publicada — confirma a ligação e tenta outra vez."), mismatch && /*#__PURE__*/React.createElement("div", {
+    style: { background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.35)', borderRadius: 12, padding: '10px 12px', marginBottom: 10 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: '#F97316', fontSize: 13, fontWeight: 800, marginBottom: 8 }
+  }, "⚠ Há uma versão nova publicada"), /*#__PURE__*/React.createElement("button", {
+    onClick: onUpdateNow,
+    style: { width: '100%', background: '#F97316', border: 'none', borderRadius: 10, padding: '10px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }
+  }, "⬇ Atualizar agora")));
+};
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -109,6 +139,14 @@ function CarvalhoSuite() {
     _useStateUpdMsg2 = _slicedToArray(_useStateUpdMsg, 2),
     updMsg = _useStateUpdMsg2[0],
     setUpdMsg = _useStateUpdMsg2[1];
+  var _useStatePublishedBuild = (0, _react.useState)(null),
+    _useStatePublishedBuild2 = _slicedToArray(_useStatePublishedBuild, 2),
+    publishedBuild = _useStatePublishedBuild2[0],
+    setPublishedBuild = _useStatePublishedBuild2[1];
+  var _useStateUpdCheckFailed = (0, _react.useState)(false),
+    _useStateUpdCheckFailed2 = _slicedToArray(_useStateUpdCheckFailed, 2),
+    updCheckFailed = _useStateUpdCheckFailed2[0],
+    setUpdCheckFailed = _useStateUpdCheckFailed2[1];
   var _useStatePushTestMsg = (0, _react.useState)(''),
     _useStatePushTestMsg2 = _slicedToArray(_useStatePushTestMsg, 2),
     pushTestMsg = _useStatePushTestMsg2[0],
@@ -1129,62 +1167,65 @@ function CarvalhoSuite() {
       window.supabaseClient.from('profiles').update({ read_notifications: nextRead }).eq('id', profile.id).then(function () {}).catch(function () {});
     }
   }, [screen, notifItems]);
+  // Parseia o número de build da versão INSTALADA (window.CARVALHO_FRIENDLY_VERSION,
+  // ex: "Carvalho-207") — é a versão do bundle que está mesmo a correr neste ecrã.
+  var installedBuild = (function () {
+    var fv = (typeof window !== 'undefined' && window.CARVALHO_FRIENDLY_VERSION) || '';
+    var m = fv.match(/(\d+)/);
+    return m ? String(parseInt(m[1], 10)) : null;
+  })();
+  // Limpa as caches do browser + desregista o Service Worker + recarrega.
+  // Usado tanto por "Atualizar agora" (quando há uma versão nova) como por
+  // "Limpar cache e reiniciar" (manutenção geral).
+  var clearCachesAndReload = function clearCachesAndReload() {
+    var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
+      return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+    }) : Promise.resolve();
+    return clearCaches.then(function () {
+      if ('serviceWorker' in navigator) {
+        return navigator.serviceWorker.getRegistration().then(function (reg) {
+          return reg ? reg.unregister() : null;
+        });
+      }
+    }).then(function () {
+      window.location.reload();
+    }).catch(function () {
+      window.location.reload();
+    });
+  };
+  // Compara a versão instalada com a que está de facto publicada em
+  // build-number.txt (com cache: 'no-store', para nunca ler uma cópia velha
+  // do próprio ficheiro de versão). Nunca afirma que está atualizado sem
+  // confirmar — se o fetch falhar, diz isso mesmo, não assume nada.
   var checkForUpdate = function checkForUpdate() {
-    if (!('serviceWorker' in navigator)) {
-      setUpdMsg('Service Worker não suportado neste navegador.');
-      return;
-    }
     setUpdChecking(true);
     setUpdMsg('');
-    navigator.serviceWorker.getRegistration().then(function (reg) {
-      if (!reg) {
-        setUpdChecking(false);
-        setUpdMsg('A app ainda não está registada como PWA neste dispositivo.');
-        return;
-      }
-      var found = false;
-      reg.onupdatefound = function () {
-        found = true;
-        var installing = reg.installing;
-        if (installing) {
-          installing.onstatechange = function () {
-            if (installing.state === 'activated') {
-              setUpdMsg('✓ Nova versão instalada — a reiniciar...');
-              setTimeout(function () { window.location.reload(); }, 800);
-            }
-          };
-        }
-      };
-      reg.update().then(function () {
-        setTimeout(function () {
-          setUpdChecking(false);
-          if (!found) setUpdMsg('✓ Já tens a versão mais recente.');
-        }, 1200);
-      }).catch(function (err) {
-        setUpdChecking(false);
-        setUpdMsg('Erro ao verificar: ' + (err && err.message ? err.message : err));
-      });
+    setUpdCheckFailed(false);
+    fetch('/carvalho-suites/build-number.txt', { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    }).then(function (txt) {
+      var published = (txt || '').trim();
+      setPublishedBuild(published ? String(parseInt(published, 10)) : null);
+      setUpdChecking(false);
+    }).catch(function (err) {
+      setUpdChecking(false);
+      setUpdCheckFailed(true);
+      setPublishedBuild(null);
+      setUpdMsg('Não foi possível verificar a versão publicada — ' + (err && err.message ? err.message : 'sem ligação') + '.');
     });
+  };
+  var updateNow = function updateNow() {
+    setUpdChecking(true);
+    setUpdMsg('A atualizar...');
+    clearCachesAndReload();
   };
   var hardReset = function hardReset() {
     if (!(window.confirm ? window.confirm('Isto vai limpar a cache local e reiniciar a app. Os teus dados continuam guardados no servidor. Continuar?') : true)) return;
     setUpdChecking(true);
     var proceedWithReset = function proceedWithReset() {
       setUpdMsg('A limpar cache...');
-      var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
-        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-      }) : Promise.resolve();
-      clearCaches.then(function () {
-        if ('serviceWorker' in navigator) {
-          return navigator.serviceWorker.getRegistration().then(function (reg) {
-            return reg ? reg.unregister() : null;
-          });
-        }
-      }).then(function () {
-        window.location.reload();
-      }).catch(function () {
-        window.location.reload();
-      });
+      clearCachesAndReload();
     };
     if (typeof Notification === 'undefined') {
       proceedWithReset();
@@ -1883,15 +1924,14 @@ function CarvalhoSuite() {
   React.createElement(Card, {
     style: { padding: '16px', marginBottom: 14 }
   },
-    React.createElement("div", {
-      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }
-    },
-      React.createElement("span", { style: { color: T.muted, fontSize: 13 } }, "Versão instalada"),
-      React.createElement("div", { style: { textAlign: 'right' } },
-        React.createElement("div", { style: { color: T.text, fontSize: 14, fontWeight: 800 } }, (typeof window !== 'undefined' && window.CARVALHO_FRIENDLY_VERSION) || 'Carvalho-00'),
-        React.createElement("div", { style: { color: T.muted, fontSize: 9.5, fontFamily: 'monospace', marginTop: 1 } }, cacheVer || '...')
-      )
-    ),
+    React.createElement(UpdateStatusCard, {
+      installed: installedBuild,
+      published: publishedBuild,
+      checking: updChecking,
+      failed: updCheckFailed,
+      cacheVer: cacheVer,
+      onUpdateNow: updateNow
+    }),
     React.createElement("div", {
       style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }
     },
