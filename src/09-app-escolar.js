@@ -489,7 +489,8 @@ var ALUNOS_DEF = {
       }]
     },
     notas: {},
-    tpc: []
+    tpc: [],
+    eventos: []
   },
   liam: {
     nome: 'Liam',
@@ -581,7 +582,8 @@ var ALUNOS_DEF = {
       ]
     },
     notas: {},
-    tpc: []
+    tpc: [],
+    eventos: []
   }
 };
 var E = {
@@ -609,6 +611,42 @@ var ECard = function ECard(_ref32) {
       border: "1px solid ".concat(E.border)
     }, style)
   }, children);
+};
+var EventoRow = function EventoRow(_ref33) {
+  var evento = _ref33.evento,
+    isPast = _ref33.isPast,
+    onEdit = _ref33.onEdit,
+    onDelete = _ref33.onDelete;
+  var alunosLabel = evento.alunos.length === 2 ? 'Lucas & Liam' : evento.alunos[0] === 'lucas' ? 'Lucas' : 'Liam';
+  var periodo = evento.dataFim && evento.dataFim !== evento.dataInicio ? "".concat(evento.dataInicio, " → ").concat(evento.dataFim) : evento.dataInicio;
+  return /*#__PURE__*/React.createElement(ECard, {
+    style: {
+      padding: '12px 14px',
+      marginBottom: 8,
+      opacity: isPast ? 0.5 : 1,
+      borderLeft: "3px solid ".concat(E.gold)
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', alignItems: 'flex-start', gap: 10 }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 20 }
+  }, "📢"), /*#__PURE__*/React.createElement("div", {
+    style: { flex: 1 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { fontWeight: 700, fontSize: 14, color: E.text }
+  }, evento.nome), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 11, marginTop: 1 }
+  }, periodo, " \xB7 ", alunosLabel), evento.nota && /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 11, marginTop: 2, fontStyle: 'italic' }
+  }, evento.nota)), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: 4 }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onEdit,
+    style: { background: 'none', border: 'none', color: E.muted, fontSize: 15, cursor: 'pointer', padding: '0 4px' }
+  }, "✏️"), /*#__PURE__*/React.createElement("button", {
+    onClick: onDelete,
+    style: { background: 'none', border: 'none', color: '#EF4444', fontSize: 15, cursor: 'pointer', padding: '0 4px' }
+  }, "🗑️"))));
 };
 function EscolarApp(_ref31) {
   var onBack = _ref31.onBack,
@@ -706,6 +744,29 @@ function EscolarApp(_ref31) {
     _useState172 = _slicedToArray(_useState171, 2),
     novaTPC = _useState172[0],
     setNovaTPC = _useState172[1];
+  var _useStateShowAddEvento = (0, _react.useState)(false),
+    _useStateShowAddEvento2 = _slicedToArray(_useStateShowAddEvento, 2),
+    showAddEvento = _useStateShowAddEvento2[0],
+    setShowAddEvento = _useStateShowAddEvento2[1];
+  var _useStateEditEventoId = (0, _react.useState)(null),
+    _useStateEditEventoId2 = _slicedToArray(_useStateEditEventoId, 2),
+    editEventoId = _useStateEditEventoId2[0],
+    setEditEventoId = _useStateEditEventoId2[1];
+  var _useStateNovoEvento = (0, _react.useState)({
+      nome: '',
+      dataInicio: '',
+      dataFim: '',
+      lucas: true,
+      liam: true,
+      nota: ''
+    }),
+    _useStateNovoEvento2 = _slicedToArray(_useStateNovoEvento, 2),
+    novoEvento = _useStateNovoEvento2[0],
+    setNovoEvento = _useStateNovoEvento2[1];
+  var _useStateEventoErr = (0, _react.useState)(''),
+    _useStateEventoErr2 = _slicedToArray(_useStateEventoErr, 2),
+    eventoErr = _useStateEventoErr2[0],
+    setEventoErr = _useStateEventoErr2[1];
   var _useState173 = (0, _react.useState)([]),
     _useState174 = _slicedToArray(_useState173, 2),
     escolarToasts = _useState174[0],
@@ -898,6 +959,23 @@ function EscolarApp(_ref31) {
       });
       if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
     }).catch(function (e) { console.warn('[escolar] erro tpc:', e); }));
+    if (inc('eventos')) ps.push(sb.from('escolar_eventos').delete().eq('aluno', key).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.warn('[escolar] DELETE eventos falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
+        return;
+      }
+      var rows = (data.eventos || []).map(function (ev) {
+        return {
+          id: ev.id,
+          aluno: key,
+          nome: ev.nome || '',
+          data_inicio: ev.dataInicio || '',
+          data_fim: ev.dataFim || null,
+          nota: ev.nota || ''
+        };
+      });
+      if (rows.length > 0) return sb.from('escolar_eventos').insert(rows).then(logIns('eventos'));
+    }).catch(function (e) { console.warn('[escolar] erro eventos:', e); }));
     if (inc('perfil')) ps.push(sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
@@ -1008,6 +1086,76 @@ function EscolarApp(_ref31) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, newData));
     });
   };
+  // Igual a setAluno, mas para uma chave explícita — necessário para os
+  // Eventos escolares, que podem ter de gravar no snapshot de um aluno
+  // que não é o que está a ser visto no ecrã (ex: evento para Lucas & Liam).
+  var setAlunoKey = function setAlunoKey(targetKey, fn, domain) {
+    return setAlunosData(function (p) {
+      var newData = fn(p[targetKey]);
+      _saveLatest[targetKey] = newData;
+      var doms = _saveDomains[targetKey] || [];
+      if (domain && doms.indexOf(domain) === -1) doms = doms.concat([domain]);
+      _saveDomains[targetKey] = doms;
+      if (_saveTimers[targetKey]) clearTimeout(_saveTimers[targetKey]);
+      _saveTimers[targetKey] = setTimeout(function () {
+        _saveTimers[targetKey] = null;
+        var d = _saveLatest[targetKey];
+        var domsToSave = _saveDomains[targetKey];
+        _saveLatest[targetKey] = null;
+        _saveDomains[targetKey] = null;
+        if (d) saveAlunoSnapshot(targetKey, d, domsToSave);
+      }, 800);
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, targetKey, newData));
+    });
+  };
+  var saveEvento = function saveEvento(eventoId, form) {
+    var payload = {
+      id: eventoId,
+      nome: (form.nome || '').trim(),
+      dataInicio: form.dataInicio,
+      dataFim: form.dataFim || '',
+      nota: (form.nota || '').trim()
+    };
+    var targetKeys = [];
+    if (form.lucas) targetKeys.push('lucas');
+    if (form.liam) targetKeys.push('liam');
+    ['lucas', 'liam'].forEach(function (k) {
+      var shouldHave = targetKeys.indexOf(k) !== -1;
+      setAlunoKey(k, function (al) {
+        var semEste = (al.eventos || []).filter(function (ev) { return ev.id !== eventoId; });
+        return _objectSpread(_objectSpread({}, al), {}, {
+          eventos: shouldHave ? [].concat(_toConsumableArray(semEste), [payload]) : semEste
+        });
+      }, 'eventos');
+    });
+  };
+  var deleteEvento = function deleteEvento(eventoId) {
+    ['lucas', 'liam'].forEach(function (k) {
+      setAlunoKey(k, function (al) {
+        return _objectSpread(_objectSpread({}, al), {}, {
+          eventos: (al.eventos || []).filter(function (ev) { return ev.id !== eventoId; })
+        });
+      }, 'eventos');
+    });
+  };
+  var openEditEvento = function openEditEvento(ev) {
+    setNovoEvento({
+      nome: ev.nome,
+      dataInicio: ev.dataInicio,
+      dataFim: ev.dataFim || '',
+      lucas: ev.alunos.indexOf('lucas') !== -1,
+      liam: ev.alunos.indexOf('liam') !== -1,
+      nota: ev.nota || ''
+    });
+    setEditEventoId(ev.id);
+    setEventoErr('');
+    setShowAddEvento(true);
+    setTab('eventos');
+  };
+  var confirmDeleteEvento = function confirmDeleteEvento(ev) {
+    if (!window.confirm("Apagar o evento \"".concat(ev.nome, "\"?"))) return;
+    deleteEvento(ev.id);
+  };
   var loadEscolarData = function loadEscolarData() {
     if (!window.supabaseClient) {
       // Pode acontecer se o CDN do supabase-js ainda nao carregou
@@ -1019,15 +1167,16 @@ function EscolarApp(_ref31) {
     }
     window._escolarLoadTries = 0;
     var sb = window.supabaseClient;
-    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*'), sb.from('escolar_perfil').select('*')]).then(function (resArr) {
+    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*'), sb.from('escolar_perfil').select('*'), sb.from('escolar_eventos').select('*')]).then(function (resArr) {
       var discRes = resArr[0],
         horRes = resArr[1],
         notasRes = resArr[2],
         tpcRes = resArr[3],
-        perfilRes = resArr[4];
+        perfilRes = resArr[4],
+        eventosRes = resArr[5];
       // Diagnostico: se alguma query devolveu erro, regista no console
       // para podermos perceber porque alguns dispositivos caem no fallback.
-      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes]].forEach(function (p) {
+      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes], ['eventos', eventosRes]].forEach(function (p) {
         if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
       });
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
@@ -1054,6 +1203,9 @@ function EscolarApp(_ref31) {
             return r.aluno === key;
           });
           var tpcRows = (tpcRes.data || []).filter(function (r) {
+            return r.aluno === key;
+          });
+          var eventosRows = (eventosRes.data || []).filter(function (r) {
             return r.aluno === key;
           });
           var updated = _objectSpread({}, next[key]);
@@ -1102,6 +1254,17 @@ function EscolarApp(_ref31) {
                 data: r.data || '',
                 feito: !!r.feito,
                 tipo: r.tipo || 'tpc'
+              };
+            });
+          }
+          if (eventosRows.length > 0) {
+            updated.eventos = eventosRows.map(function (r) {
+              return {
+                id: r.id,
+                nome: r.nome || '',
+                dataInicio: r.data_inicio || '',
+                dataFim: r.data_fim || '',
+                nota: r.nota || ''
               };
             });
           }
@@ -1245,6 +1408,24 @@ function EscolarApp(_ref31) {
   var testesPendentes = aluno.tpc.filter(function (t) {
     return t.tipo === 'teste' && !t.feito;
   }).length;
+  // Eventos escolares (Projektwoche, Kantonallehrertag, etc.) — vivem no
+  // snapshot de cada aluno (tal como tpc/notas/horario), mas um evento
+  // marcado para "ambos" aparece nos dois. Aqui juntamo-los numa lista só,
+  // sem duplicar, para a aba Eventos e para o calendário.
+  var todosEventos = (function () {
+    var map = {};
+    ['lucas', 'liam'].forEach(function (k) {
+      (alunosData[k].eventos || []).forEach(function (ev) {
+        if (!map[ev.id]) map[ev.id] = _objectSpread(_objectSpread({}, ev), {}, { alunos: [] });
+        map[ev.id].alunos.push(k);
+      });
+    });
+    return Object.keys(map).map(function (id) {
+      return map[id];
+    }).sort(function (a, b) {
+      return (a.dataInicio || '').localeCompare(b.dataInicio || '');
+    });
+  })();
   // Calendar helpers
   var yr = calMonth.getFullYear(),
     mo = calMonth.getMonth();
@@ -1260,6 +1441,13 @@ function EscolarApp(_ref31) {
     var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
     return sharedDias.filter(function (s) {
       return s.date === dStr;
+    });
+  };
+  var getDayEventos = function getDayEventos(d) {
+    var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
+    return todosEventos.filter(function (ev) {
+      var fim = ev.dataFim || ev.dataInicio;
+      return ev.dataInicio && dStr >= ev.dataInicio && dStr <= fim;
     });
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -1768,6 +1956,9 @@ function EscolarApp(_ref31) {
   }, {
     v: 'cal',
     l: '🗓'
+  }, {
+    v: 'eventos',
+    l: '📢'
   }, {
     v: 'tpc',
     l: "\uD83D\uDCCB".concat(tpcPendentes > 0 ? " ".concat(tpcPendentes) : '')
@@ -3270,23 +3461,26 @@ function EscolarApp(_ref31) {
     var d = i + 1;
     var tpcs = getDayTPC(d);
     var shared = getDayShared(d);
+    var eventosDia = getDayEventos(d);
     var _todayStr = new Date().toISOString().slice(0, 10);
     var isToday = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0')) === _todayStr;
     var isSel = selDay === d;
     var hasTPC = tpcs.length > 0;
     var hasShared = shared.length > 0;
+    var hasEventos = eventosDia.length > 0;
     return /*#__PURE__*/React.createElement("div", {
       key: d,
       onClick: function onClick() {
         return setSelDay(isSel ? null : d);
       },
+      title: hasEventos ? eventosDia.map(function (ev) { return ev.nome; }).join(', ') : undefined,
       style: {
         textAlign: 'center',
         padding: '4px 1px',
         borderRadius: 8,
         cursor: 'pointer',
-        background: isSel ? E.purple : isToday ? "".concat(E.purple, "30") : 'transparent',
-        border: hasTPC ? "1px solid ".concat(E.orange, "44") : hasShared ? "1px solid ".concat(E.gold, "33") : '1px solid transparent',
+        background: isSel ? E.purple : isToday ? "".concat(E.purple, "30") : hasEventos ? "".concat(E.green, "22") : 'transparent',
+        border: hasTPC ? "1px solid ".concat(E.orange, "44") : hasShared ? "1px solid ".concat(E.gold, "33") : hasEventos ? "1px solid ".concat(E.green, "44") : '1px solid transparent',
         minHeight: 36,
         display: 'flex',
         flexDirection: 'column',
@@ -3317,6 +3511,13 @@ function EscolarApp(_ref31) {
         height: 4,
         borderRadius: '50%',
         background: isSel ? '#fff' : E.gold
+      }
+    }), hasEventos && /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 4,
+        height: 4,
+        borderRadius: '50%',
+        background: isSel ? '#fff' : E.green
       }
     })));
   }))), /*#__PURE__*/React.createElement("div", {
@@ -3365,9 +3566,28 @@ function EscolarApp(_ref31) {
       fontSize: 10,
       color: E.muted
     }
-  }, "Dia livre"))), selDay && function () {
+  }, "Dia livre")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: E.green
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: E.muted
+    }
+  }, "Evento"))), selDay && function () {
     var tpcs = getDayTPC(selDay);
     var shared = getDayShared(selDay);
+    var eventosDia = getDayEventos(selDay);
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
@@ -3456,7 +3676,15 @@ function EscolarApp(_ref31) {
           color: E.text
         }
       }, s.tipo === 'feriado' ? 'Feriado' : s.tipo === 'ferias' ? 'Férias' : 'Dia livre'));
-    }), tpcs.length === 0 && shared.length === 0 && /*#__PURE__*/React.createElement("p", {
+    }), eventosDia.map(function (ev) {
+      return /*#__PURE__*/React.createElement(EventoRow, {
+        key: 'ev' + ev.id,
+        evento: ev,
+        isPast: false,
+        onEdit: function onEdit() { return openEditEvento(ev); },
+        onDelete: function onDelete() { return confirmDeleteEvento(ev); }
+      });
+    }), tpcs.length === 0 && shared.length === 0 && eventosDia.length === 0 && /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
         fontSize: 13,
@@ -3464,7 +3692,173 @@ function EscolarApp(_ref31) {
         padding: '16px'
       }
     }, "Sem eventos neste dia"));
-  }()), tab === 'tpc' && /*#__PURE__*/React.createElement("div", {
+  }()), tab === 'eventos' && /*#__PURE__*/React.createElement("div", {
+    style: { padding: '0 14px' }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }
+  }, "Eventos escolares"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      if (showAddEvento) {
+        setShowAddEvento(false);
+        setEditEventoId(null);
+        setEventoErr('');
+        setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
+      } else {
+        setEditEventoId(null);
+        setEventoErr('');
+        setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
+        setShowAddEvento(true);
+      }
+    },
+    style: {
+      background: showAddEvento ? E.surface2 : "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
+      border: showAddEvento ? "1px solid ".concat(E.border) : 'none',
+      borderRadius: 10,
+      padding: '7px 12px',
+      color: showAddEvento ? E.muted : '#fff',
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, showAddEvento ? '✕ Fechar' : '＋ Adicionar')), showAddEvento && /*#__PURE__*/React.createElement(ECard, {
+    style: { padding: '14px', marginBottom: 12, border: "1px solid ".concat(E.gold) }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: E.gold, fontWeight: 800, fontSize: 13, marginBottom: 10 }
+  }, editEventoId ? 'Editar evento' : 'Novo evento'), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+  }, "Nome"), /*#__PURE__*/React.createElement("input", {
+    value: novoEvento.nome,
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { nome: val }); });
+    },
+    autoComplete: "off",
+    placeholder: "Ex: Projektwoche, Kantonallehrertag",
+    style: {
+      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
+      padding: '9px 11px', color: E.text, fontSize: 16, outline: 'none', marginBottom: 8, boxSizing: 'border-box'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: 8, marginBottom: 8 }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { flex: 1 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+  }, "De"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: novoEvento.dataInicio,
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { dataInicio: val }); });
+    },
+    style: {
+      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
+      padding: '9px 11px', color: E.text, fontSize: 14, outline: 'none', boxSizing: 'border-box'
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: { flex: 1 }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+  }, "Até (opcional)"), /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: novoEvento.dataFim,
+    placeholder: "vazio = 1 dia só",
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { dataFim: val }); });
+    },
+    style: {
+      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
+      padding: '9px 11px', color: E.text, fontSize: 14, outline: 'none', boxSizing: 'border-box'
+    }
+  }))), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+  }, "Para quem"), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: 6, marginBottom: 8 }
+  }, [{ k: 'lucas', l: '👦 Lucas' }, { k: 'liam', l: '👦 Liam' }].map(function (opt) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: opt.k,
+      onClick: function onClick() {
+        setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, opt.k, !prev[opt.k])); });
+      },
+      style: {
+        flex: 1,
+        background: novoEvento[opt.k] ? "".concat(E.purple, "18") : E.surface2,
+        border: "1px solid ".concat(novoEvento[opt.k] ? E.purple : E.border),
+        borderRadius: 10,
+        padding: '8px',
+        color: novoEvento[opt.k] ? E.purple : E.muted,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, opt.l);
+  })), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
+  }, "Nota (opcional)"), /*#__PURE__*/React.createElement("input", {
+    value: novoEvento.nota,
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { nota: val }); });
+    },
+    autoComplete: "off",
+    placeholder: "Ex: levar lanche, sem aulas normais",
+    style: {
+      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
+      padding: '9px 11px', color: E.text, fontSize: 16, outline: 'none', marginBottom: 8, boxSizing: 'border-box'
+    }
+  }), eventoErr && /*#__PURE__*/React.createElement("p", {
+    style: { color: E.red, fontSize: 12, fontWeight: 700, marginBottom: 8 }
+  }, "⚠ ", eventoErr), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: 8 }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      setShowAddEvento(false);
+      setEditEventoId(null);
+      setEventoErr('');
+      setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
+    },
+    style: {
+      flex: 1, background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 10,
+      padding: '10px', color: E.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer'
+    }
+  }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      var nome = (novoEvento.nome || '').trim();
+      if (!nome) { setEventoErr('Falta o nome do evento'); return; }
+      if (!novoEvento.dataInicio) { setEventoErr('Falta a data de início'); return; }
+      if (!novoEvento.lucas && !novoEvento.liam) { setEventoErr('Escolhe pelo menos um aluno'); return; }
+      if (novoEvento.dataFim && novoEvento.dataFim < novoEvento.dataInicio) { setEventoErr('A data de fim não pode ser antes da data de início'); return; }
+      var id = editEventoId || Date.now();
+      saveEvento(id, novoEvento);
+      setShowAddEvento(false);
+      setEditEventoId(null);
+      setEventoErr('');
+      setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
+    },
+    style: {
+      flex: 2, background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"), border: 'none',
+      borderRadius: 10, padding: '10px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer'
+    }
+  }, "✓ Guardar"))), todosEventos.length === 0 && !showAddEvento && /*#__PURE__*/React.createElement(ECard, {
+    style: { padding: '24px', textAlign: 'center' }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 32 }
+  }, "📢"), /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 13, marginTop: 8 }
+  }, "Sem eventos escolares marcados")), todosEventos.map(function (ev) {
+    var _todayStrEv = new Date().toISOString().slice(0, 10);
+    var isPast = (ev.dataFim || ev.dataInicio) < _todayStrEv;
+    return /*#__PURE__*/React.createElement(EventoRow, {
+      key: ev.id,
+      evento: ev,
+      isPast: isPast,
+      onEdit: function onEdit() { return openEditEvento(ev); },
+      onDelete: function onDelete() { return confirmDeleteEvento(ev); }
+    });
+  })), tab === 'tpc' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px'
     }
