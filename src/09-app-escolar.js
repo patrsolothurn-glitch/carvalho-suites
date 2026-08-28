@@ -1355,12 +1355,20 @@ function EscolarApp(_ref31) {
       tel: ''
     };
   };
+  // Devolve o valor exato (número, não string arredondada) — arredondar
+  // aqui cedo fazia a média geral (calcMediaGeral) fazer contas em cima
+  // de médias por disciplina já cortadas a 1 casa, em vez das notas reais.
   var media = function media(discId, sem) {
     var ns = (aluno.notas[discId] || {})[sem] || [];
     if (!ns.length) return null;
-    return (ns.reduce(function (s, n) {
+    return ns.reduce(function (s, n) {
       return s + n;
-    }, 0) / ns.length).toFixed(1);
+    }, 0) / ns.length;
+  };
+  // Nota individual: até 2 casas, sem zeros à direita (5.75, 5, 5.5 — nunca 5.00).
+  var fmtNota = function fmtNota(n) {
+    if (n === null || n === undefined || isNaN(n)) return '';
+    return parseFloat(Number(n).toFixed(2)).toString();
   };
   var calcMediaGeral = function calcMediaGeral(sem) {
     var todas = aluno.disciplinas.map(function (d) {
@@ -4549,7 +4557,8 @@ function EscolarApp(_ref31) {
       style: { display: 'flex', gap: 6, alignItems: 'center' }
     }, /*#__PURE__*/React.createElement("input", {
       type: "number",
-      step: "0.1",
+      step: "0.01",
+      inputMode: "decimal",
       min: "1",
       max: "6",
       value: notaInputs[t.id] || '',
@@ -4694,7 +4703,7 @@ function EscolarApp(_ref31) {
           fontWeight: 800,
           color: notaColor(d.m)
         }
-      }, d.m.toFixed(1)));
+      }, d.m.toFixed(2)));
     }))));
   }(), aluno.disciplinas.map(function (disc) {
     var ns = (aluno.notas[disc.id] || {})[semestre] || [];
@@ -4746,7 +4755,7 @@ function EscolarApp(_ref31) {
         fontWeight: 900,
         color: notaColor(med)
       }
-    }, med) : /*#__PURE__*/React.createElement("p", {
+    }, med.toFixed(2)) : /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 11,
         color: E.muted
@@ -4774,7 +4783,8 @@ function EscolarApp(_ref31) {
         }
       }, isEditingThis ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
         type: "number",
-        step: "0.5",
+        step: "0.01",
+        inputMode: "decimal",
         min: "1",
         max: "6",
         autoFocus: true,
@@ -4838,7 +4848,7 @@ function EscolarApp(_ref31) {
           color: notaColor(n),
           cursor: 'pointer'
         }
-      }, n.toFixed(1)), /*#__PURE__*/React.createElement("button", {
+      }, fmtNota(n)), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return setAluno(function (al) {
             var _al$notas$disc$id;
@@ -4866,7 +4876,8 @@ function EscolarApp(_ref31) {
       }
     }, /*#__PURE__*/React.createElement("input", {
       type: "number",
-      step: "0.5",
+      step: "0.01",
+      inputMode: "decimal",
       min: "1",
       max: "6",
       value: novaNotaVal,
@@ -5076,7 +5087,7 @@ function EscolarApp(_ref31) {
           fontWeight: 900,
           color: notaColor(d.m)
         }
-      }, d.m.toFixed(1)));
+      }, d.m.toFixed(2)));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
@@ -5156,7 +5167,7 @@ function EscolarApp(_ref31) {
         fontSize: "10",
         fontWeight: "800",
         fill: notaColor(med)
-      }, med.toFixed(1)), /*#__PURE__*/React.createElement("text", {
+      }, med.toFixed(2)), /*#__PURE__*/React.createElement("text", {
         x: x + 16,
         y: 158,
         textAnchor: "middle",
@@ -5236,7 +5247,7 @@ function EscolarApp(_ref31) {
         color: notaColor(m1),
         fontWeight: 700
       }
-    }, m1.toFixed(1)), /*#__PURE__*/React.createElement("span", {
+    }, m1.toFixed(2)), /*#__PURE__*/React.createElement("span", {
       style: {
         color: E.muted,
         fontSize: 11
@@ -5247,7 +5258,7 @@ function EscolarApp(_ref31) {
         color: notaColor(m2),
         fontWeight: 700
       }
-    }, m2.toFixed(1)), /*#__PURE__*/React.createElement("span", {
+    }, m2.toFixed(2)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 13,
         fontWeight: 900,
@@ -5255,7 +5266,7 @@ function EscolarApp(_ref31) {
         minWidth: 32,
         textAlign: 'right'
       }
-    }, diff > 0 ? "\u2191".concat(diff.toFixed(1)) : diff < 0 ? "\u2193".concat(Math.abs(diff).toFixed(1)) : '='))), /*#__PURE__*/React.createElement("div", {
+    }, diff > 0 ? "\u2191".concat(diff.toFixed(2)) : diff < 0 ? "\u2193".concat(Math.abs(diff).toFixed(2)) : '='))), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 7,
         background: E.surface2,
