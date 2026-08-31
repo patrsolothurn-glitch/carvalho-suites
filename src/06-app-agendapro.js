@@ -4091,7 +4091,40 @@ function AgendaProApp(_ref13) {
           textTransform: 'uppercase',
           marginBottom: 8
         }
-      }, "Alterar estado"), /*#__PURE__*/React.createElement("div", {
+      }, /*#__PURE__*/React.createElement("div", {
+        style: { marginBottom: 12 }
+      },
+        a.nota ? /*#__PURE__*/React.createElement("div", {
+          style: {
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: 8,
+            padding: '8px 10px',
+            marginBottom: 8
+          }
+        },
+          /*#__PURE__*/React.createElement("p", {
+            style: { fontSize: 10, fontWeight: 700, color: A.muted, textTransform: 'uppercase', marginBottom: 4 }
+          }, "\uD83D\uDCDD Nota"),
+          /*#__PURE__*/React.createElement("p", {
+            style: { fontSize: 13, color: A.text, lineHeight: '1.5' }
+          }, a.nota)
+        ) : null,
+        a.partilhado && /*#__PURE__*/React.createElement("div", {
+          style: {
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: 8,
+            padding: '6px 10px',
+            marginBottom: 8,
+            display: 'flex',
+            gap: 6,
+            alignItems: 'center'
+          }
+        },
+          /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: A.muted } }, "\uD83D\uDC65 Partilhado com:"),
+          /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: A.text } }, a.partilhadoCom)
+        )
+      ),
+      "Alterar estado"), /*#__PURE__*/React.createElement("div", {
         style: {
           display: 'flex',
           gap: 6,
