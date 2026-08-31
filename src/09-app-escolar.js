@@ -3672,6 +3672,7 @@ function EscolarApp(_ref31) {
       var titulo = (novaTPC.titulo || '').trim();
       var data = dataEl ? dataEl.value : '';
       if (!titulo || !data) return;
+      setShowAddTPC(false);
       var novoId = Date.now();
       var tpcRow = _objectSpread(_objectSpread({}, novaTPC), {}, {
         titulo: titulo,
@@ -3689,20 +3690,6 @@ function EscolarApp(_ref31) {
           return d.id === tpcRow.discId;
         });
         var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (titulo ? ' — ' + titulo : '');
-        window.supabaseClient.from('agenda_pro_jobs').insert({
-          job_date: data,
-          start_time: null,
-          end_time: null,
-          project: tituloTeste,
-          address: null,
-          monteur: aluno.nome,
-          chf: 0,
-          status: 'aberto',
-          note: 'Criado automaticamente pela Vida Escolar',
-          source: 'escolar',
-          source_id: novoId,
-          categoria: 'escola'
-        }).then(function () {}).catch(function () {});
         window.supabaseClient.from('family_events').insert({
           title: tituloTeste,
           emoji: '📚',
@@ -3742,6 +3729,8 @@ function EscolarApp(_ref31) {
     }
   }, "\u2713 Guardar"))), aluno.tpc.filter(function (t) {
     return !t.feito;
+  }).sort(function (a, b) {
+    return (a.data || '').localeCompare(b.data || '');
   }).map(function (t) {
     var d = getDisc(t.discId);
     var overdue = t.data && t.data < '2026-06-15';
