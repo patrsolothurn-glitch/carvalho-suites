@@ -136,7 +136,8 @@ var APPS_DATA = [{
   name: 'Escola Grenchen',
   desc: 'Gestão do transporte escolar',
   badge: null,
-  color: '#1a237e'
+  color: '#1a237e',
+  adminOnly: true
 }, {
   id: 'hauswart',
   emoji: '🔧',
@@ -156,8 +157,9 @@ var APPS_DATA = [{
 }, {
   id: 'viagens',
   emoji: '✈️',
-  name: 'Viagens & Visitas',
-  desc: 'Onde fomos e quando',
+  name: 'Viagens Família',
+  desc: 'Férias e visitas importantes',
   badge: null,
-  color: '#F97316'
+  color: '#06B6D4',
+  adminOnly: true
 }];
