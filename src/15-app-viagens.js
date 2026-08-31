@@ -278,7 +278,7 @@ function ViagensApp(props) {
           return React.createElement(Card, {
             key: t.id,
             style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' },
-            onClick: function() { openDetail(t); }
+            onClick: function() { if (t.album_url) { window.open(t.album_url, '_blank'); } else { openDetail(t); } }
           },
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
