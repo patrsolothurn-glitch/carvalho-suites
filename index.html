@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-31T20:54:50.861Z
+  Gerado em: 2026-08-31T20:58:51.890Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-181";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-182";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -21235,6 +21235,28 @@ function addMin(hhmm, add) {
   var nm = total % 60;
   return nh + ':' + String(nm).padStart(2, '0');
 }
+// Envia o codigo de acesso por WhatsApp. Se a pessoa tiver telemovel
+// guardado, abre a conversa dela diretamente; senao abre o WhatsApp para
+// escolher o contacto. Numeros suicos (0xx...) sao convertidos para +41.
+function normalizarTelemovel(tel) {
+  if (!tel) return '';
+  var d = String(tel).replace(/[^0-9]/g, '');
+  if (!d) return '';
+  if (d.indexOf('00') === 0) d = d.slice(2);
+  if (d.indexOf('0') === 0) d = '41' + d.slice(1);
+  return d;
+}
+function enviarCodigoWhatsApp(nome, codigo, telefone) {
+  var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
+  var msg = encodeURIComponent(
+    '\uD83C\uDFEB Escola Grenchen Sek P \u2014 plano de transportes\n\n' +
+    'Ol\u00e1 ' + (nome || '') + '! O teu c\u00f3digo de acesso \u00e9: ' + codigo + '\n\n' +
+    link
+  );
+  var num = normalizarTelemovel(telefone);
+  window.open('https://wa.me/' + num + '?text=' + msg, '_blank');
+}
+
 function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
@@ -22931,6 +22953,10 @@ function LucasApp(_ref) {
       }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(CodeField, {
         driver: d,
         onSave: setAccessCode
+      }), /*#__PURE__*/React.createElement(CodeShareBtn, {
+        nome: d.nome,
+        codigo: d.access_code,
+        telefone: d.telefone
       }))), /*#__PURE__*/React.createElement(DriverActions, {
         driver: d
       }));
@@ -23147,6 +23173,10 @@ function LucasApp(_ref) {
       }
     }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(VisitanteCodeField, {
       visitante: v
+    }), /*#__PURE__*/React.createElement(CodeShareBtn, {
+      nome: v.nome,
+      codigo: v.access_code,
+      telefone: v.telefone
     })));
   }
   function AddVisitante() {
@@ -23639,6 +23669,30 @@ function LucasApp(_ref) {
         border: '1px solid ' + (hasCode ? '#a5d6a7' : '#ffcc80')
       }
     }, hasCode ? '●●●● ✏️' : '+ Definir');
+  }
+  function CodeShareBtn(_ref11b) {
+    var nome = _ref11b.nome,
+      codigo = _ref11b.codigo,
+      telefone = _ref11b.telefone;
+    if (!codigo) return null;
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick(e) {
+        e.stopPropagation();
+        enviarCodigoWhatsApp(nome, codigo, telefone);
+      },
+      title: "Enviar c\u00f3digo por WhatsApp",
+      style: {
+        marginLeft: 6,
+        border: '1px solid #a5d6a7',
+        background: '#e8f5e9',
+        color: '#2e7d32',
+        borderRadius: 10,
+        padding: '2px 8px',
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDCAC");
   }
   function AddCondutor() {
     var _useState67 = useState(false),
