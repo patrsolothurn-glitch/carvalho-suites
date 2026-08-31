@@ -94,7 +94,7 @@
           proto.then = function (onf, onr) {
             return origThen.call(this, function (res) {
               try {
-                if (res && res.error && res.error.code !== 'PGRST116' && res.error.code !== 'PGRST205') {
+                if (res && res.error && res.error.code !== 'PGRST116') {
                   window.mostrarErro('Supabase', res.error);
                 }
               } catch (e) {}
