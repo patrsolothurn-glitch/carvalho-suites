@@ -883,13 +883,44 @@ function HwPrintView(props) {
   var scale = _useStateScale[0], setScale = _useStateScale[1];
 
   React.useEffect(function() {
+    // Ecrã: escala para caber no mobile
     var update = function() {
       var w = window.innerWidth;
       setScale(w < 820 ? (w - 16) / 794 : 1);
     };
     update();
     window.addEventListener('resize', update);
-    return function() { window.removeEventListener('resize', update); };
+
+    // Impressão: escala automática para caber numa folha A4
+    var beforePrint = function() {
+      var pp = document.getElementById('print-page');
+      if (!pp) return;
+      var A4H = Math.round(297 * 96 / 25.4); // 1123px
+      var h = pp.scrollHeight;
+      if (h > A4H) {
+        var s = (A4H / h).toFixed(4);
+        pp.dataset.ps = s;
+        pp.style.transform = 'scale(' + s + ')';
+        pp.style.transformOrigin = 'top left';
+        pp.style.height = Math.round(h * parseFloat(s)) + 'px';
+      }
+    };
+    var afterPrint = function() {
+      var pp = document.getElementById('print-page');
+      if (pp && pp.dataset.ps) {
+        pp.style.transform = '';
+        pp.style.height = '';
+        delete pp.dataset.ps;
+      }
+    };
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+
+    return function() {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('beforeprint', beforePrint);
+      window.removeEventListener('afterprint', afterPrint);
+    };
   }, []);
 
   var invoiceDateObj = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00') : new Date();
