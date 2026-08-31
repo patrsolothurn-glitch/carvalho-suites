@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-31T20:27:00.444Z
+  Gerado em: 2026-08-31T20:28:36.583Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-178";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-177";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -102,7 +102,7 @@
           proto.then = function (onf, onr) {
             return origThen.call(this, function (res) {
               try {
-                if (res && res.error && res.error.code !== 'PGRST116' && res.error.code !== 'PGRST205') {
+                if (res && res.error && res.error.code !== 'PGRST116') {
                   window.mostrarErro('Supabase', res.error);
                 }
               } catch (e) {}
@@ -301,6 +301,13 @@ var APPS_DATA = [{
   badge: null,
   color: '#F59E0B',
   adminOnly: true
+}, {
+  id: 'viagens',
+  emoji: '✈️',
+  name: 'Viagens & Visitas',
+  desc: 'Onde fomos e quando',
+  badge: null,
+  color: '#F97316'
 }];
 
 var VAPID_PUBLIC_KEY = 'BIObF5nOKVp99VgqSgGJRUrWEWgP3jXmn8P1Bu3dsBOFzn3W_JCJCy7Kjy7RpDBa0EOV2yLKuoFN3TKSnv5B448';
@@ -24088,7 +24095,6 @@ var HW_QUARTERS = [
 ];
 
 var HW_MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
 function hwLoad(key) {
   try { var v = localStorage.getItem('hw_' + key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
@@ -24103,16 +24109,6 @@ function hwFmtDate(d) {
   return new Date(d + 'T12:00:00').toLocaleDateString('de-CH');
 }
 function hwToday() { return new Date().toISOString().slice(0,10); }
-function hwFmtMonthYear(d) {
-  if (!d) return '';
-  var dt = new Date(d + 'T12:00:00');
-  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
-}
-function hwPlus30Days(dt) {
-  var r = new Date(dt.getTime());
-  r.setDate(r.getDate() + 30);
-  return r;
-}
 
 // ── DatePick ──
 function HwDatePick(props) {
@@ -24299,8 +24295,6 @@ function HwEmpty(props) {
 // ── MAIN APP ──
 var HauswartApp = function(props) {
   var onBack = props.onBack;
-  var profile = props.profile;
-  var owner = (profile && profile.member_id) || 'patricio';
   var T = window.T || { bg: '#0f172a', surface: '#1e293b', surface2: '#0f172a', text: '#e2e8f0', muted: '#64748b', gold: '#C9A847' };
 
   var _useState = React.useState('dash');
@@ -24317,47 +24311,13 @@ var HauswartApp = function(props) {
 
   var _useStateA = React.useState(hwLoad('archive') || []);
   var archive = _useStateA[0], setArchiveRaw = _useStateA[1];
-
-  var _useStateReady = React.useState(false);
-  var ready = _useStateReady[0], setReady = _useStateReady[1];
-
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
-  React.useEffect(function() {
-    if (!window.supabaseClient) { setReady(true); return; }
-    window.supabaseClient.from('hauswart_data').select('*').eq('member_id', owner).single()
-      .then(function(res) {
-        if (!res.error && res.data) {
-          var d = res.data;
-          if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
-          if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats',  d.mats); }
-          if (d.cfg   && Object.keys(d.cfg).length) { var m = Object.assign({}, HW_DEFAULTS, d.cfg); setCfgRaw(m); hwSave('cfg', m); }
-          if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
-        }
-        setReady(true);
-      });
-  }, []);
-
-  var hwSync = function(w, m, c, a) {
-    hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
-    if (!window.supabaseClient) return;
-    window.supabaseClient.from('hauswart_data').upsert(
-      { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: new Date().toISOString() },
-      { onConflict: 'member_id' }
-    ).then(function(res) {
-      if (res && res.error && res.error.code !== 'PGRST205') console.warn('Hauswart sync:', res.error.message);
-    });
-  };
-
-  var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
-  var updM = function(v) { setMatsRaw(v);  hwSync(works, v, cfg, archive); };
-  var updC = function(v) { setCfgRaw(v);   hwSync(works, mats, v, archive); };
-  var updA = function(v) { setArchiveRaw(v); hwSync(works, mats, cfg, v); };
-
-  if (!ready) return React.createElement('div', {
-    style: { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#0f172a', color:'#64748b', fontFamily:'system-ui', fontSize:16 }
-  }, '🔧 A carregar...');
+  var updW = function(v) { setWorksRaw(v); hwSave('works', v); };
+  var updM = function(v) { setMatsRaw(v); hwSave('mats', v); };
+  var updC = function(v) { setCfgRaw(v); hwSave('cfg', v); };
+  var updA = function(v) { setArchiveRaw(v); hwSave('archive', v); };
 
   var pauschale = cfg.pauschale || 0;
   var totalWork = works.reduce(function(s, w) { return s + w.hours * w.rate; }, 0);
@@ -24391,7 +24351,7 @@ var HauswartApp = function(props) {
     return React.createElement(HwPrintView, {
       works: works, mats: mats, cfg: cfg, total: total,
       totalWork: totalWork, totalMats: totalMats, pauschale: pauschale,
-      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, invNum: invNum,
+      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel,
       leistungszeitraum: leistungszeitraum,
       onBack: function() { setPrint(false); },
       onNew: function() {
@@ -24920,18 +24880,11 @@ function HwArquivoTab(props) {
   );
 }
 
-// ── RECHNUNG — novo render impresso (A4, 1 página) ──
-function fmtCHF(n) {
-  var v = (Math.round(Number(n) * 100) / 100).toFixed(2);
-  var p = v.split('.');
-  return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '.' + p[1];
-}
-
 // ── PRINT VIEW ──
 function HwPrintView(props) {
   var works = props.works, mats = props.mats, cfg = props.cfg, total = props.total;
-  var pauschale = props.pauschale;
-  var beschreibung = props.beschreibung, referenz = props.referenz, invNum = props.invNum;
+  var totalWork = props.totalWork, totalMats = props.totalMats, pauschale = props.pauschale;
+  var beschreibung = props.beschreibung, referenz = props.referenz, invLabel = props.invLabel;
   var leistungszeitraum = props.leistungszeitraum;
   var onBack = props.onBack, onNew = props.onNew;
 
@@ -24939,94 +24892,42 @@ function HwPrintView(props) {
   var scale = _useStateScale[0], setScale = _useStateScale[1];
 
   React.useEffect(function() {
-    // Ecrã: escala para caber no mobile
     var update = function() {
       var w = window.innerWidth;
       setScale(w < 820 ? (w - 16) / 794 : 1);
     };
     update();
     window.addEventListener('resize', update);
-
-    // Impressão: escala automática para caber numa folha A4
-    var beforePrint = function() {
-      var pp = document.getElementById('print-page');
-      if (!pp) return;
-      var A4H = Math.round(297 * 96 / 25.4); // 1123px
-      var h = pp.scrollHeight;
-      if (h > A4H) {
-        var s = (A4H / h).toFixed(4);
-        pp.dataset.ps = s;
-        pp.style.transform = 'scale(' + s + ')';
-        pp.style.transformOrigin = 'top left';
-        pp.style.height = Math.round(h * parseFloat(s)) + 'px';
-      }
-    };
-    var afterPrint = function() {
-      var pp = document.getElementById('print-page');
-      if (pp && pp.dataset.ps) {
-        pp.style.transform = '';
-        pp.style.height = '';
-        delete pp.dataset.ps;
-      }
-    };
-    window.addEventListener('beforeprint', beforePrint);
-    window.addEventListener('afterprint', afterPrint);
-
-    return function() {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('beforeprint', beforePrint);
-      window.removeEventListener('afterprint', afterPrint);
-    };
+    return function() { window.removeEventListener('resize', update); };
   }, []);
 
-  var invoiceDateObj = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00') : new Date();
-  var dateStr = invoiceDateObj.toLocaleDateString('de-CH');
-  var faelligStr = hwPlus30Days(invoiceDateObj).toLocaleDateString('de-CH');
+  var dateStr = cfg.invoiceDate
+    ? new Date(cfg.invoiceDate + 'T12:00:00').toLocaleDateString('de-CH')
+    : new Date().toLocaleDateString('de-CH');
 
-  var grupos = [
-    {
-      key: 'hauswartung', label: 'Hauswartung',
-      rows: pauschale > 0 ? [{ titel: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, sub: 'Pauschale', betrag: pauschale }] : []
-    },
-    {
-      key: 'dienstleistungen', label: 'Dienstleistungen',
-      rows: works.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }).map(function(w) {
-        return { titel: w.description, sub: hwFmtMonthYear(w.date), menge: w.hours, ansatz: w.rate, betrag: w.hours * w.rate };
-      })
-    },
-    {
-      key: 'material', label: 'Materialeinkauf',
-      rows: mats.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }).map(function(m) {
-        return { titel: m.description, sub: hwFmtDate(m.date), menge: m.menge, ansatz: m.ansatz, betrag: m.price };
-      })
-    }
-  ].filter(function(g) { return g.rows.length > 0; });
+  var Row = function(rp) {
+    return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '11px 16px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
+      React.createElement('div', { style: { flex: 1, paddingRight: 20 } },
+        React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#111' } }, rp.label),
+        rp.sub && React.createElement('div', { style: { fontSize: 11, color: '#777', marginTop: 2 } }, rp.sub)
+      ),
+      React.createElement('div', { style: { minWidth: 110, textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#111', whiteSpace: 'nowrap' } }, rp.value)
+    );
+  };
 
-  grupos.forEach(function(g) {
-    g.sum = g.rows.reduce(function(a, r) { return a + Number(r.betrag || 0); }, 0);
-  });
+  var SecHead = function(sp) {
+    return React.createElement('div', { style: { background: '#1d4ed8', padding: '7px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+      React.createElement('span', { style: { color: 'white', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 } }, sp.title),
+      React.createElement('span', { style: { color: '#93c5fd', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' } }, 'Betrag CHF')
+    );
+  };
 
-  var tbodyRows = [];
-  grupos.forEach(function(g) {
-    tbodyRows.push(React.createElement('tr', { key: g.key + '-head', className: 'section' },
-      React.createElement('td', { colSpan: 4 }, g.label)
-    ));
-    g.rows.forEach(function(r, i) {
-      tbodyRows.push(React.createElement('tr', { key: g.key + '-' + i },
-        React.createElement('td', null,
-          React.createElement('div', { className: 'pos-title' }, r.titel),
-          r.sub && React.createElement('div', { className: 'pos-sub' }, r.sub)
-        ),
-        React.createElement('td', { className: 'num' }, r.menge ? r.menge : '—'),
-        React.createElement('td', { className: 'num' }, r.ansatz ? fmtCHF(r.ansatz) : '—'),
-        React.createElement('td', { className: 'num' }, fmtCHF(r.betrag))
-      ));
-    });
-    tbodyRows.push(React.createElement('tr', { key: g.key + '-sub', className: 'subtotal' },
-      React.createElement('td', { colSpan: 3 }, 'Zwischensumme ' + g.label),
-      React.createElement('td', { className: 'num' }, fmtCHF(g.sum))
-    ));
-  });
+  var SubTotal = function(stp) {
+    return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', padding: '8px 16px', background: '#eef2ff', borderTop: '1px solid #c7d2fe' } },
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#3730a3' } }, stp.label),
+      React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#3730a3', whiteSpace: 'nowrap' } }, stp.value)
+    );
+  };
 
   return React.createElement('div', { className: 'hw-print-outer', style: { background: '#94a3b8' } },
     // Toolbar
@@ -25126,103 +25027,110 @@ function HwPrintView(props) {
     // A4
     React.createElement('div', { className: 'hw-scale-outer', style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
       React.createElement('div', { className: 'hw-scale-inner', style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (1123 * scale) + 'px' : 'auto' } },
-        React.createElement('div', { id: 'print-page', className: 'page' },
-          React.createElement('div', { className: 'body-flex' },
+        React.createElement('div', { id: 'print-page', style: { width: 794, background: 'white', boxShadow: '0 8px 40px rgba(0,0,0,0.3)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#111', display: 'flex', flexDirection: 'column', minHeight: 1123 } },
+
+          // KOPF
+          React.createElement('div', { style: { padding: '40px 52px 0' } },
             // Absender + Titel
-            React.createElement('div', { className: 'top' },
-              React.createElement('div', { className: 'sender' },
-                React.createElement('div', { className: 'name' }, cfg.name),
-                React.createElement('div', { className: 'line' }, cfg.address),
-                React.createElement('div', { className: 'line' }, cfg.city),
-                cfg.phone && React.createElement('div', { className: 'line' }, cfg.phone),
-                cfg.email && React.createElement('div', { className: 'line' }, cfg.email)
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 } },
+              React.createElement('div', { style: { lineHeight: 1.7, fontSize: 12 } },
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 15, marginBottom: 2 } }, cfg.name),
+                React.createElement('div', { style: { color: '#444' } }, cfg.address),
+                React.createElement('div', { style: { color: '#444' } }, cfg.city),
+                cfg.phone && React.createElement('div', { style: { color: '#444' } }, 'Tel. ' + cfg.phone),
+                cfg.email && React.createElement('div', { style: { color: '#444' } }, cfg.email)
               ),
-              React.createElement('div', { className: 'doctype' },
-                React.createElement('h1', null, 'Rechnung'),
-                React.createElement('div', { className: 'nr' }, invNum),
-                React.createElement('div', { className: 'place' }, 'Selzach, ' + dateStr)
+              React.createElement('div', { style: { textAlign: 'right' } },
+                React.createElement('div', { style: { fontSize: 40, fontWeight: 900, letterSpacing: 4, color: '#1d4ed8', lineHeight: 1 } }, 'RECHNUNG'),
+                React.createElement('div', { style: { fontSize: 17, fontWeight: 700, color: '#334155', marginTop: 8 } }, invLabel),
+                React.createElement('div', { style: { fontSize: 12, color: '#64748b', marginTop: 4 } }, 'Selzach, ' + dateStr)
               )
             ),
-            React.createElement('div', { className: 'rule' }),
-
+            // Gradient line
+            React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#3b82f6 60%,#93c5fd 100%)', borderRadius: 2, marginBottom: 28 } }),
             // Empfänger + Details
-            React.createElement('div', { className: 'band' },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 } },
               React.createElement('div', null,
-                React.createElement('div', { className: 'eyebrow' }, 'Rechnungsempfänger'),
-                React.createElement('div', { className: 'recipient' },
-                  React.createElement('div', { className: 'org' }, cfg.clientName),
-                  cfg.clientContact && React.createElement('div', null, cfg.clientContact),
-                  React.createElement('div', null, cfg.clientAddress),
-                  React.createElement('div', null, cfg.clientCity)
-                )
+                React.createElement('div', { style: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 } }, 'Rechnungsempfänger'),
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 15 } }, cfg.clientName),
+                cfg.clientContact && React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientContact),
+                React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientAddress),
+                React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientCity)
               ),
-              React.createElement('dl', { className: 'meta' },
-                [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Fällig bis', faelligStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
-                  return React.createElement('div', { key: row[0] },
-                    React.createElement('dt', null, row[0]),
-                    React.createElement('dd', null, row[1])
+              React.createElement('div', { style: { background: '#f0f5ff', border: '1px solid #dde8f8', borderRadius: 8, padding: '16px 22px', minWidth: 250, fontSize: 12 } },
+                [['Rechnungsnummer', invLabel], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Referenz', referenz], ['Arbeitsort', cfg.location]].map(function(row) {
+                  return React.createElement('div', { key: row[0], style: { display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 6 } },
+                    React.createElement('span', { style: { color: '#64748b', whiteSpace: 'nowrap' } }, row[0]),
+                    React.createElement('span', { style: { fontWeight: 700, textAlign: 'right', color: row[0] === 'Referenz' ? '#1d4ed8' : '#111' } }, row[1])
                   );
                 })
               )
             ),
-
             // Betreff
-            React.createElement('p', { className: 'subject' },
-              React.createElement('strong', null, 'Hauswartung ' + cfg.quarter + '. Quartal ' + cfg.year),
-              React.createElement('br', null),
+            React.createElement('div', { style: { background: '#eff6ff', borderLeft: '5px solid #1d4ed8', borderRadius: '0 6px 6px 0', padding: '13px 18px', marginBottom: 28, fontSize: 13, lineHeight: 1.75, color: '#1e3a8a', fontWeight: 500 } },
               beschreibung
-            ),
-
-            // POSITIONEN
-            React.createElement('table', null,
-              React.createElement('thead', null,
-                React.createElement('tr', null,
-                  React.createElement('th', null, 'Position'),
-                  React.createElement('th', { className: 'num' }, 'Menge'),
-                  React.createElement('th', { className: 'num' }, 'Ansatz'),
-                  React.createElement('th', { className: 'num' }, 'Betrag CHF')
-                )
-              ),
-              React.createElement('tbody', null, tbodyRows)
-            ),
-
-            // TOTAL
-            React.createElement('div', { className: 'totals' },
-              React.createElement('div', { className: 'box' },
-                grupos.map(function(g) {
-                  return React.createElement('div', { className: 'row', key: g.key },
-                    React.createElement('span', null, g.label),
-                    React.createElement('span', null, fmtCHF(g.sum))
-                  );
-                }),
-                React.createElement('div', { className: 'grand' },
-                  React.createElement('span', { className: 'lbl' }, 'Total CHF'),
-                  React.createElement('span', { className: 'val' }, fmtCHF(total))
-                ),
-                React.createElement('div', { className: 'note' }, 'Ohne Mehrwertsteuer — nicht steuerpflichtig')
-              )
-            ),
-
-            // BANK
-            React.createElement('div', { className: 'pay' },
-              React.createElement('div', null,
-                React.createElement('div', { className: 'eyebrow' }, 'Zahlbar an'),
-                React.createElement('div', { className: 'iban' }, cfg.iban),
-                React.createElement('div', null, cfg.bank + ' · ' + cfg.name)
-              ),
-              React.createElement('div', { className: 'term' },
-                React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
-                React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
-                React.createElement('div', { className: 'ref' }, 'Referenz: ' + referenz)
-              )
             )
-          ), // body-flex
+          ),
 
-          // FOOTER
-          React.createElement('footer', null,
-            React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen.'),
-            React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · Seite 1/1')
-          )
+          // POSITIONEN
+          React.createElement('div', { style: { paddingLeft: 52, paddingRight: 52 } },
+            React.createElement('div', { style: { border: '1px solid #dde6f8', borderRadius: 8, overflow: 'hidden' } },
+              pauschale > 0 && React.createElement('div', null,
+                React.createElement(SecHead, { title: 'Hauswartung' }),
+                React.createElement(Row, { label: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, value: pauschale.toFixed(2), sub: cfg.location })
+              ),
+              works.length > 0 && React.createElement('div', null,
+                React.createElement(SecHead, { title: 'Dienstleistungen' }),
+                works.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(w, i) {
+                  return React.createElement(Row, { key: w.id, label: w.description, value: (w.hours * w.rate).toFixed(2), sub: hwFmtDate(w.date) + ' · ' + w.hours + ' Std. × CHF ' + w.rate + '.–', shade: i % 2 === 1 });
+                }),
+                works.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Dienstleistungen', value: totalWork.toFixed(2) })
+              ),
+              mats.length > 0 && React.createElement('div', null,
+                React.createElement(SecHead, { title: 'Materialeinkauf' }),
+                mats.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(m, i) {
+                  return React.createElement(Row, { key: m.id, label: m.description, value: m.price.toFixed(2), sub: hwFmtDate(m.date), shade: i % 2 === 1 });
+                }),
+                mats.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Material', value: totalMats.toFixed(2) })
+              ),
+              React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#93c5fd 100%)' } })
+            )
+          ),
+
+          // SPACER
+          React.createElement('div', { style: { flex: 1, minHeight: 40 } }),
+
+          // TOTAL + BANK + FOOTER
+          React.createElement('div', { style: { padding: '0 52px 40px' } },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginBottom: 22 } },
+              React.createElement('div', { style: { background: '#1d4ed8', borderRadius: 10, padding: '20px 36px', display: 'flex', alignItems: 'center', gap: 40 } },
+                React.createElement('div', null,
+                  React.createElement('div', { style: { color: '#bfdbfe', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 } }, 'Gesamtbetrag'),
+                  React.createElement('div', { style: { color: '#93c5fd', fontSize: 11 } }, 'Ohne Mehrwertsteuer (nicht steuerpflichtig)')
+                ),
+                React.createElement('div', { style: { color: 'white', fontSize: 32, fontWeight: 900, whiteSpace: 'nowrap', letterSpacing: 1 } }, hwChf(total))
+              )
+            ),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8faff', border: '1px solid #dde6f8', borderRadius: 8, padding: '16px 24px', marginBottom: 22 } },
+              React.createElement('div', null,
+                React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Bankverbindung'),
+                React.createElement('div', { style: { fontSize: 13, marginBottom: 4 } }, 'IBAN:\u00a0', React.createElement('span', { style: { fontFamily: 'Courier New,monospace', fontWeight: 700, letterSpacing: 0.5 } }, cfg.iban)),
+                cfg.bank && React.createElement('div', { style: { fontSize: 12, color: '#444', marginBottom: 2 } }, 'Bank: ' + cfg.bank),
+                React.createElement('div', { style: { fontSize: 12, color: '#444' } }, 'Begünstigter: ', React.createElement('strong', null, cfg.name))
+              ),
+              React.createElement('div', { style: { textAlign: 'right' } },
+                React.createElement('div', { style: { fontSize: 10, color: '#94a3b8', marginBottom: 6 } }, 'Bitte Referenz angeben'),
+                React.createElement('div', { style: { fontSize: 18, fontWeight: 800, color: '#1d4ed8' } }, referenz)
+              )
+            ),
+            React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#3b82f6 60%,#93c5fd 100%)', borderRadius: 1, marginBottom: 14 } }),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8' } },
+              React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen!'),
+              React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
+            )
+          ), // total+bank+footer div
+
+          React.createElement('div', { style: { flexGrow: 1 } })
         ) // #print-page
       ) // scale wrapper
     ), // outer grey bg
@@ -25235,53 +25143,6 @@ function HwPrintView(props) {
     ),
 
     React.createElement('style', null,
-      '#print-page.page, #print-page.page *{box-sizing:border-box;}' +
-      '#print-page.page{width:210mm;min-height:297mm;padding:18mm 18mm 14mm;display:flex;flex-direction:column;background:#fff;font-family:Helvetica,Arial,"Helvetica Neue",sans-serif;color:#14181d;box-shadow:0 8px 40px rgba(0,0,0,.3);}' +
-      '#print-page .body-flex{flex:1;}' +
-      '#print-page .top{display:flex;justify-content:space-between;align-items:flex-start;}' +
-      '#print-page .sender{font-size:9.5pt;line-height:1.5;}' +
-      '#print-page .sender .name{font-weight:700;font-size:10.5pt;}' +
-      '#print-page .sender .line{color:#6b7280;}' +
-      '#print-page .doctype{text-align:right;}' +
-      '#print-page .doctype h1{margin:0;font-size:17pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}' +
-      '#print-page .doctype .nr{margin-top:4px;font-size:10pt;font-weight:600;color:#1d4ed8;font-variant-numeric:tabular-nums;}' +
-      '#print-page .doctype .place{margin-top:2px;font-size:9pt;color:#6b7280;}' +
-      '#print-page .rule{height:1px;background:#14181d;margin-top:12px;}' +
-      '#print-page .band{display:flex;justify-content:space-between;margin-top:18px;}' +
-      '#print-page .eyebrow{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}' +
-      '#print-page .recipient{font-size:10pt;line-height:1.5;}' +
-      '#print-page .recipient .org{font-weight:700;}' +
-      '#print-page .meta{width:76mm;font-size:9pt;border-top:1px solid #dfe3e8;margin:0;}' +
-      '#print-page .meta div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dfe3e8;}' +
-      '#print-page .meta dt{color:#6b7280;}' +
-      '#print-page .meta dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}' +
-      '#print-page .subject{margin-top:18px;font-size:10pt;line-height:1.55;}' +
-      '#print-page table{width:100%;border-collapse:collapse;margin-top:14px;font-size:9.5pt;}' +
-      '#print-page thead th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:600;text-align:left;padding:0 0 5px;border-bottom:1px solid #14181d;}' +
-      '#print-page thead th.num{text-align:right;}' +
-      '#print-page tr.section td{padding:14px 0 5px;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border-bottom:1px solid #14181d;}' +
-      '#print-page tbody td{padding:8px 0;border-bottom:1px solid #dfe3e8;vertical-align:top;}' +
-      '#print-page tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}' +
-      '#print-page .pos-title{font-weight:600;}' +
-      '#print-page .pos-sub{color:#6b7280;font-size:8pt;margin-top:2px;}' +
-      '#print-page tr.subtotal td{padding:6px 0;border-bottom:0;color:#6b7280;font-size:8.5pt;}' +
-      '#print-page tr.subtotal td.num{color:#14181d;font-weight:600;}' +
-      '#print-page tr{break-inside:avoid;page-break-inside:avoid;}' +
-      '#print-page .totals{margin-top:14px;display:flex;justify-content:flex-end;}' +
-      '#print-page .totals .box{width:76mm;}' +
-      '#print-page .totals .row{display:flex;justify-content:space-between;padding:4px 0;font-size:9pt;color:#6b7280;}' +
-      '#print-page .totals .row span:last-child{color:#14181d;font-variant-numeric:tabular-nums;}' +
-      '#print-page .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #14181d;}' +
-      '#print-page .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
-      '#print-page .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
-      '#print-page .totals .note{margin-top:5px;font-size:8pt;color:#6b7280;text-align:right;}' +
-      '#print-page .pay{margin-top:20px;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:9pt;line-height:1.55;}' +
-      '#print-page .pay .iban{font-family:"Courier New",monospace;font-size:9.5pt;letter-spacing:.04em;}' +
-      '#print-page .pay .term{text-align:right;}' +
-      '#print-page .pay .term .ref{font-weight:700;margin-top:2px;}' +
-      '#print-page footer{margin-top:auto;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:8pt;color:#6b7280;}'
-    ),
-    React.createElement('style', null,
       '@media print {' +
       '  @page { size: A4 portrait; margin: 0; }' +
       '  .no-print { display: none !important; }' +
@@ -25289,7 +25150,7 @@ function HwPrintView(props) {
       '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
-      '  #print-page.page { box-shadow: none !important; } ' +
+      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
       '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
       '  #zahlteil-page { background: white !important; }' +
       '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
@@ -25438,6 +25299,53 @@ var RP_WETTER_OPTS = [
 ];
 
 var RP_KANTONE = ['SO','BE','AG','ZH','BS','BL','FR','LU','JU','VS','TG','SH','GR','GL','SG','AR','AI','NE','GE','VD','TI'];
+
+var RP_L = {
+  DE: {
+    tab_plan:'📋 Planung', tab_tages:'📄 Tagesrapport', tab_wochen:'📊 Wochenbericht',
+    save:'Speichern', cancel:'Abbrechen', today:'HEUTE', status:'Status', note:'Notiz',
+    date:'Datum', site:'Baustelle / Ort', canton:'Kanton', from:'Von', to:'Bis', team:'Team',
+    p_new:'Neuer Auftrag', p_edit:'Auftrag bearbeiten', p_type:'Arbeitstyp',
+    p_empty:'Nix geplant', p_jobs:'Aufträge', p_done:'fertig',
+    t_new:'Neuer Tagesrapport', t_edit:'Rapport bearbeiten', t_btn:'+ Neuer Tagesrapport',
+    t_count:'Rapporte', t_weather:'Wetter', t_work:'Ausgeführte Arbeiten',
+    t_mat:'Material Verwendet', t_prob:'Probleme / Bemerkungen',
+    t_draft:'📝 Entwurf', t_sub:'✅ Abgegeben', t_submit:'✓ Abgeben', t_todraft:'↺ Entwurf',
+    bep_title:'🔌 BEP Spezifisch', bep_anz:'Anzahl BEPs', bep_typ:'BEP Typ',
+    bep_godoo:'Godoo-Nr', bep_zust:'Zuständig (Godoo)',
+    bep_gag:'GAG Messung', bep_swiss:'Swisscom Messung', bep_foto:'📷 Fotos gemacht',
+    m_title:'🔩 Muffe Spezifisch', m_anz:'Anzahl Muffes', m_typ:'Muffe Typ',
+    m_fasern:'Fasern gespleisst', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
+    w_new:'Neuer Wochenbericht', w_edit:'Wochenbericht bearbeiten',
+    w_btn:'+ Neuer Wochenbericht', w_count:'Wochenberichte',
+    w_year:'Jahr', w_std:'Total Std.', w_km:'Total KM',
+    w_hint:'💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.',
+    w_sum:'Zusammenfassung der Woche', w_open:'Offene Arbeiten', w_rem:'Bemerkungen',
+    none_t:'Noch keine Tagesrapporte.', none_w:'Noch keine Wochenberichte.',
+  },
+  PT: {
+    tab_plan:'📋 Planeamento', tab_tages:'📄 Diário', tab_wochen:'📊 Semanal',
+    save:'Guardar', cancel:'Cancelar', today:'HOJE', status:'Estado', note:'Nota',
+    date:'Data', site:'Obra / Local', canton:'Cantão', from:'De', to:'Até', team:'Equipa',
+    p_new:'Novo Serviço', p_edit:'Editar Serviço', p_type:'Tipo de Trabalho',
+    p_empty:'Nada planeado', p_jobs:'Serviços', p_done:'feitos',
+    t_new:'Novo Relatório Diário', t_edit:'Editar Relatório', t_btn:'+ Novo Relatório',
+    t_count:'Relatórios', t_weather:'Tempo', t_work:'Trabalhos Realizados',
+    t_mat:'Material Utilizado', t_prob:'Problemas / Observações',
+    t_draft:'📝 Rascunho', t_sub:'✅ Entregue', t_submit:'✓ Entregar', t_todraft:'↺ Rascunho',
+    bep_title:'🔌 BEP Específico', bep_anz:'Nº BEPs', bep_typ:'Tipo BEP',
+    bep_godoo:'Nº Godoo', bep_zust:'Responsável (Godoo)',
+    bep_gag:'Medição GAG', bep_swiss:'Medição Swisscom', bep_foto:'📷 Fotos tiradas',
+    m_title:'🔩 Muffe Específico', m_anz:'Nº Muffes', m_typ:'Tipo Muffe',
+    m_fasern:'Fibras Spleissadas', m_otdr:'📡 OTDR OK', m_foto:'📷 Fotos',
+    w_new:'Novo Rel. Semanal', w_edit:'Editar Rel. Semanal',
+    w_btn:'+ Novo Rel. Semanal', w_count:'Relatórios Semanais',
+    w_year:'Ano', w_std:'Total Horas', w_km:'Total KM',
+    w_hint:'💡 Horas e KM calculadas automaticamente dos relatórios diários desta KW.',
+    w_sum:'Resumo da Semana', w_open:'Trabalhos Pendentes', w_rem:'Observações',
+    none_t:'Sem relatórios diários.', none_w:'Sem relatórios semanais.',
+  }
+};
 
 // ── utility ────────────────────────────────────────────────────────
 function rpToday() { return new Date().toISOString().slice(0, 10); }
@@ -25593,6 +25501,7 @@ function RpConfirm(props) {
 // ════════════════════════════════════════════════════════════════════
 function RpPlanungView(props) {
   var userId = props.userId;
+  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stMonday = React.useState(rpMondayOf(rpToday()));
@@ -25622,6 +25531,8 @@ function RpPlanungView(props) {
   var fKanton = _fKanton[0], setFKanton = _fKanton[1];
   var _fTask = React.useState('muffe');
   var fTask = _fTask[0], setFTask = _fTask[1];
+  var _fTaskCustom = React.useState('');
+  var fTaskCustom = _fTaskCustom[0], setFTaskCustom = _fTaskCustom[1];
   var _fHS = React.useState('07:00');
   var fHS = _fHS[0], setFHS = _fHS[1];
   var _fHE = React.useState('17:00');
@@ -25662,7 +25573,7 @@ function RpPlanungView(props) {
 
   function openNew(date) {
     setFDate(date || rpToday());
-    setFBau(''); setFKanton('SO'); setFTask('muffe');
+    setFBau(''); setFKanton('SO'); setFTask('muffe'); setFTaskCustom('');
     setFHS('07:00'); setFHE('17:00'); setFTeam('');
     setFKm(''); setFStatus('planned'); setFNotiz('');
     setForm('new');
@@ -25670,7 +25581,9 @@ function RpPlanungView(props) {
 
   function openEdit(job) {
     setFDate(job.datum); setFBau(job.baustelle); setFKanton(job.kanton || 'SO');
-    setFTask(job.task_type || 'muffe'); setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
+    setFTask(RP_TASKS[job.task_type] ? job.task_type : 'andere');
+    setFTaskCustom(RP_TASKS[job.task_type] ? '' : (job.task_type || ''));
+    setFHS(job.h_start || '07:00'); setFHE(job.h_end || '17:00');
     setFTeam(job.team || ''); setFKm(String(job.km || '')); setFStatus(job.status || 'planned');
     setFNotiz(job.notiz || '');
     setForm(job);
@@ -25684,7 +25597,7 @@ function RpPlanungView(props) {
       datum: fDate,
       baustelle: fBau.trim(),
       kanton: fKanton,
-      task_type: fTask,
+      task_type: fTask === 'andere' && fTaskCustom.trim() ? fTaskCustom.trim() : fTask,
       h_start: fHS,
       h_end: fHE,
       team: fTeam.trim(),
@@ -25734,7 +25647,7 @@ function RpPlanungView(props) {
       ),
       // stats row
       React.createElement('div', { style: { display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10 } },
-        React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📋 ' + jobs.length + ' Aufträge'),
+        React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📋 ' + jobs.length + ' ' + L.p_jobs),
         React.createElement('span', { style: { fontSize: 11, color: '#10B981' } }, '✓ ' + doneCount + ' fertig'),
         React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ~' + totalKm + ' km')
       )
@@ -25757,7 +25670,7 @@ function RpPlanungView(props) {
               React.createElement('span', { style: { fontSize: 17, fontWeight: 800, lineHeight: 1.1 } }, day.num)
             ),
             React.createElement('div', { style: { flex: 1, height: 1, background: isToday ? '#F59E0B33' : '#1E293B' } }),
-            isToday && React.createElement('span', { style: { fontSize: 10, color: '#F59E0B', fontWeight: 700, letterSpacing: '0.5px' } }, 'HEUTE'),
+            isToday && React.createElement('span', { style: { fontSize: 10, color: '#F59E0B', fontWeight: 700, letterSpacing: '0.5px' } }, L.today),
             React.createElement('button', {
               onClick: function() { openNew(day.date); },
               style: { background: '#1E293B', border: '1px solid #263347', borderRadius: 8, width: 28, height: 28, color: '#94A3B8', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
@@ -25766,7 +25679,7 @@ function RpPlanungView(props) {
 
           // Job cards
           React.createElement('div', { style: { paddingLeft: 52, display: 'flex', flexDirection: 'column', gap: 6 } },
-            dayJobs.length === 0 && React.createElement('div', { style: { fontSize: 12, color: '#334155', padding: '6px 0' } }, 'Nix geplant'),
+            dayJobs.length === 0 && React.createElement('div', { style: { fontSize: 12, color: '#334155', padding: '6px 0' } }, L.p_empty),
             dayJobs.map(function(job) {
               var t = RP_TASKS[job.task_type] || RP_TASKS.andere;
               var s = RP_STATUS_MAP[job.status] || RP_STATUS_MAP.planned;
@@ -25812,20 +25725,21 @@ function RpPlanungView(props) {
       title: form === 'new' ? 'Neuer Auftrag' : 'Auftrag bearbeiten',
       onClose: function() { setForm(null); },
       children: React.createElement('div', null,
-        RpField({ label: 'Datum', children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
-        RpField({ label: 'Baustelle / Ort', children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Arbeitstyp' }), RpSelect({ value: fTask, onChange: setFTask, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
+        RpField({ label: L.date, children: RpInput({ type: 'date', value: fDate, onChange: setFDate }) }),
+        RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: fTask === 'andere' ? 6 : 12 } },
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: L.p_type }), RpSelect({ value: fTask, onChange: function(v) { setFTask(v); if (v !== 'andere') setFTaskCustom(''); }, opts: Object.keys(RP_TASKS).map(function(k) { return { value: k, label: RP_TASKS[k].emoji + ' ' + RP_TASKS[k].label }; }) })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: L.canton }), RpSelect({ value: fKanton, onChange: setFKanton, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) }))
         ),
+        fTask === 'andere' && RpField({ label: '🔧 Welche Arbeit?', children: RpInput({ value: fTaskCustom, onChange: setFTaskCustom, placeholder: 'z.B. Schachtdeckel, Tiefbau...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm, placeholder: '0' }))
         ),
-        RpField({ label: 'Team / Equipa', children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
-        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: Object.keys(RP_STATUS_MAP).map(function(k) { return { value: k, label: RP_STATUS_MAP[k].label }; }) }) }),
-        RpField({ label: 'Notiz', children: RpTextarea({ value: fNotiz, onChange: setFNotiz, placeholder: 'Bemerkungen, Material, Details...' }) }),
+        RpField({ label: L.team, children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
+        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: Object.keys(RP_STATUS_MAP).map(function(k) { return { value: k, label: RP_STATUS_MAP[k].label }; }) }) }),
+        RpField({ label: L.note, children: RpTextarea({ value: fNotiz, onChange: setFNotiz, placeholder: 'Bemerkungen, Material, Details...' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4 } },
           RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
           RpBtn({ label: fSaving ? '...' : (form === 'new' ? 'Speichern' : 'Aktualisieren'), onClick: saveJob })
@@ -25846,78 +25760,9 @@ function RpPlanungView(props) {
 // ════════════════════════════════════════════════════════════════════
 // TAGESRAPPORT VIEW
 // ════════════════════════════════════════════════════════════════════
-var RP_FAHRZEUG_OPTS = [
-  { value: 'PW',     label: 'PW' },
-  { value: 'GFz',    label: 'GFz' },
-  { value: 'Jeep',   label: 'Jeep' },
-  { value: 'andere', label: 'Andere' },
-];
-var RP_BEP_KABEL = ['2S','1S','S','M'];
-var RP_MUFFE_TYP = ['BC8','FD6','FD8','BF8','BE8'];
-
-function rpPrintTages(item) {
-  var w = window.open('', '_blank');
-  var typ   = item.typ === 'regierapport' ? 'Tagesregierapport' : 'Tagesarbeitsrapport';
-  var datum = item.datum ? new Date(item.datum+'T12:00:00').toLocaleDateString('de-CH',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-  function row(label, val) { return val ? '<tr><td class="lbl">'+label+'</td><td class="val">'+val+'</td></tr>' : ''; }
-  function chk(label, val) { return '<span style="margin-right:12px">'+(val?'☑':'☐')+' '+label+'</span>'; }
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+typ+' '+datum+'</title>'
-    +'<style>'
-    +'body{font-family:Arial,sans-serif;font-size:11px;margin:12mm;color:#000}'
-    +'.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #F06400;padding-bottom:6px;margin-bottom:10px}'
-    +'.mark{width:10px;height:10px;background:#F06400;display:inline-block;margin-right:4px;vertical-align:middle}'
-    +'.logo-name{font-size:18px;font-weight:900;vertical-align:middle}'
-    +'.logo-sub{font-size:9px;color:#555;margin-top:1px}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:8px}'
-    +'th.sec{background:#F06400;color:#fff;font-size:10px;text-align:left;padding:3px 6px;text-transform:uppercase;letter-spacing:.5px}'
-    +'.lbl{width:32%;background:#f5f5f5;border:1px solid #ccc;padding:3px 5px;font-weight:bold;font-size:9px;text-transform:uppercase;vertical-align:top}'
-    +'.val{border:1px solid #ccc;padding:3px 5px;vertical-align:top}'
-    +'.sig{display:flex;gap:15px;margin-top:14px}'
-    +'.sig-box{flex:1;border:1px solid #000;height:50px;position:relative}'
-    +'.sig-lbl{position:absolute;top:-8px;left:6px;background:#fff;padding:0 3px;font-size:9px;font-weight:bold}'
-    +'@media print{@page{margin:10mm}button{display:none}}'
-    +'</style></head><body>'
-    +'<div class="hdr"><div><span class="mark"></span><span class="logo-name">Arnold</span><div class="logo-sub">Infra Services</div></div>'
-    +'<div style="text-align:right"><div style="font-size:10px">'+typ+'</div>'
-    +(item.rapport_nr?'<div>Nr. <strong>'+item.rapport_nr+'</strong></div>':'')+'</div></div>'
-    +'<table><tr><th class="sec" colspan="2">Auftragsdaten</th></tr>'
-    +row('Datum',datum)+row('Kunde',item.kunde)+row('Montageort',item.montageort)
-    +row('Auftrag Nr.',item.auftrag_nr)+'</table>'
-    +'<table><tr><th class="sec" colspan="2">Beschrieb der Arbeiten</th></tr>'
-    +'<tr><td colspan="2" class="val" style="min-height:60px;white-space:pre-wrap">'+(item.beschrieb||'')+'</td></tr></table>'
-    +'<table><tr><th class="sec" colspan="2">Personal / Arbeitszeit</th></tr>'
-    +row('Team',item.team)+row('Arbeitszeit',(item.h_start||'—')+' – '+(item.h_end||'—'))
-    +row('Fahrzeug / KM',(item.fahrzeug||'')+(item.km?' · '+item.km+' km':''))+'</table>'
-    +(item.bep_kabel_typ||item.bep_godoo||item.bep_gag
-      ?'<table><tr><th class="sec" colspan="2">BEP Spezifisch</th></tr>'
-       +row('Kabel Typ',item.bep_kabel_typ+(item.bep_kabel_typ_custom?' / '+item.bep_kabel_typ_custom:''))
-       +row('Zuständig (Godoo)',item.bep_godoo)
-       +row('GAG Messung',item.bep_gag?item.bep_gag+' dB':'')
-       +row('Swisscom Messung',item.bep_swisscom?item.bep_swisscom+' dB':'')
-       +(item.bep_fotos?'<tr><td colspan="2" class="val">☑ Fotos gemacht</td></tr>':'')
-       +'</table>':''  )
-    +(item.muffe_anzahl>0||item.muffe_typ
-      ?'<table><tr><th class="sec" colspan="2">Muffe Spezifisch</th></tr>'
-       +row('Anzahl Muffes',item.muffe_anzahl)
-       +row('Muffe Typ',item.muffe_typ+(item.muffe_typ_custom?' / '+item.muffe_typ_custom:''))
-       +row('Fasern Gespleisst',item.muffe_fasern)
-       +'<tr><td colspan="2" class="val">'+chk('OTDR OK',item.otdr_ok)+chk('OTDR N.OK',item.otdr_nok)+chk('Fotos',item.muffe_fotos)+'</td></tr>'
-       +'</table>':''  )
-    +(item.material?'<table><tr><th class="sec" colspan="2">Material</th></tr>'
-       +'<tr><td colspan="2" class="val" style="white-space:pre-wrap">'+item.material+'</td></tr></table>':'')
-    +'<div class="sig">'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Kunde</span></div>'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Arnold AG</span></div>'
-    +'</div>'
-    +'<div style="text-align:right;margin-top:4px;font-size:9px;color:#888">Arnold Infra Services · Selzach · BKW Gruppe</div>'
-    +'</body></html>';
-  w.document.write(html);
-  w.document.close();
-  w.onload = function() { w.print(); };
-}
-
 function RpTagesView(props) {
   var userId = props.userId;
+  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stList = React.useState([]);
@@ -25931,38 +25776,35 @@ function RpTagesView(props) {
   var _stConfirm = React.useState(null);
   var confirm = _stConfirm[0], setConfirm = _stConfirm[1];
 
-  // form fields matching paper rapport
-  var _fTyp     = React.useState('arbeitsrapport'); var fTyp = _fTyp[0], setFTyp = _fTyp[1];
-  var _fNr      = React.useState('');               var fNr = _fNr[0], setFNr = _fNr[1];
-  var _fDate    = React.useState(rpToday());        var fDate = _fDate[0], setFDate = _fDate[1];
-  var _fKunde   = React.useState('');               var fKunde = _fKunde[0], setFKunde = _fKunde[1];
-  var _fOrt     = React.useState('');               var fOrt = _fOrt[0], setFOrt = _fOrt[1];
-  var _fAuftrag = React.useState('');               var fAuftrag = _fAuftrag[0], setFAuftrag = _fAuftrag[1];
-  var _fBeschrieb = React.useState('');             var fBeschrieb = _fBeschrieb[0], setFBeschrieb = _fBeschrieb[1];
-  var _fTeam    = React.useState('');               var fTeam = _fTeam[0], setFTeam = _fTeam[1];
-  var _fHS      = React.useState('07:00');          var fHS = _fHS[0], setFHS = _fHS[1];
-  var _fHE      = React.useState('17:00');          var fHE = _fHE[0], setFHE = _fHE[1];
-  var _fFahrzeug = React.useState('PW');            var fFahrzeug = _fFahrzeug[0], setFFahrzeug = _fFahrzeug[1];
-  var _fKm      = React.useState('');               var fKm = _fKm[0], setFKm = _fKm[1];
-  var _fMat     = React.useState('');               var fMat = _fMat[0], setFMat = _fMat[1];
-  var _fStatus  = React.useState('draft');          var fStatus = _fStatus[0], setFStatus = _fStatus[1];
-  var _fSaving  = React.useState(false);            var fSaving = _fSaving[0], setFSaving = _fSaving[1];
-  // BEP Spezifisch
-  var _fBepKab  = React.useState('');               var fBepKab = _fBepKab[0], setFBepKab = _fBepKab[1];
-  var _fBepKabC = React.useState('');               var fBepKabC = _fBepKabC[0], setFBepKabC = _fBepKabC[1];
-  var _fBepGod  = React.useState('');               var fBepGod = _fBepGod[0], setFBepGod = _fBepGod[1];
-  var _fBepGAG  = React.useState('');               var fBepGAG = _fBepGAG[0], setFBepGAG = _fBepGAG[1];
-  var _fBepSws  = React.useState('');               var fBepSws = _fBepSws[0], setFBepSws = _fBepSws[1];
-  var _fBepFot  = React.useState(false);            var fBepFot = _fBepFot[0], setFBepFot = _fBepFot[1];
-  // Muffe Spezifisch
-  var _fMufAnz  = React.useState('0');              var fMufAnz = _fMufAnz[0], setFMufAnz = _fMufAnz[1];
-  var _fMufTyp  = React.useState('');               var fMufTyp = _fMufTyp[0], setFMufTyp = _fMufTyp[1];
-  var _fMufTypC = React.useState('');               var fMufTypC = _fMufTypC[0], setFMufTypC = _fMufTypC[1];
-  var _fMufFas  = React.useState('0');              var fMufFas = _fMufFas[0], setFMufFas = _fMufFas[1];
-  var _fOtdrOk  = React.useState(false);            var fOtdrOk = _fOtdrOk[0], setFOtdrOk = _fOtdrOk[1];
-  var _fOtdrNok = React.useState(false);            var fOtdrNok = _fOtdrNok[0], setFOtdrNok = _fOtdrNok[1];
-  var _fMufFot  = React.useState(false);            var fMufFot = _fMufFot[0], setFMufFot = _fMufFot[1];
-  var _fProb    = React.useState('');               var fProb = _fProb[0], setFProb = _fProb[1];
+  // form state
+  var _fDate = React.useState(rpToday());   var fDate = _fDate[0], setFDate = _fDate[1];
+  var _fBau = React.useState('');           var fBau = _fBau[0], setFBau = _fBau[1];
+  var _fKant = React.useState('SO');        var fKant = _fKant[0], setFKant = _fKant[1];
+  var _fWet = React.useState('sonnig');     var fWet = _fWet[0], setFWet = _fWet[1];
+  var _fHS = React.useState('07:00');       var fHS = _fHS[0], setFHS = _fHS[1];
+  var _fHE = React.useState('17:00');       var fHE = _fHE[0], setFHE = _fHE[1];
+  var _fTeam = React.useState('');          var fTeam = _fTeam[0], setFTeam = _fTeam[1];
+  var _fArbeit = React.useState('');        var fArbeit = _fArbeit[0], setFArbeit = _fArbeit[1];
+  var _fMat = React.useState('');           var fMat = _fMat[0], setFMat = _fMat[1];
+  var _fKm = React.useState('');            var fKm = _fKm[0], setFKm = _fKm[1];
+  var _fProb = React.useState('');          var fProb = _fProb[0], setFProb = _fProb[1];
+  var _fStatus = React.useState('draft');   var fStatus = _fStatus[0], setFStatus = _fStatus[1];
+  var _fSaving = React.useState(false);     var fSaving = _fSaving[0], setFSaving = _fSaving[1];
+  // BEP-spezifisch
+  var _fBepAnz = React.useState('');        var fBepAnz = _fBepAnz[0], setFBepAnz = _fBepAnz[1];
+  var _fBepTyp = React.useState('');        var fBepTyp = _fBepTyp[0], setFBepTyp = _fBepTyp[1];
+  var _fGodoo  = React.useState('');        var fGodoo  = _fGodoo[0],  setFGodoo  = _fGodoo[1];
+  var _fZust   = React.useState('');        var fZust   = _fZust[0],   setFZust   = _fZust[1];
+  var _fGAG    = React.useState('');        var fGAG    = _fGAG[0],    setFGAG    = _fGAG[1];
+  var _fSwiss  = React.useState('');        var fSwiss  = _fSwiss[0],  setFSwiss  = _fSwiss[1];
+  var _fFotos  = React.useState(false);     var fFotos  = _fFotos[0],  setFFotos  = _fFotos[1];
+  // Muffe-spezifisch
+  var _fMufAnz  = React.useState('');       var fMufAnz  = _fMufAnz[0],  setFMufAnz  = _fMufAnz[1];
+  var _fMufTyp  = React.useState('');       var fMufTyp  = _fMufTyp[0],  setFMufTyp  = _fMufTyp[1];
+  var _fFasern  = React.useState('');       var fFasern  = _fFasern[0],  setFFasern  = _fFasern[1];
+  var _fOTDR    = React.useState(false);    var fOTDR    = _fOTDR[0],    setFOTDR    = _fOTDR[1];
+  var _fOTDRnok = React.useState(false);    var fOTDRnok = _fOTDRnok[0], setFOTDRnok = _fOTDRnok[1];
+  var _fMufFoto = React.useState(false);    var fMufFoto = _fMufFoto[0], setFMufFoto = _fMufFoto[1];
 
   function load() {
     if (!db) return;
@@ -25972,293 +25814,266 @@ function RpTagesView(props) {
   }
   React.useEffect(load, []);
 
-  function resetForm() {
-    setFTyp('arbeitsrapport'); setFNr(''); setFDate(rpToday());
-    setFKunde(''); setFOrt(''); setFAuftrag(''); setFBeschrieb('');
-    setFTeam(''); setFHS('07:00'); setFHE('17:00');
-    setFFahrzeug('PW'); setFKm(''); setFMat(''); setFStatus('draft');
-    setFBepKab(''); setFBepKabC(''); setFBepGod(''); setFBepGAG(''); setFBepSws(''); setFBepFot(false);
-    setFMufAnz('0'); setFMufTyp(''); setFMufTypC(''); setFMufFas('0'); setFOtdrOk(false); setFOtdrNok(false); setFMufFot(false);
-    setFProb('');
+  function openNew() {
+    setFDate(rpToday()); setFBau(''); setFKant('SO'); setFWet('sonnig');
+    setFHS('07:00'); setFHE('17:00'); setFTeam(''); setFArbeit('');
+    setFMat(''); setFKm(''); setFProb(''); setFStatus('draft');
+    setFBepAnz(''); setFBepTyp(''); setFGodoo(''); setFZust(''); setFGAG(''); setFSwiss(''); setFFotos(false);
+    setFMufAnz(''); setFMufTyp(''); setFFasern(''); setFOTDR(false); setFOTDRnok(false); setFMufFoto(false);
+    setForm('new');
   }
-  function openNew() { resetForm(); setForm('new'); }
   function openEdit(item) {
-    setFTyp(item.typ || 'arbeitsrapport');
-    setFNr(item.rapport_nr || '');
-    setFDate(item.datum);
-    setFKunde(item.kunde || item.baustelle || '');
-    setFOrt(item.montageort || '');
-    setFAuftrag(item.auftrag_nr || '');
-    setFBeschrieb(item.beschrieb || item.arbeit || '');
-    setFTeam(item.team || '');
-    setFHS(item.h_start || '07:00');
-    setFHE(item.h_end || '17:00');
-    setFFahrzeug(item.fahrzeug || 'PW');
-    setFKm(String(item.km || ''));
-    setFMat(item.material || '');
-    setFStatus(item.status || 'draft');
-    setFBepKab(item.bep_kabel_typ||''); setFBepKabC(item.bep_kabel_typ_custom||'');
-    setFBepGod(item.bep_godoo||''); setFBepGAG(item.bep_gag||''); setFBepSws(item.bep_swisscom||''); setFBepFot(!!item.bep_fotos);
-    setFMufAnz(String(item.muffe_anzahl||0)); setFMufTyp(item.muffe_typ||''); setFMufTypC(item.muffe_typ_custom||'');
-    setFMufFas(String(item.muffe_fasern||0)); setFOtdrOk(!!item.otdr_ok); setFOtdrNok(!!item.otdr_nok); setFMufFot(!!item.muffe_fotos);
-    setFProb(item.probleme || item.bemerkungen || '');
+    setFDate(item.datum); setFBau(item.baustelle || ''); setFKant(item.kanton || 'SO');
+    setFWet(item.wetter || 'sonnig'); setFHS(item.h_start || '07:00'); setFHE(item.h_end || '17:00');
+    setFTeam(item.team || ''); setFArbeit(item.arbeit || ''); setFMat(item.material || '');
+    setFKm(String(item.km || '')); setFProb(item.probleme || ''); setFStatus(item.status || 'draft');
+    setFBepAnz(item.anzahl_beps > 0 ? String(item.anzahl_beps) : '');
+    setFBepTyp(item.bep_typ || '');
+    setFGodoo(item.godoo_nr || ''); setFZust(item.zustaendig || '');
+    setFGAG(item.messung_gag || ''); setFSwiss(item.messung_swisscom || '');
+    setFFotos(item.fotos_ok || false);
+    setFMufAnz(item.anzahl_muffe > 0 ? String(item.anzahl_muffe) : '');
+    setFMufTyp(item.muffe_typ || ''); setFFasern(item.fasern_gespleisst > 0 ? String(item.fasern_gespleisst) : '');
+    setFOTDR(item.otdr_ok || false); setFOTDRnok(item.otdr_nok || false); setFMufFoto(item.muffe_fotos || false);
     setViewItem(null); setForm(item);
   }
   function save() {
-    if (!fKunde.trim() && !fOrt.trim()) return;
+    if (!fBau.trim()) return;
     setFSaving(true);
     var h = rpStunden(fHS, fHE);
-    var payload = {
-      user_id: userId,
-      typ: fTyp,
-      rapport_nr: fNr.trim(),
-      datum: fDate,
-      kunde: fKunde.trim(),
-      montageort: fOrt.trim(),
-      auftrag_nr: fAuftrag.trim(),
-      beschrieb: fBeschrieb.trim(),
-      team: fTeam.trim(),
-      h_start: fHS,
-      h_end: fHE,
-      stunden: h,
-      fahrzeug: fFahrzeug,
-      km: parseInt(fKm) || 0,
-      material: fMat.trim(),
-      status: fStatus,
-      bep_kabel_typ: fBepKab, bep_kabel_typ_custom: fBepKabC.trim(),
-      bep_godoo: fBepGod.trim(), bep_gag: fBepGAG.trim(), bep_swisscom: fBepSws.trim(), bep_fotos: fBepFot,
-      muffe_anzahl: parseInt(fMufAnz)||0, muffe_typ: fMufTyp, muffe_typ_custom: fMufTypC.trim(),
-      muffe_fasern: parseInt(fMufFas)||0, otdr_ok: fOtdrOk, otdr_nok: fOtdrNok, muffe_fotos: fMufFot,
-      probleme: fProb.trim()
-    };
-    var op = form === 'new'
-      ? db.from('rapport_tages').insert(payload)
-      : db.from('rapport_tages').update(payload).eq('id', form.id);
-    op.then(function() { setForm(null); setFSaving(false); load(); })
-      .catch(function() { setFSaving(false); });
+    var payload = { user_id: userId, datum: fDate, baustelle: fBau.trim(), kanton: fKant, wetter: fWet, h_start: fHS, h_end: fHE, stunden: h, team: fTeam.trim(), arbeit: fArbeit.trim(), material: fMat.trim(), km: parseInt(fKm) || 0, probleme: fProb.trim(), status: fStatus, anzahl_beps: parseInt(fBepAnz) || 0, bep_typ: fBepTyp.trim(), godoo_nr: fGodoo.trim(), zustaendig: fZust.trim(), messung_gag: fGAG.trim(), messung_swisscom: fSwiss.trim(), fotos_ok: fFotos, anzahl_muffe: parseInt(fMufAnz) || 0, muffe_typ: fMufTyp.trim(), fasern_gespleisst: parseInt(fFasern) || 0, otdr_ok: fOTDR, otdr_nok: fOTDRnok, muffe_fotos: fMufFoto };
+    var op = form === 'new' ? db.from('rapport_tages').insert(payload) : db.from('rapport_tages').update(payload).eq('id', form.id);
+    op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
   }
   function del(id) {
-    db.from('rapport_tages').delete().eq('id', id)
-      .then(function() { setConfirm(null); setViewItem(null); load(); });
+    db.from('rapport_tages').delete().eq('id', id).then(function() { setConfirm(null); setViewItem(null); load(); });
   }
-  function toggleStatus(item) {
-    var next = item.status === 'draft' ? 'submitted' : 'draft';
-    db.from('rapport_tages').update({ status: next }).eq('id', item.id).then(load);
-  }
+
+  var wetterLabel = { sonnig: '☀️', bewoelkt: '⛅', regnerisch: '🌧️', schnee: '❄️', windig: '💨' };
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
-
-    // header
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' Rapporte'),
-      RpBtn({ label: '+ Neuer Rapport', onClick: openNew })
+      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' ' + L.t_count),
+      RpBtn({ label: L.t_btn, onClick: openNew })
     ),
 
     loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: '#475569' } }, 'Lade...'),
-    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, 'Noch keine Tagesrapporte.'),
 
-    // list
+    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, L.none_t),
+
     list.map(function(item) {
       var h = rpStunden(item.h_start, item.h_end);
-      var isSubmitted = item.status === 'submitted';
-      var statusColor = isSubmitted ? '#10B981' : '#F59E0B';
-      var isOpen = viewItem && viewItem.id === item.id;
-      var titel = item.kunde || item.baustelle || item.montageort || '—';
-      var subtitel = [item.montageort, item.auftrag_nr ? 'Auftrag: ' + item.auftrag_nr : ''].filter(Boolean).join(' · ');
+      var statusColor = item.status === 'submitted' ? '#10B981' : '#F59E0B';
       return React.createElement('div', {
         key: item.id,
-        onClick: function() { setViewItem(isOpen ? null : item); },
+        onClick: function() { setViewItem(viewItem && viewItem.id === item.id ? null : item); },
         style: Object.assign({}, rpS.card, { cursor: 'pointer', borderLeft: '3px solid ' + statusColor })
       },
-        // top row
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
-          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-            React.createElement('div', { style: { fontWeight: 700, fontSize: 13 } },
-              rpFmtD(item.datum, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
-              + (item.rapport_nr ? '  ·  Nr. ' + item.rapport_nr : '')
-            ),
-            React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, titel),
-            subtitel && React.createElement('div', { style: { fontSize: 11, color: '#64748B', marginTop: 1 } }, subtitel)
+          React.createElement('div', null,
+            React.createElement('div', { style: { fontWeight: 700, fontSize: 14 } }, rpFmtD(item.datum, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })),
+            React.createElement('div', { style: { fontSize: 12, color: '#94A3B8', marginTop: 2 } }, item.baustelle + (item.kanton ? ' [' + item.kanton + ']' : ''))
           ),
-          React.createElement('div', { style: { textAlign: 'right', flexShrink: 0, marginLeft: 8 } },
-            React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, isSubmitted ? 'Abgegeben' : 'Entwurf'),
-            React.createElement('div', { style: { fontSize: 10, color: '#64748B', marginTop: 2 } }, item.typ === 'regierapport' ? 'Regie' : 'Arbeitsrapport'),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }, onClick: function(e) { e.stopPropagation(); } },
-              RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-              RpBtn({ label: '🖨️', sm: true, color: '#3B82F6', onClick: function() { rpPrintTages(item); } }),
-              RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
-            )
+          React.createElement('div', { style: { textAlign: 'right' } },
+            React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, item.status === 'submitted' ? 'Abgegeben' : 'Entwurf'),
+            React.createElement('div', { style: { fontSize: 11, color: '#64748B', marginTop: 2 } }, wetterLabel[item.wetter] || '☀️' )
           )
         ),
-        // stats row
-        React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' } },
-          React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🕐 ' + (item.h_start || '—') + '–' + (item.h_end || '—') + ' (' + h.toFixed(1) + 'h)'),
+        React.createElement('div', { style: { display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' } },
+          React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🕐 ' + (item.h_start || '—') + '–' + (item.h_end || '—') + ' (' + h.toFixed(1) + ' h)'),
           item.team && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '👷 ' + item.team),
-          item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.fahrzeug + ' ' + item.km + ' km')
+          item.km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.km + ' km'),
+          item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, color: '#3B82F6', fontWeight: 700 } }, '🔌 ' + item.anzahl_beps + (item.bep_typ ? ' (' + item.bep_typ + ')' : '') + ' BEP'),
+          item.godoo_nr && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '📱 ' + item.godoo_nr),
+          item.fotos_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📷✓'),
+          item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, color: '#a78bfa', fontWeight: 700 } }, '🔩 ' + item.anzahl_muffe + ' Muffe'),
+          item.otdr_ok && React.createElement('span', { style: { fontSize: 11, color: '#22c55e' } }, '📡✓'),
+          item.otdr_nok && React.createElement('span', { style: { fontSize: 11, color: '#ef4444' } }, '📡✗')
         ),
-        // Probleme highlight
-        item.probleme && React.createElement('div', {
-          style: { marginTop: 6, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 7, padding: '4px 8px', fontSize: 11, color: '#FCA5A5', fontWeight: 600 }
-        }, '⚠️ ' + item.probleme),
-        // expanded detail
-        isOpen && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
-          (item.beschrieb || item.arbeit) && React.createElement('div', { style: { marginBottom: 8 } },
-            React.createElement('div', { style: rpS.label }, 'Beschrieb der Arbeiten'),
-            React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', whiteSpace: 'pre-wrap' } }, item.beschrieb || item.arbeit)
+
+        viewItem && viewItem.id === item.id && React.createElement('div', { style: { marginTop: 10, borderTop: '1px solid #1E293B', paddingTop: 10 }, onClick: function(e) { e.stopPropagation(); } },
+          item.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
+            React.createElement('div', { style: rpS.label }, 'Ausgeführte Arbeiten'),
+            React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', whiteSpace: 'pre-wrap' } }, item.arbeit)
           ),
-          (item.material) && React.createElement('div', { style: { marginBottom: 8 } },
+          item.material && React.createElement('div', { style: { marginBottom: 8 } },
             React.createElement('div', { style: rpS.label }, 'Material'),
             React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, item.material)
           ),
-          // Probleme (old field, backward compat)
+          // BEP info
+          (item.anzahl_beps > 0 || item.godoo_nr || item.messung_gag) && React.createElement('div', { style: { background: '#3B82F611', border: '1px solid #3B82F633', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', letterSpacing: '0.5px', marginBottom: 6 } }, '🔌 BEP'),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+              item.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_beps + ' BEP' + (item.anzahl_beps > 1 ? 's' : '')),
+              item.bep_typ && React.createElement('span', { style: { fontSize: 12, color: '#3B82F6', fontWeight: 700, background: '#3B82F622', padding: '1px 8px', borderRadius: 6 } }, item.bep_typ),
+              item.godoo_nr && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📱 Godoo: ' + item.godoo_nr),
+              item.zustaendig && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '👤 ' + item.zustaendig),
+              item.messung_gag && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'GAG: ' + item.messung_gag),
+              item.messung_swisscom && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Swisscom: ' + item.messung_swisscom),
+              item.fotos_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
+            )
+          ),
+          // ── Muffe
+          (item.anzahl_muffe > 0 || item.otdr_ok) && React.createElement('div', { style: { background: '#a78bfa11', border: '1px solid #a78bfa33', borderRadius: 8, padding: '10px 12px', marginBottom: 8 } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', marginBottom: 6 } }, '🔩 MUFFE'),
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12 } },
+              item.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '📦 ' + item.anzahl_muffe + ' Muffe'),
+              item.muffe_typ && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, 'Typ: ' + item.muffe_typ),
+              item.fasern_gespleisst > 0 && React.createElement('span', { style: { fontSize: 12, color: '#CBD5E1' } }, '✂️ ' + item.fasern_gespleisst + ' Fasern'),
+              item.otdr_ok && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📡 OTDR ✓'),
+              item.otdr_nok && React.createElement('span', { style: { fontSize: 12, color: '#ef4444' } }, '⚠️ OTDR N.OK'),
+              item.muffe_fotos && React.createElement('span', { style: { fontSize: 12, color: '#22c55e' } }, '📷 Fotos ✓')
+            )
+          ),
           item.probleme && React.createElement('div', { style: { marginBottom: 8 } },
             React.createElement('div', { style: rpS.label }, 'Probleme / Bemerkungen'),
             React.createElement('div', { style: { fontSize: 12, color: '#FCA5A5', whiteSpace: 'pre-wrap' } }, item.probleme)
           ),
-          // BEP summary card
-          (item.bep_kabel_typ || item.bep_godoo || item.bep_gag) && React.createElement('div', {
-            style: { background: '#1E3A5F', border: '1px solid #3B82F644', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
-          },
-            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', marginBottom: 5 } }, '📦 BEP'),
-            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#CBD5E1' } },
-              item.bep_kabel_typ && React.createElement('span', null, '🗂 ' + item.bep_kabel_typ + (item.bep_kabel_typ_custom ? ' / ' + item.bep_kabel_typ_custom : '')),
-              item.bep_godoo && React.createElement('span', null, '📱 Godoo: ' + item.bep_godoo)
-            ),
-            (item.bep_godoo || item.bep_gag || item.bep_swisscom) && React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#94A3B8', marginTop: 3 } },
-              item.bep_godoo && React.createElement('span', null, '📍 ' + item.bep_godoo),
-              item.bep_gag && React.createElement('span', null, 'GAG: ' + item.bep_gag),
-              item.bep_swisscom && React.createElement('span', null, 'Swisscom: ' + item.bep_swisscom)
-            ),
-            item.bep_fotos && React.createElement('div', { style: { fontSize: 11, color: '#10B981', marginTop: 3 } }, '📷 Fotos ✓')
-          ),
-          // Muffe summary card
-          (item.muffe_anzahl > 0 || item.muffe_typ) && React.createElement('div', {
-            style: { background: '#2D1F00', border: '1px solid #F59E0B44', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
-          },
-            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 5 } }, '🔩 Muffe'),
-            React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#CBD5E1' } },
-              item.muffe_anzahl > 0 && React.createElement('span', null, item.muffe_anzahl + ' Muffe'),
-              item.muffe_typ && React.createElement('span', { style: { background: '#F59E0B22', border: '1px solid #F59E0B44', borderRadius: 4, padding: '1px 6px', fontWeight: 700 } }, item.muffe_typ),
-              item.muffe_fasern > 0 && React.createElement('span', null, item.muffe_fasern + ' Fasern')
-            ),
-            React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4, fontSize: 11 } },
-              React.createElement('span', { style: { color: item.otdr_ok ? '#10B981' : '#475569' } }, (item.otdr_ok ? '✅' : '⬜') + ' OTDR OK'),
-              React.createElement('span', { style: { color: item.otdr_nok ? '#EF4444' : '#475569' } }, (item.otdr_nok ? '⚠️' : '⬜') + ' OTDR N.OK'),
-              item.muffe_fotos && React.createElement('span', { style: { color: '#10B981' } }, '📷 Fotos ✓')
-            )
+          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
+            RpBtn({ label: '✏️ Bearbeiten', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
+            RpBtn({ label: item.status === 'draft' ? L.t_submit : L.t_todraft, sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_tages').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
+            RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
         )
       );
     }),
 
-    // form overlay
     form !== null && RpOverlay({
       title: form === 'new' ? 'Neuer Tagesrapport' : 'Rapport bearbeiten',
       onClose: function() { setForm(null); },
       children: React.createElement('div', null,
-
-        // Typ toggle
-        React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 14 } },
-          ['arbeitsrapport', 'regierapport'].map(function(t) {
-            var active = fTyp === t;
-            return React.createElement('button', {
-              key: t, onClick: function() { setFTyp(t); },
-              style: { flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid ' + (active ? '#F06400' : '#2A2A38'), background: active ? '#F0640022' : 'transparent', color: active ? '#F06400' : '#64748B', fontSize: 12, fontWeight: active ? 700 : 400, cursor: 'pointer' }
-            }, t === 'arbeitsrapport' ? 'Tagesarbeitsrapport' : 'Tagesregierapport');
-          })
-        ),
-
-        // Rapport Nr + Datum
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Rapport Nr.' }), RpInput({ value: fNr, onChange: setFNr, placeholder: 'z.B. 2151' })),
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: setFDate }))
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: setFDate })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Wetter' }), RpSelect({ value: fWet, onChange: setFWet, opts: RP_WETTER_OPTS }))
         ),
-
-        // Kunde + Montageort
-        RpField({ label: 'Kunde', children: RpInput({ value: fKunde, onChange: setFKunde, placeholder: 'Kundenname' }) }),
-        RpField({ label: 'Montageort', children: RpInput({ value: fOrt, onChange: setFOrt, placeholder: 'z.B. Grenchen, Industriestrasse 5' }) }),
-
-        // Auftrag Nr.
-        RpField({ label: 'Auftrag Nr. Arnold', children: RpInput({ value: fAuftrag, onChange: setFAuftrag, placeholder: 'Interne Auftragsnummer' }) }),
-
-        // Beschrieb der Arbeiten
-        RpField({ label: 'Beschrieb der Arbeiten', children: RpTextarea({ value: fBeschrieb, onChange: setFBeschrieb, placeholder: 'Was wurde gemacht? (Muffe, Splicing, BEP, Kabelzug...)' }) }),
-
-        // Team + Zeiten
-        RpField({ label: 'Personal / Team', children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Carvalho' }) }),
+        RpField({ label: L.site, children: RpInput({ value: fBau, onChange: setFBau, placeholder: 'z.B. Grenchen Industriestr.' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Kanton' }), RpSelect({ value: fKant, onChange: setFKant, opts: RP_KANTONE.map(function(k) { return { value: k, label: k }; }) })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Von' }), RpInput({ type: 'time', value: fHS, onChange: setFHS })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE }))
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Bis' }), RpInput({ type: 'time', value: fHE, onChange: setFHE })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
+        RpField({ label: L.team, children: RpInput({ value: fTeam, onChange: setFTeam, placeholder: 'z.B. Wälchli + Pat' }) }),
+        RpField({ label: L.t_work, children: RpTextarea({ value: fArbeit, onChange: setFArbeit, placeholder: 'Was wurde gemacht? (Muffe, Splicing, BEP...)' }) }),
+        RpField({ label: 'Material verwendet', children: RpInput({ value: fMat, onChange: setFMat, placeholder: 'z.B. 2× Muffe 6×4, 50m Kabel...' }) }),
+        RpField({ label: L.t_prob, children: RpTextarea({ value: fProb, onChange: setFProb, rows: 2, placeholder: 'Probleme, offene Punkte...' }) }),
 
-        // Fahrzeug + KM
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Fahrzeug' }), RpSelect({ value: fFahrzeug, onChange: setFFahrzeug, opts: RP_FAHRZEUG_OPTS })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm, placeholder: '0' }))
-        ),
+        // ── BEP Spezifisch ────────────────────────────
+        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, L.bep_title),
 
-        // Material
-        RpField({ label: 'Material', children: RpTextarea({ value: fMat, onChange: setFMat, rows: 2, placeholder: 'z.B. 2× Muffe 6×4, 50m Kabel...' }) }),
-
-        // BEP Spezifisch
-        React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', marginBottom: 6, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 } }, '📦 BEP Spezifisch'),
-        React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 } },
-          RP_BEP_KABEL.map(function(k) {
-            return React.createElement('button', { key: k, onClick: function() { setFBepKab(fBepKab === k ? '' : k); },
-              style: { padding: '5px 12px', borderRadius: 6, border: '1px solid ' + (fBepKab === k ? '#3B82F6' : '#2A2A38'),
-                background: fBepKab === k ? '#3B82F622' : 'transparent', color: fBepKab === k ? '#3B82F6' : '#94A3B8', fontSize: 12, fontWeight: 700, cursor: 'pointer' } }, k);
-          }),
-          RpInput({ value: fBepKabC, onChange: setFBepKabC, placeholder: 'oder eigener Typ...' })
-        ),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 8 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Zuständig (Godoo)' }), RpInput({ value: fBepGod, onChange: setFBepGod, placeholder: 'Name Zuständiger' })),
-        ),
-        React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 8 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'GAG Messung' }), RpInput({ value: fBepGAG, onChange: setFBepGAG, placeholder: 'z.B. 1.2 dB' })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Swisscom Messung' }), RpInput({ value: fBepSws, onChange: setFBepSws, placeholder: 'z.B. 0.8 dB' }))
-        ),
-        React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' } },
-          React.createElement('input', { type: 'checkbox', checked: fBepFot, onChange: function(e) { setFBepFot(e.target.checked); } }),
-          React.createElement('span', { style: { fontSize: 12 } }, '📷 Fotos gemacht')
-        ),
-
-        // Muffe Spezifisch
-        React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 } }, '🔩 Muffe Spezifisch'),
-        RpField({ label: 'Anzahl Muffes', children: RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 } },
-          RP_MUFFE_TYP.map(function(t) {
-            return React.createElement('button', { key: t, onClick: function() { setFMufTyp(fMufTyp === t ? '' : t); },
-              style: { padding: '5px 12px', borderRadius: 6, border: '1px solid ' + (fMufTyp === t ? '#F59E0B' : '#2A2A38'),
-                background: fMufTyp === t ? '#F59E0B22' : 'transparent', color: fMufTyp === t ? '#F59E0B' : '#94A3B8', fontSize: 12, fontWeight: 700, cursor: 'pointer' } }, t);
-          }),
-          RpInput({ value: fMufTypC, onChange: setFMufTypC, placeholder: 'oder eigener Typ...' })
-        ),
-        RpField({ label: 'Fasern Gespleisst', children: RpInput({ type: 'number', value: fMufFas, onChange: setFMufFas }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' } },
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' } },
-            React.createElement('input', { type: 'checkbox', checked: fOtdrOk, onChange: function(e) { setFOtdrOk(e.target.checked); } }),
-            React.createElement('span', { style: { fontSize: 12 } }, '✅ OTDR OK')
+          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Anzahl BEPs' }),
+              RpInput({ type: 'number', value: fBepAnz, onChange: setFBepAnz, placeholder: '0' })
+            ),
+            React.createElement('div', { style: { flex: 2 } },
+              RpLabel({ text: 'Godoo-Nr' }),
+              RpInput({ value: fGodoo, onChange: setFGodoo, placeholder: 'z.B. 12345678' })
+            )
           ),
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' } },
-            React.createElement('input', { type: 'checkbox', checked: fOtdrNok, onChange: function(e) { setFOtdrNok(e.target.checked); } }),
-            React.createElement('span', { style: { fontSize: 12 } }, '⚠️ OTDR N.OK')
+
+          // BEP Typ quick-select
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'BEP Typ' }),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6 } },
+              ['2S', '1S', 'S', 'M'].map(function(t) {
+                var active = fBepTyp === t;
+                return React.createElement('button', {
+                  key: t,
+                  onClick: function() { setFBepTyp(active ? '' : t); },
+                  style: {
+                    flex: 1, padding: '7px 0', borderRadius: 8, border: '2px solid ' + (active ? '#3B82F6' : '#1E293B'),
+                    background: active ? '#3B82F622' : '#0D1117',
+                    color: active ? '#3B82F6' : '#64748B',
+                    fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                  }
+                }, t);
+              })
+            ),
+            RpInput({ value: fBepTyp, onChange: setFBepTyp, placeholder: 'oder eigener Typ…' })
           ),
-          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' } },
-            React.createElement('input', { type: 'checkbox', checked: fMufFot, onChange: function(e) { setFMufFot(e.target.checked); } }),
-            React.createElement('span', { style: { fontSize: 12 } }, '📷 Fotos')
+
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Zuständig (Godoo)' }),
+            RpInput({ value: fZust, onChange: setFZust, placeholder: 'Name Zuständiger' })
+          ),
+
+          React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'GAG Messung' }),
+              RpInput({ value: fGAG, onChange: setFGAG, placeholder: 'z.B. 1.2 dB' })
+            ),
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Swisscom Messung' }),
+              RpInput({ value: fSwiss, onChange: setFSwiss, placeholder: 'z.B. 0.8 dB' })
+            )
+          ),
+
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 10px', background: fFotos ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fFotos ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+            React.createElement('input', { type: 'checkbox', checked: fFotos, onChange: function(e) { setFFotos(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+            React.createElement('span', { style: { fontSize: 13, color: fFotos ? '#22c55e' : '#94A3B8', fontWeight: fFotos ? 700 : 400 } }, L.bep_foto)
           )
         ),
 
-        // Probleme / Bemerkungen
-        RpField({ label: 'Probleme / Bemerkungen', children: RpTextarea({ value: fProb, onChange: setFProb, rows: 2, placeholder: 'OTDR Messung, offene Punkte...' }) }),
+        // ── Muffe Spezifisch ──────────────────────────
+        React.createElement('div', { style: { borderTop: '1px solid #1E293B', margin: '4px 0 14px', paddingTop: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#a78bfa', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 12 } }, L.m_title),
 
-        // Status
-        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
+          React.createElement('div', { style: { marginBottom: 10 } },
+            React.createElement('div', { style: { flex: 1 } },
+              RpLabel({ text: 'Anzahl Muffes' }),
+              RpInput({ type: 'number', value: fMufAnz, onChange: setFMufAnz, placeholder: '0' })
+            )
+          ),
 
-        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-          RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
-          form !== 'new' && RpBtn({ label: '🖨️ Drucken', color: '#3B82F6', onClick: function() { rpPrintTages(form); } }),
-          RpBtn({ label: fSaving ? '...' : '💾 Speichern', onClick: save })
+          // Muffe Typ quick-select
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Muffe Typ' }),
+            React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' } },
+              ['BC8', 'FD6', 'FD8', 'BF8', 'BE8'].map(function(t) {
+                var active = fMufTyp === t;
+                return React.createElement('button', {
+                  key: t,
+                  onClick: function() { setFMufTyp(active ? '' : t); },
+                  style: {
+                    flex: 1, minWidth: 48, padding: '7px 0', borderRadius: 8,
+                    border: '2px solid ' + (active ? '#a78bfa' : '#1E293B'),
+                    background: active ? '#a78bfa22' : '#0D1117',
+                    color: active ? '#a78bfa' : '#64748B',
+                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  }
+                }, t);
+              })
+            ),
+            RpInput({ value: fMufTyp, onChange: setFMufTyp, placeholder: 'oder eigener Typ…' })
+          ),
+
+          React.createElement('div', { style: { marginBottom: 10 } },
+            RpLabel({ text: 'Fasern gespleisst' }),
+            RpInput({ type: 'number', value: fFasern, onChange: setFFasern, placeholder: '0' })
+          ),
+
+          React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDR ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fOTDR ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fOTDR, onChange: function(e) { setFOTDR(e.target.checked); if(e.target.checked) setFOTDRnok(false); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fOTDR ? '#22c55e' : '#94A3B8', fontWeight: fOTDR ? 700 : 400 } }, L.m_otdr)
+            ),
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fOTDRnok ? '#ef444418' : '#0D1117', border: '1px solid ' + (fOTDRnok ? '#ef444444' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fOTDRnok, onChange: function(e) { setFOTDRnok(e.target.checked); if(e.target.checked) setFOTDR(false); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fOTDRnok ? '#ef4444' : '#94A3B8', fontWeight: fOTDRnok ? 700 : 400 } }, '⚠️ OTDR N.OK')
+            ),
+            React.createElement('label', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '8px 10px', background: fMufFoto ? '#22c55e18' : '#0D1117', border: '1px solid ' + (fMufFoto ? '#22c55e44' : '#1E293B'), borderRadius: 8 } },
+              React.createElement('input', { type: 'checkbox', checked: fMufFoto, onChange: function(e) { setFMufFoto(e.target.checked); }, style: { width: 16, height: 16, cursor: 'pointer' } }),
+              React.createElement('span', { style: { fontSize: 13, color: fMufFoto ? '#22c55e' : '#94A3B8', fontWeight: fMufFoto ? 700 : 400 } }, '📷 Fotos')
+            )
+          )
+        ),
+
+        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+          RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
+          RpBtn({ label: fSaving ? '...' : L.save, onClick: save })
         )
       )
     }),
@@ -26275,51 +26090,9 @@ function RpTagesView(props) {
 // ════════════════════════════════════════════════════════════════════
 // WOCHENRAPPORT VIEW
 // ════════════════════════════════════════════════════════════════════
-function rpPrintWochen(item) {
-  var w = window.open('', '_blank');
-  function row(label, val) { return val ? '<tr><td class="lbl">'+label+'</td><td class="val">'+val+'</td></tr>' : ''; }
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Wochenbericht KW'+item.kw+'/'+item.jahr+'</title>'
-    +'<style>'
-    +'body{font-family:Arial,sans-serif;font-size:11px;margin:12mm;color:#000}'
-    +'.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #F06400;padding-bottom:6px;margin-bottom:10px}'
-    +'.mark{width:10px;height:10px;background:#F06400;display:inline-block;margin-right:4px;vertical-align:middle}'
-    +'.logo-name{font-size:18px;font-weight:900;vertical-align:middle}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:8px}'
-    +'th.sec{background:#F06400;color:#fff;font-size:10px;text-align:left;padding:3px 6px;text-transform:uppercase;letter-spacing:.5px}'
-    +'.lbl{width:32%;background:#f5f5f5;border:1px solid #ccc;padding:3px 5px;font-weight:bold;font-size:9px;text-transform:uppercase;vertical-align:top}'
-    +'.val{border:1px solid #ccc;padding:3px 5px;vertical-align:top}'
-    +'.sig{display:flex;gap:15px;margin-top:14px}'
-    +'.sig-box{flex:1;border:1px solid #000;height:50px;position:relative}'
-    +'.sig-lbl{position:absolute;top:-8px;left:6px;background:#fff;padding:0 3px;font-size:9px;font-weight:bold}'
-    +'@media print{@page{margin:10mm}}'
-    +'</style></head><body>'
-    +'<div class="hdr"><div><span class="mark"></span><span class="logo-name">Arnold</span><div style="font-size:9px;color:#555">Infra Services</div></div>'
-    +'<div style="text-align:right"><div style="font-size:10px">Wochenbericht</div><div><strong>KW '+item.kw+' / '+item.jahr+'</strong></div>'
-    +(item.datum_von&&item.datum_bis?'<div style="font-size:9px">'+item.datum_von+' – '+item.datum_bis+'</div>':'')+'</div></div>'
-    +'<table><tr><th class="sec" colspan="2">Übersicht</th></tr>'
-    +row('Total Stunden',item.total_stunden?item.total_stunden+' h':'')
-    +row('Total KM',item.total_km?item.total_km+' km':'')
-    +row('Status',item.status==='submitted'?'Abgegeben':'Entwurf')+'</table>'
-    +'<table><tr><th class="sec" colspan="2">Zusammenfassung der Woche</th></tr>'
-    +'<tr><td colspan="2" class="val" style="min-height:80px;white-space:pre-wrap">'+(item.zusammenfassung||'')+'</td></tr></table>'
-    +(item.offene_arbeiten?'<table><tr><th class="sec" colspan="2">Offene Arbeiten</th></tr>'
-      +'<tr><td colspan="2" class="val" style="white-space:pre-wrap">'+item.offene_arbeiten+'</td></tr></table>':'')
-    +(item.bemerkungen?'<table><tr><th class="sec" colspan="2">Bemerkungen</th></tr>'
-      +'<tr><td colspan="2" class="val" style="white-space:pre-wrap">'+item.bemerkungen+'</td></tr></table>':'')
-    +'<div class="sig">'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Monteur</span></div>'
-    +'<div class="sig-box"><span class="sig-lbl">Unterschrift Arnold AG</span></div>'
-    +'<div class="sig-box"><span class="sig-lbl">Datum</span></div>'
-    +'</div>'
-    +'<div style="text-align:right;margin-top:4px;font-size:9px;color:#888">Arnold Infra Services · Selzach · BKW Gruppe</div>'
-    +'</body></html>';
-  w.document.write(html);
-  w.document.close();
-  w.onload = function() { w.print(); };
-}
-
 function RpWochenView(props) {
   var userId = props.userId;
+  var L = RP_L[props.lang || 'DE'];
   var db = window.supabaseClient;
 
   var _stList = React.useState([]);
@@ -26343,6 +26116,9 @@ function RpWochenView(props) {
   var _fBem = React.useState('');                    var fBem = _fBem[0], setFBem = _fBem[1];
   var _fStatus = React.useState('draft');            var fStatus = _fStatus[0], setFStatus = _fStatus[1];
   var _fSaving = React.useState(false);              var fSaving = _fSaving[0], setFSaving = _fSaving[1];
+  var _kwTages = React.useState([]);                 var kwTages = _kwTages[0], setKwTages = _kwTages[1];
+  var _expDay  = React.useState(null);               var expDay  = _expDay[0],  setExpDay  = _expDay[1];
+  var _inclDays = React.useState({});                var inclDays = _inclDays[0], setInclDays = _inclDays[1];
 
   function load() {
     if (!db) return;
@@ -26353,15 +26129,18 @@ function RpWochenView(props) {
   React.useEffect(load, []);
 
   function autoFill(kw, jahr) {
-    // load tagesrapporte for that KW and compute totals
     if (!db) return;
     var monday = rpMondayOfKW(parseInt(kw), parseInt(jahr));
     var friday = rpShiftWeek(monday, 1);
-    db.from('rapport_tages').select('h_start,h_end,km,beschrieb,arbeit').eq('user_id', userId).gte('datum', monday).lt('datum', friday)
+    db.from('rapport_tages').select('*').eq('user_id', userId).gte('datum', monday).lt('datum', friday).order('datum', { ascending: true })
       .then(function(r) {
         var items = r.data || [];
+        setKwTages(items);
+        // Inicializa todos como incluídos
+        var inc = {};
+        items.forEach(function(i) { inc[i.id] = true; });
+        setInclDays(inc);
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
-        var beschriebe = items.map(function(i) { return i.beschrieb || i.arbeit || ''; }).filter(Boolean);
         var totalKm = items.reduce(function(s, i) { return s + (i.km || 0); }, 0);
         var arbeitList = items.map(function(i) { return i.arbeit; }).filter(Boolean).join('\n\n');
         setFStd(totalH > 0 ? totalH.toFixed(1) : '');
@@ -26398,13 +26177,13 @@ function RpWochenView(props) {
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
     React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 } },
-      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' Wochenberichte'),
-      RpBtn({ label: '+ Neuer Wochenbericht', onClick: openNew })
+      React.createElement('div', { style: { fontSize: 13, color: '#64748B' } }, list.length + ' ' + L.w_count),
+      RpBtn({ label: L.w_btn, onClick: openNew })
     ),
 
     loading && React.createElement('div', { style: { textAlign: 'center', padding: 24, color: '#475569' } }, 'Lade...'),
 
-    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, 'Noch keine Wochenberichte.'),
+    !loading && list.length === 0 && React.createElement('div', { style: Object.assign({}, rpS.card, { textAlign: 'center', color: '#475569', fontSize: 13 }) }, L.none_w),
 
     list.map(function(item) {
       var isExp = expanded === item.id;
@@ -26423,14 +26202,9 @@ function RpWochenView(props) {
           ),
           React.createElement('div', { style: { textAlign: 'right' } },
             React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase' } }, item.status === 'submitted' ? 'Abgegeben' : 'Entwurf'),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 6, justifyContent: 'flex-end' } },
+            React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 4, justifyContent: 'flex-end' } },
               item.total_stunden > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '⏱ ' + item.total_stunden + ' h'),
               item.total_km > 0 && React.createElement('span', { style: { fontSize: 11, color: '#64748B' } }, '🚗 ' + item.total_km + ' km')
-            ),
-            React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }, onClick: function(e) { e.stopPropagation(); } },
-              RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-              RpBtn({ label: '🖨️', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
-              RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
             )
           )
         ),
@@ -26448,10 +26222,9 @@ function RpWochenView(props) {
             React.createElement('div', { style: rpS.label }, 'Bemerkungen'),
             React.createElement('div', { style: { fontSize: 12, color: '#94A3B8', whiteSpace: 'pre-wrap' } }, item.bemerkungen)
           ),
-          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
-            RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
-            RpBtn({ label: '🖨️ Drucken', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
+          React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
+            RpBtn({ label: '✏️ Bearbeiten', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
+            RpBtn({ label: item.status === 'draft' ? L.t_submit : L.t_todraft, sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
             RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
         )
@@ -26468,15 +26241,86 @@ function RpWochenView(props) {
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total Std.' }), RpInput({ type: 'number', value: fStd, onChange: setFStd, placeholder: '42.5' })),
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Total KM' }), RpInput({ type: 'number', value: fKm, onChange: setFKm }))
         ),
-        React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, '💡 Std. und KM werden automatisch aus den Tagesrapporten dieser KW berechnet.'),
-        RpField({ label: 'Zusammenfassung der Woche', children: RpTextarea({ value: fZus, onChange: setFZus, rows: 5, placeholder: 'Was wurde diese Woche gemacht?' }) }),
-        RpField({ label: 'Offene Arbeiten', children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
-        RpField({ label: 'Bemerkungen', children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
-        RpField({ label: 'Status', children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: '📝 Entwurf' }, { value: 'submitted', label: '✅ Abgegeben' }] }) }),
-        React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap' } },
-          RpBtn({ label: 'Abbrechen', ghost: true, onClick: function() { setForm(null); } }),
-          form !== 'new' && RpBtn({ label: '🖨️ Drucken', color: '#3B82F6', onClick: function() { rpPrintWochen(form); } }),
-          RpBtn({ label: fSaving ? '...' : '💾 Speichern', onClick: save })
+        React.createElement('div', { style: { fontSize: 11, color: '#475569', marginBottom: 10, padding: '6px 8px', background: '#0D1117', borderRadius: 6 } }, L.w_hint),
+
+        // ── Tagesrapporte desta KW (só leitura, expansíveis)
+        kwTages.length > 0 && React.createElement('div', { style: { marginBottom: 14 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', letterSpacing: '0.5px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+            React.createElement('span', null, '📄 ' + (props.lang === 'PT' ? 'Relatórios desta KW' : 'Tagesrapporte dieser KW') + ' (' + kwTages.length + ')'),
+            React.createElement('span', { style: { fontSize: 10, color: '#64748B' } }, props.lang === 'PT' ? 'toca ✓ para incluir/excluir' : 'tippen zum ein-/ausschliessen')
+          ),
+          kwTages.map(function(tr) {
+            var isOpen = expDay === tr.id;
+            var included = inclDays[tr.id] !== false;
+            var h = rpStunden(tr.h_start, tr.h_end);
+            var wday = new Date(tr.datum + 'T12:00:00');
+            return React.createElement('div', {
+              key: tr.id,
+              style: { background: included ? '#111827' : '#0a0a14', border: '1px solid ' + (included ? '#1E293B' : '#0f1629'), borderRadius: 10, marginBottom: 6, overflow: 'hidden', opacity: included ? 1 : 0.5 }
+            },
+              React.createElement('div', {
+                style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px' }
+              },
+                // Toggle checkbox
+                React.createElement('button', {
+                  onClick: function() {
+                    var newInc = Object.assign({}, inclDays);
+                    newInc[tr.id] = !included;
+                    setInclDays(newInc);
+                    // Recalculate totals
+                    var selH = 0, selKm = 0;
+                    kwTages.forEach(function(t) { if (newInc[t.id] !== false) { selH += rpStunden(t.h_start, t.h_end); selKm += (t.km || 0); } });
+                    setFStd(selH > 0 ? selH.toFixed(1) : '');
+                    setFKm(selKm > 0 ? String(selKm) : '');
+                  },
+                  style: { background: included ? '#22c55e22' : '#1E293B', border: '1px solid ' + (included ? '#22c55e' : '#334155'), borderRadius: 6, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: 14, color: included ? '#22c55e' : '#475569' }
+                }, included ? '✓' : '○'),
+                // Day info (tap to expand)
+                React.createElement('div', {
+                  onClick: function() { setExpDay(isOpen ? null : tr.id); },
+                  style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer' }
+                },
+                  React.createElement('div', { style: { width: 36, height: 36, borderRadius: 8, background: '#1E293B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } },
+                    React.createElement('span', { style: { fontSize: 9, color: '#64748B' } }, wday.toLocaleDateString('de-CH', { weekday: 'short' }).toUpperCase()),
+                    React.createElement('span', { style: { fontSize: 15, fontWeight: 800, color: '#E2E8F0' } }, wday.getDate())
+                  ),
+                  React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                    React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#E2E8F0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, tr.baustelle || '—'),
+                    React.createElement('div', { style: { fontSize: 11, color: '#64748B' } }, h.toFixed(1) + 'h' + (tr.km > 0 ? ' · ' + tr.km + ' km' : ''))
+                  ),
+                  React.createElement('span', { style: { color: '#475569', fontSize: 14 } }, isOpen ? '▲' : '▼')
+                )
+              ),
+              isOpen && React.createElement('div', { style: { padding: '8px 12px 12px', borderTop: '1px solid #1E293B' } },
+                tr.arbeit && React.createElement('div', { style: { marginBottom: 8 } },
+                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, props.lang === 'PT' ? 'TRABALHOS' : 'ARBEITEN'),
+                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1', lineHeight: 1.6 } }, tr.arbeit)
+                ),
+                tr.material && React.createElement('div', { style: { marginBottom: 8 } },
+                  React.createElement('div', { style: { fontSize: 10, color: '#64748B', fontWeight: 700, marginBottom: 4 } }, 'MATERIAL'),
+                  React.createElement('div', { style: { fontSize: 12, color: '#CBD5E1' } }, tr.material)
+                ),
+                (tr.anzahl_beps > 0 || tr.anzahl_muffe > 0 || tr.otdr_ok || tr.otdr_nok) && React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 } },
+                  tr.anzahl_beps > 0 && React.createElement('span', { style: { fontSize: 11, background: '#3B82F622', color: '#3B82F6', borderRadius: 6, padding: '2px 8px' } }, '🔌 ' + tr.anzahl_beps + ' BEP' + (tr.bep_typ ? ' ' + tr.bep_typ : '')),
+                  tr.anzahl_muffe > 0 && React.createElement('span', { style: { fontSize: 11, background: '#a78bfa22', color: '#a78bfa', borderRadius: 6, padding: '2px 8px' } }, '🔩 ' + tr.anzahl_muffe + ' Muffe' + (tr.muffe_typ ? ' ' + tr.muffe_typ : '')),
+                  tr.otdr_ok && React.createElement('span', { style: { fontSize: 11, background: '#22c55e22', color: '#22c55e', borderRadius: 6, padding: '2px 8px' } }, '📡 OTDR ✓'),
+                  tr.otdr_nok && React.createElement('span', { style: { fontSize: 11, background: '#ef444422', color: '#ef4444', borderRadius: 6, padding: '2px 8px' } }, '⚠️ OTDR N.OK')
+                ),
+                tr.probleme && React.createElement('div', { style: { borderLeft: '3px solid #F59E0B', paddingLeft: 8 } },
+                  React.createElement('div', { style: { fontSize: 12, color: '#94A3B8' } }, tr.probleme)
+                )
+              )
+            );
+          })
+        ),
+
+        RpField({ label: L.w_sum, children: RpTextarea({ value: fZus, onChange: setFZus, rows: 4, placeholder: 'Was wurde diese Woche gemacht?' }) }),
+        RpField({ label: L.w_open, children: RpTextarea({ value: fOff, onChange: setFOff, rows: 2, placeholder: 'Was bleibt noch offen?' }) }),
+        RpField({ label: L.w_rem, children: RpTextarea({ value: fBem, onChange: setFBem, rows: 2, placeholder: 'Sonstiges...' }) }),
+        RpField({ label: L.status, children: RpSelect({ value: fStatus, onChange: setFStatus, opts: [{ value: 'draft', label: L.t_draft }, { value: 'submitted', label: L.t_sub }] }) }),
+        React.createElement('div', { style: { display: 'flex', gap: 10 } },
+          RpBtn({ label: L.cancel, ghost: true, onClick: function() { setForm(null); } }),
+          RpBtn({ label: fSaving ? '...' : L.save, onClick: save })
         )
       )
     }),
@@ -26500,47 +26344,409 @@ function RapportApp(props) {
   var _stTab = React.useState('planung');
   var tab = _stTab[0], setTab = _stTab[1];
 
+  var _stLang = React.useState(function() { try { return localStorage.getItem('rpLang') || 'DE'; } catch(e) { return 'DE'; } });
+  var lang = _stLang[0], setLang = _stLang[1];
+  function toggleLang() {
+    var nl = lang === 'DE' ? 'PT' : 'DE';
+    try { localStorage.setItem('rpLang', nl); } catch(e) {}
+    setLang(nl);
+  }
+  var L = RP_L[lang];
+
   var TABS = [
-    { id: 'planung',  label: '📋 Planung' },
-    { id: 'tages',   label: '📄 Tagesrapport' },
-    { id: 'wochen',  label: '📊 Wochenbericht' },
+    { id: 'planung',  label: L.tab_plan },
+    { id: 'tages',   label: L.tab_tages },
+    { id: 'wochen',  label: L.tab_wochen },
   ];
 
-  return React.createElement('div', { style: rpS.page },
+  return React.createElement('div', { style: { background: T.bg, minHeight: '100vh', color: T.text, fontFamily: "'Inter','Segoe UI',sans-serif", fontSize: 14 } },
     // ── Header
     React.createElement('div', {
-      style: { background: '#0D1117', borderBottom: '1px solid #1E293B', padding: '14px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
+      style: { background: T.surface, borderBottom: '1px solid ' + T.border, padding: '10px 16px 0', position: 'sticky', top: 0, zIndex: 100 }
     },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 } },
-        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: '#64748B', fontSize: 22, cursor: 'pointer', padding: 0 } }, '‹'),
+      // Linha 1: voltar + título + botão língua (absolute)
+      React.createElement('div', { style: { position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, paddingRight: 70 } },
+        React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer', padding: 0, flexShrink: 0 } }, '‹'),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-          React.createElement('svg', { width: 32, height: 32, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
-            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
-            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F06400' })
-          ),
+          React.createElement('div', { style: { width: 28, height: 28, borderRadius: 7, background: '#F59E0B22', border: '1px solid #F59E0B44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 } }, '📋'),
           React.createElement('div', null,
-            React.createElement('div', { style: { fontWeight: 800, fontSize: 15 } }, 'Arnold Rapport'),
-            React.createElement('div', { style: { fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 14, color: T.text } }, 'Arnold Rapport'),
+            React.createElement('div', { style: { fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.5px' } }, 'Arnold AG · Selzach')
           )
-        )
+        ),
+        React.createElement('button', {
+          onClick: toggleLang,
+          style: { position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', background: '#F59E0B', border: 'none', borderRadius: 14, padding: '5px 12px', cursor: 'pointer', fontWeight: 900, fontSize: 12, color: '#0D1117', whiteSpace: 'nowrap' }
+        }, lang === 'DE' ? '🌐 PT' : '🌐 DE')
       ),
-      // ── Tab bar
-      React.createElement('div', { style: { display: 'flex', overflowX: 'auto' } },
+      // Linha 2: tabs centrados
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'center', borderTop: '1px solid ' + T.border } },
         TABS.map(function(t) {
           var active = tab === t.id;
           return React.createElement('button', {
             key: t.id,
             onClick: function() { setTab(t.id); },
-            style: { background: 'none', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : '#475569', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }
+            style: { background: 'none', border: 'none', borderBottom: '2px solid ' + (active ? '#F59E0B' : 'transparent'), padding: '8px 12px', fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#F59E0B' : T.muted, cursor: 'pointer', whiteSpace: 'nowrap' }
           }, t.label);
         })
       )
     ),
 
     // ── Content
-    tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId }),
-    tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId }),
-    tab === 'wochen'   && React.createElement(RpWochenView,  { userId: userId })
+    tab === 'planung'  && React.createElement(RpPlanungView, { userId: userId, lang: lang }),
+    tab === 'tages'    && React.createElement(RpTagesView,   { userId: userId, lang: lang }),
+    tab === 'wochen'   && React.createElement(RpWochenView,  { userId: userId, lang: lang })
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VIAGENS & VISITAS — grelha de meses, lista e detalhe
+// Todo o estado em ViagensApp (sem hooks em sub-componentes)
+// ══════════════════════════════════════════════════════════════════
+
+var VG_TYPES = [
+  { id: 'ferias', emoji: '🏖️', label: 'Férias', color: T.orange },
+  { id: 'visita', emoji: '👥', label: 'Visita', color: T.green },
+  { id: 'evento', emoji: '🎉', label: 'Evento', color: '#A855F7' },
+  { id: 'outro',  emoji: '📍', label: 'Outro',  color: T.muted }
+];
+function vgType(id) {
+  for (var i = 0; i < VG_TYPES.length; i++) if (VG_TYPES[i].id === id) return VG_TYPES[i];
+  return VG_TYPES[3];
+}
+var VG_MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var VG_SHORT  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
+var VG_BUCKET = 'trip-photos';
+
+function vgBlankForm(mes) {
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes !== undefined ? mes : new Date().getMonth(), dia_inicio: '', dia_fim: '', notas: '', album_url: '' };
+}
+function vgUploadFoto(db, file, tripId, idx) {
+  return new Promise(function(resolve, reject) {
+    var ext = (file.name || 'jpg').split('.').pop();
+    var path = tripId + '/' + Date.now() + '_' + idx + '.' + ext;
+    db.storage.from(VG_BUCKET).upload(path, file, { upsert: true })
+      .then(function(r) { if (r.error) { reject(r.error); return; } resolve(VG_SUPABASE_URL + '/storage/v1/object/public/' + VG_BUCKET + '/' + path); })
+      .catch(reject);
+  });
+}
+
+// ── App principal (todo o estado aqui) ───────────────────────────
+function ViagensApp(props) {
+  var onBack = props.onBack, profile = props.profile;
+  var db = window.supabaseClient;
+
+  // Estado principal
+  var _s1 = React.useState([]); var trips = _s1[0], setTrips = _s1[1];
+  var _s2 = React.useState(true); var loading = _s2[0], setLoading = _s2[1];
+  var _s3 = React.useState(new Date().getFullYear()); var year = _s3[0], setYear = _s3[1];
+  var _s4 = React.useState(null); var selMonth = _s4[0], setSelMonth = _s4[1];
+  // Estado do formulário
+  var _s5 = React.useState(null); var form = _s5[0], setForm = _s5[1];
+  var _s6 = React.useState(vgBlankForm()); var formData = _s6[0], setFormData = _s6[1];
+  var _s7 = React.useState(false); var saving = _s7[0], setSaving = _s7[1];
+  var _s8 = React.useState(null); var progress = _s8[0], setProgress = _s8[1];
+  var _s9 = React.useState(false); var formExpanded = _s9[0], setFormExpanded = _s9[1];
+  // Estado do detalhe
+  var _s10 = React.useState(null); var detailTrip = _s10[0], setDetailTrip = _s10[1];
+  var _s11 = React.useState([]); var detailFotos = _s11[0], setDetailFotos = _s11[1];
+  var _s12 = React.useState(false); var detailLoading = _s12[0], setDetailLoading = _s12[1];
+  var _s13 = React.useState(null); var lightbox = _s13[0], setLightbox = _s13[1];
+  // Confirmação de apagar
+  var _s14 = React.useState(null); var confirmDel = _s14[0], setConfirmDel = _s14[1];
+
+  // Carregar viagens
+  function load() {
+    if (!db) { setLoading(false); return; }
+    setLoading(true);
+    function doLoad() {
+      db.from('family_trips_list').select('*').eq('ano', year)
+        .order('mes').order('dia_inicio')
+        .then(function(r) { setTrips(r.data || []); setLoading(false); })
+        .catch(function(err) {
+          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
+            db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { setLoading(false); });
+          } else { setLoading(false); }
+        });
+    }
+    db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { doLoad(); });
+  }
+  React.useEffect(load, [year]);
+
+  function byMonth(m) { return trips.filter(function(t) { return t.mes === m; }); }
+
+  // Abrir detalhe
+  function openDetail(trip) {
+    setDetailTrip(trip);
+    setDetailFotos([]);
+    setDetailLoading(true);
+    setLightbox(null);
+    db.from('family_trips').select('fotos').eq('id', trip.id).single()
+      .then(function(r) { setDetailFotos((r.data && r.data.fotos) || []); setDetailLoading(false); })
+      .catch(function() { setDetailLoading(false); });
+  }
+
+  // Abrir formulário
+  function openAdd(mes) {
+    setFormData(vgBlankForm(mes !== undefined ? mes : new Date().getMonth()));
+    setFormExpanded(false);
+    setForm('new');
+  }
+  function openEdit(trip) {
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', album_url: trip.album_url || '' });
+    setFormExpanded(false);
+    setForm(trip);
+
+  }
+
+  // Guardar
+  function saveTrip() {
+    if (!formData.titulo.trim() || !formData.local.trim()) return;
+    setSaving(true);
+    var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, created_by: profile && profile.id };
+    var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
+    op.then(function() { setSaving(false); setForm(null); load(); }).catch(function() { setSaving(false); });
+  }
+
+  function deleteTrip(id) { db.from('family_trips').delete().eq('id', id).then(function() { setConfirmDel(null); load(); }); }
+
+  var wrap = { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif', paddingBottom: 40 };
+  var inp = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
+
+  var headerBar = React.createElement('div', { style: { background: T.surface, borderBottom: '1px solid ' + T.goldBrd, padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 200 } },
+    React.createElement('button', { onClick: onBack, style: { background: 'none', border: 'none', color: T.gold, fontSize: 26, cursor: 'pointer', lineHeight: 1, padding: 0 } }, '‹'),
+    React.createElement('div', null,
+      React.createElement('div', { style: { fontWeight: 800, fontSize: 17 } }, '✈️ Viagens & Visitas'),
+      React.createElement('div', { style: { fontSize: 11, color: T.muted } }, 'Onde fomos e quando')
+    )
+  );
+
+  var confirmModal = confirmDel && React.createElement('div', { style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 24 } },
+    React.createElement(Card, { style: { padding: 22, maxWidth: 340, width: '100%' } },
+      React.createElement('div', { style: { fontWeight: 800, fontSize: 16, marginBottom: 8 } }, 'Apagar esta entrada?'),
+      React.createElement('div', { style: { color: T.muted, fontSize: 13, marginBottom: 18 } }, 'Esta ação não pode ser desfeita.'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { onClick: function() { setConfirmDel(null); }, style: { flex: 1, padding: 11, borderRadius: 10, border: '1px solid ' + T.border, background: 'none', color: T.muted, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
+        React.createElement('button', { onClick: function() { deleteTrip(confirmDel); }, style: { flex: 1, padding: 11, borderRadius: 10, border: 'none', background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer' } }, 'Apagar')
+      )
+    )
+  );
+
+  // ── Vista de detalhe ──────────────────────────────────────────
+  if (detailTrip) {
+    var ti = vgType(detailTrip.tipo);
+    var days = detailTrip.dia_inicio ? (detailTrip.dia_inicio + (detailTrip.dia_fim ? '–' + detailTrip.dia_fim : '') + ' de ' + VG_MONTHS[detailTrip.mes]) : VG_MONTHS[detailTrip.mes];
+    return React.createElement('div', { style: wrap },
+      React.createElement('div', { style: { background: T.surface, borderBottom: '1px solid ' + T.goldBrd, padding: '13px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 200 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+          React.createElement('button', { onClick: function() { setDetailTrip(null); setLightbox(null); }, style: { background: 'none', border: 'none', color: T.gold, fontSize: 26, cursor: 'pointer', lineHeight: 1, padding: 0 } }, '‹'),
+          React.createElement('span', { style: { fontWeight: 800, fontSize: 17 } }, detailTrip.titulo)
+        ),
+        React.createElement('button', { onClick: function() { openEdit(detailTrip); setDetailTrip(null); }, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: 700 } }, '✏️ Editar')
+      ),
+      React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
+        React.createElement(Card, { style: { padding: 16, marginBottom: 14 } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' } },
+            React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#fff', background: ti.color, padding: '4px 12px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
+            React.createElement('span', { style: { fontSize: 13, color: T.muted } }, days)
+          ),
+          React.createElement('div', { style: { fontSize: 15, fontWeight: 700, marginBottom: 4 } }, '📍 ' + detailTrip.local),
+          detailTrip.notas && React.createElement('div', { style: { fontSize: 13, color: T.muted, lineHeight: 1.6, marginTop: 8 } }, detailTrip.notas),
+          detailTrip.album_url && React.createElement('a', { href: detailTrip.album_url, target: '_blank', rel: 'noopener', style: { display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '9px 16px', background: '#4285F4', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: 'none' } }, '📷 Abrir Álbum Google Fotos')
+        ),
+        React.createElement('div', { style: { fontWeight: 700, fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.06em' } }, 'FOTOS' + (detailTrip.fotos_count > 0 ? ' (' + detailTrip.fotos_count + ')' : '')),
+        detailLoading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar fotos…'),
+        !detailLoading && detailFotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
+        !detailLoading && detailFotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
+          detailFotos.map(function(url, idx) {
+            return React.createElement('div', { key: idx, onClick: function() { setLightbox({ urls: detailFotos, idx: idx }); }, style: { position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: T.surface2 } },
+              React.createElement('img', { src: url, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } })
+            );
+          })
+        )
+      ),
+      lightbox && React.createElement('div', { onClick: function() { setLightbox(null); }, style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 600, padding: 16 } },
+        React.createElement('div', { onClick: function(e) { e.stopPropagation(); }, style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, maxWidth: '100%' } },
+          React.createElement('img', { src: lightbox.urls[lightbox.idx], style: { maxWidth: '100%', maxHeight: '75vh', borderRadius: 14, objectFit: 'contain' } }),
+          lightbox.urls.length > 1 && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
+            React.createElement('button', { onClick: function() { setLightbox({ urls: lightbox.urls, idx: (lightbox.idx - 1 + lightbox.urls.length) % lightbox.urls.length }); }, style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' } }, '‹'),
+            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 700 } }, (lightbox.idx + 1) + ' / ' + lightbox.urls.length),
+            React.createElement('button', { onClick: function() { setLightbox({ urls: lightbox.urls, idx: (lightbox.idx + 1) % lightbox.urls.length }); }, style: { background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 42, height: 42, borderRadius: '50%', fontSize: 22, cursor: 'pointer' } }, '›')
+          ),
+          React.createElement('button', { onClick: function() { setLightbox(null); }, style: { background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 22px', borderRadius: 20, cursor: 'pointer', fontSize: 13 } }, 'Fechar')
+        )
+      )
+    );
+  }
+
+  // ── Formulário ────────────────────────────────────────────────
+  if (form) {
+    var fotos = formData.fotos || [];
+    var visiveis = (!formExpanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
+    var MAX_FOTOS = 100;
+    function addFiles(files) {
+      var current = fotos.slice(), pf = (formData._pendingFiles || []).slice();
+      var slots = MAX_FOTOS - current.length;
+      if (slots <= 0) return;
+      var existingKeys = pf.map(function(f) { return f.name + '_' + f.size; });
+      var arr = Array.prototype.slice.call(files).filter(function(f) {
+        var key = f.name + '_' + f.size;
+        if (existingKeys.indexOf(key) !== -1) return false;
+        existingKeys.push(key);
+        return true;
+      }).slice(0, slots);
+      Promise.all(arr.map(function(f) { return new Promise(function(res) { var r = new FileReader(); r.onload = function(e) { res(e.target.result); }; r.readAsDataURL(f); }); }))
+        .then(function(results) { setFormData(Object.assign({}, formData, { fotos: current.concat(results), _pendingFiles: pf.concat(arr) })); });
+    }
+    function removePhoto(idx) {
+      var nf = fotos.slice(); nf.splice(idx, 1);
+      var npf = (formData._pendingFiles || []).slice(), existing = fotos.length - (formData._pendingFiles || []).length;
+      if (idx >= existing) npf.splice(idx - existing, 1);
+      setFormData(Object.assign({}, formData, { fotos: nf, _pendingFiles: npf }));
+    }
+    var valid = formData.titulo.trim() && formData.local.trim();
+    return React.createElement('div', { style: wrap },
+      headerBar,
+      React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 } },
+          React.createElement('button', { onClick: function() { setForm(null); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 24, cursor: 'pointer' } }, '‹'),
+          React.createElement('span', { style: { fontWeight: 800, fontSize: 18 } }, form === 'new' ? 'Nova Entrada' : 'Editar Entrada')
+        ),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 } },
+          VG_TYPES.map(function(t) { var sel = formData.tipo === t.id; return React.createElement('button', { key: t.id, onClick: function() { setFormData(Object.assign({}, formData, { tipo: t.id })); }, style: { padding: '10px 6px', borderRadius: 11, fontWeight: 800, cursor: 'pointer', fontSize: 13, border: '2px solid ' + (sel ? t.color : T.border), background: sel ? t.color : T.surface2, color: sel ? '#fff' : T.muted } }, t.emoji + ' ' + t.label); })
+        ),
+        React.createElement('div', { style: { marginBottom: 12 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'MÊS'),
+          React.createElement('select', { value: formData.mes, onChange: function(e) { setFormData(Object.assign({}, formData, { mes: parseInt(e.target.value, 10) })); }, style: inp },
+            VG_MONTHS.map(function(m, i) { return React.createElement('option', { key: i, value: i }, m); })
+          )
+        ),
+        React.createElement('div', { style: { marginBottom: 12 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'TÍTULO'),
+          React.createElement('input', { value: formData.titulo, onChange: function(e) { setFormData(Object.assign({}, formData, { titulo: e.target.value })); }, placeholder: 'Ex: Férias em família', style: inp })
+        ),
+        React.createElement('div', { style: { marginBottom: 12 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'LOCAL'),
+          React.createElement('input', { value: formData.local, onChange: function(e) { setFormData(Object.assign({}, formData, { local: e.target.value })); }, placeholder: 'Ex: Barcelona, Espanha', style: inp })
+        ),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 } },
+          React.createElement('div', null, React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'DIA INÍCIO'), React.createElement('input', { type: 'number', min: 1, max: 31, value: formData.dia_inicio, onChange: function(e) { setFormData(Object.assign({}, formData, { dia_inicio: e.target.value })); }, placeholder: '1', style: inp })),
+          React.createElement('div', null, React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'DIA FIM'), React.createElement('input', { type: 'number', min: 1, max: 31, value: formData.dia_fim, onChange: function(e) { setFormData(Object.assign({}, formData, { dia_fim: e.target.value })); }, placeholder: '31', style: inp }))
+        ),
+        React.createElement('div', { style: { marginBottom: 12 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'ÁLBUM GOOGLE FOTOS'),
+          React.createElement('input', { value: formData.album_url || '', onChange: function(e) { setFormData(Object.assign({}, formData, { album_url: e.target.value })); }, placeholder: 'https://photos.app.goo.gl/...', style: inp })
+        ),
+        React.createElement('div', { style: { marginBottom: 12 } },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'NOTAS'),
+          React.createElement('textarea', { value: formData.notas, onChange: function(e) { setFormData(Object.assign({}, formData, { notas: e.target.value })); }, placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inp, { resize: 'vertical' }) })
+        ),
+        React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
+          saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
+        )
+      )
+    );
+  }
+
+  var now = new Date();
+
+  // ── Vista do mês ──────────────────────────────────────────────
+  if (selMonth !== null) {
+    var mTrips = byMonth(selMonth);
+    return React.createElement('div', { style: wrap },
+      headerBar,
+      React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 } },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
+            React.createElement('button', { onClick: function() { setSelMonth(null); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '←'),
+            React.createElement('div', null,
+              React.createElement('div', { style: { fontWeight: 800, fontSize: 19 } }, VG_MONTHS[selMonth]),
+              React.createElement('div', { style: { fontSize: 12, color: T.muted } }, year + ' · ' + mTrips.length + ' entrada' + (mTrips.length !== 1 ? 's' : ''))
+            )
+          ),
+          React.createElement(GoldBtn, { onClick: function() { openAdd(selMonth); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
+        ),
+        loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
+        !loading && mTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '46px 16px', color: T.muted } },
+          React.createElement('div', { style: { fontSize: 44, marginBottom: 10 } }, '📅'),
+          React.createElement('div', { style: { fontSize: 14, marginBottom: 14 } }, 'Nenhuma entrada neste mês'),
+          React.createElement('button', { onClick: function() { openAdd(selMonth); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Adicionar entrada')
+        ),
+        !loading && mTrips.map(function(t) {
+          var ti = vgType(t.tipo);
+          var days = t.dia_inicio ? (t.dia_inicio + (t.dia_fim ? '–' + t.dia_fim : '') + ' ' + VG_SHORT[t.mes]) : VG_SHORT[t.mes];
+          return React.createElement(Card, {
+            key: t.id,
+            style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' },
+            onClick: function() { openDetail(t); }
+          },
+            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
+                React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#fff', background: ti.color, padding: '3px 10px', borderRadius: 20 } }, ti.emoji + ' ' + ti.label),
+                React.createElement('span', { style: { fontSize: 11, color: T.muted } }, days)
+              ),
+              React.createElement('div', { style: { fontWeight: 800, fontSize: 15.5, marginBottom: 2, color: T.text } }, t.titulo),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' } },
+                React.createElement('span', { style: { color: T.muted, fontSize: 13 } }, '📍 ' + t.local),
+                t.fotos_count > 0 && React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: T.gold, background: T.goldDim, padding: '1px 7px', borderRadius: 10 } }, '📷 ' + t.fotos_count),
+                t.album_url && React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#4285F4', background: 'rgba(66,133,244,0.12)', padding: '1px 7px', borderRadius: 10 } }, '🔗')
+              ),
+              t.notas && React.createElement('div', { style: { color: T.muted, fontSize: 12, marginTop: 4, lineHeight: 1.4, opacity: 0.85 } }, t.notas)
+            ),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 }, onClick: function(e) { e.stopPropagation(); } },
+              React.createElement('button', { onClick: function() { openEdit(t); }, style: { background: 'none', border: '1px solid ' + T.border, borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '✏️'),
+              React.createElement('button', { onClick: function() { setConfirmDel(t.id); }, style: { background: 'none', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 9, padding: '6px 9px', fontSize: 13, cursor: 'pointer' } }, '🗑️')
+            )
+          );
+        })
+      ),
+      confirmModal
+    );
+  }
+
+  // ── Grelha de meses (vista principal) ─────────────────────────
+  return React.createElement('div', { style: wrap },
+    headerBar,
+    React.createElement('div', { style: { padding: 16, maxWidth: 520, margin: '0 auto' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 } },
+        React.createElement('div', { style: { fontSize: 12.5, color: T.muted } }, trips.length + ' entrada' + (trips.length !== 1 ? 's' : '') + ' em ' + year),
+        React.createElement(GoldBtn, { onClick: function() { openAdd(now.getMonth()); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
+      ),
+      React.createElement(Card, { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '11px 0', marginBottom: 14 } },
+        React.createElement('button', { onClick: function() { setYear(year - 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '‹'),
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 22 } }, year),
+        React.createElement('button', { onClick: function() { setYear(year + 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '›')
+      ),
+      loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
+      !loading && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
+        VG_MONTHS.map(function(_, idx) {
+          var mTrips = byMonth(idx);
+          var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
+          return React.createElement('button', {
+            key: idx, onClick: function() { setSelMonth(idx); },
+            style: { background: isCurrent ? T.goldDim : T.surface, border: '2px solid ' + (isCurrent ? T.gold : (mTrips.length ? T.goldBrd : T.border)), borderRadius: 13, padding: '11px 10px', cursor: 'pointer', textAlign: 'left' }
+          },
+            React.createElement('div', { style: { fontWeight: 700, fontSize: 11, color: isCurrent ? T.gold : (mTrips.length ? vgType(mTrips[0].tipo).color : T.muted), marginBottom: 6 } }, VG_SHORT[idx]),
+            mTrips.length === 0
+              ? React.createElement('div', { style: { color: T.border, fontSize: 10 } }, '—')
+              : React.createElement('div', null,
+                  React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
+                    mTrips.slice(0, 3).map(function(t) {
+                      var ti = vgType(t.tipo);
+                      return React.createElement('div', { key: t.id, style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo);
+                    }),
+                    mTrips.length > 3 && React.createElement('div', { style: { fontSize: 9, color: T.muted } }, '+' + (mTrips.length - 3) + ' mais')
+                  )
+                )
+          );
+        })
+      ),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 16, justifyContent: 'center' } },
+        VG_TYPES.map(function(t) { return React.createElement('span', { key: t.id, style: { fontSize: 11, fontWeight: 800, color: '#fff', background: t.color, padding: '3px 10px', borderRadius: 20 } }, t.emoji + ' ' + t.label); })
+      )
+    ),
+    confirmModal
   );
 }
 
@@ -27868,6 +28074,7 @@ function CarvalhoSuite() {
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'hauswart' && isAdmin) return /*#__PURE__*/React.createElement(HauswartApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'rapport' && isAdmin) return /*#__PURE__*/React.createElement(RapportApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'viagens') return /*#__PURE__*/React.createElement(ViagensApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
