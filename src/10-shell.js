@@ -1,3 +1,4 @@
+// build-force-174
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -379,7 +380,9 @@ function CarvalhoSuite() {
         jobRes = resArr[1],
         escRes = resArr[2];
       var items = [];
-      (famRes && famRes.data || []).forEach(function (row) {
+      (famRes && famRes.data || []).filter(function (row) {
+        return row.source !== 'escolar';
+      }).forEach(function (row) {
         items.push({
           id: 'fam_' + row.id,
           app: 'Família',
@@ -1143,22 +1146,11 @@ function CarvalhoSuite() {
         return;
       }
       var found = false;
-      reg.onupdatefound = function () {
-        found = true;
-        var installing = reg.installing;
-        if (installing) {
-          installing.onstatechange = function () {
-            if (installing.state === 'activated') {
-              setUpdMsg('✓ Nova versão instalada — a reiniciar...');
-              setTimeout(function () { window.location.reload(); }, 800);
-            }
-          };
-        }
-      };
+      reg.onupdatefound = function () { found = true; };
       reg.update().then(function () {
         setTimeout(function () {
           setUpdChecking(false);
-          if (!found) setUpdMsg('✓ Já tens a versão mais recente.');
+          setUpdMsg(found ? '✓ Nova versão encontrada — a aplicar e reiniciar...' : '✓ Já tens a versão mais recente.');
         }, 1200);
       }).catch(function (err) {
         setUpdChecking(false);
@@ -1330,7 +1322,6 @@ function CarvalhoSuite() {
     if (activeApp === 'subby') return /*#__PURE__*/React.createElement(SubbyApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'hauswart' && isAdmin) return /*#__PURE__*/React.createElement(HauswartApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'rapport' && isAdmin) return /*#__PURE__*/React.createElement(RapportApp, { profile: profile, onBack: function() { setApp(null); } });
-    if (activeApp === 'viagens' && isAdmin) return /*#__PURE__*/React.createElement(ViagensApp, { userId: profile.id, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
@@ -1992,7 +1983,7 @@ function CarvalhoSuite() {
         app.id === 'rapport'
           ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
               React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
-              React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F06400' }))
+              React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
           : React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
         React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } },
           app.name,
@@ -2515,7 +2506,7 @@ function CarvalhoSuite() {
       }, app.id === 'rapport'
         ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
             React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
-            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F06400' }))
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
         : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
       , /*#__PURE__*/React.createElement("span", {
         style: {
@@ -2663,7 +2654,7 @@ function CarvalhoSuite() {
       }, app.id === 'rapport'
         ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
             React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
-            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F06400' }))
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
         : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
       , /*#__PURE__*/React.createElement("span", {
         style: {
@@ -3245,7 +3236,7 @@ function CarvalhoSuite() {
     }, app.id === 'rapport'
       ? React.createElement('svg', { width: 28, height: 28, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
           React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
-          React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F06400' }))
+          React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#F97316' }))
       : /*#__PURE__*/React.createElement("span", { style: { fontSize: 22 } }, app.emoji)
     ), /*#__PURE__*/React.createElement("div", {
       style: {
