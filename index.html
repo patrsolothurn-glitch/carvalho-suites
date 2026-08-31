@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-31T20:17:51.131Z
+  Gerado em: 2026-08-31T20:19:25.681Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-208";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-209";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -102,7 +102,7 @@
           proto.then = function (onf, onr) {
             return origThen.call(this, function (res) {
               try {
-                if (res && res.error && res.error.code !== 'PGRST116') {
+                if (res && res.error && res.error.code !== 'PGRST116' && res.error.code !== 'PGRST205') {
                   window.mostrarErro('Supabase', res.error);
                 }
               } catch (e) {}
