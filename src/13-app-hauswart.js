@@ -882,16 +882,16 @@ function HwPrintView(props) {
   };
 
   var SecHead = function(sp) {
-    return React.createElement('div', { style: { background: '#1d4ed8', padding: '7px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-      React.createElement('span', { style: { color: 'white', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 } }, sp.title),
-      React.createElement('span', { style: { color: '#93c5fd', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' } }, 'Betrag CHF')
+    return React.createElement('div', { style: { background: '#374151', padding: '5px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+      React.createElement('span', { style: { color: '#f9fafb', fontWeight: 700, fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.2 } }, sp.title),
+      React.createElement('span', { style: { color: '#d1d5db', fontWeight: 600, fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 } }, 'Betrag CHF')
     );
   };
 
   var SubTotal = function(stp) {
-    return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', padding: '8px 16px', background: '#eef2ff', borderTop: '1px solid #c7d2fe' } },
-      React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#3730a3' } }, stp.label),
-      React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#3730a3', whiteSpace: 'nowrap' } }, stp.value)
+    return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', padding: '6px 14px', background: '#f9fafb', borderTop: '1px solid #e5e7eb' } },
+      React.createElement('span', { style: { fontSize: 10, fontWeight: 700, color: '#374151', fontStyle: 'italic' } }, stp.label),
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: '#111', whiteSpace: 'nowrap' } }, stp.value)
     );
   };
 
@@ -1040,7 +1040,7 @@ function HwPrintView(props) {
 
           // POSITIONEN
           React.createElement('div', { style: { paddingLeft: 52, paddingRight: 52 } },
-            React.createElement('div', { style: { border: '1px solid #dde6f8', borderRadius: 8, overflow: 'hidden' } },
+            React.createElement('div', { style: { border: '1px solid #d1d5db', borderRadius: 4, overflow: 'hidden' } },
               pauschale > 0 && React.createElement('div', null,
                 React.createElement(SecHead, { title: 'Hauswartung' }),
                 React.createElement(Row, { label: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, value: pauschale.toFixed(2), sub: cfg.location })
@@ -1059,7 +1059,7 @@ function HwPrintView(props) {
                 }),
                 mats.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Material', value: totalMats.toFixed(2) })
               ),
-              React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#93c5fd 100%)' } })
+              React.createElement('div', { style: { height: 2, background: '#374151' } })
             )
           ),
 
