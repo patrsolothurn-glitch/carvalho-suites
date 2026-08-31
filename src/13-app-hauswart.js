@@ -54,6 +54,14 @@ function hwPlus30Days(dt) {
   return r;
 }
 
+var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function hwFmtMonthYear(d) {
+  if (!d) return '';
+  var dt = new Date(d + 'T12:00:00');
+  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
+}
+
 function HwDatePick(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
 
