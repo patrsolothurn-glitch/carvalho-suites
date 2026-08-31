@@ -829,13 +829,42 @@ function HwPrintView(props) {
   var scale = _useStateScale[0], setScale = _useStateScale[1];
 
   React.useEffect(function() {
-    var update = function() {
+    // Screen: scale to fit mobile
+    var updateScreen = function() {
       var w = window.innerWidth;
       setScale(w < 820 ? (w - 16) / 794 : 1);
     };
-    update();
-    window.addEventListener('resize', update);
-    return function() { window.removeEventListener('resize', update); };
+    updateScreen();
+    window.addEventListener('resize', updateScreen);
+
+    // Print: auto-scale print-page to fit 1 A4 page
+    var beforePrint = function() {
+      var pp = document.getElementById('print-page');
+      if (!pp) return;
+      var A4H = Math.round(297 * 96 / 25.4); // 1123px
+      var h = pp.scrollHeight;
+      if (h > A4H) {
+        var s = (A4H / h).toFixed(4);
+        pp.dataset.printScale = s;
+        pp.style.cssText += ';transform:scale(' + s + ') !important;transform-origin:top left !important;height:' + Math.round(h * parseFloat(s)) + 'px !important;';
+      }
+    };
+    var afterPrint = function() {
+      var pp = document.getElementById('print-page');
+      if (pp && pp.dataset.printScale) {
+        pp.style.transform = '';
+        pp.style.height = '';
+        delete pp.dataset.printScale;
+      }
+    };
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+
+    return function() {
+      window.removeEventListener('resize', updateScreen);
+      window.removeEventListener('beforeprint', beforePrint);
+      window.removeEventListener('afterprint', afterPrint);
+    };
   }, []);
 
   var dateStr = cfg.invoiceDate
@@ -843,12 +872,12 @@ function HwPrintView(props) {
     : new Date().toLocaleDateString('de-CH');
 
   var Row = function(rp) {
-    return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '11px 16px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
-      React.createElement('div', { style: { flex: 1, paddingRight: 20 } },
-        React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#111' } }, rp.label),
-        rp.sub && React.createElement('div', { style: { fontSize: 11, color: '#777', marginTop: 2 } }, rp.sub)
+    return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '8px 14px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
+      React.createElement('div', { style: { flex: 1, paddingRight: 16 } },
+        React.createElement('div', { style: { fontSize: 12, fontWeight: 600, color: '#111' } }, rp.label),
+        rp.sub && React.createElement('div', { style: { fontSize: 10, color: '#777', marginTop: 1 } }, rp.sub)
       ),
-      React.createElement('div', { style: { minWidth: 110, textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#111', whiteSpace: 'nowrap' } }, rp.value)
+      React.createElement('div', { style: { minWidth: 100, textAlign: 'right', fontWeight: 700, fontSize: 12, color: '#111', whiteSpace: 'nowrap' } }, rp.value)
     );
   };
 
@@ -1087,7 +1116,7 @@ function HwPrintView(props) {
       '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
-      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
+      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 8mm 12mm !important; box-sizing: border-box !important; }' +
       '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
       '  #zahlteil-page { background: white !important; }' +
       '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
