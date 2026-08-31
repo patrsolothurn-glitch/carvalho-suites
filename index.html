@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-31T20:58:51.890Z
+  Gerado em: 2026-08-31T21:03:33.343Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-182";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-183";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -21260,7 +21260,7 @@ function enviarCodigoWhatsApp(nome, codigo, telefone) {
 function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
-    isAdmin = _ref.isAdmin,
+    isGlobalAdmin = _ref.isAdmin,
     isSuperAdmin = _ref.isSuperAdmin,
     onBack = _ref.onBack,
     initialView = _ref.initialView;
@@ -21341,6 +21341,15 @@ function LucasApp(_ref) {
     _useState20 = _slicedToArray(_useState19, 2),
     config = _useState20[0],
     setConfig = _useState20[1];
+  // Admins desta app: o admin global da Suite (Patricio) + quem estiver
+  // listado em lucas_config.escola_admins (ex.: "patricio,esposa").
+  // Quem nao for admin so ve o Plano/Historico/Imprimir, sem editar.
+  var meuMemberId = (user && (user.member_id || user.id)) || '';
+  var adminsDaApp = String(config.escola_admins || '')
+    .split(',')
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+  var isAdmin = !!isGlobalAdmin || adminsDaApp.indexOf(meuMemberId) !== -1;
   var _useState21 = useState(null),
     _useState22 = _slicedToArray(_useState21, 2),
     editField = _useState22[0],
@@ -22960,7 +22969,93 @@ function LucasApp(_ref) {
       }))), /*#__PURE__*/React.createElement(DriverActions, {
         driver: d
       }));
-    })), /*#__PURE__*/React.createElement(VisitantesSection, null));
+    })), /*#__PURE__*/React.createElement(VisitantesSection, null), /*#__PURE__*/React.createElement(AdminsSection, null));
+  }
+  // Seccao onde o admin global escolhe quem mais pode EDITAR esta app.
+  // Quem nao estiver marcado ve o plano e imprime, mas nao altera nada.
+  function AdminsSection() {
+    var _stMembros = useState([]),
+      _stMembros2 = _slicedToArray(_stMembros, 2),
+      membros = _stMembros2[0],
+      setMembros = _stMembros2[1];
+    var _stOpenA = useState(false),
+      _stOpenA2 = _slicedToArray(_stOpenA, 2),
+      openA = _stOpenA2[0],
+      setOpenA = _stOpenA2[1];
+    useEffect(function () {
+      if (!isGlobalAdmin || !supabase) return;
+      supabase.from('profiles').select('id,display_name,member_id,allowed_apps').then(function (res) {
+        var lista = (res.data || []).filter(function (p) {
+          var apps = p.allowed_apps || [];
+          return apps.indexOf('escola_lucas') !== -1;
+        });
+        setMembros(lista);
+      });
+    }, [isGlobalAdmin]);
+    if (!isGlobalAdmin) return null;
+    function toggle(memberId) {
+      var atuais = adminsDaApp.slice();
+      var i = atuais.indexOf(memberId);
+      if (i === -1) atuais.push(memberId);else atuais.splice(i, 1);
+      saveConfig('escola_admins', atuais.join(','));
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: { marginTop: 12 }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() { setOpenA(function (v) { return !v; }); },
+      style: {
+        background: openA ? '#1a237e' : C.card,
+        borderRadius: openA ? '12px 12px 0 0' : 12,
+        padding: '12px 16px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: { fontWeight: 800, fontSize: 14, color: openA ? '#fff' : '#1a237e' }
+    }, "\uD83D\uDC51 Quem pode editar"), /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: 11, color: openA ? 'rgba(255,255,255,.75)' : '#999', marginTop: 2 }
+    }, adminsDaApp.length + " al\u00e9m de ti")), /*#__PURE__*/React.createElement("span", {
+      style: { color: openA ? '#fff' : '#bbb', fontSize: 12 }
+    }, openA ? '\u25b4' : '\u25be')), openA && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#f5f6ff',
+        borderRadius: '0 0 12px 12px',
+        padding: '12px 16px'
+      }
+    }, membros.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: 12, color: '#999' }
+    }, "Ningu\u00e9m com acesso a esta app."), membros.map(function (m) {
+      var marcado = adminsDaApp.indexOf(m.member_id) !== -1;
+      return /*#__PURE__*/React.createElement("div", {
+        key: m.id,
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 0',
+          borderBottom: '1px solid #e8e8f0'
+        }
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: { fontWeight: 700, fontSize: 13, color: '#1a237e' }
+      }, m.display_name || m.member_id), /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: 11, color: '#999' }
+      }, marcado ? 'Pode editar' : 'S\u00f3 ver e imprimir')), /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() { toggle(m.member_id); },
+        style: {
+          border: 'none',
+          borderRadius: 16,
+          padding: '5px 12px',
+          fontSize: 11,
+          fontWeight: 800,
+          cursor: 'pointer',
+          background: marcado ? '#1a237e' : '#e0e0e0',
+          color: marcado ? '#fff' : '#777'
+        }
+      }, marcado ? '\u2713 Admin' : 'Tornar admin'));
+    })));
   }
   function VisitantesSection() {
     var _useState47 = useState(false),
