@@ -48,6 +48,12 @@ function hwFmtDate(d) {
 function hwToday() { return new Date().toISOString().slice(0,10); }
 
 // ── DatePick ──
+function hwPlus30Days(dt) {
+  var r = new Date(dt.getTime());
+  r.setDate(r.getDate() + 30);
+  return r;
+}
+
 function HwDatePick(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
 
