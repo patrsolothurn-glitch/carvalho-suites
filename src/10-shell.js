@@ -1327,13 +1327,15 @@ function CarvalhoSuite() {
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
     }, sharedProps));
-    if (activeApp === 'escola_lucas' && isAdmin) return /*#__PURE__*/React.createElement(LucasApp, {
+    if (activeApp === 'escola_lucas') return /*#__PURE__*/React.createElement(LucasApp, {
       supabase: window.supabaseClient,
       user: profile,
-      isAdmin: true,
-      isSuperAdmin: true,
+      // Passa as permissoes REAIS: um nao-admin (ex. Lucas) so ve
+      // Plano/Historico/Imprimir, sem separador Acesso nem edicao.
+      isAdmin: isAdmin,
+      isSuperAdmin: isAdmin,
       onBack: goBack,
-      initialView: 'autorizacoes'
+      initialView: isAdmin ? 'autorizacoes' : 'plano'
     });
   }
 
@@ -1970,7 +1972,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true, adminOnly: true }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: false }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true }].filter(function (app) {
       if (app.adminOnly) return isAdmin;
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
