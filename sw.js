@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-vc4185f1d';
+const CACHE = 'carvalho-v4b849864';
 const ASSETS = [
   './',
   './index.html',
@@ -110,4 +110,3 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
-// v185-20260825T155000Z
