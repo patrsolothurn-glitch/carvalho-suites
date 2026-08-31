@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-08-31T14:33:51.723Z
+  Gerado em: 2026-08-31T20:17:51.131Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-207";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-208";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24070,6 +24070,7 @@ var HW_QUARTERS = [
 ];
 
 var HW_MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
 function hwLoad(key) {
   try { var v = localStorage.getItem('hw_' + key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
@@ -24084,22 +24085,18 @@ function hwFmtDate(d) {
   return new Date(d + 'T12:00:00').toLocaleDateString('de-CH');
 }
 function hwToday() { return new Date().toISOString().slice(0,10); }
-
-// ── DatePick ──
+function hwFmtMonthYear(d) {
+  if (!d) return '';
+  var dt = new Date(d + 'T12:00:00');
+  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
+}
 function hwPlus30Days(dt) {
   var r = new Date(dt.getTime());
   r.setDate(r.getDate() + 30);
   return r;
 }
 
-var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-
-function hwFmtMonthYear(d) {
-  if (!d) return '';
-  var dt = new Date(d + 'T12:00:00');
-  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
-}
-
+// ── DatePick ──
 function HwDatePick(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
 
@@ -24284,6 +24281,8 @@ function HwEmpty(props) {
 // ── MAIN APP ──
 var HauswartApp = function(props) {
   var onBack = props.onBack;
+  var profile = props.profile;
+  var owner = (profile && profile.member_id) || 'patricio';
   var T = window.T || { bg: '#0f172a', surface: '#1e293b', surface2: '#0f172a', text: '#e2e8f0', muted: '#64748b', gold: '#C9A847' };
 
   var _useState = React.useState('dash');
@@ -24300,13 +24299,47 @@ var HauswartApp = function(props) {
 
   var _useStateA = React.useState(hwLoad('archive') || []);
   var archive = _useStateA[0], setArchiveRaw = _useStateA[1];
+
+  var _useStateReady = React.useState(false);
+  var ready = _useStateReady[0], setReady = _useStateReady[1];
+
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
-  var updW = function(v) { setWorksRaw(v); hwSave('works', v); };
-  var updM = function(v) { setMatsRaw(v); hwSave('mats', v); };
-  var updC = function(v) { setCfgRaw(v); hwSave('cfg', v); };
-  var updA = function(v) { setArchiveRaw(v); hwSave('archive', v); };
+  React.useEffect(function() {
+    if (!window.supabaseClient) { setReady(true); return; }
+    window.supabaseClient.from('hauswart_data').select('*').eq('member_id', owner).single()
+      .then(function(res) {
+        if (!res.error && res.data) {
+          var d = res.data;
+          if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
+          if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats',  d.mats); }
+          if (d.cfg   && Object.keys(d.cfg).length) { var m = Object.assign({}, HW_DEFAULTS, d.cfg); setCfgRaw(m); hwSave('cfg', m); }
+          if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
+        }
+        setReady(true);
+      });
+  }, []);
+
+  var hwSync = function(w, m, c, a) {
+    hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('hauswart_data').upsert(
+      { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: new Date().toISOString() },
+      { onConflict: 'member_id' }
+    ).then(function(res) {
+      if (res && res.error && res.error.code !== 'PGRST205') console.warn('Hauswart sync:', res.error.message);
+    });
+  };
+
+  var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
+  var updM = function(v) { setMatsRaw(v);  hwSync(works, v, cfg, archive); };
+  var updC = function(v) { setCfgRaw(v);   hwSync(works, mats, v, archive); };
+  var updA = function(v) { setArchiveRaw(v); hwSync(works, mats, cfg, v); };
+
+  if (!ready) return React.createElement('div', {
+    style: { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#0f172a', color:'#64748b', fontFamily:'system-ui', fontSize:16 }
+  }, '🔧 A carregar...');
 
   var pauschale = cfg.pauschale || 0;
   var totalWork = works.reduce(function(s, w) { return s + w.hours * w.rate; }, 0);
@@ -24340,7 +24373,7 @@ var HauswartApp = function(props) {
     return React.createElement(HwPrintView, {
       works: works, mats: mats, cfg: cfg, total: total,
       totalWork: totalWork, totalMats: totalMats, pauschale: pauschale,
-      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel,
+      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, invNum: invNum,
       leistungszeitraum: leistungszeitraum,
       onBack: function() { setPrint(false); },
       onNew: function() {
@@ -24869,6 +24902,13 @@ function HwArquivoTab(props) {
   );
 }
 
+// ── RECHNUNG — novo render impresso (A4, 1 página) ──
+function fmtCHF(n) {
+  var v = (Math.round(Number(n) * 100) / 100).toFixed(2);
+  var p = v.split('.');
+  return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '.' + p[1];
+}
+
 // ── PRINT VIEW ──
 function HwPrintView(props) {
   var works = props.works, mats = props.mats, cfg = props.cfg, total = props.total;
@@ -25146,23 +25186,80 @@ function HwPrintView(props) {
     ),
 
     React.createElement('style', null,
+      '#print-page.page, #print-page.page *{box-sizing:border-box;}' +
+      '#print-page.page{width:210mm;min-height:297mm;padding:18mm 18mm 14mm;display:flex;flex-direction:column;background:#fff;font-family:Helvetica,Arial,"Helvetica Neue",sans-serif;color:#14181d;box-shadow:0 8px 40px rgba(0,0,0,.3);}' +
+      '#print-page .body-flex{flex:1;}' +
+      '#print-page .top{display:flex;justify-content:space-between;align-items:flex-start;}' +
+      '#print-page .sender{font-size:9.5pt;line-height:1.5;}' +
+      '#print-page .sender .name{font-weight:700;font-size:10.5pt;}' +
+      '#print-page .sender .line{color:#6b7280;}' +
+      '#print-page .doctype{text-align:right;}' +
+      '#print-page .doctype h1{margin:0;font-size:17pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}' +
+      '#print-page .doctype .nr{margin-top:4px;font-size:10pt;font-weight:600;color:#1d4ed8;font-variant-numeric:tabular-nums;}' +
+      '#print-page .doctype .place{margin-top:2px;font-size:9pt;color:#6b7280;}' +
+      '#print-page .rule{height:1px;background:#14181d;margin-top:12px;}' +
+      '#print-page .band{display:flex;justify-content:space-between;margin-top:18px;}' +
+      '#print-page .eyebrow{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}' +
+      '#print-page .recipient{font-size:10pt;line-height:1.5;}' +
+      '#print-page .recipient .org{font-weight:700;}' +
+      '#print-page .meta{width:76mm;font-size:9pt;border-top:1px solid #dfe3e8;margin:0;}' +
+      '#print-page .meta div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dfe3e8;}' +
+      '#print-page .meta dt{color:#6b7280;}' +
+      '#print-page .meta dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}' +
+      '#print-page .subject{margin-top:18px;font-size:10pt;line-height:1.55;}' +
+      '#print-page table{width:100%;border-collapse:collapse;margin-top:14px;font-size:9.5pt;}' +
+      '#print-page thead th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:600;text-align:left;padding:0 0 5px;border-bottom:1px solid #14181d;}' +
+      '#print-page thead th.num{text-align:right;}' +
+      '#print-page tr.section td{padding:14px 0 5px;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border-bottom:1px solid #14181d;}' +
+      '#print-page tbody td{padding:8px 0;border-bottom:1px solid #dfe3e8;vertical-align:top;}' +
+      '#print-page tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}' +
+      '#print-page .pos-title{font-weight:600;}' +
+      '#print-page .pos-sub{color:#6b7280;font-size:8pt;margin-top:2px;}' +
+      '#print-page tr.subtotal td{padding:6px 0;border-bottom:0;color:#6b7280;font-size:8.5pt;}' +
+      '#print-page tr.subtotal td.num{color:#14181d;font-weight:600;}' +
+      '#print-page tr{break-inside:avoid;page-break-inside:avoid;}' +
+      '#print-page .totals{margin-top:14px;display:flex;justify-content:flex-end;}' +
+      '#print-page .totals .box{width:76mm;}' +
+      '#print-page .totals .row{display:flex;justify-content:space-between;padding:4px 0;font-size:9pt;color:#6b7280;}' +
+      '#print-page .totals .row span:last-child{color:#14181d;font-variant-numeric:tabular-nums;}' +
+      '#print-page .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #14181d;}' +
+      '#print-page .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
+      '#print-page .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
+      '#print-page .totals .note{margin-top:5px;font-size:8pt;color:#6b7280;text-align:right;}' +
+      '#print-page .pay{margin-top:20px;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:9pt;line-height:1.55;}' +
+      '#print-page .pay .iban{font-family:"Courier New",monospace;font-size:9.5pt;letter-spacing:.04em;}' +
+      '#print-page .pay .term{text-align:right;}' +
+      '#print-page .pay .term .ref{font-weight:700;margin-top:2px;}' +
+      '#print-page footer{margin-top:auto;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:8pt;color:#6b7280;}'
+    ),
+    React.createElement('style', null,
       '@media print {' +
       '  @page { size: A4 portrait; margin: 0; }' +
       '  .no-print { display: none !important; }' +
-      '  body { margin: 0 !important; background: white !important; }' +
+      '  body { margin: 0 !important; padding: 0 !important; background: white !important; }' +
       '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
-      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; box-sizing: border-box !important; }' +
+      '  #print-page.page { box-shadow: none !important; } ' +
       '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
-      '  #zahlteil-page { page-break-before: always; break-before: always; width: 100%; height: 297mm; display: flex; flex-direction: column; justify-content: flex-end; background: white; }' +
+      '  #zahlteil-page { background: white !important; }' +
       '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
+      '  #zahlteil-page {' +
+      '    page-break-before: always;' +
+      '    break-before: always;' +
+      '    width: 100%;' +
+      '    height: 297mm;' +
+      '    display: flex;' +
+      '    flex-direction: column;' +
+      '    justify-content: flex-end;' +
+      '  }' +
       '  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
       '}'
     )
   );
 }
 
+// ── SWISS QR BILL (Zahlteil) ──────────────────────────────────────────
 function hwQrContent(cfg, total, referenz) {
   var iban = (cfg.iban || '').replace(/\s/g, '');
   return [
