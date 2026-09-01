@@ -118,6 +118,49 @@ var VzGravacaoRow = function VzGravacaoRow(props) {
   );
 };
 
+function vzToggleSet(setter, key) {
+  setter(function(prev) {
+    var s = new Set(prev);
+    if (s.has(key)) s.delete(key); else s.add(key);
+    return s;
+  });
+}
+
+var VZ_LIMITE_LISTA = 3;
+
+var VzGrupoPastas = function VzGrupoPastas(p) {
+  var grupo = p.grupo;
+  var n = grupo.itens.length;
+  var collapsed = p.collapsed;
+  var expanded = p.expanded;
+  var visiveis = expanded ? grupo.itens : grupo.itens.slice(0, VZ_LIMITE_LISTA);
+  var restantes = n - visiveis.length;
+  return React.createElement('div', { style: { marginBottom: 14 } },
+    React.createElement('div', {
+      onClick: p.onToggleCollapse,
+      style: { display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 0', marginBottom: collapsed ? 0 : 8 }
+    },
+      React.createElement('span', { style: { fontSize: 11, color: T.gold, width: 12 } }, collapsed ? '▸' : '▾'),
+      React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: T.gold, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 } }, '📁 ' + grupo.nome + ' (' + n + ')')
+    ),
+    !collapsed && n === 0 && React.createElement('div', { style: { color: T.muted, fontSize: 13, padding: '4px 0 8px' } }, 'Sem gravações'),
+    !collapsed && visiveis.map(function(g) {
+      return React.createElement(VzGravacaoRow, {
+        key: g.id, g: g, playingId: p.playingId, playingUrl: p.playingUrl,
+        onPlay: p.onPlay, onPlayEnded: p.onPlayEnded, onEdit: p.onEdit, onDelete: p.onDelete
+      });
+    }),
+    !collapsed && restantes > 0 && React.createElement('button', {
+      onClick: p.onToggleExpand,
+      style: { width: '100%', background: 'none', border: 'none', color: T.gold, fontWeight: 700, fontSize: 13, padding: '8px 0', cursor: 'pointer', textAlign: 'center' }
+    }, '▾ Ver mais ' + restantes),
+    !collapsed && expanded && n > VZ_LIMITE_LISTA && React.createElement('button', {
+      onClick: p.onToggleExpand,
+      style: { width: '100%', background: 'none', border: 'none', color: T.muted, fontWeight: 700, fontSize: 13, padding: '8px 0', cursor: 'pointer', textAlign: 'center' }
+    }, '▴ Ver menos')
+  );
+};
+
 var VzRecorderTab = function VzRecorderTab(p) {
   if (p.gravando) {
     return React.createElement('div', { style: { textAlign: 'center', padding: '40px 16px' } },
@@ -166,16 +209,15 @@ var VzRecorderTab = function VzRecorderTab(p) {
     ),
     p.loading && React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: 20 } }, 'A carregar…'),
     !p.loading && p.grupos.map(function(grupo) {
-      return React.createElement('div', { key: grupo.key, style: { marginBottom: 18 } },
-        React.createElement('div', { style: { fontSize: 12, fontWeight: 800, color: T.gold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, '📁 ' + grupo.nome),
-        grupo.itens.length === 0 && React.createElement('div', { style: { color: T.muted, fontSize: 13, padding: '4px 0 8px' } }, 'Sem gravações'),
-        grupo.itens.map(function(g) {
-          return React.createElement(VzGravacaoRow, {
-            key: g.id, g: g, playingId: p.playingId, playingUrl: p.playingUrl,
-            onPlay: p.onPlay, onPlayEnded: p.onPlayEnded, onEdit: p.onEditGravacao, onDelete: p.onDeleteGravacao
-          });
-        })
-      );
+      return React.createElement(VzGrupoPastas, {
+        key: grupo.key, grupo: grupo,
+        collapsed: p.collapsedGroups.has(grupo.key),
+        expanded: p.expandedGroups.has(grupo.key),
+        onToggleCollapse: function() { p.onToggleCollapse(grupo.key); },
+        onToggleExpand: function() { p.onToggleExpand(grupo.key); },
+        playingId: p.playingId, playingUrl: p.playingUrl, onPlay: p.onPlay, onPlayEnded: p.onPlayEnded,
+        onEdit: p.onEditGravacao, onDelete: p.onDeleteGravacao
+      });
     }),
     !p.loading && React.createElement('div', { style: { marginTop: 24, borderTop: '1px solid ' + T.border, paddingTop: 16 } },
       React.createElement('div', { style: { fontSize: 12, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Pastas'),
@@ -265,6 +307,10 @@ function VozApp(props) {
   var _s15 = React.useState(''); var novaPastaNome = _s15[0], setNovaPastaNome = _s15[1];
   var _s16 = React.useState(null); var editPasta = _s16[0], setEditPasta = _s16[1];
   var _s17 = React.useState(null); var editGravacao = _s17[0], setEditGravacao = _s17[1];
+
+  // Listas colapsáveis — abertas por omissão, limitadas a 3; só local
+  var _s27 = React.useState(new Set()); var collapsedGroups = _s27[0], setCollapsedGroups = _s27[1];
+  var _s28 = React.useState(new Set()); var expandedGroups = _s28[0], setExpandedGroups = _s28[1];
 
   // Reprodução
   var _s18 = React.useState(null); var playingId = _s18[0], setPlayingId = _s18[1];
@@ -561,7 +607,10 @@ function VozApp(props) {
         playingId: playingId, playingUrl: playingUrl, onPlay: tocarGravacao, onPlayEnded: function() { setPlayingId(null); setPlayingUrl(''); },
         onEditGravacao: function(g) { setEditGravacao(Object.assign({}, g)); }, onDeleteGravacao: apagarGravacao,
         novaPastaNome: novaPastaNome, onNovaPastaChange: setNovaPastaNome, onCriarPasta: criarPasta,
-        onEditPasta: function(pa) { setEditPasta(Object.assign({}, pa)); }, onDeletePasta: apagarPasta
+        onEditPasta: function(pa) { setEditPasta(Object.assign({}, pa)); }, onDeletePasta: apagarPasta,
+        collapsedGroups: collapsedGroups, expandedGroups: expandedGroups,
+        onToggleCollapse: function(key) { vzToggleSet(setCollapsedGroups, key); },
+        onToggleExpand: function(key) { vzToggleSet(setExpandedGroups, key); }
       }),
       tab === 'tradutor' && React.createElement(VzTradutorTab, {
         direction: direction, onSwapDirection: trocarDirecao,
