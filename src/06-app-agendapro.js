@@ -3395,7 +3395,6 @@ function AgendaProApp(_ref13) {
       }
     }, "\uD83D\uDD04 Calcular (horas \xD7 pre\xE7o/h)")), /*#__PURE__*/React.createElement("input", {
       type: f.type,
-      autoComplete: f.type === 'text' ? 'off' : undefined,
       value: form[f.k],
       onChange: function onChange(e) {
         return setForm(function (p) {
