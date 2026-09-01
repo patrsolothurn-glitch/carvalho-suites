@@ -5,10 +5,40 @@
 
 var VZ_BUCKET = 'voz';
 var VZ_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-var VZ_LANGS = {
-  'de-pt': { srcCode: 'de', dstCode: 'pt', srcSpeech: 'de-DE', dstSpeech: 'pt-PT', label: 'DE → PT' },
-  'pt-de': { srcCode: 'pt', dstCode: 'de', srcSpeech: 'pt-PT', dstSpeech: 'de-DE', label: 'PT → DE' }
-};
+
+// Tradutor — idiomas disponíveis (código curto para a API de tradução,
+// código de voz para SpeechRecognition/SpeechSynthesis). Alemão usa de-CH
+// com fallback de-DE quando o aparelho não tem voz suíça instalada.
+var VZ_LANGUAGES = [
+  { code: 'pt', label: 'Português', speech: 'pt-PT' },
+  { code: 'de', label: 'Alemão', speech: 'de-CH', speechFallback: 'de-DE' },
+  { code: 'fr', label: 'Francês', speech: 'fr-FR' },
+  { code: 'en', label: 'Inglês', speech: 'en-GB' },
+  { code: 'it', label: 'Italiano', speech: 'it-IT' }
+];
+function vzLangByCode(code) {
+  for (var i = 0; i < VZ_LANGUAGES.length; i++) { if (VZ_LANGUAGES[i].code === code) return VZ_LANGUAGES[i]; }
+  return null;
+}
+var VZ_LANG_PAIR_KEY = 'vz_lang_pair';
+function vzLoadLangPair() {
+  try {
+    var raw = localStorage.getItem(VZ_LANG_PAIR_KEY);
+    if (raw) {
+      var o = JSON.parse(raw);
+      if (o && o.origem !== o.destino && vzLangByCode(o.origem) && vzLangByCode(o.destino)) {
+        return { origem: o.origem, destino: o.destino };
+      }
+    }
+  } catch (e) {}
+  return { origem: 'de', destino: 'pt' };
+}
+function vzSaveLangPair(origem, destino) {
+  try { localStorage.setItem(VZ_LANG_PAIR_KEY, JSON.stringify({ origem: origem, destino: destino })); } catch (e) {}
+}
+
+// Reconhecimento de voz — fecho de frase por silêncio (não pelo motor)
+var VZ_SILENCE_MS = 3000;
 
 function vzPickMimeType() {
   for (var i = 0; i < VZ_MIME_CANDIDATES.length; i++) {
@@ -304,38 +334,52 @@ var VzRecorderTab = function VzRecorderTab(p) {
   );
 };
 
+var VzSelectStyle = { flex: 1, background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: '12px 10px', color: '#E8E9EF', fontSize: 14, fontWeight: 700 };
+
 var VzTradutorTab = function VzTradutorTab(p) {
-  var langs = VZ_LANGS[p.direction];
+  var origemLang = vzLangByCode(p.origem) || VZ_LANGUAGES[0];
   return React.createElement('div', { style: { padding: 16 } },
     React.createElement(VzErro, { msg: p.erro }),
-    React.createElement('div', { style: { display: 'flex', justifyContent: 'center', marginBottom: 24 } },
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 } },
+      React.createElement('select', {
+        value: p.origem, onChange: function(e) { p.onOrigemChange(e.target.value); }, style: VzSelectStyle
+      }, VZ_LANGUAGES.map(function(l) { return React.createElement('option', { key: l.code, value: l.code }, l.label); })),
       React.createElement('button', {
-        onClick: p.onSwapDirection,
-        style: { background: T.surface2, border: '1px solid ' + T.border, borderRadius: 30, padding: '10px 22px', color: T.text, fontWeight: 800, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }
-      }, langs.label, React.createElement('span', { style: { fontSize: 18 } }, '🔄'))
+        onClick: p.onSwap, title: 'Trocar',
+        style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, width: 40, height: 40, flexShrink: 0, color: '#8E91A2', fontSize: 17, cursor: 'pointer' }
+      }, '⇄'),
+      React.createElement('select', {
+        value: p.destino, onChange: function(e) { p.onDestinoChange(e.target.value); }, style: VzSelectStyle
+      }, VZ_LANGUAGES.map(function(l) { return React.createElement('option', { key: l.code, value: l.code }, l.label); }))
     ),
     React.createElement('div', { style: { textAlign: 'center', marginBottom: 26 } },
       React.createElement('button', {
         onClick: p.listening ? p.onStopListening : p.onStartListening,
         style: {
-          width: 110, height: 110, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 38, color: p.listening ? 'white' : T.bg,
-          background: p.listening ? T.red : 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')',
+          width: 110, height: 110, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 38, color: p.listening ? 'white' : '#8E91A2',
+          background: p.listening ? T.red : '#1C1F29',
           boxShadow: p.listening ? '0 0 0 8px rgba(239,68,68,0.18)' : 'none'
         }
       }, '🎙️'),
-      React.createElement('div', { style: { marginTop: 12, color: T.muted, fontSize: 13 } }, p.listening ? 'A ouvir… (' + langs.srcSpeech + ')' : 'Toca para falar')
+      React.createElement('div', { style: { marginTop: 12, color: T.muted, fontSize: 13 } }, p.listening ? 'A ouvir… (' + origemLang.speech + ') · toca para parar' : 'Toca para falar')
     ),
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' } }, 'Original'),
-    React.createElement('div', { style: { background: T.surface2, borderRadius: 10, padding: '14px 16px', minHeight: 50, color: T.text, fontSize: 15, marginBottom: 18 } },
-      p.originalText || React.createElement('span', { style: { color: T.muted } }, p.interimText || '—')
+    React.createElement('div', { style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: '14px 16px', minHeight: 50, fontSize: 15, marginBottom: 18 } },
+      (p.originalText || p.interimText)
+        ? [
+            p.originalText && React.createElement('span', { key: 'f', style: { color: T.text } }, p.originalText),
+            p.interimText && React.createElement('span', { key: 'i', style: { color: '#7E8291' } }, (p.originalText ? ' ' : '') + p.interimText)
+          ]
+        : React.createElement('span', { style: { color: T.muted } }, '—')
     ),
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' } }, 'Tradução'),
-    React.createElement('div', { style: { background: T.surface2, borderRadius: 10, padding: '14px 16px', minHeight: 50, color: T.gold, fontSize: 15, fontWeight: 600, marginBottom: 18 } },
+    React.createElement('div', { style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: '14px 16px', minHeight: 50, color: T.text, fontSize: 15, fontWeight: 600, marginBottom: p.vozIndisponivel ? 6 : 18 } },
       p.translating ? 'A traduzir…' : (p.translatedText || '—')
     ),
+    p.vozIndisponivel && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginBottom: 18 } }, 'Voz não disponível neste aparelho'),
     p.translatedText && !p.translating && React.createElement('button', {
       onClick: p.onRepetir,
-      style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: 14, color: T.text, fontWeight: 700, fontSize: 14, cursor: 'pointer' }
+      style: { width: '100%', background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 14, color: T.text, fontWeight: 700, fontSize: 14, cursor: 'pointer' }
     }, '🔁 Repetir áudio')
   );
 };
@@ -381,14 +425,19 @@ function VozApp(props) {
   var _s19 = React.useState(''); var playingUrl = _s19[0], setPlayingUrl = _s19[1];
 
   // Tradutor
-  var _s20 = React.useState('de-pt'); var direction = _s20[0], setDirection = _s20[1];
+  var _s20 = React.useState(function() { return vzLoadLangPair().origem; }); var origem = _s20[0], setOrigemState = _s20[1];
   var _s21 = React.useState(false); var listening = _s21[0], setListening = _s21[1];
   var _s22 = React.useState(''); var interimText = _s22[0], setInterimText = _s22[1];
   var _s23 = React.useState(''); var originalText = _s23[0], setOriginalText = _s23[1];
   var _s24 = React.useState(''); var translatedText = _s24[0], setTranslatedText = _s24[1];
   var _s25 = React.useState(false); var translating = _s25[0], setTranslating = _s25[1];
   var _s26 = React.useState(null); var erroTrad = _s26[0], setErroTrad = _s26[1];
+  var _s29 = React.useState(function() { return vzLoadLangPair().destino; }); var destino = _s29[0], setDestinoState = _s29[1];
+  var _s30 = React.useState(false); var vozIndisponivel = _s30[0], setVozIndisponivel = _s30[1];
   var recognitionRef = React.useRef(null);
+  var accumulatedRef = React.useRef('');
+  var silenceTimerRef = React.useRef(null);
+  var manualStopRef = React.useRef(false);
 
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
@@ -581,37 +630,80 @@ function VozApp(props) {
   }
 
   // ── Tradutor ──
+  function clearSilenceTimer() {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+  }
+  function resetSilenceTimer() {
+    clearSilenceTimer();
+    silenceTimerRef.current = setTimeout(function() {
+      silenceTimerRef.current = null;
+      var texto = accumulatedRef.current.trim();
+      accumulatedRef.current = '';
+      if (texto) traduzirTexto(texto);
+    }, VZ_SILENCE_MS);
+  }
+  // Para por ação do utilizador: fecha já a frase pendente (sem esperar o silêncio) e
+  // desliga a escuta de vez. Usada para trocar de idioma / desmontar: cancelarEscuta.
   function pararEscuta() {
+    manualStopRef.current = true;
+    clearSilenceTimer();
     if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
+    setListening(false);
+    var texto = accumulatedRef.current.trim();
+    accumulatedRef.current = '';
+    setInterimText('');
+    if (texto) traduzirTexto(texto);
+  }
+  function cancelarEscuta() {
+    manualStopRef.current = true;
+    clearSilenceTimer();
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
+    accumulatedRef.current = '';
     setListening(false);
   }
   function iniciarEscuta() {
     setErroTrad(null);
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setErroTrad('Este browser não suporta reconhecimento de voz.'); return; }
-    setOriginalText(''); setInterimText(''); setTranslatedText('');
+    setOriginalText(''); setInterimText(''); setTranslatedText(''); setVozIndisponivel(false);
+    accumulatedRef.current = '';
+    manualStopRef.current = false;
+    var origemLang = vzLangByCode(origem) || VZ_LANGUAGES[1];
     var rec = new SR();
-    rec.continuous = false;
+    rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = VZ_LANGS[direction].srcSpeech;
+    rec.maxAlternatives = 3;
+    rec.lang = origemLang.speech;
     rec.onresult = function(e) {
-      var interim = '', final = '';
+      resetSilenceTimer();
+      var interim = '';
       for (var i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript;
-        else interim += e.results[i][0].transcript;
+        var result = e.results[i];
+        if (result.isFinal) {
+          var melhor = result[0];
+          for (var j = 1; j < result.length; j++) {
+            if (result[j].confidence > melhor.confidence) melhor = result[j];
+          }
+          accumulatedRef.current = (accumulatedRef.current ? accumulatedRef.current + ' ' : '') + melhor.transcript.trim();
+          setOriginalText(accumulatedRef.current);
+        } else {
+          interim += result[0].transcript;
+        }
       }
-      if (interim) setInterimText(interim);
-      if (final) {
-        setOriginalText(final);
-        setInterimText('');
-        traduzirTexto(final);
-      }
+      setInterimText(interim);
     };
     rec.onerror = function(e) {
       setErroTrad('Falha no reconhecimento de voz: ' + (e && e.error ? e.error : 'desconhecida'));
       setListening(false);
+      clearSilenceTimer();
     };
-    rec.onend = function() { setListening(false); };
+    rec.onend = function() {
+      // Motor terminou sozinho (limite interno do browser) e o utilizador não
+      // carregou em parar: recomeça já, mantendo o transcript já acumulado.
+      if (!manualStopRef.current) {
+        try { rec.start(); } catch (e) { setListening(false); }
+      }
+    };
     recognitionRef.current = rec;
     setListening(true);
     rec.start();
@@ -619,8 +711,7 @@ function VozApp(props) {
   function traduzirTexto(texto) {
     setTranslating(true);
     setErroTrad(null);
-    var langs = VZ_LANGS[direction];
-    vzTranslate(texto, langs.srcCode + '|' + langs.dstCode).then(function(t) {
+    vzTranslate(texto, origem + '|' + destino).then(function(t) {
       setTranslatedText(t);
       setTranslating(false);
       falarTraducao(t);
@@ -631,21 +722,61 @@ function VozApp(props) {
   }
   function falarTraducao(texto) {
     if (!window.speechSynthesis || !texto) return;
+    var destLang = vzLangByCode(destino) || VZ_LANGUAGES[0];
+    var voices = window.speechSynthesis.getVoices() || [];
+    var achar = function(speechCode) {
+      return voices.filter(function(v) { return v.lang === speechCode; })[0]
+        || voices.filter(function(v) { return v.lang.indexOf(speechCode.split('-')[0] + '-') === 0; })[0];
+    };
+    var vozEscolhida = null;
+    if (voices.length > 0) {
+      vozEscolhida = achar(destLang.speech);
+      if (!vozEscolhida && destLang.speechFallback) vozEscolhida = achar(destLang.speechFallback);
+      if (!vozEscolhida) { setVozIndisponivel(true); return; }
+    }
+    setVozIndisponivel(false);
     var u = new SpeechSynthesisUtterance(texto);
-    u.lang = VZ_LANGS[direction].dstSpeech;
+    if (vozEscolhida) { u.voice = vozEscolhida; u.lang = vozEscolhida.lang; }
+    else u.lang = destLang.speech;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   }
+  function resetarEstadoTraducao() {
+    setOriginalText(''); setInterimText(''); setTranslatedText(''); setErroTrad(null); setVozIndisponivel(false);
+  }
+  function selecionarOrigem(code) {
+    if (code === origem) return;
+    cancelarEscuta();
+    var novoDestino = code === destino ? origem : destino;
+    setOrigemState(code);
+    if (novoDestino !== destino) setDestinoState(novoDestino);
+    vzSaveLangPair(code, novoDestino);
+    resetarEstadoTraducao();
+  }
+  function selecionarDestino(code) {
+    if (code === destino) return;
+    cancelarEscuta();
+    var novoOrigem = code === origem ? destino : origem;
+    setDestinoState(code);
+    if (novoOrigem !== origem) setOrigemState(novoOrigem);
+    vzSaveLangPair(novoOrigem, code);
+    resetarEstadoTraducao();
+  }
   function trocarDirecao() {
-    pararEscuta();
-    setDirection(function(d) { return d === 'de-pt' ? 'pt-de' : 'de-pt'; });
-    setOriginalText(''); setInterimText(''); setTranslatedText(''); setErroTrad(null);
+    cancelarEscuta();
+    var novoOrigem = destino, novoDestino = origem;
+    setOrigemState(novoOrigem);
+    setDestinoState(novoDestino);
+    vzSaveLangPair(novoOrigem, novoDestino);
+    resetarEstadoTraducao();
   }
 
   React.useEffect(function() {
     return function() {
       if (timerRef.current) clearInterval(timerRef.current);
       if (streamRef.current) streamRef.current.getTracks().forEach(function(t) { t.stop(); });
+      manualStopRef.current = true;
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
@@ -685,9 +816,11 @@ function VozApp(props) {
         onToggleExpand: function(key) { vzToggleSet(setExpandedGroups, key); }
       }),
       tab === 'tradutor' && React.createElement(VzTradutorTab, {
-        direction: direction, onSwapDirection: trocarDirecao,
+        origem: origem, destino: destino,
+        onOrigemChange: selecionarOrigem, onDestinoChange: selecionarDestino, onSwap: trocarDirecao,
         listening: listening, onStartListening: iniciarEscuta, onStopListening: pararEscuta,
         interimText: interimText, originalText: originalText, translatedText: translatedText, translating: translating,
+        vozIndisponivel: vozIndisponivel,
         onRepetir: function() { falarTraducao(translatedText); }, erro: erroTrad
       })
     ),

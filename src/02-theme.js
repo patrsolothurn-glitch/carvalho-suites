@@ -166,7 +166,7 @@ var APPS_DATA = [{
   id: 'voz',
   emoji: '🎙️',
   name: 'Voz',
-  desc: 'Notas de voz e tradutor DE↔PT',
+  desc: 'Notas de voz e tradutor multi-idioma',
   badge: null,
   color: '#7C3AED',
   adminOnly: true
