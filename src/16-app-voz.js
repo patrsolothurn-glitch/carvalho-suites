@@ -101,15 +101,24 @@ var VzErro = function VzErro(props) {
 var VzGravacaoRow = function VzGravacaoRow(props) {
   var g = props.g;
   var isPlaying = props.playingId === g.id;
+  var arquivada = !!g.arquivado_em;
   return React.createElement('div', { style: { background: T.surface2, borderRadius: 12, padding: 12, marginBottom: 8 } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
-      React.createElement('button', {
-        onClick: function() { props.onPlay(g); },
-        style: { background: isPlaying ? T.green : T.gold, border: 'none', borderRadius: '50%', width: 40, height: 40, flexShrink: 0, cursor: 'pointer', fontSize: 16, color: T.bg }
-      }, isPlaying ? '⏸' : '▶'),
+      arquivada
+        ? React.createElement('button', {
+            onClick: function() { if (g.drive_url) window.open(g.drive_url, '_blank'); },
+            disabled: !g.drive_url,
+            title: g.drive_url ? 'Abrir no Google Drive' : 'Arquivada, sem link do Drive',
+            style: { background: T.surface, border: '1px solid ' + T.border, borderRadius: '50%', width: 40, height: 40, flexShrink: 0, cursor: g.drive_url ? 'pointer' : 'default', fontSize: 16, color: T.muted, opacity: g.drive_url ? 1 : 0.5 }
+          }, '☁️')
+        : React.createElement('button', {
+            onClick: function() { props.onPlay(g); },
+            style: { background: isPlaying ? T.green : T.gold, border: 'none', borderRadius: '50%', width: 40, height: 40, flexShrink: 0, cursor: 'pointer', fontSize: 16, color: T.bg }
+          }, isPlaying ? '⏸' : '▶'),
       React.createElement('div', { style: { flex: 1, minWidth: 0 } },
         React.createElement('div', { style: { fontWeight: 700, fontSize: 14, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, g.titulo),
-        React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 2 } }, vzFmtDateTime(g.gravado_em) + ' · ' + vzFmtDuration(g.duracao_seg))
+        React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 2 } }, vzFmtDateTime(g.gravado_em) + ' · ' + vzFmtDuration(g.duracao_seg) + (arquivada ? ' · no Drive' : '')),
+        g.transcricao && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } }, '“' + g.transcricao + '”')
       ),
       React.createElement('button', { onClick: function() { props.onEdit(g); }, style: { background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: 16, padding: 6 } }, '✏️'),
       React.createElement('button', { onClick: function() { props.onDelete(g); }, style: { background: 'none', border: 'none', color: T.red, cursor: 'pointer', fontSize: 16, padding: 6 } }, '🗑️')
@@ -331,7 +340,7 @@ function VozApp(props) {
     setLoading(true);
     Promise.all([
       db.from('voz_pastas').select('*').order('titulo', { ascending: true }),
-      db.from('voz_gravacoes').select('*').is('arquivado_em', null).order('gravado_em', { ascending: false })
+      db.from('voz_gravacoes').select('*').order('gravado_em', { ascending: false })
     ]).then(function(res) {
       var pRes = res[0], gRes = res[1];
       if (pRes.error) { setErro('Falha ao carregar pastas: ' + pRes.error.message); setLoading(false); return; }
@@ -497,9 +506,16 @@ function VozApp(props) {
   }
   function apagarGravacao(g) {
     if (!db) return;
-    if (!confirm('Apagar a gravação "' + g.titulo + '"? Não é possível desfazer.')) return;
+    var aviso = g.arquivado_em
+      ? 'Apagar a gravação "' + g.titulo + '"? Está no Drive — isto só apaga o registo aqui, não o ficheiro no Drive.'
+      : 'Apagar a gravação "' + g.titulo + '"? Não é possível desfazer.';
+    if (!confirm(aviso)) return;
     setErro(null);
-    db.storage.from(VZ_BUCKET).remove([g.storage_path]).then(function(rmRes) {
+    // Arquivada: o ficheiro já não está no bucket (foi para o Drive), só apagar a linha.
+    var removerDoStorage = g.arquivado_em
+      ? Promise.resolve({ error: null })
+      : db.storage.from(VZ_BUCKET).remove([g.storage_path]);
+    removerDoStorage.then(function(rmRes) {
       if (rmRes.error) throw rmRes.error;
       return db.from('voz_gravacoes').delete().eq('id', g.id);
     }).then(function(res) {

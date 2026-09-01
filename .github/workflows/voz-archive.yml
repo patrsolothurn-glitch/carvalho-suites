@@ -1,0 +1,25 @@
+name: Arquivar Voz para o Drive
+
+on:
+  schedule:
+    - cron: '30 3 * * 0'   # Domingos às 03:30 UTC, a seguir ao Backup Supabase Data (03:00)
+  workflow_dispatch: {}    # Permite correr manualmente para testar
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Arquivar gravações da app Voz
+        env:
+          SUPABASE_URL: https://qtynznppkxjmihxiquze.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+        run: node scripts/voz-archive.js
