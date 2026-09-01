@@ -162,4 +162,12 @@ var APPS_DATA = [{
   badge: null,
   color: '#06B6D4',
   adminOnly: true
+}, {
+  id: 'voz',
+  emoji: '🎙️',
+  name: 'Voz',
+  desc: 'Notas de voz e tradutor DE↔PT',
+  badge: null,
+  color: '#7C3AED',
+  adminOnly: true
 }];
