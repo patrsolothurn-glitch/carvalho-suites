@@ -146,7 +146,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
         style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 20, boxSizing: 'border-box' }
       },
         React.createElement('option', { value: '' }, 'Sem pasta'),
-        p.pastas.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.nome); })
+        p.pastas.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.titulo); })
       ),
       React.createElement('div', { style: { display: 'flex', gap: 10 } },
         React.createElement('button', { onClick: p.onDescartar, disabled: p.saving, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, fontSize: 14, cursor: 'pointer' } }, 'Descartar'),
@@ -181,7 +181,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
       React.createElement('div', { style: { fontSize: 12, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Pastas'),
       p.pastas.map(function(pa) {
         return React.createElement('div', { key: pa.id, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' } },
-          React.createElement('div', { style: { flex: 1, color: T.text, fontSize: 14 } }, pa.nome),
+          React.createElement('div', { style: { flex: 1, color: T.text, fontSize: 14 } }, pa.titulo),
           React.createElement('button', { onClick: function() { p.onEditPasta(pa); }, style: { background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: 15 } }, '✏️'),
           React.createElement('button', { onClick: function() { p.onDeletePasta(pa); }, style: { background: 'none', border: 'none', color: T.red, cursor: 'pointer', fontSize: 15 } }, '🗑️')
         );
@@ -284,7 +284,7 @@ function VozApp(props) {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
     Promise.all([
-      db.from('voz_pastas').select('*').order('nome', { ascending: true }),
+      db.from('voz_pastas').select('*').order('titulo', { ascending: true }),
       db.from('voz_gravacoes').select('*').is('arquivado_em', null).order('gravado_em', { ascending: false })
     ]).then(function(res) {
       var pRes = res[0], gRes = res[1];
@@ -368,8 +368,7 @@ function VozApp(props) {
         gravado_em: gravadoEm,
         duracao_seg: recordedDurationSec,
         mime_type: recordedMime,
-        storage_path: path,
-        user_id: profile.id
+        storage_path: path
       }).select();
     }).then(function(res) {
       if (res.error) throw res.error;
@@ -407,29 +406,29 @@ function VozApp(props) {
 
   // ── Pastas ──
   function criarPasta() {
-    var nome = novaPastaNome.trim();
-    if (!nome || !db) return;
+    var titulo = novaPastaNome.trim();
+    if (!titulo || !db) return;
     setErro(null);
-    db.from('voz_pastas').insert({ nome: nome }).select().then(function(res) {
+    db.from('voz_pastas').insert({ titulo: titulo }).select().then(function(res) {
       if (res.error) throw res.error;
-      setPastas(function(prev) { return prev.concat(res.data || []).sort(function(a, b) { return a.nome.localeCompare(b.nome); }); });
+      setPastas(function(prev) { return prev.concat(res.data || []).sort(function(a, b) { return a.titulo.localeCompare(b.titulo); }); });
       setNovaPastaNome('');
     }).catch(function(e) { setErro('Falha ao criar pasta: ' + (e && e.message ? e.message : e)); });
   }
   function guardarEdicaoPasta() {
     if (!editPasta || !db) return;
-    var nome = (editPasta.nome || '').trim();
-    if (!nome) { setErro('O nome da pasta não pode ficar vazio.'); return; }
+    var titulo = (editPasta.titulo || '').trim();
+    if (!titulo) { setErro('O nome da pasta não pode ficar vazio.'); return; }
     setErro(null);
-    db.from('voz_pastas').update({ nome: nome }).eq('id', editPasta.id).then(function(res) {
+    db.from('voz_pastas').update({ titulo: titulo }).eq('id', editPasta.id).then(function(res) {
       if (res.error) throw res.error;
-      setPastas(function(prev) { return prev.map(function(pa) { return pa.id === editPasta.id ? Object.assign({}, pa, { nome: nome }) : pa; }); });
+      setPastas(function(prev) { return prev.map(function(pa) { return pa.id === editPasta.id ? Object.assign({}, pa, { titulo: titulo }) : pa; }); });
       setEditPasta(null);
     }).catch(function(e) { setErro('Falha ao renomear pasta: ' + (e && e.message ? e.message : e)); });
   }
   function apagarPasta(pa) {
     if (!db) return;
-    if (!confirm('Apagar a pasta "' + pa.nome + '"? As gravações lá dentro ficam sem pasta.')) return;
+    if (!confirm('Apagar a pasta "' + pa.titulo + '"? As gravações lá dentro ficam sem pasta.')) return;
     setErro(null);
     db.from('voz_pastas').delete().eq('id', pa.id).then(function(res) {
       if (res.error) throw res.error;
@@ -537,7 +536,7 @@ function VozApp(props) {
   }, []);
 
   var grupos = pastas.map(function(pa) {
-    return { key: pa.id, nome: pa.nome, itens: gravacoes.filter(function(g) { return g.pasta_id === pa.id; }) };
+    return { key: pa.id, nome: pa.titulo, itens: gravacoes.filter(function(g) { return g.pasta_id === pa.id; }) };
   }).concat([{ key: 'sem-pasta', nome: 'Sem pasta', itens: gravacoes.filter(function(g) { return !g.pasta_id; }) }])
     .filter(function(grupo) { return grupo.itens.length > 0 || grupo.key !== 'sem-pasta' || pastas.length === 0; });
 
@@ -586,7 +585,7 @@ function VozApp(props) {
           style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 18, boxSizing: 'border-box' }
         },
           React.createElement('option', { value: '' }, 'Sem pasta'),
-          pastas.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.nome); })
+          pastas.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.titulo); })
         ),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           React.createElement('button', { onClick: function() { setEditGravacao(null); }, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
@@ -600,8 +599,8 @@ function VozApp(props) {
       React.createElement('div', { style: { background: T.surface, borderRadius: '18px 18px 0 0', padding: 20, width: '100%' } },
         React.createElement('div', { style: { fontWeight: 800, fontSize: 16, marginBottom: 14 } }, 'Renomear pasta'),
         React.createElement('input', {
-          type: 'text', autoComplete: 'off', value: editPasta.nome,
-          onChange: function(e) { setEditPasta(Object.assign({}, editPasta, { nome: e.target.value })); },
+          type: 'text', autoComplete: 'off', value: editPasta.titulo,
+          onChange: function(e) { setEditPasta(Object.assign({}, editPasta, { titulo: e.target.value })); },
           style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 18, boxSizing: 'border-box' }
         }),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
