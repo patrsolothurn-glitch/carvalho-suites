@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-01T14:23:58.427Z
+  Gerado em: 2026-09-01T15:29:10.505Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-218";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-219";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26778,6 +26778,11 @@ function vzMonthKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
+function vzTitleCase(s) {
+  if (!s) return s;
+  return s.toLowerCase().replace(/(^|[^\p{L}])(\p{L})/gu, function(_, sep, ch) { return sep + ch.toUpperCase(); });
+}
+
 function vzUploadRecording(db, userId, blob, mimeType) {
   var path = userId + '/' + vzMonthKey() + '/' + Date.now() + '.webm';
   return db.storage.from(VZ_BUCKET).upload(path, blob, { contentType: mimeType || 'audio/webm', upsert: false })
@@ -26837,6 +26842,63 @@ var VzHdr = function VzHdr(props) {
   );
 };
 
+var VzIconEdit = function VzIconEdit(props) {
+  var c = props.color || '#6E7183';
+  return React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none' },
+    React.createElement('path', { d: 'M4 20l1-4L16.5 4.5a1.5 1.5 0 0 1 2.12 0l.88.88a1.5 1.5 0 0 1 0 2.12L8 19l-4 1z', stroke: c, strokeWidth: 1.6, strokeLinejoin: 'round', strokeLinecap: 'round' })
+  );
+};
+
+var VzIconTrash = function VzIconTrash(props) {
+  var c = props.color || '#6E7183';
+  return React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none' },
+    React.createElement('path', { d: 'M5 7h14M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V7', stroke: c, strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  );
+};
+
+var VzIconPlayPause = function VzIconPlayPause(props) {
+  var c = props.color || '#E8E9EF';
+  if (props.playing) {
+    return React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24' },
+      React.createElement('rect', { x: 5, y: 4, width: 5, height: 16, rx: 1.5, fill: c }),
+      React.createElement('rect', { x: 14, y: 4, width: 5, height: 16, rx: 1.5, fill: c })
+    );
+  }
+  return React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24' },
+    React.createElement('path', { d: 'M6 4.5v15a1 1 0 0 0 1.5.87l13-7.5a1 1 0 0 0 0-1.74l-13-7.5A1 1 0 0 0 6 4.5z', fill: c })
+  );
+};
+
+// Anel exterior fixo (r=48) nunca muda de tamanho — só a cor do anel e a
+// forma interior (círculo+microfone parado / quadrado sem microfone a gravar)
+// transitam, sempre via atributos SVG animáveis por CSS (~150ms), nunca scale/transform.
+var VzRecordButton = function VzRecordButton(props) {
+  var gravando = !!props.gravando;
+  var shapeStyle = { transition: 'x 150ms ease, y 150ms ease, width 150ms ease, height 150ms ease, rx 150ms ease' };
+  var shapeProps = gravando
+    ? { x: 33, y: 33, width: 34, height: 34, rx: 8 }
+    : { x: 13, y: 13, width: 74, height: 74, rx: 37 };
+  return React.createElement('button', {
+    onClick: props.onClick,
+    style: { width: 120, height: 120, background: 'none', border: 'none', cursor: 'pointer', padding: 0, borderRadius: '50%' }
+  },
+    React.createElement('svg', { viewBox: '0 0 100 100', width: 120, height: 120 },
+      React.createElement('circle', {
+        className: gravando ? 'vz-ring vz-ring-pulse' : 'vz-ring',
+        cx: 50, cy: 50, r: 48, fill: 'none', stroke: gravando ? '#E23B3B' : '#3A3D4D', strokeWidth: 3,
+        style: { transition: 'stroke 150ms ease' }
+      }),
+      React.createElement('rect', Object.assign({ fill: '#E23B3B', style: shapeStyle }, shapeProps)),
+      React.createElement('g', { style: { opacity: gravando ? 0 : 1, transition: 'opacity 150ms ease' } },
+        React.createElement('rect', { x: 44, y: 30, width: 12, height: 20, rx: 6, fill: 'white' }),
+        React.createElement('path', { d: 'M38 46a12 12 0 0 0 24 0', stroke: 'white', strokeWidth: 3, fill: 'none', strokeLinecap: 'round' }),
+        React.createElement('line', { x1: 50, y1: 58, x2: 50, y2: 64, stroke: 'white', strokeWidth: 3, strokeLinecap: 'round' }),
+        React.createElement('line', { x1: 43, y1: 64, x2: 57, y2: 64, stroke: 'white', strokeWidth: 3, strokeLinecap: 'round' })
+      )
+    )
+  );
+};
+
 var VzErro = function VzErro(props) {
   if (!props.msg) return null;
   return React.createElement('div', { style: { background: 'rgba(239,68,68,0.15)', border: '1px solid ' + T.red, color: T.red, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, fontWeight: 600 } }, '⚠ ' + props.msg);
@@ -26846,26 +26908,26 @@ var VzGravacaoRow = function VzGravacaoRow(props) {
   var g = props.g;
   var isPlaying = props.playingId === g.id;
   var arquivada = !!g.arquivado_em;
-  return React.createElement('div', { style: { background: T.surface2, borderRadius: 12, padding: 12, marginBottom: 8 } },
+  return React.createElement('div', { style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 12, marginBottom: 8 } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
       arquivada
         ? React.createElement('button', {
             onClick: function() { if (g.drive_url) window.open(g.drive_url, '_blank'); },
             disabled: !g.drive_url,
             title: g.drive_url ? 'Abrir no Google Drive' : 'Arquivada, sem link do Drive',
-            style: { background: T.surface, border: '1px solid ' + T.border, borderRadius: '50%', width: 40, height: 40, flexShrink: 0, cursor: g.drive_url ? 'pointer' : 'default', fontSize: 16, color: T.muted, opacity: g.drive_url ? 1 : 0.5 }
+            style: { background: 'transparent', border: '1.5px solid #40445A', borderRadius: '50%', width: 36, height: 36, flexShrink: 0, cursor: g.drive_url ? 'pointer' : 'default', fontSize: 15, color: '#8E91A2', opacity: g.drive_url ? 1 : 0.5 }
           }, '☁️')
         : React.createElement('button', {
             onClick: function() { props.onPlay(g); },
-            style: { background: isPlaying ? T.green : T.gold, border: 'none', borderRadius: '50%', width: 40, height: 40, flexShrink: 0, cursor: 'pointer', fontSize: 16, color: T.bg }
-          }, isPlaying ? '⏸' : '▶'),
+            style: { background: 'transparent', border: '1.5px solid #40445A', borderRadius: '50%', width: 36, height: 36, flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+          }, React.createElement(VzIconPlayPause, { playing: isPlaying, color: '#E8E9EF' })),
       React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-        React.createElement('div', { style: { fontWeight: 700, fontSize: 14, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, g.titulo),
+        React.createElement('div', { style: { fontWeight: 700, fontSize: 14, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, vzTitleCase(g.titulo)),
         React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 2 } }, vzFmtDateTime(g.gravado_em) + ' · ' + vzFmtDuration(g.duracao_seg) + (arquivada ? ' · no Drive' : '')),
         g.transcricao && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } }, '“' + g.transcricao + '”')
       ),
-      React.createElement('button', { onClick: function() { props.onEdit(g); }, style: { background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: 16, padding: 6 } }, '✏️'),
-      React.createElement('button', { onClick: function() { props.onDelete(g); }, style: { background: 'none', border: 'none', color: T.red, cursor: 'pointer', fontSize: 16, padding: 6 } }, '🗑️')
+      React.createElement('button', { onClick: function() { props.onEdit(g); }, style: { background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex' } }, React.createElement(VzIconEdit, { color: '#6E7183' })),
+      React.createElement('button', { onClick: function() { props.onDelete(g); }, style: { background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex' } }, React.createElement(VzIconTrash, { color: '#6E7183' }))
     ),
     isPlaying && props.playingUrl && React.createElement('audio', { controls: true, autoPlay: true, src: props.playingUrl, style: { width: '100%', marginTop: 10 }, onEnded: props.onPlayEnded })
   );
@@ -26905,7 +26967,7 @@ var VzGrupoPastas = function VzGrupoPastas(p) {
     }),
     !collapsed && restantes > 0 && React.createElement('button', {
       onClick: p.onToggleExpand,
-      style: { width: '100%', background: 'none', border: 'none', color: T.gold, fontWeight: 700, fontSize: 13, padding: '8px 0', cursor: 'pointer', textAlign: 'center' }
+      style: { width: '100%', background: 'none', border: 'none', color: '#8E91A2', fontWeight: 700, fontSize: 13, padding: '8px 0', cursor: 'pointer', textAlign: 'center' }
     }, '▾ Ver mais ' + restantes),
     !collapsed && expanded && n > VZ_LIMITE_LISTA && React.createElement('button', {
       onClick: p.onToggleExpand,
@@ -26917,12 +26979,8 @@ var VzGrupoPastas = function VzGrupoPastas(p) {
 var VzRecorderTab = function VzRecorderTab(p) {
   if (p.gravando) {
     return React.createElement('div', { style: { textAlign: 'center', padding: '40px 16px' } },
-      React.createElement('div', { style: { fontSize: 44, fontWeight: 900, color: T.red, marginBottom: 24, fontVariantNumeric: 'tabular-nums' } }, vzFmtDuration(p.elapsedSec)),
-      React.createElement('button', {
-        onClick: p.onStop,
-        style: { width: 120, height: 120, borderRadius: '50%', background: T.red, border: 'none', color: 'white', fontSize: 40, cursor: 'pointer', boxShadow: '0 0 0 8px rgba(239,68,68,0.18)' }
-      }, '⏹'),
-      React.createElement('div', { style: { marginTop: 16, color: T.muted, fontSize: 13 } }, 'A gravar… toca para parar')
+      React.createElement(VzRecordButton, { gravando: true, onClick: p.onStop }),
+      React.createElement('div', { style: { marginTop: 16, color: '#7E8291', fontSize: 13, fontVariantNumeric: 'tabular-nums' } }, 'A gravar · ' + vzFmtDuration(p.elapsedSec))
     );
   }
 
@@ -26946,7 +27004,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
       ),
       React.createElement('div', { style: { display: 'flex', gap: 10 } },
         React.createElement('button', { onClick: p.onDescartar, disabled: p.saving, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, fontSize: 14, cursor: 'pointer' } }, 'Descartar'),
-        React.createElement('button', { onClick: p.onGuardar, disabled: p.saving, style: { flex: 2, background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: p.saving ? 0.6 : 1 } }, p.saving ? 'A guardar…' : '💾 Guardar')
+        React.createElement('button', { onClick: p.onGuardar, disabled: p.saving, style: { flex: 2, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: p.saving ? 0.6 : 1 } }, p.saving ? 'A guardar…' : '💾 Guardar')
       )
     );
   }
@@ -26954,11 +27012,8 @@ var VzRecorderTab = function VzRecorderTab(p) {
   return React.createElement('div', null,
     React.createElement(VzErro, { msg: p.erro }),
     React.createElement('div', { style: { textAlign: 'center', padding: '40px 16px 30px' } },
-      React.createElement('button', {
-        onClick: p.onStart,
-        style: { width: 120, height: 120, borderRadius: '50%', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', border: 'none', color: T.bg, fontSize: 40, cursor: 'pointer' }
-      }, '🎙️'),
-      React.createElement('div', { style: { marginTop: 16, color: T.muted, fontSize: 13 } }, 'Toca para gravar')
+      React.createElement(VzRecordButton, { gravando: false, onClick: p.onStart }),
+      React.createElement('div', { style: { marginTop: 16, color: '#7E8291', fontSize: 13 } }, 'Toca para gravar')
     ),
     p.loading && React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: 20 } }, 'A carregar…'),
     !p.loading && p.grupos.map(function(grupo) {
@@ -26987,7 +27042,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
           onChange: function(e) { p.onNovaPastaChange(e.target.value); },
           style: { flex: 1, background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 14, boxSizing: 'border-box' }
         }),
-        React.createElement('button', { onClick: p.onCriarPasta, style: { background: T.gold, color: T.bg, border: 'none', borderRadius: 10, padding: '10px 16px', fontWeight: 700, cursor: 'pointer' } }, '+')
+        React.createElement('button', { onClick: p.onCriarPasta, style: { background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: '10px 16px', fontWeight: 700, cursor: 'pointer' } }, '+')
       )
     )
   );
@@ -27347,15 +27402,16 @@ function VozApp(props) {
     .filter(function(grupo) { return grupo.itens.length > 0 || grupo.key !== 'sem-pasta' || pastas.length === 0; });
 
   return React.createElement('div', { style: { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: "'Inter',system-ui,sans-serif", paddingBottom: 40 } },
+    React.createElement('style', null, '@keyframes vzPulse{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}.vz-ring-pulse{animation:vzPulse 1.6s ease-in-out infinite;}'),
     React.createElement(VzHdr, { onBack: onBack }),
     React.createElement('div', { style: { display: 'flex', gap: 8, padding: '14px 16px 0' } },
       React.createElement('button', {
         onClick: function() { setTab('gravador'); },
-        style: { flex: 1, background: tab === 'gravador' ? T.gold : T.surface2, color: tab === 'gravador' ? T.bg : T.text, border: 'none', borderRadius: 10, padding: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer' }
+        style: { flex: 1, background: tab === 'gravador' ? '#D9B94E' : T.surface2, color: tab === 'gravador' ? '#3A2E05' : T.text, border: 'none', borderRadius: 10, padding: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer' }
       }, '🎙️ Gravador'),
       React.createElement('button', {
         onClick: function() { setTab('tradutor'); },
-        style: { flex: 1, background: tab === 'tradutor' ? T.gold : T.surface2, color: tab === 'tradutor' ? T.bg : T.text, border: 'none', borderRadius: 10, padding: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer' }
+        style: { flex: 1, background: tab === 'tradutor' ? '#D9B94E' : T.surface2, color: tab === 'tradutor' ? '#3A2E05' : T.text, border: 'none', borderRadius: 10, padding: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer' }
       }, '🌐 Tradutor')
     ),
     React.createElement('div', { style: { padding: '16px' } },
@@ -27398,7 +27454,7 @@ function VozApp(props) {
         ),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           React.createElement('button', { onClick: function() { setEditGravacao(null); }, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
-          React.createElement('button', { onClick: guardarEdicaoGravacao, style: { flex: 1, background: T.gold, color: T.bg, border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, 'Guardar')
+          React.createElement('button', { onClick: guardarEdicaoGravacao, style: { flex: 1, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, 'Guardar')
         )
       )
     ),
@@ -27414,7 +27470,7 @@ function VozApp(props) {
         }),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           React.createElement('button', { onClick: function() { setEditPasta(null); }, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
-          React.createElement('button', { onClick: guardarEdicaoPasta, style: { flex: 1, background: T.gold, color: T.bg, border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, 'Guardar')
+          React.createElement('button', { onClick: guardarEdicaoPasta, style: { flex: 1, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, 'Guardar')
         )
       )
     )
