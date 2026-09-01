@@ -35,6 +35,7 @@ const JS_SECTIONS = [
   '13-app-hauswart.js', // app Hauswart — faturação trimestral pessoal (admin only)
   '14-app-rapport.js', // app Arnold Rapport — Wochen Planung, Tages- e Wochenrapport
   '15-app-viagens.js', // app Viagens Família
+  '16-app-voz.js', // app Voz (gravador + tradutor)
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
