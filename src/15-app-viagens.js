@@ -333,7 +333,10 @@ function ViagensApp(props) {
                   React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
                     mTrips.slice(0, 3).map(function(t) {
                       var ti = vgType(t.tipo);
-                      return React.createElement('div', { key: t.id, style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo);
+                      return React.createElement('div', { key: t.id,
+                        onClick: function(e) { e.stopPropagation(); openDetail(t); },
+                        style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', cursor: 'pointer' }
+                      }, t.titulo);
                     }),
                     mTrips.length > 3 && React.createElement('div', { style: { fontSize: 9, color: T.muted } }, '+' + (mTrips.length - 3) + ' mais')
                   )
