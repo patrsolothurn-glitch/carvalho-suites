@@ -19,7 +19,7 @@ var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
 var VG_BUCKET = 'trip-photos';
 
 function vgBlankForm(mes) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes !== undefined ? mes : new Date().getMonth(), dia_inicio: '', dia_fim: '', notas: '', fotos: [], album_url: '', _pendingFiles: [] };
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes !== undefined ? mes : new Date().getMonth(), dia_inicio: '', dia_fim: '', notas: '', album_url: '' };
 }
 function vgUploadFoto(db, file, tripId, idx) {
   return new Promise(function(resolve, reject) {
@@ -93,35 +93,19 @@ function ViagensApp(props) {
     setForm('new');
   }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], album_url: trip.album_url || '', _pendingFiles: [] });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', album_url: trip.album_url || '' });
     setFormExpanded(false);
     setForm(trip);
-    db.from('family_trips').select('fotos').eq('id', trip.id).single()
-      .then(function(r) { if (r.data && r.data.fotos) setFormData(function(prev) { return Object.assign({}, prev, { fotos: r.data.fotos }); }); });
+
   }
 
   // Guardar
   function saveTrip() {
     if (!formData.titulo.trim() || !formData.local.trim()) return;
     setSaving(true);
-    var pendingFiles = formData._pendingFiles || [];
-    var existingUrls = formData.fotos.slice(0, formData.fotos.length - pendingFiles.length);
-    function doSave(uploadedUrls) {
-      var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, fotos: existingUrls.concat(uploadedUrls), created_by: profile && profile.id };
-      var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
-      op.then(function() { setSaving(false); setProgress(null); setForm(null); load(); }).catch(function() { setSaving(false); setProgress(null); });
-    }
-    if (pendingFiles.length === 0) { doSave([]); return; }
-    var tripId = form !== 'new' ? form.id : ('tmp_' + Date.now()), total = pendingFiles.length, done = 0, urls = new Array(total);
-    setProgress({ done: 0, total: total });
-    function uploadBatch(files, startIdx, cb) {
-      if (files.length === 0) { cb(); return; }
-      var batch = files.slice(0, 5), rest = files.slice(5);
-      Promise.all(batch.map(function(f, i) { return vgUploadFoto(db, f, tripId, startIdx + i); }))
-        .then(function(batchUrls) { for (var i = 0; i < batchUrls.length; i++) urls[startIdx + i] = batchUrls[i]; done += batch.length; setProgress({ done: done, total: total }); uploadBatch(rest, startIdx + batch.length, cb); })
-        .catch(function() { setSaving(false); setProgress(null); });
-    }
-    uploadBatch(pendingFiles, 0, function() { doSave(urls.filter(Boolean)); });
+    var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, created_by: profile && profile.id };
+    var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
+    op.then(function() { setSaving(false); setForm(null); load(); }).catch(function() { setSaving(false); });
   }
 
   function deleteTrip(id) { db.from('family_trips').delete().eq('id', id).then(function() { setConfirmDel(null); load(); }); }
@@ -254,28 +238,11 @@ function ViagensApp(props) {
           React.createElement('input', { value: formData.album_url || '', onChange: function(e) { setFormData(Object.assign({}, formData, { album_url: e.target.value })); }, placeholder: 'https://photos.app.goo.gl/...', style: inp })
         ),
         React.createElement('div', { style: { marginBottom: 12 } },
-          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'FOTOS'),
-          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
-            visiveis.map(function(url, idx) {
-              return React.createElement('div', { key: idx, style: { position: 'relative', width: 80, height: 80, flexShrink: 0 } },
-                React.createElement('img', { src: url, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11, border: '1px solid ' + T.border, display: 'block' } }),
-                React.createElement('button', { onClick: function() { removePhoto(idx); }, style: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid ' + T.surface, fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } }, '✕')
-              );
-            }),
-            !formExpanded && fotos.length > 3 && React.createElement('button', { onClick: function() { setFormExpanded(true); }, style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 } }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, '+' + (fotos.length - 3))),
-            formExpanded && fotos.length > 3 && React.createElement('button', { onClick: function() { setFormExpanded(false); }, style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 } }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, 'Fechar')),
-            React.createElement('label', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2, flexShrink: 0 } },
-              '➕', fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700 } }, 'MAIS'),
-              React.createElement('input', { type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' }, onChange: function(e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); } })
-            )
-          )
-        ),
-        React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'NOTAS'),
           React.createElement('textarea', { value: formData.notas, onChange: function(e) { setFormData(Object.assign({}, formData, { notas: e.target.value })); }, placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inp, { resize: 'vertical' }) })
         ),
         React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
-          saving ? (progress ? 'A guardar ' + progress.done + '/' + progress.total + '…' : 'A guardar…') : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
+          saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
         )
       )
     );
@@ -311,7 +278,7 @@ function ViagensApp(props) {
           return React.createElement(Card, {
             key: t.id,
             style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' },
-            onClick: function() { openDetail(t); }
+            onClick: function() { if (t.album_url) { window.open(t.album_url, '_blank'); } else { openDetail(t); } }
           },
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
@@ -366,7 +333,10 @@ function ViagensApp(props) {
                   React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
                     mTrips.slice(0, 3).map(function(t) {
                       var ti = vgType(t.tipo);
-                      return React.createElement('div', { key: t.id, style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo);
+                      return React.createElement('div', { key: t.id,
+                        onClick: function(e) { e.stopPropagation(); openDetail(t); },
+                        style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', cursor: 'pointer' }
+                      }, t.titulo);
                     }),
                     mTrips.length > 3 && React.createElement('div', { style: { fontSize: 9, color: T.muted } }, '+' + (mTrips.length - 3) + ' mais')
                   )

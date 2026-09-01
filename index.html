@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-01T10:49:55.270Z
+  Gerado em: 2026-09-01T12:29:36.873Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-214";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-215";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -4410,7 +4410,6 @@ function HorasProApp(_ref9) {
   })), /*#__PURE__*/React.createElement("input", {
     key: saldoJanAbrModo,
     type: "text",
-    autoComplete: "off",
     inputMode: "decimal",
     defaultValue: saldoJanAbrInput,
     onChange: function onChange(e) {
@@ -8887,7 +8886,6 @@ function AgendaProApp(_ref13) {
       }
     }, "\uD83D\uDD04 Calcular (horas \xD7 pre\xE7o/h)")), /*#__PURE__*/React.createElement("input", {
       type: f.type,
-      autoComplete: f.type === 'text' ? 'off' : undefined,
       value: form[f.k],
       onChange: function onChange(e) {
         return setForm(function (p) {
@@ -12824,7 +12822,6 @@ function FamiliaApp(_ref19) {
       }
     }, f.l), /*#__PURE__*/React.createElement("input", {
       type: f.type,
-      autoComplete: f.type === 'text' ? 'off' : undefined,
       value: form[f.k],
       onChange: function onChange(e) {
         return setForm(function (p) {
@@ -15200,8 +15197,7 @@ var ALUNOS_DEF = {
       }]
     },
     notas: {},
-    tpc: [],
-    eventos: []
+    tpc: []
   },
   liam: {
     nome: 'Liam',
@@ -15293,71 +15289,8 @@ var ALUNOS_DEF = {
       ]
     },
     notas: {},
-    tpc: [],
-    eventos: []
+    tpc: []
   }
-};
-var E = {
-  bg: '#09090E',
-  surface: '#131319',
-  surface2: '#1C1C26',
-  purple: '#7C3AED',
-  purpleL: '#9F67FF',
-  text: '#F0EEE8',
-  muted: '#7A7A90',
-  border: 'rgba(124,58,237,0.2)',
-  green: '#16A34A',
-  red: '#DC2626',
-  gold: '#C9A847',
-  orange: '#F97316'
-};
-var ECard = function ECard(_ref32) {
-  var children = _ref32.children,
-    _ref32$style = _ref32.style,
-    style = _ref32$style === void 0 ? {} : _ref32$style;
-  return /*#__PURE__*/React.createElement("div", {
-    style: _objectSpread({
-      background: E.surface,
-      borderRadius: 16,
-      border: "1px solid ".concat(E.border)
-    }, style)
-  }, children);
-};
-var EventoRow = function EventoRow(_ref33) {
-  var evento = _ref33.evento,
-    isPast = _ref33.isPast,
-    onEdit = _ref33.onEdit,
-    onDelete = _ref33.onDelete;
-  var alunosLabel = evento.alunos.length === 2 ? 'Lucas & Liam' : evento.alunos[0] === 'lucas' ? 'Lucas' : 'Liam';
-  var periodo = evento.dataFim && evento.dataFim !== evento.dataInicio ? "".concat(evento.dataInicio, " → ").concat(evento.dataFim) : evento.dataInicio;
-  return /*#__PURE__*/React.createElement(ECard, {
-    style: {
-      padding: '12px 14px',
-      marginBottom: 8,
-      opacity: isPast ? 0.5 : 1,
-      borderLeft: "3px solid ".concat(E.gold)
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', alignItems: 'flex-start', gap: 10 }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: { fontSize: 20 }
-  }, "📢"), /*#__PURE__*/React.createElement("div", {
-    style: { flex: 1 }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { fontWeight: 700, fontSize: 14, color: E.text }
-  }, evento.nome), /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 11, marginTop: 1 }
-  }, periodo, " \xB7 ", alunosLabel), evento.nota && /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 11, marginTop: 2, fontStyle: 'italic' }
-  }, evento.nota)), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: 4 }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: onEdit,
-    style: { background: 'none', border: 'none', color: E.muted, fontSize: 15, cursor: 'pointer', padding: '0 4px' }
-  }, "✏️"), /*#__PURE__*/React.createElement("button", {
-    onClick: onDelete,
-    style: { background: 'none', border: 'none', color: '#EF4444', fontSize: 15, cursor: 'pointer', padding: '0 4px' }
-  }, "🗑️"))));
 };
 function EscolarApp(_ref31) {
   var onBack = _ref31.onBack,
@@ -15455,29 +15388,6 @@ function EscolarApp(_ref31) {
     _useState172 = _slicedToArray(_useState171, 2),
     novaTPC = _useState172[0],
     setNovaTPC = _useState172[1];
-  var _useStateShowAddEvento = (0, _react.useState)(false),
-    _useStateShowAddEvento2 = _slicedToArray(_useStateShowAddEvento, 2),
-    showAddEvento = _useStateShowAddEvento2[0],
-    setShowAddEvento = _useStateShowAddEvento2[1];
-  var _useStateEditEventoId = (0, _react.useState)(null),
-    _useStateEditEventoId2 = _slicedToArray(_useStateEditEventoId, 2),
-    editEventoId = _useStateEditEventoId2[0],
-    setEditEventoId = _useStateEditEventoId2[1];
-  var _useStateNovoEvento = (0, _react.useState)({
-      nome: '',
-      dataInicio: '',
-      dataFim: '',
-      lucas: true,
-      liam: true,
-      nota: ''
-    }),
-    _useStateNovoEvento2 = _slicedToArray(_useStateNovoEvento, 2),
-    novoEvento = _useStateNovoEvento2[0],
-    setNovoEvento = _useStateNovoEvento2[1];
-  var _useStateEventoErr = (0, _react.useState)(''),
-    _useStateEventoErr2 = _slicedToArray(_useStateEventoErr, 2),
-    eventoErr = _useStateEventoErr2[0],
-    setEventoErr = _useStateEventoErr2[1];
   var _useState173 = (0, _react.useState)([]),
     _useState174 = _slicedToArray(_useState173, 2),
     escolarToasts = _useState174[0],
@@ -15504,14 +15414,6 @@ function EscolarApp(_ref31) {
     _useStateEditTpcTitulo2 = _slicedToArray(_useStateEditTpcTitulo, 2),
     editTpcTitulo = _useStateEditTpcTitulo2[0],
     setEditTpcTitulo = _useStateEditTpcTitulo2[1];
-  var _useStateEditTpcData = (0, _react.useState)(''),
-    _useStateEditTpcData2 = _slicedToArray(_useStateEditTpcData, 2),
-    editTpcData = _useStateEditTpcData2[0],
-    setEditTpcData = _useStateEditTpcData2[1];
-  var _useStateNotaInputs = (0, _react.useState)({}),
-    _useStateNotaInputs2 = _slicedToArray(_useStateNotaInputs, 2),
-    notaInputs = _useStateNotaInputs2[0],
-    setNotaInputs = _useStateNotaInputs2[1];
   var _useStateEditNota = (0, _react.useState)(null),
     _useStateEditNota2 = _slicedToArray(_useStateEditNota, 2),
     editNotaKey = _useStateEditNota2[0],
@@ -15670,23 +15572,6 @@ function EscolarApp(_ref31) {
       });
       if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
     }).catch(function (e) { console.warn('[escolar] erro tpc:', e); }));
-    if (inc('eventos')) ps.push(sb.from('escolar_eventos').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE eventos falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
-        return;
-      }
-      var rows = (data.eventos || []).map(function (ev) {
-        return {
-          id: ev.id,
-          aluno: key,
-          nome: ev.nome || '',
-          data_inicio: ev.dataInicio || '',
-          data_fim: ev.dataFim || null,
-          nota: ev.nota || ''
-        };
-      });
-      if (rows.length > 0) return sb.from('escolar_eventos').insert(rows).then(logIns('eventos'));
-    }).catch(function (e) { console.warn('[escolar] erro eventos:', e); }));
     if (inc('perfil')) ps.push(sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
@@ -15797,76 +15682,6 @@ function EscolarApp(_ref31) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, newData));
     });
   };
-  // Igual a setAluno, mas para uma chave explícita — necessário para os
-  // Eventos escolares, que podem ter de gravar no snapshot de um aluno
-  // que não é o que está a ser visto no ecrã (ex: evento para Lucas & Liam).
-  var setAlunoKey = function setAlunoKey(targetKey, fn, domain) {
-    return setAlunosData(function (p) {
-      var newData = fn(p[targetKey]);
-      _saveLatest[targetKey] = newData;
-      var doms = _saveDomains[targetKey] || [];
-      if (domain && doms.indexOf(domain) === -1) doms = doms.concat([domain]);
-      _saveDomains[targetKey] = doms;
-      if (_saveTimers[targetKey]) clearTimeout(_saveTimers[targetKey]);
-      _saveTimers[targetKey] = setTimeout(function () {
-        _saveTimers[targetKey] = null;
-        var d = _saveLatest[targetKey];
-        var domsToSave = _saveDomains[targetKey];
-        _saveLatest[targetKey] = null;
-        _saveDomains[targetKey] = null;
-        if (d) saveAlunoSnapshot(targetKey, d, domsToSave);
-      }, 800);
-      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, targetKey, newData));
-    });
-  };
-  var saveEvento = function saveEvento(eventoId, form) {
-    var payload = {
-      id: eventoId,
-      nome: (form.nome || '').trim(),
-      dataInicio: form.dataInicio,
-      dataFim: form.dataFim || '',
-      nota: (form.nota || '').trim()
-    };
-    var targetKeys = [];
-    if (form.lucas) targetKeys.push('lucas');
-    if (form.liam) targetKeys.push('liam');
-    ['lucas', 'liam'].forEach(function (k) {
-      var shouldHave = targetKeys.indexOf(k) !== -1;
-      setAlunoKey(k, function (al) {
-        var semEste = (al.eventos || []).filter(function (ev) { return ev.id !== eventoId; });
-        return _objectSpread(_objectSpread({}, al), {}, {
-          eventos: shouldHave ? [].concat(_toConsumableArray(semEste), [payload]) : semEste
-        });
-      }, 'eventos');
-    });
-  };
-  var deleteEvento = function deleteEvento(eventoId) {
-    ['lucas', 'liam'].forEach(function (k) {
-      setAlunoKey(k, function (al) {
-        return _objectSpread(_objectSpread({}, al), {}, {
-          eventos: (al.eventos || []).filter(function (ev) { return ev.id !== eventoId; })
-        });
-      }, 'eventos');
-    });
-  };
-  var openEditEvento = function openEditEvento(ev) {
-    setNovoEvento({
-      nome: ev.nome,
-      dataInicio: ev.dataInicio,
-      dataFim: ev.dataFim || '',
-      lucas: ev.alunos.indexOf('lucas') !== -1,
-      liam: ev.alunos.indexOf('liam') !== -1,
-      nota: ev.nota || ''
-    });
-    setEditEventoId(ev.id);
-    setEventoErr('');
-    setShowAddEvento(true);
-    setTab('eventos');
-  };
-  var confirmDeleteEvento = function confirmDeleteEvento(ev) {
-    if (!window.confirm("Apagar o evento \"".concat(ev.nome, "\"?"))) return;
-    deleteEvento(ev.id);
-  };
   var loadEscolarData = function loadEscolarData() {
     if (!window.supabaseClient) {
       // Pode acontecer se o CDN do supabase-js ainda nao carregou
@@ -15878,16 +15693,15 @@ function EscolarApp(_ref31) {
     }
     window._escolarLoadTries = 0;
     var sb = window.supabaseClient;
-    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*'), sb.from('escolar_perfil').select('*'), sb.from('escolar_eventos').select('*')]).then(function (resArr) {
+    Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*'), sb.from('escolar_perfil').select('*')]).then(function (resArr) {
       var discRes = resArr[0],
         horRes = resArr[1],
         notasRes = resArr[2],
         tpcRes = resArr[3],
-        perfilRes = resArr[4],
-        eventosRes = resArr[5];
+        perfilRes = resArr[4];
       // Diagnostico: se alguma query devolveu erro, regista no console
       // para podermos perceber porque alguns dispositivos caem no fallback.
-      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes], ['eventos', eventosRes]].forEach(function (p) {
+      [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes]].forEach(function (p) {
         if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
       });
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
@@ -15914,9 +15728,6 @@ function EscolarApp(_ref31) {
             return r.aluno === key;
           });
           var tpcRows = (tpcRes.data || []).filter(function (r) {
-            return r.aluno === key;
-          });
-          var eventosRows = (eventosRes.data || []).filter(function (r) {
             return r.aluno === key;
           });
           var updated = _objectSpread({}, next[key]);
@@ -15965,17 +15776,6 @@ function EscolarApp(_ref31) {
                 data: r.data || '',
                 feito: !!r.feito,
                 tipo: r.tipo || 'tpc'
-              };
-            });
-          }
-          if (eventosRows.length > 0) {
-            updated.eventos = eventosRows.map(function (r) {
-              return {
-                id: r.id,
-                nome: r.nome || '',
-                dataInicio: r.data_inicio || '',
-                dataFim: r.data_fim || '',
-                nota: r.nota || ''
               };
             });
           }
@@ -16066,20 +15866,12 @@ function EscolarApp(_ref31) {
       tel: ''
     };
   };
-  // Devolve o valor exato (número, não string arredondada) — arredondar
-  // aqui cedo fazia a média geral (calcMediaGeral) fazer contas em cima
-  // de médias por disciplina já cortadas a 1 casa, em vez das notas reais.
   var media = function media(discId, sem) {
     var ns = (aluno.notas[discId] || {})[sem] || [];
     if (!ns.length) return null;
-    return ns.reduce(function (s, n) {
+    return (ns.reduce(function (s, n) {
       return s + n;
-    }, 0) / ns.length;
-  };
-  // Nota individual: até 2 casas, sem zeros à direita (5.75, 5, 5.5 — nunca 5.00).
-  var fmtNota = function fmtNota(n) {
-    if (n === null || n === undefined || isNaN(n)) return '';
-    return parseFloat(Number(n).toFixed(2)).toString();
+    }, 0) / ns.length).toFixed(1);
   };
   var calcMediaGeral = function calcMediaGeral(sem) {
     var todas = aluno.disciplinas.map(function (d) {
@@ -16127,25 +15919,33 @@ function EscolarApp(_ref31) {
   var testesPendentes = aluno.tpc.filter(function (t) {
     return t.tipo === 'teste' && !t.feito;
   }).length;
-  var eventosCount = (aluno.eventos || []).length;
-  // Eventos escolares (Projektwoche, Kantonallehrertag, etc.) — vivem no
-  // snapshot de cada aluno (tal como tpc/notas/horario), mas um evento
-  // marcado para "ambos" aparece nos dois. Aqui juntamo-los numa lista só,
-  // sem duplicar, para a aba Eventos e para o calendário.
-  var todosEventos = (function () {
-    var map = {};
-    ['lucas', 'liam'].forEach(function (k) {
-      (alunosData[k].eventos || []).forEach(function (ev) {
-        if (!map[ev.id]) map[ev.id] = _objectSpread(_objectSpread({}, ev), {}, { alunos: [] });
-        map[ev.id].alunos.push(k);
-      });
-    });
-    return Object.keys(map).map(function (id) {
-      return map[id];
-    }).sort(function (a, b) {
-      return (a.dataInicio || '').localeCompare(b.dataInicio || '');
-    });
-  })();
+  var E = {
+    bg: '#09090E',
+    surface: '#131319',
+    surface2: '#1C1C26',
+    purple: '#7C3AED',
+    purpleL: '#9F67FF',
+    text: '#F0EEE8',
+    muted: '#7A7A90',
+    border: 'rgba(124,58,237,0.2)',
+    green: '#16A34A',
+    red: '#DC2626',
+    gold: '#C9A847',
+    orange: '#F97316'
+  };
+  var ECard = function ECard(_ref32) {
+    var children = _ref32.children,
+      _ref32$style = _ref32.style,
+      style = _ref32$style === void 0 ? {} : _ref32$style;
+    return /*#__PURE__*/React.createElement("div", {
+      style: _objectSpread({
+        background: E.surface,
+        borderRadius: 16,
+        border: "1px solid ".concat(E.border)
+      }, style)
+    }, children);
+  };
+
   // Calendar helpers
   var yr = calMonth.getFullYear(),
     mo = calMonth.getMonth();
@@ -16161,13 +15961,6 @@ function EscolarApp(_ref31) {
     var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
     return sharedDias.filter(function (s) {
       return s.date === dStr;
-    });
-  };
-  var getDayEventos = function getDayEventos(d) {
-    var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
-    return todosEventos.filter(function (ev) {
-      var fim = ev.dataFim || ev.dataInicio;
-      return ev.dataInicio && dStr >= ev.dataInicio && dStr <= fim;
     });
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -16676,9 +16469,6 @@ function EscolarApp(_ref31) {
   }, {
     v: 'cal',
     l: '🗓'
-  }, {
-    v: 'eventos',
-    l: "\uD83D\uDCE2".concat(eventosCount > 0 ? " ".concat(eventosCount) : '')
   }, {
     v: 'tpc',
     l: "\uD83D\uDCCB".concat(tpcPendentes > 0 ? " ".concat(tpcPendentes) : '')
@@ -18181,26 +17971,23 @@ function EscolarApp(_ref31) {
     var d = i + 1;
     var tpcs = getDayTPC(d);
     var shared = getDayShared(d);
-    var eventosDia = getDayEventos(d);
     var _todayStr = new Date().toISOString().slice(0, 10);
     var isToday = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0')) === _todayStr;
     var isSel = selDay === d;
     var hasTPC = tpcs.length > 0;
     var hasShared = shared.length > 0;
-    var hasEventos = eventosDia.length > 0;
     return /*#__PURE__*/React.createElement("div", {
       key: d,
       onClick: function onClick() {
         return setSelDay(isSel ? null : d);
       },
-      title: hasEventos ? eventosDia.map(function (ev) { return ev.nome; }).join(', ') : undefined,
       style: {
         textAlign: 'center',
         padding: '4px 1px',
         borderRadius: 8,
         cursor: 'pointer',
-        background: isSel ? E.purple : isToday ? "".concat(E.purple, "30") : hasEventos ? "".concat(E.green, "22") : 'transparent',
-        border: hasTPC ? "1px solid ".concat(E.orange, "44") : hasShared ? "1px solid ".concat(E.gold, "33") : hasEventos ? "1px solid ".concat(E.green, "44") : '1px solid transparent',
+        background: isSel ? E.purple : isToday ? "".concat(E.purple, "30") : 'transparent',
+        border: hasTPC ? "1px solid ".concat(E.orange, "44") : hasShared ? "1px solid ".concat(E.gold, "33") : '1px solid transparent',
         minHeight: 36,
         display: 'flex',
         flexDirection: 'column',
@@ -18231,13 +18018,6 @@ function EscolarApp(_ref31) {
         height: 4,
         borderRadius: '50%',
         background: isSel ? '#fff' : E.gold
-      }
-    }), hasEventos && /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 4,
-        height: 4,
-        borderRadius: '50%',
-        background: isSel ? '#fff' : E.green
       }
     })));
   }))), /*#__PURE__*/React.createElement("div", {
@@ -18286,28 +18066,9 @@ function EscolarApp(_ref31) {
       fontSize: 10,
       color: E.muted
     }
-  }, "Dia livre")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 8,
-      height: 8,
-      borderRadius: '50%',
-      background: E.green
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      color: E.muted
-    }
-  }, "Evento"))), selDay && function () {
+  }, "Dia livre"))), selDay && function () {
     var tpcs = getDayTPC(selDay);
     var shared = getDayShared(selDay);
-    var eventosDia = getDayEventos(selDay);
     return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
@@ -18396,15 +18157,7 @@ function EscolarApp(_ref31) {
           color: E.text
         }
       }, s.tipo === 'feriado' ? 'Feriado' : s.tipo === 'ferias' ? 'Férias' : 'Dia livre'));
-    }), eventosDia.map(function (ev) {
-      return /*#__PURE__*/React.createElement(EventoRow, {
-        key: 'ev' + ev.id,
-        evento: ev,
-        isPast: false,
-        onEdit: function onEdit() { return openEditEvento(ev); },
-        onDelete: function onDelete() { return confirmDeleteEvento(ev); }
-      });
-    }), tpcs.length === 0 && shared.length === 0 && eventosDia.length === 0 && /*#__PURE__*/React.createElement("p", {
+    }), tpcs.length === 0 && shared.length === 0 && /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
         fontSize: 13,
@@ -18412,173 +18165,7 @@ function EscolarApp(_ref31) {
         padding: '16px'
       }
     }, "Sem eventos neste dia"));
-  }()), tab === 'eventos' && /*#__PURE__*/React.createElement("div", {
-    style: { padding: '0 14px' }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px' }
-  }, "Eventos escolares"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      if (showAddEvento) {
-        setShowAddEvento(false);
-        setEditEventoId(null);
-        setEventoErr('');
-        setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
-      } else {
-        setEditEventoId(null);
-        setEventoErr('');
-        setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
-        setShowAddEvento(true);
-      }
-    },
-    style: {
-      background: showAddEvento ? E.surface2 : "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
-      border: showAddEvento ? "1px solid ".concat(E.border) : 'none',
-      borderRadius: 10,
-      padding: '7px 12px',
-      color: showAddEvento ? E.muted : '#fff',
-      fontSize: 12,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, showAddEvento ? '✕ Fechar' : '＋ Adicionar')), showAddEvento && /*#__PURE__*/React.createElement(ECard, {
-    style: { padding: '14px', marginBottom: 12, border: "1px solid ".concat(E.gold) }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { color: E.gold, fontWeight: 800, fontSize: 13, marginBottom: 10 }
-  }, editEventoId ? 'Editar evento' : 'Novo evento'), /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
-  }, "Nome"), /*#__PURE__*/React.createElement("input", {
-    value: novoEvento.nome,
-    onChange: function onChange(e) {
-      var val = e.target.value;
-      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { nome: val }); });
-    },
-    autoComplete: "off",
-    placeholder: "Ex: Projektwoche, Kantonallehrertag",
-    style: {
-      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
-      padding: '9px 11px', color: E.text, fontSize: 16, outline: 'none', marginBottom: 8, boxSizing: 'border-box'
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: 8, marginBottom: 8 }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: { flex: 1 }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
-  }, "De"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: novoEvento.dataInicio,
-    onChange: function onChange(e) {
-      var val = e.target.value;
-      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { dataInicio: val }); });
-    },
-    style: {
-      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
-      padding: '9px 11px', color: E.text, fontSize: 14, outline: 'none', boxSizing: 'border-box'
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: { flex: 1 }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
-  }, "Até (opcional)"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: novoEvento.dataFim,
-    placeholder: "vazio = 1 dia só",
-    onChange: function onChange(e) {
-      var val = e.target.value;
-      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { dataFim: val }); });
-    },
-    style: {
-      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
-      padding: '9px 11px', color: E.text, fontSize: 14, outline: 'none', boxSizing: 'border-box'
-    }
-  }))), /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
-  }, "Para quem"), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: 6, marginBottom: 8 }
-  }, [{ k: 'lucas', l: '👦 Lucas' }, { k: 'liam', l: '👦 Liam' }].map(function (opt) {
-    return /*#__PURE__*/React.createElement("button", {
-      key: opt.k,
-      onClick: function onClick() {
-        setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, opt.k, !prev[opt.k])); });
-      },
-      style: {
-        flex: 1,
-        background: novoEvento[opt.k] ? "".concat(E.purple, "18") : E.surface2,
-        border: "1px solid ".concat(novoEvento[opt.k] ? E.purple : E.border),
-        borderRadius: 10,
-        padding: '8px',
-        color: novoEvento[opt.k] ? E.purple : E.muted,
-        fontSize: 12,
-        fontWeight: 700,
-        cursor: 'pointer'
-      }
-    }, opt.l);
-  })), /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }
-  }, "Nota (opcional)"), /*#__PURE__*/React.createElement("input", {
-    value: novoEvento.nota,
-    onChange: function onChange(e) {
-      var val = e.target.value;
-      setNovoEvento(function (prev) { return _objectSpread(_objectSpread({}, prev), {}, { nota: val }); });
-    },
-    autoComplete: "off",
-    placeholder: "Ex: levar lanche, sem aulas normais",
-    style: {
-      width: '100%', background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 9,
-      padding: '9px 11px', color: E.text, fontSize: 16, outline: 'none', marginBottom: 8, boxSizing: 'border-box'
-    }
-  }), eventoErr && /*#__PURE__*/React.createElement("p", {
-    style: { color: E.red, fontSize: 12, fontWeight: 700, marginBottom: 8 }
-  }, "⚠ ", eventoErr), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: 8 }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setShowAddEvento(false);
-      setEditEventoId(null);
-      setEventoErr('');
-      setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
-    },
-    style: {
-      flex: 1, background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 10,
-      padding: '10px', color: E.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer'
-    }
-  }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var nome = (novoEvento.nome || '').trim();
-      if (!nome) { setEventoErr('Falta o nome do evento'); return; }
-      if (!novoEvento.dataInicio) { setEventoErr('Falta a data de início'); return; }
-      if (!novoEvento.lucas && !novoEvento.liam) { setEventoErr('Escolhe pelo menos um aluno'); return; }
-      if (novoEvento.dataFim && novoEvento.dataFim < novoEvento.dataInicio) { setEventoErr('A data de fim não pode ser antes da data de início'); return; }
-      var id = editEventoId || Date.now();
-      saveEvento(id, novoEvento);
-      setShowAddEvento(false);
-      setEditEventoId(null);
-      setEventoErr('');
-      setNovoEvento({ nome: '', dataInicio: '', dataFim: '', lucas: true, liam: true, nota: '' });
-    },
-    style: {
-      flex: 2, background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"), border: 'none',
-      borderRadius: 10, padding: '10px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer'
-    }
-  }, "✓ Guardar"))), todosEventos.length === 0 && !showAddEvento && /*#__PURE__*/React.createElement(ECard, {
-    style: { padding: '24px', textAlign: 'center' }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: { fontSize: 32 }
-  }, "📢"), /*#__PURE__*/React.createElement("p", {
-    style: { color: E.muted, fontSize: 13, marginTop: 8 }
-  }, "Sem eventos escolares marcados")), todosEventos.map(function (ev) {
-    var _todayStrEv = new Date().toISOString().slice(0, 10);
-    var isPast = (ev.dataFim || ev.dataInicio) < _todayStrEv;
-    return /*#__PURE__*/React.createElement(EventoRow, {
-      key: ev.id,
-      evento: ev,
-      isPast: isPast,
-      onEdit: function onEdit() { return openEditEvento(ev); },
-      onDelete: function onDelete() { return confirmDeleteEvento(ev); }
-    });
-  })), tab === 'tpc' && /*#__PURE__*/React.createElement("div", {
+  }()), tab === 'tpc' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px'
     }
@@ -18752,13 +18339,7 @@ function EscolarApp(_ref31) {
     }
   }, "Para quando"), /*#__PURE__*/React.createElement("input", {
     type: "date",
-    value: novaTPC.data || '',
-    onChange: function onChange(e) {
-      var val = e.target.value;
-      setNovaTPC(function (prev) {
-        return _objectSpread(_objectSpread({}, prev), {}, { data: val });
-      });
-    },
+    defaultValue: novaTPC.data,
     id: "novatpc-data",
     style: {
       width: '100%',
@@ -18795,8 +18376,9 @@ function EscolarApp(_ref31) {
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       var _aluno$disciplinas$;
+      var dataEl = document.getElementById('novatpc-data');
       var titulo = (novaTPC.titulo || '').trim();
-      var data = novaTPC.data || '';
+      var data = dataEl ? dataEl.value : '';
       if (!titulo || !data) return;
       var novoId = Date.now();
       var tpcRow = _objectSpread(_objectSpread({}, novaTPC), {}, {
@@ -18815,6 +18397,20 @@ function EscolarApp(_ref31) {
           return d.id === tpcRow.discId;
         });
         var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (titulo ? ' — ' + titulo : '');
+        window.supabaseClient.from('agenda_pro_jobs').insert({
+          job_date: data,
+          start_time: null,
+          end_time: null,
+          project: tituloTeste,
+          address: null,
+          monteur: aluno.nome,
+          chf: 0,
+          status: 'aberto',
+          note: 'Criado automaticamente pela Vida Escolar',
+          source: 'escolar',
+          source_id: novoId,
+          categoria: 'escola'
+        }).then(function () {}).catch(function () {});
         window.supabaseClient.from('family_events').insert({
           title: tituloTeste,
           emoji: '📚',
@@ -18823,16 +18419,15 @@ function EscolarApp(_ref31) {
           description: aluno.nome + ' tem teste',
           color: '#A855F7',
           categoria: 'escola',
-          participant_ids: [alunoKey],
+          participant_ids: ['todos'],
           member_id: null,
           source: 'escolar',
           source_id: novoId,
           created_by: aluno.nome
-        }).then(function () {}).catch(function (err) {
-          console.error('[escolar] falha ao criar evento em family_events:', err);
-          addEscolarToast('⚠️ Falha ao avisar a Família sobre o teste: ' + tituloTeste);
-        });
+        }).then(function () {}).catch(function () {});
       }
+      if (tituloEl) tituloEl.value = '';
+      if (dataEl) dataEl.value = '';
       setNovaTPC({
         discId: ((_aluno$disciplinas$ = aluno.disciplinas[0]) === null || _aluno$disciplinas$ === void 0 ? void 0 : _aluno$disciplinas$.id) || 1,
         titulo: '',
@@ -18924,7 +18519,6 @@ function EscolarApp(_ref31) {
     }, "Feito \u2713"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setEditTpcTitulo(isEdTpc ? '' : t.titulo);
-        setEditTpcData(isEdTpc ? '' : t.data);
         return setEditTpcId(isEdTpc ? null : t.id);
       },
       style: {
@@ -19070,10 +18664,7 @@ function EscolarApp(_ref31) {
       }
     }, "Para quando"), /*#__PURE__*/React.createElement("input", {
       type: "date",
-      value: editTpcData || '',
-      onChange: function onChange(e) {
-        setEditTpcData(e.target.value);
-      },
+      defaultValue: t.data,
       id: "tpc-data-".concat(t.id),
       style: {
         width: '100%',
@@ -19092,7 +18683,7 @@ function EscolarApp(_ref31) {
         var _document$getElementBT, _document$getElementBT2, _document$getElementBT3;
         var discId = parseInt(((_document$getElementBT = document.getElementById("tpc-disc-".concat(t.id))) === null || _document$getElementBT === void 0 ? void 0 : _document$getElementBT.value) || t.discId);
         var titulo = editTpcTitulo || t.titulo;
-        var data = editTpcData || t.data;
+        var data = ((_document$getElementBT3 = document.getElementById("tpc-data-".concat(t.id))) === null || _document$getElementBT3 === void 0 ? void 0 : _document$getElementBT3.value) || t.data;
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.map(function (x) {
@@ -19269,17 +18860,9 @@ function EscolarApp(_ref31) {
       style: { display: 'flex', gap: 6, alignItems: 'center' }
     }, /*#__PURE__*/React.createElement("input", {
       type: "number",
-      step: "0.01",
-      inputMode: "decimal",
+      step: "0.1",
       min: "1",
       max: "6",
-      value: notaInputs[t.id] || '',
-      onChange: function onChange(e) {
-        var val = e.target.value;
-        setNotaInputs(function (prev) {
-          return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, t.id, val));
-        });
-      },
       id: "nota-teste-".concat(t.id),
       placeholder: "Nota",
       style: {
@@ -19295,7 +18878,9 @@ function EscolarApp(_ref31) {
       }
     }), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        var v = parseFloat(notaInputs[t.id]);
+        var _document$getElementNota;
+        var inputEl = document.getElementById("nota-teste-".concat(t.id));
+        var v = parseFloat((_document$getElementNota = inputEl) === null || _document$getElementNota === void 0 ? void 0 : _document$getElementNota.value);
         if (!v && v !== 0) return;
         setAluno(function (al) {
           var _al$notas$t$discId;
@@ -19303,9 +18888,7 @@ function EscolarApp(_ref31) {
             notas: _objectSpread(_objectSpread({}, al.notas), {}, _defineProperty({}, t.discId, _objectSpread(_objectSpread({}, al.notas[t.discId] || {}), {}, _defineProperty({}, semestre, [].concat(_toConsumableArray(((_al$notas$t$discId = al.notas[t.discId]) === null || _al$notas$t$discId === void 0 ? void 0 : _al$notas$t$discId[semestre]) || []), [v])))))
           });
         }, 'notas');
-        setNotaInputs(function (prev) {
-          return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, t.id, ''));
-        });
+        if (inputEl) inputEl.value = '';
         addEscolarToast('\uD83D\uDCCA Nota '.concat(v, ' guardada em ').concat(d.nome));
       },
       style: {
@@ -19415,7 +18998,7 @@ function EscolarApp(_ref31) {
           fontWeight: 800,
           color: notaColor(d.m)
         }
-      }, d.m.toFixed(2)));
+      }, d.m.toFixed(1)));
     }))));
   }(), aluno.disciplinas.map(function (disc) {
     var ns = (aluno.notas[disc.id] || {})[semestre] || [];
@@ -19467,7 +19050,7 @@ function EscolarApp(_ref31) {
         fontWeight: 900,
         color: notaColor(med)
       }
-    }, med.toFixed(2)) : /*#__PURE__*/React.createElement("p", {
+    }, med) : /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 11,
         color: E.muted
@@ -19495,8 +19078,7 @@ function EscolarApp(_ref31) {
         }
       }, isEditingThis ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
         type: "number",
-        step: "0.01",
-        inputMode: "decimal",
+        step: "0.5",
         min: "1",
         max: "6",
         autoFocus: true,
@@ -19560,7 +19142,7 @@ function EscolarApp(_ref31) {
           color: notaColor(n),
           cursor: 'pointer'
         }
-      }, fmtNota(n)), /*#__PURE__*/React.createElement("button", {
+      }, n.toFixed(1)), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
           return setAluno(function (al) {
             var _al$notas$disc$id;
@@ -19588,8 +19170,7 @@ function EscolarApp(_ref31) {
       }
     }, /*#__PURE__*/React.createElement("input", {
       type: "number",
-      step: "0.01",
-      inputMode: "decimal",
+      step: "0.5",
       min: "1",
       max: "6",
       value: novaNotaVal,
@@ -19799,7 +19380,7 @@ function EscolarApp(_ref31) {
           fontWeight: 900,
           color: notaColor(d.m)
         }
-      }, d.m.toFixed(2)));
+      }, d.m.toFixed(1)));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
@@ -19879,7 +19460,7 @@ function EscolarApp(_ref31) {
         fontSize: "10",
         fontWeight: "800",
         fill: notaColor(med)
-      }, med.toFixed(2)), /*#__PURE__*/React.createElement("text", {
+      }, med.toFixed(1)), /*#__PURE__*/React.createElement("text", {
         x: x + 16,
         y: 158,
         textAnchor: "middle",
@@ -19959,7 +19540,7 @@ function EscolarApp(_ref31) {
         color: notaColor(m1),
         fontWeight: 700
       }
-    }, m1.toFixed(2)), /*#__PURE__*/React.createElement("span", {
+    }, m1.toFixed(1)), /*#__PURE__*/React.createElement("span", {
       style: {
         color: E.muted,
         fontSize: 11
@@ -19970,7 +19551,7 @@ function EscolarApp(_ref31) {
         color: notaColor(m2),
         fontWeight: 700
       }
-    }, m2.toFixed(2)), /*#__PURE__*/React.createElement("span", {
+    }, m2.toFixed(1)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 13,
         fontWeight: 900,
@@ -19978,7 +19559,7 @@ function EscolarApp(_ref31) {
         minWidth: 32,
         textAlign: 'right'
       }
-    }, diff > 0 ? "\u2191".concat(diff.toFixed(2)) : diff < 0 ? "\u2193".concat(Math.abs(diff).toFixed(2)) : '='))), /*#__PURE__*/React.createElement("div", {
+    }, diff > 0 ? "\u2191".concat(diff.toFixed(1)) : diff < 0 ? "\u2193".concat(Math.abs(diff).toFixed(1)) : '='))), /*#__PURE__*/React.createElement("div", {
       style: {
         height: 7,
         background: E.surface2,
@@ -21665,7 +21246,7 @@ function LucasApp(_ref) {
   }
   function _setVisitanteCode() {
     _setVisitanteCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(id, code) {
-      var val, res, error;
+      var val;
       return _regenerator().w(function (_context0) {
         while (1) switch (_context0.n) {
           case 0:
@@ -21675,21 +21256,14 @@ function LucasApp(_ref) {
               access_code: val
             }).eq('id', id);
           case 1:
-            res = _context0.v;
-            error = res.error;
-            if (!error) {
-              setVisitantes(function (p) {
-                return p.map(function (v) {
-                  return v.id === id ? Object.assign({}, v, {
-                    access_code: val
-                  }) : v;
-                });
+            setVisitantes(function (p) {
+              return p.map(function (v) {
+                return v.id === id ? Object.assign({}, v, {
+                  access_code: val
+                }) : v;
               });
-              flash(val ? '✓ Código definido' : '⛔ Código removido');
-            } else {
-              console.error('[lucas] falha ao atualizar código de visitante em lucas_visitantes:', error);
-              flash('Erro ao guardar código', true);
-            }
+            });
+            flash(val ? '✓ Código definido' : '⛔ Código removido');
           case 2:
             return _context0.a(2);
         }
@@ -21705,26 +21279,18 @@ function LucasApp(_ref) {
   }
   function _authorizeVisitanteWithCode() {
     _authorizeVisitanteWithCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1b(id, code) {
-      var res, error;
       return _regenerator().w(function (_context1b) {
         while (1) switch (_context1b.n) {
           case 0:
             _context1b.n = 1;
             return supabase.from('lucas_visitantes').update({ autorizado: true, access_code: code }).eq('id', id);
           case 1:
-            res = _context1b.v;
-            error = res.error;
-            if (!error) {
-              setVisitantes(function (p) {
-                return p.map(function (v) {
-                  return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
-                });
+            setVisitantes(function (p) {
+              return p.map(function (v) {
+                return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
               });
+            });
             flash('\u2713 Autorizado com código');
-            } else {
-              console.error('[lucas] falha ao autorizar visitante em lucas_visitantes:', error);
-              flash('Erro ao autorizar', true);
-            }
           case 2:
             return _context1b.a(2);
         }
@@ -24512,7 +24078,6 @@ var HW_QUARTERS = [
 ];
 
 var HW_MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
 function hwLoad(key) {
   try { var v = localStorage.getItem('hw_' + key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
@@ -24527,16 +24092,6 @@ function hwFmtDate(d) {
   return new Date(d + 'T12:00:00').toLocaleDateString('de-CH');
 }
 function hwToday() { return new Date().toISOString().slice(0,10); }
-function hwFmtMonthYear(d) {
-  if (!d) return '';
-  var dt = new Date(d + 'T12:00:00');
-  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
-}
-function hwPlus30Days(dt) {
-  var r = new Date(dt.getTime());
-  r.setDate(r.getDate() + 30);
-  return r;
-}
 
 // ── DatePick ──
 function HwDatePick(props) {
@@ -24779,7 +24334,7 @@ var HauswartApp = function(props) {
     return React.createElement(HwPrintView, {
       works: works, mats: mats, cfg: cfg, total: total,
       totalWork: totalWork, totalMats: totalMats, pauschale: pauschale,
-      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, invNum: invNum,
+      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel,
       leistungszeitraum: leistungszeitraum,
       onBack: function() { setPrint(false); },
       onNew: function() {
@@ -25308,18 +24863,11 @@ function HwArquivoTab(props) {
   );
 }
 
-// ── RECHNUNG — novo render impresso (A4, 1 página) ──
-function fmtCHF(n) {
-  var v = (Math.round(Number(n) * 100) / 100).toFixed(2);
-  var p = v.split('.');
-  return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '.' + p[1];
-}
-
 // ── PRINT VIEW ──
 function HwPrintView(props) {
   var works = props.works, mats = props.mats, cfg = props.cfg, total = props.total;
-  var pauschale = props.pauschale;
-  var beschreibung = props.beschreibung, referenz = props.referenz, invNum = props.invNum;
+  var totalWork = props.totalWork, totalMats = props.totalMats, pauschale = props.pauschale;
+  var beschreibung = props.beschreibung, referenz = props.referenz, invLabel = props.invLabel;
   var leistungszeitraum = props.leistungszeitraum;
   var onBack = props.onBack, onNew = props.onNew;
 
@@ -25336,54 +24884,33 @@ function HwPrintView(props) {
     return function() { window.removeEventListener('resize', update); };
   }, []);
 
-  var invoiceDateObj = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00') : new Date();
-  var dateStr = invoiceDateObj.toLocaleDateString('de-CH');
-  var faelligStr = hwPlus30Days(invoiceDateObj).toLocaleDateString('de-CH');
+  var dateStr = cfg.invoiceDate
+    ? new Date(cfg.invoiceDate + 'T12:00:00').toLocaleDateString('de-CH')
+    : new Date().toLocaleDateString('de-CH');
 
-  var grupos = [
-    {
-      key: 'hauswartung', label: 'Hauswartung',
-      rows: pauschale > 0 ? [{ titel: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, sub: 'Pauschale', betrag: pauschale }] : []
-    },
-    {
-      key: 'dienstleistungen', label: 'Dienstleistungen',
-      rows: works.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }).map(function(w) {
-        return { titel: w.description, sub: hwFmtMonthYear(w.date), menge: w.hours, ansatz: w.rate, betrag: w.hours * w.rate };
-      })
-    },
-    {
-      key: 'material', label: 'Materialeinkauf',
-      rows: mats.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }).map(function(m) {
-        return { titel: m.description, sub: hwFmtDate(m.date), menge: m.menge, ansatz: m.ansatz, betrag: m.price };
-      })
-    }
-  ].filter(function(g) { return g.rows.length > 0; });
+  var Row = function(rp) {
+    return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '11px 16px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
+      React.createElement('div', { style: { flex: 1, paddingRight: 20 } },
+        React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#111' } }, rp.label),
+        rp.sub && React.createElement('div', { style: { fontSize: 11, color: '#777', marginTop: 2 } }, rp.sub)
+      ),
+      React.createElement('div', { style: { minWidth: 110, textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#111', whiteSpace: 'nowrap' } }, rp.value)
+    );
+  };
 
-  grupos.forEach(function(g) {
-    g.sum = g.rows.reduce(function(a, r) { return a + Number(r.betrag || 0); }, 0);
-  });
+  var SecHead = function(sp) {
+    return React.createElement('div', { style: { background: '#1d4ed8', padding: '7px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+      React.createElement('span', { style: { color: 'white', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 } }, sp.title),
+      React.createElement('span', { style: { color: '#93c5fd', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' } }, 'Betrag CHF')
+    );
+  };
 
-  var tbodyRows = [];
-  grupos.forEach(function(g) {
-    tbodyRows.push(React.createElement('tr', { key: g.key + '-head', className: 'section' },
-      React.createElement('td', { colSpan: 4 }, g.label)
-    ));
-    g.rows.forEach(function(r, i) {
-      tbodyRows.push(React.createElement('tr', { key: g.key + '-' + i },
-        React.createElement('td', null,
-          React.createElement('div', { className: 'pos-title' }, r.titel),
-          r.sub && React.createElement('div', { className: 'pos-sub' }, r.sub)
-        ),
-        React.createElement('td', { className: 'num' }, r.menge ? r.menge : '—'),
-        React.createElement('td', { className: 'num' }, r.ansatz ? fmtCHF(r.ansatz) : '—'),
-        React.createElement('td', { className: 'num' }, fmtCHF(r.betrag))
-      ));
-    });
-    tbodyRows.push(React.createElement('tr', { key: g.key + '-sub', className: 'subtotal' },
-      React.createElement('td', { colSpan: 3 }, 'Zwischensumme ' + g.label),
-      React.createElement('td', { className: 'num' }, fmtCHF(g.sum))
-    ));
-  });
+  var SubTotal = function(stp) {
+    return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', padding: '8px 16px', background: '#eef2ff', borderTop: '1px solid #c7d2fe' } },
+      React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#3730a3' } }, stp.label),
+      React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#3730a3', whiteSpace: 'nowrap' } }, stp.value)
+    );
+  };
 
   return React.createElement('div', { className: 'hw-print-outer', style: { background: '#94a3b8' } },
     // Toolbar
@@ -25483,103 +25010,110 @@ function HwPrintView(props) {
     // A4
     React.createElement('div', { className: 'hw-scale-outer', style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
       React.createElement('div', { className: 'hw-scale-inner', style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (1123 * scale) + 'px' : 'auto' } },
-        React.createElement('div', { id: 'print-page', className: 'page' },
-          React.createElement('div', { className: 'body-flex' },
+        React.createElement('div', { id: 'print-page', style: { width: 794, background: 'white', boxShadow: '0 8px 40px rgba(0,0,0,0.3)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#111', display: 'flex', flexDirection: 'column', minHeight: 1123 } },
+
+          // KOPF
+          React.createElement('div', { style: { padding: '40px 52px 0' } },
             // Absender + Titel
-            React.createElement('div', { className: 'top' },
-              React.createElement('div', { className: 'sender' },
-                React.createElement('div', { className: 'name' }, cfg.name),
-                React.createElement('div', { className: 'line' }, cfg.address),
-                React.createElement('div', { className: 'line' }, cfg.city),
-                cfg.phone && React.createElement('div', { className: 'line' }, cfg.phone),
-                cfg.email && React.createElement('div', { className: 'line' }, cfg.email)
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 } },
+              React.createElement('div', { style: { lineHeight: 1.7, fontSize: 12 } },
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 15, marginBottom: 2 } }, cfg.name),
+                React.createElement('div', { style: { color: '#444' } }, cfg.address),
+                React.createElement('div', { style: { color: '#444' } }, cfg.city),
+                cfg.phone && React.createElement('div', { style: { color: '#444' } }, 'Tel. ' + cfg.phone),
+                cfg.email && React.createElement('div', { style: { color: '#444' } }, cfg.email)
               ),
-              React.createElement('div', { className: 'doctype' },
-                React.createElement('h1', null, 'Rechnung'),
-                React.createElement('div', { className: 'nr' }, invNum),
-                React.createElement('div', { className: 'place' }, 'Selzach, ' + dateStr)
+              React.createElement('div', { style: { textAlign: 'right' } },
+                React.createElement('div', { style: { fontSize: 40, fontWeight: 900, letterSpacing: 4, color: '#1d4ed8', lineHeight: 1 } }, 'RECHNUNG'),
+                React.createElement('div', { style: { fontSize: 17, fontWeight: 700, color: '#334155', marginTop: 8 } }, invLabel),
+                React.createElement('div', { style: { fontSize: 12, color: '#64748b', marginTop: 4 } }, 'Selzach, ' + dateStr)
               )
             ),
-            React.createElement('div', { className: 'rule' }),
-
+            // Gradient line
+            React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#3b82f6 60%,#93c5fd 100%)', borderRadius: 2, marginBottom: 28 } }),
             // Empfänger + Details
-            React.createElement('div', { className: 'band' },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 } },
               React.createElement('div', null,
-                React.createElement('div', { className: 'eyebrow' }, 'Rechnungsempfänger'),
-                React.createElement('div', { className: 'recipient' },
-                  React.createElement('div', { className: 'org' }, cfg.clientName),
-                  cfg.clientContact && React.createElement('div', null, cfg.clientContact),
-                  React.createElement('div', null, cfg.clientAddress),
-                  React.createElement('div', null, cfg.clientCity)
-                )
+                React.createElement('div', { style: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 } }, 'Rechnungsempfänger'),
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 15 } }, cfg.clientName),
+                cfg.clientContact && React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientContact),
+                React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientAddress),
+                React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientCity)
               ),
-              React.createElement('dl', { className: 'meta' },
-                [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Fällig bis', faelligStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
-                  return React.createElement('div', { key: row[0] },
-                    React.createElement('dt', null, row[0]),
-                    React.createElement('dd', null, row[1])
+              React.createElement('div', { style: { background: '#f0f5ff', border: '1px solid #dde8f8', borderRadius: 8, padding: '16px 22px', minWidth: 250, fontSize: 12 } },
+                [['Rechnungsnummer', invLabel], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Referenz', referenz], ['Arbeitsort', cfg.location]].map(function(row) {
+                  return React.createElement('div', { key: row[0], style: { display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 6 } },
+                    React.createElement('span', { style: { color: '#64748b', whiteSpace: 'nowrap' } }, row[0]),
+                    React.createElement('span', { style: { fontWeight: 700, textAlign: 'right', color: row[0] === 'Referenz' ? '#1d4ed8' : '#111' } }, row[1])
                   );
                 })
               )
             ),
-
             // Betreff
-            React.createElement('p', { className: 'subject' },
-              React.createElement('strong', null, 'Hauswartung ' + cfg.quarter + '. Quartal ' + cfg.year),
-              React.createElement('br', null),
+            React.createElement('div', { style: { background: '#eff6ff', borderLeft: '5px solid #1d4ed8', borderRadius: '0 6px 6px 0', padding: '13px 18px', marginBottom: 28, fontSize: 13, lineHeight: 1.75, color: '#1e3a8a', fontWeight: 500 } },
               beschreibung
-            ),
-
-            // POSITIONEN
-            React.createElement('table', null,
-              React.createElement('thead', null,
-                React.createElement('tr', null,
-                  React.createElement('th', null, 'Position'),
-                  React.createElement('th', { className: 'num' }, 'Menge'),
-                  React.createElement('th', { className: 'num' }, 'Ansatz'),
-                  React.createElement('th', { className: 'num' }, 'Betrag CHF')
-                )
-              ),
-              React.createElement('tbody', null, tbodyRows)
-            ),
-
-            // TOTAL
-            React.createElement('div', { className: 'totals' },
-              React.createElement('div', { className: 'box' },
-                grupos.map(function(g) {
-                  return React.createElement('div', { className: 'row', key: g.key },
-                    React.createElement('span', null, g.label),
-                    React.createElement('span', null, fmtCHF(g.sum))
-                  );
-                }),
-                React.createElement('div', { className: 'grand' },
-                  React.createElement('span', { className: 'lbl' }, 'Total CHF'),
-                  React.createElement('span', { className: 'val' }, fmtCHF(total))
-                ),
-                React.createElement('div', { className: 'note' }, 'Ohne Mehrwertsteuer — nicht steuerpflichtig')
-              )
-            ),
-
-            // BANK
-            React.createElement('div', { className: 'pay' },
-              React.createElement('div', null,
-                React.createElement('div', { className: 'eyebrow' }, 'Zahlbar an'),
-                React.createElement('div', { className: 'iban' }, cfg.iban),
-                React.createElement('div', null, cfg.bank + ' · ' + cfg.name)
-              ),
-              React.createElement('div', { className: 'term' },
-                React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
-                React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
-                React.createElement('div', { className: 'ref' }, 'Referenz: ' + referenz)
-              )
             )
-          ), // body-flex
+          ),
 
-          // FOOTER
-          React.createElement('footer', null,
-            React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen.'),
-            React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · Seite 1/1')
-          )
+          // POSITIONEN
+          React.createElement('div', { style: { paddingLeft: 52, paddingRight: 52 } },
+            React.createElement('div', { style: { border: '1px solid #dde6f8', borderRadius: 8, overflow: 'hidden' } },
+              pauschale > 0 && React.createElement('div', null,
+                React.createElement(SecHead, { title: 'Hauswartung' }),
+                React.createElement(Row, { label: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, value: pauschale.toFixed(2), sub: cfg.location })
+              ),
+              works.length > 0 && React.createElement('div', null,
+                React.createElement(SecHead, { title: 'Dienstleistungen' }),
+                works.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(w, i) {
+                  return React.createElement(Row, { key: w.id, label: w.description, value: (w.hours * w.rate).toFixed(2), sub: hwFmtDate(w.date) + ' · ' + w.hours + ' Std. × CHF ' + w.rate + '.–', shade: i % 2 === 1 });
+                }),
+                works.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Dienstleistungen', value: totalWork.toFixed(2) })
+              ),
+              mats.length > 0 && React.createElement('div', null,
+                React.createElement(SecHead, { title: 'Materialeinkauf' }),
+                mats.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(m, i) {
+                  return React.createElement(Row, { key: m.id, label: m.description, value: m.price.toFixed(2), sub: hwFmtDate(m.date), shade: i % 2 === 1 });
+                }),
+                mats.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Material', value: totalMats.toFixed(2) })
+              ),
+              React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#93c5fd 100%)' } })
+            )
+          ),
+
+          // SPACER
+          React.createElement('div', { style: { flex: 1, minHeight: 40 } }),
+
+          // TOTAL + BANK + FOOTER
+          React.createElement('div', { style: { padding: '0 52px 40px' } },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginBottom: 22 } },
+              React.createElement('div', { style: { background: '#1d4ed8', borderRadius: 10, padding: '20px 36px', display: 'flex', alignItems: 'center', gap: 40 } },
+                React.createElement('div', null,
+                  React.createElement('div', { style: { color: '#bfdbfe', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 } }, 'Gesamtbetrag'),
+                  React.createElement('div', { style: { color: '#93c5fd', fontSize: 11 } }, 'Ohne Mehrwertsteuer (nicht steuerpflichtig)')
+                ),
+                React.createElement('div', { style: { color: 'white', fontSize: 32, fontWeight: 900, whiteSpace: 'nowrap', letterSpacing: 1 } }, hwChf(total))
+              )
+            ),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8faff', border: '1px solid #dde6f8', borderRadius: 8, padding: '16px 24px', marginBottom: 22 } },
+              React.createElement('div', null,
+                React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Bankverbindung'),
+                React.createElement('div', { style: { fontSize: 13, marginBottom: 4 } }, 'IBAN:\u00a0', React.createElement('span', { style: { fontFamily: 'Courier New,monospace', fontWeight: 700, letterSpacing: 0.5 } }, cfg.iban)),
+                cfg.bank && React.createElement('div', { style: { fontSize: 12, color: '#444', marginBottom: 2 } }, 'Bank: ' + cfg.bank),
+                React.createElement('div', { style: { fontSize: 12, color: '#444' } }, 'Begünstigter: ', React.createElement('strong', null, cfg.name))
+              ),
+              React.createElement('div', { style: { textAlign: 'right' } },
+                React.createElement('div', { style: { fontSize: 10, color: '#94a3b8', marginBottom: 6 } }, 'Bitte Referenz angeben'),
+                React.createElement('div', { style: { fontSize: 18, fontWeight: 800, color: '#1d4ed8' } }, referenz)
+              )
+            ),
+            React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#3b82f6 60%,#93c5fd 100%)', borderRadius: 1, marginBottom: 14 } }),
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8' } },
+              React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen!'),
+              React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
+            )
+          ), // total+bank+footer div
+
+          React.createElement('div', { style: { flexGrow: 1 } })
         ) // #print-page
       ) // scale wrapper
     ), // outer grey bg
@@ -25592,53 +25126,6 @@ function HwPrintView(props) {
     ),
 
     React.createElement('style', null,
-      '#print-page.page, #print-page.page *{box-sizing:border-box;}' +
-      '#print-page.page{width:210mm;min-height:297mm;padding:18mm 18mm 14mm;display:flex;flex-direction:column;background:#fff;font-family:Helvetica,Arial,"Helvetica Neue",sans-serif;color:#14181d;box-shadow:0 8px 40px rgba(0,0,0,.3);}' +
-      '#print-page .body-flex{flex:1;}' +
-      '#print-page .top{display:flex;justify-content:space-between;align-items:flex-start;}' +
-      '#print-page .sender{font-size:9.5pt;line-height:1.5;}' +
-      '#print-page .sender .name{font-weight:700;font-size:10.5pt;}' +
-      '#print-page .sender .line{color:#6b7280;}' +
-      '#print-page .doctype{text-align:right;}' +
-      '#print-page .doctype h1{margin:0;font-size:17pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}' +
-      '#print-page .doctype .nr{margin-top:4px;font-size:10pt;font-weight:600;color:#1d4ed8;font-variant-numeric:tabular-nums;}' +
-      '#print-page .doctype .place{margin-top:2px;font-size:9pt;color:#6b7280;}' +
-      '#print-page .rule{height:1px;background:#14181d;margin-top:12px;}' +
-      '#print-page .band{display:flex;justify-content:space-between;margin-top:18px;}' +
-      '#print-page .eyebrow{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}' +
-      '#print-page .recipient{font-size:10pt;line-height:1.5;}' +
-      '#print-page .recipient .org{font-weight:700;}' +
-      '#print-page .meta{width:76mm;font-size:9pt;border-top:1px solid #dfe3e8;margin:0;}' +
-      '#print-page .meta div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dfe3e8;}' +
-      '#print-page .meta dt{color:#6b7280;}' +
-      '#print-page .meta dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}' +
-      '#print-page .subject{margin-top:18px;font-size:10pt;line-height:1.55;}' +
-      '#print-page table{width:100%;border-collapse:collapse;margin-top:14px;font-size:9.5pt;}' +
-      '#print-page thead th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:600;text-align:left;padding:0 0 5px;border-bottom:1px solid #14181d;}' +
-      '#print-page thead th.num{text-align:right;}' +
-      '#print-page tr.section td{padding:14px 0 5px;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border-bottom:1px solid #14181d;}' +
-      '#print-page tbody td{padding:8px 0;border-bottom:1px solid #dfe3e8;vertical-align:top;}' +
-      '#print-page tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}' +
-      '#print-page .pos-title{font-weight:600;}' +
-      '#print-page .pos-sub{color:#6b7280;font-size:8pt;margin-top:2px;}' +
-      '#print-page tr.subtotal td{padding:6px 0;border-bottom:0;color:#6b7280;font-size:8.5pt;}' +
-      '#print-page tr.subtotal td.num{color:#14181d;font-weight:600;}' +
-      '#print-page tr{break-inside:avoid;page-break-inside:avoid;}' +
-      '#print-page .totals{margin-top:14px;display:flex;justify-content:flex-end;}' +
-      '#print-page .totals .box{width:76mm;}' +
-      '#print-page .totals .row{display:flex;justify-content:space-between;padding:4px 0;font-size:9pt;color:#6b7280;}' +
-      '#print-page .totals .row span:last-child{color:#14181d;font-variant-numeric:tabular-nums;}' +
-      '#print-page .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #14181d;}' +
-      '#print-page .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
-      '#print-page .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
-      '#print-page .totals .note{margin-top:5px;font-size:8pt;color:#6b7280;text-align:right;}' +
-      '#print-page .pay{margin-top:20px;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:9pt;line-height:1.55;}' +
-      '#print-page .pay .iban{font-family:"Courier New",monospace;font-size:9.5pt;letter-spacing:.04em;}' +
-      '#print-page .pay .term{text-align:right;}' +
-      '#print-page .pay .term .ref{font-weight:700;margin-top:2px;}' +
-      '#print-page footer{margin-top:auto;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:8pt;color:#6b7280;}'
-    ),
-    React.createElement('style', null,
       '@media print {' +
       '  @page { size: A4 portrait; margin: 0; }' +
       '  .no-print { display: none !important; }' +
@@ -25646,7 +25133,7 @@ function HwPrintView(props) {
       '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
-      '  #print-page.page { box-shadow: none !important; } ' +
+      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
       '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
       '  #zahlteil-page { background: white !important; }' +
       '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
@@ -26922,7 +26409,7 @@ var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
 var VG_BUCKET = 'trip-photos';
 
 function vgBlankForm(mes) {
-  return { tipo: 'ferias', titulo: '', local: '', mes: mes !== undefined ? mes : new Date().getMonth(), dia_inicio: '', dia_fim: '', notas: '', fotos: [], album_url: '', _pendingFiles: [] };
+  return { tipo: 'ferias', titulo: '', local: '', mes: mes !== undefined ? mes : new Date().getMonth(), dia_inicio: '', dia_fim: '', notas: '', album_url: '' };
 }
 function vgUploadFoto(db, file, tripId, idx) {
   return new Promise(function(resolve, reject) {
@@ -26996,35 +26483,19 @@ function ViagensApp(props) {
     setForm('new');
   }
   function openEdit(trip) {
-    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', fotos: [], album_url: trip.album_url || '', _pendingFiles: [] });
+    setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', album_url: trip.album_url || '' });
     setFormExpanded(false);
     setForm(trip);
-    db.from('family_trips').select('fotos').eq('id', trip.id).single()
-      .then(function(r) { if (r.data && r.data.fotos) setFormData(function(prev) { return Object.assign({}, prev, { fotos: r.data.fotos }); }); });
+
   }
 
   // Guardar
   function saveTrip() {
     if (!formData.titulo.trim() || !formData.local.trim()) return;
     setSaving(true);
-    var pendingFiles = formData._pendingFiles || [];
-    var existingUrls = formData.fotos.slice(0, formData.fotos.length - pendingFiles.length);
-    function doSave(uploadedUrls) {
-      var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, fotos: existingUrls.concat(uploadedUrls), created_by: profile && profile.id };
-      var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
-      op.then(function() { setSaving(false); setProgress(null); setForm(null); load(); }).catch(function() { setSaving(false); setProgress(null); });
-    }
-    if (pendingFiles.length === 0) { doSave([]); return; }
-    var tripId = form !== 'new' ? form.id : ('tmp_' + Date.now()), total = pendingFiles.length, done = 0, urls = new Array(total);
-    setProgress({ done: 0, total: total });
-    function uploadBatch(files, startIdx, cb) {
-      if (files.length === 0) { cb(); return; }
-      var batch = files.slice(0, 5), rest = files.slice(5);
-      Promise.all(batch.map(function(f, i) { return vgUploadFoto(db, f, tripId, startIdx + i); }))
-        .then(function(batchUrls) { for (var i = 0; i < batchUrls.length; i++) urls[startIdx + i] = batchUrls[i]; done += batch.length; setProgress({ done: done, total: total }); uploadBatch(rest, startIdx + batch.length, cb); })
-        .catch(function() { setSaving(false); setProgress(null); });
-    }
-    uploadBatch(pendingFiles, 0, function() { doSave(urls.filter(Boolean)); });
+    var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, created_by: profile && profile.id };
+    var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
+    op.then(function() { setSaving(false); setForm(null); load(); }).catch(function() { setSaving(false); });
   }
 
   function deleteTrip(id) { db.from('family_trips').delete().eq('id', id).then(function() { setConfirmDel(null); load(); }); }
@@ -27157,28 +26628,11 @@ function ViagensApp(props) {
           React.createElement('input', { value: formData.album_url || '', onChange: function(e) { setFormData(Object.assign({}, formData, { album_url: e.target.value })); }, placeholder: 'https://photos.app.goo.gl/...', style: inp })
         ),
         React.createElement('div', { style: { marginBottom: 12 } },
-          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'FOTOS'),
-          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
-            visiveis.map(function(url, idx) {
-              return React.createElement('div', { key: idx, style: { position: 'relative', width: 80, height: 80, flexShrink: 0 } },
-                React.createElement('img', { src: url, style: { width: '100%', height: '100%', objectFit: 'cover', borderRadius: 11, border: '1px solid ' + T.border, display: 'block' } }),
-                React.createElement('button', { onClick: function() { removePhoto(idx); }, style: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#EF4444', color: '#fff', border: '2px solid ' + T.surface, fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } }, '✕')
-              );
-            }),
-            !formExpanded && fotos.length > 3 && React.createElement('button', { onClick: function() { setFormExpanded(true); }, style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 } }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, '+' + (fotos.length - 3))),
-            formExpanded && fotos.length > 3 && React.createElement('button', { onClick: function() { setFormExpanded(false); }, style: { width: 80, height: 80, borderRadius: 11, border: '2px solid ' + T.border, background: T.surface2, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 } }, React.createElement('span', { style: { fontSize: 22 } }, '📁'), React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: T.muted } }, 'Fechar')),
-            React.createElement('label', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, borderRadius: 11, border: '2px dashed ' + T.border, background: T.surface2, cursor: 'pointer', color: T.muted, fontSize: 24, gap: 2, flexShrink: 0 } },
-              '➕', fotos.length > 0 && React.createElement('span', { style: { fontSize: 9, fontWeight: 700 } }, 'MAIS'),
-              React.createElement('input', { type: 'file', accept: 'image/*', multiple: true, style: { display: 'none' }, onChange: function(e) { if (e.target.files && e.target.files.length) addFiles(e.target.files); } })
-            )
-          )
-        ),
-        React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'NOTAS'),
           React.createElement('textarea', { value: formData.notas, onChange: function(e) { setFormData(Object.assign({}, formData, { notas: e.target.value })); }, placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inp, { resize: 'vertical' }) })
         ),
         React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
-          saving ? (progress ? 'A guardar ' + progress.done + '/' + progress.total + '…' : 'A guardar…') : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
+          saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
         )
       )
     );
@@ -27214,7 +26668,7 @@ function ViagensApp(props) {
           return React.createElement(Card, {
             key: t.id,
             style: { padding: '13px 15px', borderLeft: '4px solid ' + ti.color, display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10, cursor: 'pointer' },
-            onClick: function() { openDetail(t); }
+            onClick: function() { if (t.album_url) { window.open(t.album_url, '_blank'); } else { openDetail(t); } }
           },
             React.createElement('div', { style: { flex: 1, minWidth: 0 } },
               React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5, flexWrap: 'wrap' } },
@@ -27269,7 +26723,10 @@ function ViagensApp(props) {
                   React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 2 } },
                     mTrips.slice(0, 3).map(function(t) {
                       var ti = vgType(t.tipo);
-                      return React.createElement('div', { key: t.id, style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' } }, t.titulo);
+                      return React.createElement('div', { key: t.id,
+                        onClick: function(e) { e.stopPropagation(); openDetail(t); },
+                        style: { fontSize: 9, fontWeight: 700, color: '#fff', background: ti.color, padding: '2px 5px', borderRadius: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', cursor: 'pointer' }
+                      }, t.titulo);
                     }),
                     mTrips.length > 3 && React.createElement('div', { style: { fontSize: 9, color: T.muted } }, '+' + (mTrips.length - 3) + ' mais')
                   )
@@ -27900,36 +27357,6 @@ function VozApp(props) {
   );
 }
 
-var UpdateStatusCard = function UpdateStatusCard(_ref0) {
-  var installed = _ref0.installed,
-    published = _ref0.published,
-    checking = _ref0.checking,
-    failed = _ref0.failed,
-    cacheVer = _ref0.cacheVer,
-    onUpdateNow = _ref0.onUpdateNow;
-  var mismatch = installed != null && published != null && installed !== published;
-  var publicadaLabel = checking ? '...' : failed ? '?' : (published != null ? published : '?');
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: { color: T.muted, fontSize: 13 }
-  }, "Versão"), /*#__PURE__*/React.createElement("div", {
-    style: { textAlign: 'right' }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: { color: mismatch ? '#F97316' : T.text, fontSize: 13, fontWeight: 800 }
-  }, "Instalada: ", installed != null ? installed : '?', " \xB7 Publicada: ", publicadaLabel), /*#__PURE__*/React.createElement("div", {
-    style: { color: T.muted, fontSize: 9.5, fontFamily: 'monospace', marginTop: 1 }
-  }, cacheVer || '...'))), failed && /*#__PURE__*/React.createElement("p", {
-    style: { color: '#F97316', fontSize: 12.5, marginBottom: 10, lineHeight: 1.4 }
-  }, "⚠ Não foi possível verificar a versão publicada — confirma a ligação e tenta outra vez."), mismatch && /*#__PURE__*/React.createElement("div", {
-    style: { background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.35)', borderRadius: 12, padding: '10px 12px', marginBottom: 10 }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: { color: '#F97316', fontSize: 13, fontWeight: 800, marginBottom: 8 }
-  }, "⚠ Há uma versão nova publicada"), /*#__PURE__*/React.createElement("button", {
-    onClick: onUpdateNow,
-    style: { width: '100%', background: '#F97316', border: 'none', borderRadius: 10, padding: '10px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }
-  }, "⬇ Atualizar agora")));
-};
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -28041,14 +27468,6 @@ function CarvalhoSuite() {
     _useStateUpdMsg2 = _slicedToArray(_useStateUpdMsg, 2),
     updMsg = _useStateUpdMsg2[0],
     setUpdMsg = _useStateUpdMsg2[1];
-  var _useStatePublishedBuild = (0, _react.useState)(null),
-    _useStatePublishedBuild2 = _slicedToArray(_useStatePublishedBuild, 2),
-    publishedBuild = _useStatePublishedBuild2[0],
-    setPublishedBuild = _useStatePublishedBuild2[1];
-  var _useStateUpdCheckFailed = (0, _react.useState)(false),
-    _useStateUpdCheckFailed2 = _slicedToArray(_useStateUpdCheckFailed, 2),
-    updCheckFailed = _useStateUpdCheckFailed2[0],
-    setUpdCheckFailed = _useStateUpdCheckFailed2[1];
   var _useStatePushTestMsg = (0, _react.useState)(''),
     _useStatePushTestMsg2 = _slicedToArray(_useStatePushTestMsg, 2),
     pushTestMsg = _useStatePushTestMsg2[0],
@@ -29069,65 +28488,62 @@ function CarvalhoSuite() {
       window.supabaseClient.from('profiles').update({ read_notifications: nextRead }).eq('id', profile.id).then(function () {}).catch(function () {});
     }
   }, [screen, notifItems]);
-  // Parseia o número de build da versão INSTALADA (window.CARVALHO_FRIENDLY_VERSION,
-  // ex: "Carvalho-207") — é a versão do bundle que está mesmo a correr neste ecrã.
-  var installedBuild = (function () {
-    var fv = (typeof window !== 'undefined' && window.CARVALHO_FRIENDLY_VERSION) || '';
-    var m = fv.match(/(\d+)/);
-    return m ? String(parseInt(m[1], 10)) : null;
-  })();
-  // Limpa as caches do browser + desregista o Service Worker + recarrega.
-  // Usado tanto por "Atualizar agora" (quando há uma versão nova) como por
-  // "Limpar cache e reiniciar" (manutenção geral).
-  var clearCachesAndReload = function clearCachesAndReload() {
-    var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-    }) : Promise.resolve();
-    return clearCaches.then(function () {
-      if ('serviceWorker' in navigator) {
-        return navigator.serviceWorker.getRegistration().then(function (reg) {
-          return reg ? reg.unregister() : null;
-        });
-      }
-    }).then(function () {
-      window.location.reload();
-    }).catch(function () {
-      window.location.reload();
-    });
-  };
-  // Compara a versão instalada com a que está de facto publicada em
-  // build-number.txt (com cache: 'no-store', para nunca ler uma cópia velha
-  // do próprio ficheiro de versão). Nunca afirma que está atualizado sem
-  // confirmar — se o fetch falhar, diz isso mesmo, não assume nada.
   var checkForUpdate = function checkForUpdate() {
+    if (!('serviceWorker' in navigator)) {
+      setUpdMsg('Service Worker não suportado neste navegador.');
+      return;
+    }
     setUpdChecking(true);
     setUpdMsg('');
-    setUpdCheckFailed(false);
-    fetch('/carvalho-suites/build-number.txt', { cache: 'no-store' }).then(function (res) {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.text();
-    }).then(function (txt) {
-      var published = (txt || '').trim();
-      setPublishedBuild(published ? String(parseInt(published, 10)) : null);
-      setUpdChecking(false);
-    }).catch(function (err) {
-      setUpdChecking(false);
-      setUpdCheckFailed(true);
-      setPublishedBuild(null);
-      setUpdMsg('Não foi possível verificar a versão publicada — ' + (err && err.message ? err.message : 'sem ligação') + '.');
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) {
+        setUpdChecking(false);
+        setUpdMsg('A app ainda não está registada como PWA neste dispositivo.');
+        return;
+      }
+      var found = false;
+      reg.onupdatefound = function () {
+        found = true;
+        var installing = reg.installing;
+        if (installing) {
+          installing.onstatechange = function () {
+            if (installing.state === 'activated') {
+              setUpdMsg('✓ Nova versão instalada — a reiniciar...');
+              setTimeout(function () { window.location.reload(); }, 800);
+            }
+          };
+        }
+      };
+      reg.update().then(function () {
+        setTimeout(function () {
+          setUpdChecking(false);
+          if (!found) setUpdMsg('✓ Já tens a versão mais recente.');
+        }, 1200);
+      }).catch(function (err) {
+        setUpdChecking(false);
+        setUpdMsg('Erro ao verificar: ' + (err && err.message ? err.message : err));
+      });
     });
-  };
-  var updateNow = function updateNow() {
-    setUpdChecking(true);
-    setUpdMsg('A atualizar...');
-    clearCachesAndReload();
   };
   var hardReset = function hardReset() {
     if (!(window.confirm ? window.confirm('Isto vai limpar a cache local e reiniciar a app. Os teus dados continuam guardados no servidor. Continuar?') : true)) return;
     setUpdChecking(true);
     var proceedWithReset = function proceedWithReset() {
       setUpdMsg('A limpar cache...');
-      clearCachesAndReload();
+      var clearCaches = 'caches' in window ? caches.keys().then(function (keys) {
+        return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      }) : Promise.resolve();
+      clearCaches.then(function () {
+        if ('serviceWorker' in navigator) {
+          return navigator.serviceWorker.getRegistration().then(function (reg) {
+            return reg ? reg.unregister() : null;
+          });
+        }
+      }).then(function () {
+        window.location.reload();
+      }).catch(function () {
+        window.location.reload();
+      });
     };
     if (typeof Notification === 'undefined') {
       proceedWithReset();
@@ -29514,7 +28930,6 @@ function CarvalhoSuite() {
     }
   }, "O teu nome"), /*#__PURE__*/React.createElement("input", {
     type: "text",
-    autoComplete: "off",
     value: signupName,
     onChange: function onChange(e) {
       setSignupName(e.target.value);
@@ -29827,14 +29242,15 @@ function CarvalhoSuite() {
   React.createElement(Card, {
     style: { padding: '16px', marginBottom: 14 }
   },
-    React.createElement(UpdateStatusCard, {
-      installed: installedBuild,
-      published: publishedBuild,
-      checking: updChecking,
-      failed: updCheckFailed,
-      cacheVer: cacheVer,
-      onUpdateNow: updateNow
-    }),
+    React.createElement("div", {
+      style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }
+    },
+      React.createElement("span", { style: { color: T.muted, fontSize: 13 } }, "Versão instalada"),
+      React.createElement("div", { style: { textAlign: 'right' } },
+        React.createElement("div", { style: { color: T.text, fontSize: 14, fontWeight: 800 } }, (typeof window !== 'undefined' && window.CARVALHO_FRIENDLY_VERSION) || 'Carvalho-00'),
+        React.createElement("div", { style: { color: T.muted, fontSize: 9.5, fontFamily: 'monospace', marginTop: 1 } }, cacheVer || '...')
+      )
+    ),
     React.createElement("div", {
       style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }
     },
