@@ -4561,14 +4561,13 @@ function EscolarApp(_ref31) {
     }, "Feito \u2713"), t.feito && /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', gap: 6, alignItems: 'center' }
     }, /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      step: "0.01",
+      type: "text",
       inputMode: "decimal",
-      min: "1",
-      max: "6",
       value: notaInputs[t.id] || '',
       onChange: function onChange(e) {
-        var val = e.target.value;
+        // Ver comentario no campo "+ Nota": type="number" apagava o valor
+        // quando se escrevia virgula ou ponto.
+        var val = e.target.value.replace(/[^0-9.,]/g, '');
         setNotaInputs(function (prev) {
           return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, t.id, val));
         });
@@ -4588,7 +4587,7 @@ function EscolarApp(_ref31) {
       }
     }), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        var v = parseFloat(notaInputs[t.id]);
+        var v = parseFloat(String(notaInputs[t.id] || '').replace(',', '.'));
         if (!v && v !== 0) return;
         setAluno(function (al) {
           var _al$notas$t$discId;
@@ -4787,15 +4786,14 @@ function EscolarApp(_ref31) {
           gap: 5
         }
       }, isEditingThis ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
-        type: "number",
-        step: "0.01",
+        type: "text",
         inputMode: "decimal",
-        min: "1",
-        max: "6",
         autoFocus: true,
         value: editNotaVal,
         onChange: function onChange(e) {
-          return setEditNotaVal(e.target.value);
+          // Ver comentario nos outros campos de nota: type="number" apagava
+          // o valor ao escrever virgula.
+          return setEditNotaVal(e.target.value.replace(/[^0-9.,]/g, ''));
         },
         style: {
           width: 46,
@@ -4809,7 +4807,7 @@ function EscolarApp(_ref31) {
         }
       }), /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
-          var v = parseFloat(editNotaVal);
+          var v = parseFloat(String(editNotaVal).replace(',', '.'));
           if (isNaN(v) || v < 1 || v > 6) return;
           setAluno(function (al) {
             var _al$notas$disc$id3;
@@ -4880,14 +4878,16 @@ function EscolarApp(_ref31) {
         alignItems: 'center'
       }
     }, /*#__PURE__*/React.createElement("input", {
-      type: "number",
-      step: "0.01",
+      type: "text",
       inputMode: "decimal",
-      min: "1",
-      max: "6",
       value: novaNotaVal,
       onChange: function onChange(e) {
-        return setNovaNotaVal(e.target.value);
+        // type="text" em vez de "number": o campo numerico do browser
+        // rejeita a virgula e o ponto isolado, apagando o que ja estava
+        // escrito (so dava para meter 1 digito). Aqui aceitamos digitos,
+        // virgula e ponto, e convertemos na altura de guardar.
+        var v = e.target.value.replace(/[^0-9.,]/g, '');
+        return setNovaNotaVal(v);
       },
       placeholder: "1.0\u20136.0",
       style: {
@@ -4902,7 +4902,7 @@ function EscolarApp(_ref31) {
       }
     }), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        var v = parseFloat(novaNotaVal);
+        var v = parseFloat(String(novaNotaVal).replace(',', '.'));
         if (isNaN(v) || v < 1 || v > 6) return;
         setAluno(function (al) {
           var _al$notas$disc$id2;
