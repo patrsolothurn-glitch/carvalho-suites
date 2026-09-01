@@ -432,10 +432,32 @@ function addMin(hhmm, add) {
   var nm = total % 60;
   return nh + ':' + String(nm).padStart(2, '0');
 }
+// Envia o codigo de acesso por WhatsApp. Se a pessoa tiver telemovel
+// guardado, abre a conversa dela diretamente; senao abre o WhatsApp para
+// escolher o contacto. Numeros suicos (0xx...) sao convertidos para +41.
+function normalizarTelemovel(tel) {
+  if (!tel) return '';
+  var d = String(tel).replace(/[^0-9]/g, '');
+  if (!d) return '';
+  if (d.indexOf('00') === 0) d = d.slice(2);
+  if (d.indexOf('0') === 0) d = '41' + d.slice(1);
+  return d;
+}
+function enviarCodigoWhatsApp(nome, codigo, telefone) {
+  var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
+  var msg = encodeURIComponent(
+    '\uD83C\uDFEB Escola Grenchen Sek P \u2014 plano de transportes\n\n' +
+    'Ol\u00e1 ' + (nome || '') + '! O teu c\u00f3digo de acesso \u00e9: ' + codigo + '\n\n' +
+    link
+  );
+  var num = normalizarTelemovel(telefone);
+  window.open('https://wa.me/' + num + '?text=' + msg, '_blank');
+}
+
 function LucasApp(_ref) {
   var supabase = _ref.supabase,
     user = _ref.user,
-    isAdmin = _ref.isAdmin,
+    isGlobalAdmin = _ref.isAdmin,
     isSuperAdmin = _ref.isSuperAdmin,
     onBack = _ref.onBack,
     initialView = _ref.initialView;
@@ -516,6 +538,15 @@ function LucasApp(_ref) {
     _useState20 = _slicedToArray(_useState19, 2),
     config = _useState20[0],
     setConfig = _useState20[1];
+  // Admins desta app: o admin global da Suite (Patricio) + quem estiver
+  // listado em lucas_config.escola_admins (ex.: "patricio,esposa").
+  // Quem nao for admin so ve o Plano/Historico/Imprimir, sem editar.
+  var meuMemberId = (user && (user.member_id || user.id)) || '';
+  var adminsDaApp = String(config.escola_admins || '')
+    .split(',')
+    .map(function (s) { return s.trim(); })
+    .filter(Boolean);
+  var isAdmin = !!isGlobalAdmin || adminsDaApp.indexOf(meuMemberId) !== -1;
   var _useState21 = useState(null),
     _useState22 = _slicedToArray(_useState21, 2),
     editField = _useState22[0],
@@ -2128,10 +2159,100 @@ function LucasApp(_ref) {
       }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(CodeField, {
         driver: d,
         onSave: setAccessCode
+      }), /*#__PURE__*/React.createElement(CodeShareBtn, {
+        nome: d.nome,
+        codigo: d.access_code,
+        telefone: d.telefone
       }))), /*#__PURE__*/React.createElement(DriverActions, {
         driver: d
       }));
-    })), /*#__PURE__*/React.createElement(VisitantesSection, null));
+    })), /*#__PURE__*/React.createElement(VisitantesSection, null), /*#__PURE__*/React.createElement(AdminsSection, null));
+  }
+  // Seccao onde o admin global escolhe quem mais pode EDITAR esta app.
+  // Quem nao estiver marcado ve o plano e imprime, mas nao altera nada.
+  function AdminsSection() {
+    var _stMembros = useState([]),
+      _stMembros2 = _slicedToArray(_stMembros, 2),
+      membros = _stMembros2[0],
+      setMembros = _stMembros2[1];
+    var _stOpenA = useState(false),
+      _stOpenA2 = _slicedToArray(_stOpenA, 2),
+      openA = _stOpenA2[0],
+      setOpenA = _stOpenA2[1];
+    useEffect(function () {
+      if (!isGlobalAdmin || !supabase) return;
+      supabase.from('profiles').select('id,display_name,member_id,allowed_apps').then(function (res) {
+        var lista = (res.data || []).filter(function (p) {
+          var apps = p.allowed_apps || [];
+          return apps.indexOf('escola_lucas') !== -1;
+        });
+        setMembros(lista);
+      });
+    }, [isGlobalAdmin]);
+    if (!isGlobalAdmin) return null;
+    function toggle(memberId) {
+      var atuais = adminsDaApp.slice();
+      var i = atuais.indexOf(memberId);
+      if (i === -1) atuais.push(memberId);else atuais.splice(i, 1);
+      saveConfig('escola_admins', atuais.join(','));
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: { marginTop: 12 }
+    }, /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick() { setOpenA(function (v) { return !v; }); },
+      style: {
+        background: openA ? '#1a237e' : C.card,
+        borderRadius: openA ? '12px 12px 0 0' : 12,
+        padding: '12px 16px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: { fontWeight: 800, fontSize: 14, color: openA ? '#fff' : '#1a237e' }
+    }, "\uD83D\uDC51 Quem pode editar"), /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: 11, color: openA ? 'rgba(255,255,255,.75)' : '#999', marginTop: 2 }
+    }, adminsDaApp.length + " al\u00e9m de ti")), /*#__PURE__*/React.createElement("span", {
+      style: { color: openA ? '#fff' : '#bbb', fontSize: 12 }
+    }, openA ? '\u25b4' : '\u25be')), openA && /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#f5f6ff',
+        borderRadius: '0 0 12px 12px',
+        padding: '12px 16px'
+      }
+    }, membros.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: 12, color: '#999' }
+    }, "Ningu\u00e9m com acesso a esta app."), membros.map(function (m) {
+      var marcado = adminsDaApp.indexOf(m.member_id) !== -1;
+      return /*#__PURE__*/React.createElement("div", {
+        key: m.id,
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 0',
+          borderBottom: '1px solid #e8e8f0'
+        }
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: { fontWeight: 700, fontSize: 13, color: '#1a237e' }
+      }, m.display_name || m.member_id), /*#__PURE__*/React.createElement("div", {
+        style: { fontSize: 11, color: '#999' }
+      }, marcado ? 'Pode editar' : 'S\u00f3 ver e imprimir')), /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() { toggle(m.member_id); },
+        style: {
+          border: 'none',
+          borderRadius: 16,
+          padding: '5px 12px',
+          fontSize: 11,
+          fontWeight: 800,
+          cursor: 'pointer',
+          background: marcado ? '#1a237e' : '#e0e0e0',
+          color: marcado ? '#fff' : '#777'
+        }
+      }, marcado ? '\u2713 Admin' : 'Tornar admin'));
+    })));
   }
   function VisitantesSection() {
     var _useState47 = useState(false),
@@ -2344,6 +2465,10 @@ function LucasApp(_ref) {
       }
     }, "\uD83D\uDD11 C\xF3digo:"), /*#__PURE__*/React.createElement(VisitanteCodeField, {
       visitante: v
+    }), /*#__PURE__*/React.createElement(CodeShareBtn, {
+      nome: v.nome,
+      codigo: v.access_code,
+      telefone: v.telefone
     })));
   }
   function AddVisitante() {
@@ -2836,6 +2961,30 @@ function LucasApp(_ref) {
         border: '1px solid ' + (hasCode ? '#a5d6a7' : '#ffcc80')
       }
     }, hasCode ? '●●●● ✏️' : '+ Definir');
+  }
+  function CodeShareBtn(_ref11b) {
+    var nome = _ref11b.nome,
+      codigo = _ref11b.codigo,
+      telefone = _ref11b.telefone;
+    if (!codigo) return null;
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick(e) {
+        e.stopPropagation();
+        enviarCodigoWhatsApp(nome, codigo, telefone);
+      },
+      title: "Enviar c\u00f3digo por WhatsApp",
+      style: {
+        marginLeft: 6,
+        border: '1px solid #a5d6a7',
+        background: '#e8f5e9',
+        color: '#2e7d32',
+        borderRadius: 10,
+        padding: '2px 8px',
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\uD83D\uDCAC");
   }
   function AddCondutor() {
     var _useState67 = useState(false),
