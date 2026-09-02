@@ -54,6 +54,12 @@ function hwPlus30Days(dt) {
   return r;
 }
 
+function fmtCHF(n) {
+  var v = (Math.round(Number(n) * 100) / 100).toFixed(2);
+  var p = v.split('.');
+  return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '.' + p[1];
+}
+
 var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
 function hwFmtMonthYear(d) {
