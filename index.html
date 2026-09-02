@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-02T13:25:02.054Z
+  Gerado em: 2026-09-02T20:36:38.142Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-230";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-231";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -24662,6 +24662,20 @@ function hwFmtDate(d) {
 function hwToday() { return new Date().toISOString().slice(0,10); }
 
 // ── DatePick ──
+function hwPlus30Days(dt) {
+  var r = new Date(dt.getTime());
+  r.setDate(r.getDate() + 30);
+  return r;
+}
+
+var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function hwFmtMonthYear(d) {
+  if (!d) return '';
+  var dt = new Date(d + 'T12:00:00');
+  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
+}
+
 function HwDatePick(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
 
