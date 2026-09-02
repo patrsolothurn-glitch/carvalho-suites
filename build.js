@@ -40,7 +40,11 @@ const JS_SECTIONS = [
 ];
 
 function read(name) {
-  return fs.readFileSync(path.join(SRC_DIR, name), 'utf8');
+  // Se existir FINAL-{name}, usa-o em vez de {name} (protege de merges externos)
+  const finalPath = path.join(SRC_DIR, 'FINAL-' + name);
+  const regularPath = path.join(SRC_DIR, name);
+  const p = fs.existsSync(finalPath) ? finalPath : regularPath;
+  return fs.readFileSync(p, 'utf8');
 }
 
 function main() {
