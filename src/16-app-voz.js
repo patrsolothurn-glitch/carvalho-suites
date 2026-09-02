@@ -142,6 +142,21 @@ var VzIconTrash = function VzIconTrash(props) {
   );
 };
 
+var VzIconCopy = function VzIconCopy(props) {
+  var c = props.color || '#6E7183';
+  return React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none' },
+    React.createElement('rect', { x: 8, y: 8, width: 12, height: 12, rx: 2, stroke: c, strokeWidth: 1.6 }),
+    React.createElement('path', { d: 'M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2', stroke: c, strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  );
+};
+
+var VzIconCheck = function VzIconCheck(props) {
+  var c = props.color || '#22C55E';
+  return React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none' },
+    React.createElement('path', { d: 'M5 13l4 4L19 7', stroke: c, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  );
+};
+
 var VzIconPlayPause = function VzIconPlayPause(props) {
   var c = props.color || '#E8E9EF';
   if (props.playing) {
@@ -194,6 +209,9 @@ var VzGravacaoRow = function VzGravacaoRow(props) {
   var g = props.g;
   var isPlaying = props.playingId === g.id;
   var arquivada = !!g.arquivado_em;
+  var temTranscricao = !!g.transcricao;
+  var expandida = !!props.transcricaoExpandida;
+  var copiado = props.copiedId === g.id;
   return React.createElement('div', { style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 12, marginBottom: 8 } },
     React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
       arquivada
@@ -208,11 +226,18 @@ var VzGravacaoRow = function VzGravacaoRow(props) {
             style: { background: 'transparent', border: '1.5px solid #40445A', borderRadius: '50%', width: 36, height: 36, flexShrink: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }
           }, React.createElement(VzIconPlayPause, { playing: isPlaying, color: '#E8E9EF' })),
       React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-        React.createElement('div', { style: { fontWeight: 700, fontSize: 14, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, vzTitleCase(g.titulo)),
+        React.createElement('div', {
+          onClick: temTranscricao ? function() { props.onToggleTranscricao(g.id); } : undefined,
+          style: { fontWeight: 700, fontSize: 14, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: temTranscricao ? 'pointer' : 'default' }
+        }, vzTitleCase(g.titulo), temTranscricao && React.createElement('span', { style: { color: '#6E7183', fontSize: 11, marginLeft: 6 } }, expandida ? '▴' : '▾')),
         React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 2 } }, vzFmtDateTime(g.gravado_em) + ' · ' + vzFmtDuration(g.duracao_seg) + (arquivada ? ' · no Drive' : '')),
-        g.transcricao && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 4, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } }, '“' + g.transcricao + '”')
+        temTranscricao && expandida && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-wrap' } }, '“' + g.transcricao + '”')
       ),
       React.createElement('button', { onClick: function() { props.onEdit(g); }, style: { background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex' } }, React.createElement(VzIconEdit, { color: '#6E7183' })),
+      React.createElement('button', {
+        onClick: function() { props.onCopiarTranscricao(g); }, disabled: !temTranscricao, title: temTranscricao ? 'Copiar transcrição' : 'Sem transcrição',
+        style: { background: 'none', border: 'none', cursor: temTranscricao ? 'pointer' : 'default', padding: 6, display: 'flex', opacity: temTranscricao ? 1 : 0.35 }
+      }, copiado ? React.createElement(VzIconCheck, { color: '#22C55E' }) : React.createElement(VzIconCopy, { color: '#6E7183' })),
       React.createElement('button', { onClick: function() { props.onDelete(g); }, style: { background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex' } }, React.createElement(VzIconTrash, { color: '#6E7183' }))
     ),
     isPlaying && props.playingUrl && React.createElement('audio', { controls: true, autoPlay: true, src: props.playingUrl, style: { width: '100%', marginTop: 10 }, onEnded: props.onPlayEnded })
@@ -248,7 +273,9 @@ var VzGrupoPastas = function VzGrupoPastas(p) {
     !collapsed && visiveis.map(function(g) {
       return React.createElement(VzGravacaoRow, {
         key: g.id, g: g, playingId: p.playingId, playingUrl: p.playingUrl,
-        onPlay: p.onPlay, onPlayEnded: p.onPlayEnded, onEdit: p.onEdit, onDelete: p.onDelete
+        onPlay: p.onPlay, onPlayEnded: p.onPlayEnded, onEdit: p.onEdit, onDelete: p.onDelete,
+        transcricaoExpandida: p.expandedTranscricoes.has(g.id), onToggleTranscricao: p.onToggleTranscricao,
+        copiedId: p.copiedId, onCopiarTranscricao: p.onCopiarTranscricao
       });
     }),
     !collapsed && restantes > 0 && React.createElement('button', {
@@ -310,7 +337,9 @@ var VzRecorderTab = function VzRecorderTab(p) {
         onToggleCollapse: function() { p.onToggleCollapse(grupo.key); },
         onToggleExpand: function() { p.onToggleExpand(grupo.key); },
         playingId: p.playingId, playingUrl: p.playingUrl, onPlay: p.onPlay, onPlayEnded: p.onPlayEnded,
-        onEdit: p.onEditGravacao, onDelete: p.onDeleteGravacao
+        onEdit: p.onEditGravacao, onDelete: p.onDeleteGravacao,
+        expandedTranscricoes: p.expandedTranscricoes, onToggleTranscricao: p.onToggleTranscricao,
+        copiedId: p.copiedId, onCopiarTranscricao: p.onCopiarTranscricao
       });
     }),
     !p.loading && React.createElement('div', { style: { marginTop: 24, borderTop: '1px solid ' + T.border, paddingTop: 16 } },
@@ -434,6 +463,11 @@ function VozApp(props) {
   // Listas colapsáveis — abertas por omissão, limitadas a 3; só local
   var _s27 = React.useState(new Set()); var collapsedGroups = _s27[0], setCollapsedGroups = _s27[1];
   var _s28 = React.useState(new Set()); var expandedGroups = _s28[0], setExpandedGroups = _s28[1];
+
+  // Transcrição — colapsada por omissão; copiar
+  var _s32 = React.useState(new Set()); var expandedTranscricoes = _s32[0], setExpandedTranscricoes = _s32[1];
+  var _s33 = React.useState(null); var copiedId = _s33[0], setCopiedId = _s33[1];
+  var copiedIdTimerRef = React.useRef(null);
 
   // Reprodução
   var _s18 = React.useState(null); var playingId = _s18[0], setPlayingId = _s18[1];
@@ -645,6 +679,19 @@ function VozApp(props) {
       if (playingId === g.id) { setPlayingId(null); setPlayingUrl(''); }
     }).catch(function(e) { setErro('Falha ao apagar gravação: ' + (e && e.message ? e.message : e)); });
   }
+  function toggleTranscricao(id) {
+    vzToggleSet(setExpandedTranscricoes, id);
+  }
+  function copiarTranscricao(g) {
+    if (!g.transcricao || !navigator.clipboard) return;
+    navigator.clipboard.writeText(g.transcricao).then(function() {
+      setCopiedId(g.id);
+      if (copiedIdTimerRef.current) clearTimeout(copiedIdTimerRef.current);
+      copiedIdTimerRef.current = setTimeout(function() { setCopiedId(null); }, 1500);
+    }).catch(function(e) {
+      setErro('Falha ao copiar transcrição: ' + (e && e.message ? e.message : e));
+    });
+  }
 
   // ── Tradutor ──
   function clearSilenceTimer() {
@@ -814,6 +861,7 @@ function VozApp(props) {
       manualStopRef.current = true;
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       if (copiadoTimerRef.current) clearTimeout(copiadoTimerRef.current);
+      if (copiedIdTimerRef.current) clearTimeout(copiedIdTimerRef.current);
       if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
@@ -850,7 +898,9 @@ function VozApp(props) {
         onEditPasta: function(pa) { setEditPasta(Object.assign({}, pa)); }, onDeletePasta: apagarPasta,
         collapsedGroups: collapsedGroups, expandedGroups: expandedGroups,
         onToggleCollapse: function(key) { vzToggleSet(setCollapsedGroups, key); },
-        onToggleExpand: function(key) { vzToggleSet(setExpandedGroups, key); }
+        onToggleExpand: function(key) { vzToggleSet(setExpandedGroups, key); },
+        expandedTranscricoes: expandedTranscricoes, onToggleTranscricao: toggleTranscricao,
+        copiedId: copiedId, onCopiarTranscricao: copiarTranscricao
       }),
       tab === 'tradutor' && React.createElement(VzTradutorTab, {
         origem: origem, destino: destino,
