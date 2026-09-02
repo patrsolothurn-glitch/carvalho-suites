@@ -859,8 +859,8 @@ function HwArquivoTab(props) {
 // ── PRINT VIEW ──
 function HwPrintView(props) {
   var works = props.works, mats = props.mats, cfg = props.cfg, total = props.total;
-  var totalWork = props.totalWork, totalMats = props.totalMats, pauschale = props.pauschale;
-  var beschreibung = props.beschreibung, referenz = props.referenz, invLabel = props.invLabel;
+  var pauschale = props.pauschale;
+  var beschreibung = props.beschreibung, referenz = props.referenz, invNum = props.invNum;
   var leistungszeitraum = props.leistungszeitraum;
   var onBack = props.onBack, onNew = props.onNew;
 
@@ -868,42 +868,86 @@ function HwPrintView(props) {
   var scale = _useStateScale[0], setScale = _useStateScale[1];
 
   React.useEffect(function() {
-    var update = function() {
+    var updateScreen = function() {
       var w = window.innerWidth;
       setScale(w < 820 ? (w - 16) / 794 : 1);
     };
-    update();
-    window.addEventListener('resize', update);
-    return function() { window.removeEventListener('resize', update); };
+    updateScreen();
+    window.addEventListener('resize', updateScreen);
+    var beforePrint = function() {
+      var pp = document.getElementById('print-page');
+      if (!pp) return;
+      var A4H = Math.round(297 * 96 / 25.4);
+      var h = pp.scrollHeight;
+      if (h > A4H) {
+        var s = (A4H / h).toFixed(4);
+        pp.dataset.ps = s;
+        pp.style.transform = 'scale(' + s + ')';
+        pp.style.transformOrigin = 'top left';
+        pp.style.height = Math.round(h * parseFloat(s)) + 'px';
+      }
+    };
+    var afterPrint = function() {
+      var pp = document.getElementById('print-page');
+      if (pp && pp.dataset.ps) { pp.style.transform = ''; pp.style.height = ''; delete pp.dataset.ps; }
+    };
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+    return function() {
+      window.removeEventListener('resize', updateScreen);
+      window.removeEventListener('beforeprint', beforePrint);
+      window.removeEventListener('afterprint', afterPrint);
+    };
   }, []);
 
-  var dateStr = cfg.invoiceDate
-    ? new Date(cfg.invoiceDate + 'T12:00:00').toLocaleDateString('de-CH')
-    : new Date().toLocaleDateString('de-CH');
+  var invoiceDateObj = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00') : new Date();
+  var dateStr = invoiceDateObj.toLocaleDateString('de-CH');
+  var faelligStr = hwPlus30Days(invoiceDateObj).toLocaleDateString('de-CH');
 
-  var Row = function(rp) {
-    return React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', padding: '11px 16px', borderBottom: '1px solid #e8edf8', background: rp.shade ? '#f5f7ff' : 'white' } },
-      React.createElement('div', { style: { flex: 1, paddingRight: 20 } },
-        React.createElement('div', { style: { fontSize: 13, fontWeight: 600, color: '#111' } }, rp.label),
-        rp.sub && React.createElement('div', { style: { fontSize: 11, color: '#777', marginTop: 2 } }, rp.sub)
-      ),
-      React.createElement('div', { style: { minWidth: 110, textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#111', whiteSpace: 'nowrap' } }, rp.value)
-    );
-  };
+  var grupos = [
+    {
+      key: 'hauswartung', label: 'Hauswartung',
+      rows: pauschale > 0 ? [{ titel: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, sub: 'Pauschale', betrag: pauschale }] : []
+    },
+    {
+      key: 'dienstleistungen', label: 'Dienstleistungen',
+      rows: works.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }).map(function(w) {
+        return { titel: w.description, sub: hwFmtMonthYear(w.date), menge: w.hours, ansatz: w.rate, betrag: w.hours * w.rate };
+      })
+    },
+    {
+      key: 'material', label: 'Materialeinkauf',
+      rows: mats.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); }).map(function(m) {
+        return { titel: m.description, sub: hwFmtDate(m.date), menge: m.menge, ansatz: m.ansatz, betrag: m.price };
+      })
+    }
+  ].filter(function(g) { return g.rows.length > 0; });
 
-  var SecHead = function(sp) {
-    return React.createElement('div', { style: { background: '#1d4ed8', padding: '7px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
-      React.createElement('span', { style: { color: 'white', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 } }, sp.title),
-      React.createElement('span', { style: { color: '#93c5fd', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' } }, 'Betrag CHF')
-    );
-  };
+  grupos.forEach(function(g) {
+    g.sum = g.rows.reduce(function(a, r) { return a + Number(r.betrag || 0); }, 0);
+  });
 
-  var SubTotal = function(stp) {
-    return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', padding: '8px 16px', background: '#eef2ff', borderTop: '1px solid #c7d2fe' } },
-      React.createElement('span', { style: { fontSize: 11, fontWeight: 700, color: '#3730a3' } }, stp.label),
-      React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: '#3730a3', whiteSpace: 'nowrap' } }, stp.value)
-    );
-  };
+  var tbodyRows = [];
+  grupos.forEach(function(g) {
+    tbodyRows.push(React.createElement('tr', { key: g.key + '-head', className: 'section' },
+      React.createElement('td', { colSpan: 4 }, g.label)
+    ));
+    g.rows.forEach(function(r, i) {
+      tbodyRows.push(React.createElement('tr', { key: g.key + '-' + i },
+        React.createElement('td', null,
+          React.createElement('div', { className: 'pos-title' }, r.titel),
+          r.sub && React.createElement('div', { className: 'pos-sub' }, r.sub)
+        ),
+        React.createElement('td', { className: 'num' }, r.menge ? r.menge : '—'),
+        React.createElement('td', { className: 'num' }, r.ansatz ? fmtCHF(r.ansatz) : '—'),
+        React.createElement('td', { className: 'num' }, fmtCHF(r.betrag))
+      ));
+    });
+    tbodyRows.push(React.createElement('tr', { key: g.key + '-sub', className: 'subtotal' },
+      React.createElement('td', { colSpan: 3 }, 'Zwischensumme ' + g.label),
+      React.createElement('td', { className: 'num' }, fmtCHF(g.sum))
+    ));
+  });
 
   return React.createElement('div', { className: 'hw-print-outer', style: { background: '#94a3b8' } },
     // Toolbar
@@ -1003,110 +1047,103 @@ function HwPrintView(props) {
     // A4
     React.createElement('div', { className: 'hw-scale-outer', style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
       React.createElement('div', { className: 'hw-scale-inner', style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (1123 * scale) + 'px' : 'auto' } },
-        React.createElement('div', { id: 'print-page', style: { width: 794, background: 'white', boxShadow: '0 8px 40px rgba(0,0,0,0.3)', fontFamily: 'Arial, Helvetica, sans-serif', color: '#111', display: 'flex', flexDirection: 'column', minHeight: 1123 } },
-
-          // KOPF
-          React.createElement('div', { style: { padding: '40px 52px 0' } },
+        React.createElement('div', { id: 'print-page', className: 'page' },
+          React.createElement('div', { className: 'body-flex' },
             // Absender + Titel
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 } },
-              React.createElement('div', { style: { lineHeight: 1.7, fontSize: 12 } },
-                React.createElement('div', { style: { fontWeight: 700, fontSize: 15, marginBottom: 2 } }, cfg.name),
-                React.createElement('div', { style: { color: '#444' } }, cfg.address),
-                React.createElement('div', { style: { color: '#444' } }, cfg.city),
-                cfg.phone && React.createElement('div', { style: { color: '#444' } }, 'Tel. ' + cfg.phone),
-                cfg.email && React.createElement('div', { style: { color: '#444' } }, cfg.email)
+            React.createElement('div', { className: 'top' },
+              React.createElement('div', { className: 'sender' },
+                React.createElement('div', { className: 'name' }, cfg.name),
+                React.createElement('div', { className: 'line' }, cfg.address),
+                React.createElement('div', { className: 'line' }, cfg.city),
+                cfg.phone && React.createElement('div', { className: 'line' }, cfg.phone),
+                cfg.email && React.createElement('div', { className: 'line' }, cfg.email)
               ),
-              React.createElement('div', { style: { textAlign: 'right' } },
-                React.createElement('div', { style: { fontSize: 40, fontWeight: 900, letterSpacing: 4, color: '#1d4ed8', lineHeight: 1 } }, 'RECHNUNG'),
-                React.createElement('div', { style: { fontSize: 17, fontWeight: 700, color: '#334155', marginTop: 8 } }, invLabel),
-                React.createElement('div', { style: { fontSize: 12, color: '#64748b', marginTop: 4 } }, 'Selzach, ' + dateStr)
+              React.createElement('div', { className: 'doctype' },
+                React.createElement('h1', null, 'Rechnung'),
+                React.createElement('div', { className: 'nr' }, invNum),
+                React.createElement('div', { className: 'place' }, 'Selzach, ' + dateStr)
               )
             ),
-            // Gradient line
-            React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#3b82f6 60%,#93c5fd 100%)', borderRadius: 2, marginBottom: 28 } }),
+            React.createElement('div', { className: 'rule' }),
+
             // Empfänger + Details
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 } },
+            React.createElement('div', { className: 'band' },
               React.createElement('div', null,
-                React.createElement('div', { style: { fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 } }, 'Rechnungsempfänger'),
-                React.createElement('div', { style: { fontWeight: 700, fontSize: 15 } }, cfg.clientName),
-                cfg.clientContact && React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientContact),
-                React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientAddress),
-                React.createElement('div', { style: { fontSize: 13, color: '#444', marginTop: 2 } }, cfg.clientCity)
+                React.createElement('div', { className: 'eyebrow' }, 'Rechnungsempfänger'),
+                React.createElement('div', { className: 'recipient' },
+                  React.createElement('div', { className: 'org' }, cfg.clientName),
+                  cfg.clientContact && React.createElement('div', null, cfg.clientContact),
+                  React.createElement('div', null, cfg.clientAddress),
+                  React.createElement('div', null, cfg.clientCity)
+                )
               ),
-              React.createElement('div', { style: { background: '#f0f5ff', border: '1px solid #dde8f8', borderRadius: 8, padding: '16px 22px', minWidth: 250, fontSize: 12 } },
-                [['Rechnungsnummer', invLabel], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Referenz', referenz], ['Arbeitsort', cfg.location]].map(function(row) {
-                  return React.createElement('div', { key: row[0], style: { display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 6 } },
-                    React.createElement('span', { style: { color: '#64748b', whiteSpace: 'nowrap' } }, row[0]),
-                    React.createElement('span', { style: { fontWeight: 700, textAlign: 'right', color: row[0] === 'Referenz' ? '#1d4ed8' : '#111' } }, row[1])
+              React.createElement('dl', { className: 'meta' },
+                [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Fällig bis', faelligStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
+                  return React.createElement('div', { key: row[0] },
+                    React.createElement('dt', null, row[0]),
+                    React.createElement('dd', null, row[1])
                   );
                 })
               )
             ),
+
             // Betreff
-            React.createElement('div', { style: { background: '#eff6ff', borderLeft: '5px solid #1d4ed8', borderRadius: '0 6px 6px 0', padding: '13px 18px', marginBottom: 28, fontSize: 13, lineHeight: 1.75, color: '#1e3a8a', fontWeight: 500 } },
+            React.createElement('p', { className: 'subject' },
+              React.createElement('strong', null, 'Hauswartung ' + cfg.quarter + '. Quartal ' + cfg.year),
+              React.createElement('br', null),
               beschreibung
-            )
-          ),
+            ),
 
-          // POSITIONEN
-          React.createElement('div', { style: { paddingLeft: 52, paddingRight: 52 } },
-            React.createElement('div', { style: { border: '1px solid #dde6f8', borderRadius: 8, overflow: 'hidden' } },
-              pauschale > 0 && React.createElement('div', null,
-                React.createElement(SecHead, { title: 'Hauswartung' }),
-                React.createElement(Row, { label: 'Hauswartung ' + cfg.quarter + ' ' + cfg.year, value: pauschale.toFixed(2), sub: cfg.location })
+            // POSITIONEN
+            React.createElement('table', null,
+              React.createElement('thead', null,
+                React.createElement('tr', null,
+                  React.createElement('th', null, 'Position'),
+                  React.createElement('th', { className: 'num' }, 'Menge'),
+                  React.createElement('th', { className: 'num' }, 'Ansatz'),
+                  React.createElement('th', { className: 'num' }, 'Betrag CHF')
+                )
               ),
-              works.length > 0 && React.createElement('div', null,
-                React.createElement(SecHead, { title: 'Dienstleistungen' }),
-                works.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(w, i) {
-                  return React.createElement(Row, { key: w.id, label: w.description, value: (w.hours * w.rate).toFixed(2), sub: hwFmtDate(w.date) + ' · ' + w.hours + ' Std. × CHF ' + w.rate + '.–', shade: i % 2 === 1 });
+              React.createElement('tbody', null, tbodyRows)
+            ),
+
+            // TOTAL
+            React.createElement('div', { className: 'totals' },
+              React.createElement('div', { className: 'box' },
+                grupos.map(function(g) {
+                  return React.createElement('div', { className: 'row', key: g.key },
+                    React.createElement('span', null, g.label),
+                    React.createElement('span', null, fmtCHF(g.sum))
+                  );
                 }),
-                works.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Dienstleistungen', value: totalWork.toFixed(2) })
-              ),
-              mats.length > 0 && React.createElement('div', null,
-                React.createElement(SecHead, { title: 'Materialeinkauf' }),
-                mats.sort(function(a,b) { return new Date(a.date)-new Date(b.date); }).map(function(m, i) {
-                  return React.createElement(Row, { key: m.id, label: m.description, value: m.price.toFixed(2), sub: hwFmtDate(m.date), shade: i % 2 === 1 });
-                }),
-                mats.length > 1 && React.createElement(SubTotal, { label: 'Zwischensumme Material', value: totalMats.toFixed(2) })
-              ),
-              React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#93c5fd 100%)' } })
-            )
-          ),
-
-          // SPACER
-          React.createElement('div', { style: { flex: 1, minHeight: 40 } }),
-
-          // TOTAL + BANK + FOOTER
-          React.createElement('div', { style: { padding: '0 52px 40px' } },
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginBottom: 22 } },
-              React.createElement('div', { style: { background: '#1d4ed8', borderRadius: 10, padding: '20px 36px', display: 'flex', alignItems: 'center', gap: 40 } },
-                React.createElement('div', null,
-                  React.createElement('div', { style: { color: '#bfdbfe', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 } }, 'Gesamtbetrag'),
-                  React.createElement('div', { style: { color: '#93c5fd', fontSize: 11 } }, 'Ohne Mehrwertsteuer (nicht steuerpflichtig)')
+                React.createElement('div', { className: 'grand' },
+                  React.createElement('span', { className: 'lbl' }, 'Total CHF'),
+                  React.createElement('span', { className: 'val' }, fmtCHF(total))
                 ),
-                React.createElement('div', { style: { color: 'white', fontSize: 32, fontWeight: 900, whiteSpace: 'nowrap', letterSpacing: 1 } }, hwChf(total))
+                React.createElement('div', { className: 'note' }, 'Ohne Mehrwertsteuer — nicht steuerpflichtig')
               )
             ),
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8faff', border: '1px solid #dde6f8', borderRadius: 8, padding: '16px 24px', marginBottom: 22 } },
-              React.createElement('div', null,
-                React.createElement('div', { style: { fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Bankverbindung'),
-                React.createElement('div', { style: { fontSize: 13, marginBottom: 4 } }, 'IBAN:\u00a0', React.createElement('span', { style: { fontFamily: 'Courier New,monospace', fontWeight: 700, letterSpacing: 0.5 } }, cfg.iban)),
-                cfg.bank && React.createElement('div', { style: { fontSize: 12, color: '#444', marginBottom: 2 } }, 'Bank: ' + cfg.bank),
-                React.createElement('div', { style: { fontSize: 12, color: '#444' } }, 'Begünstigter: ', React.createElement('strong', null, cfg.name))
-              ),
-              React.createElement('div', { style: { textAlign: 'right' } },
-                React.createElement('div', { style: { fontSize: 10, color: '#94a3b8', marginBottom: 6 } }, 'Bitte Referenz angeben'),
-                React.createElement('div', { style: { fontSize: 18, fontWeight: 800, color: '#1d4ed8' } }, referenz)
-              )
-            ),
-            React.createElement('div', { style: { height: 4, background: 'linear-gradient(90deg,#1d4ed8 0%,#3b82f6 60%,#93c5fd 100%)', borderRadius: 1, marginBottom: 14 } }),
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#94a3b8' } },
-              React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen!'),
-              React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · ' + dateStr)
-            )
-          ), // total+bank+footer div
 
-          React.createElement('div', { style: { flexGrow: 1 } })
+            // BANK
+            React.createElement('div', { className: 'pay' },
+              React.createElement('div', null,
+                React.createElement('div', { className: 'eyebrow' }, 'Zahlbar an'),
+                React.createElement('div', { className: 'iban' }, cfg.iban),
+                React.createElement('div', null, cfg.bank + ' · ' + cfg.name)
+              ),
+              React.createElement('div', { className: 'term' },
+                React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
+                React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
+                React.createElement('div', { className: 'ref' }, 'Referenz: ' + referenz)
+              )
+            )
+          ), // body-flex
+
+          // FOOTER
+          React.createElement('footer', null,
+            React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen.'),
+            React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · Seite 1/1')
+          )
         ) // #print-page
       ) // scale wrapper
     ), // outer grey bg
@@ -1119,6 +1156,53 @@ function HwPrintView(props) {
     ),
 
     React.createElement('style', null,
+      '#print-page.page, #print-page.page *{box-sizing:border-box;}' +
+      '#print-page.page{width:210mm;min-height:297mm;padding:18mm 18mm 14mm;display:flex;flex-direction:column;background:#fff;font-family:Helvetica,Arial,"Helvetica Neue",sans-serif;color:#14181d;box-shadow:0 8px 40px rgba(0,0,0,.3);}' +
+      '#print-page .body-flex{flex:1;}' +
+      '#print-page .top{display:flex;justify-content:space-between;align-items:flex-start;}' +
+      '#print-page .sender{font-size:9.5pt;line-height:1.5;}' +
+      '#print-page .sender .name{font-weight:700;font-size:10.5pt;}' +
+      '#print-page .sender .line{color:#6b7280;}' +
+      '#print-page .doctype{text-align:right;}' +
+      '#print-page .doctype h1{margin:0;font-size:17pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}' +
+      '#print-page .doctype .nr{margin-top:4px;font-size:10pt;font-weight:600;color:#1d4ed8;font-variant-numeric:tabular-nums;}' +
+      '#print-page .doctype .place{margin-top:2px;font-size:9pt;color:#6b7280;}' +
+      '#print-page .rule{height:1px;background:#14181d;margin-top:12px;}' +
+      '#print-page .band{display:flex;justify-content:space-between;margin-top:18px;}' +
+      '#print-page .eyebrow{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}' +
+      '#print-page .recipient{font-size:10pt;line-height:1.5;}' +
+      '#print-page .recipient .org{font-weight:700;}' +
+      '#print-page .meta{width:76mm;font-size:9pt;border-top:1px solid #dfe3e8;margin:0;}' +
+      '#print-page .meta div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dfe3e8;}' +
+      '#print-page .meta dt{color:#6b7280;}' +
+      '#print-page .meta dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}' +
+      '#print-page .subject{margin-top:18px;font-size:10pt;line-height:1.55;}' +
+      '#print-page table{width:100%;border-collapse:collapse;margin-top:14px;font-size:9.5pt;}' +
+      '#print-page thead th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:600;text-align:left;padding:0 0 5px;border-bottom:1px solid #14181d;}' +
+      '#print-page thead th.num{text-align:right;}' +
+      '#print-page tr.section td{padding:14px 0 5px;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border-bottom:1px solid #14181d;}' +
+      '#print-page tbody td{padding:8px 0;border-bottom:1px solid #dfe3e8;vertical-align:top;}' +
+      '#print-page tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}' +
+      '#print-page .pos-title{font-weight:600;}' +
+      '#print-page .pos-sub{color:#6b7280;font-size:8pt;margin-top:2px;}' +
+      '#print-page tr.subtotal td{padding:6px 0;border-bottom:0;color:#6b7280;font-size:8.5pt;}' +
+      '#print-page tr.subtotal td.num{color:#14181d;font-weight:600;}' +
+      '#print-page tr{break-inside:avoid;page-break-inside:avoid;}' +
+      '#print-page .totals{margin-top:14px;display:flex;justify-content:flex-end;}' +
+      '#print-page .totals .box{width:76mm;}' +
+      '#print-page .totals .row{display:flex;justify-content:space-between;padding:4px 0;font-size:9pt;color:#6b7280;}' +
+      '#print-page .totals .row span:last-child{color:#14181d;font-variant-numeric:tabular-nums;}' +
+      '#print-page .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #14181d;}' +
+      '#print-page .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
+      '#print-page .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
+      '#print-page .totals .note{margin-top:5px;font-size:8pt;color:#6b7280;text-align:right;}' +
+      '#print-page .pay{margin-top:20px;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:9pt;line-height:1.55;}' +
+      '#print-page .pay .iban{font-family:"Courier New",monospace;font-size:9.5pt;letter-spacing:.04em;}' +
+      '#print-page .pay .term{text-align:right;}' +
+      '#print-page .pay .term .ref{font-weight:700;margin-top:2px;}' +
+      '#print-page footer{margin-top:auto;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:8pt;color:#6b7280;}'
+    ),
+    React.createElement('style', null,
       '@media print {' +
       '  @page { size: A4 portrait; margin: 0; }' +
       '  .no-print { display: none !important; }' +
@@ -1126,7 +1210,7 @@ function HwPrintView(props) {
       '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
-      '  #print-page { width: 100% !important; min-height: 0 !important; box-shadow: none !important; padding: 10mm 14mm !important; box-sizing: border-box !important; }' +
+      '  #print-page.page { box-shadow: none !important; } ' +
       '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
       '  #zahlteil-page { background: white !important; }' +
       '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
@@ -1146,6 +1230,7 @@ function HwPrintView(props) {
 }
 
 // ── SWISS QR BILL (Zahlteil) ──────────────────────────────────────────
+
 function hwQrContent(cfg, total, referenz) {
   var iban = (cfg.iban || '').replace(/\s/g, '');
   return [
