@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-02T04:34:11.459Z
+  Gerado em: 2026-09-02T05:21:41.576Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-228";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-229";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -27800,23 +27800,38 @@ var VzTradutorTab = function VzTradutorTab(p) {
       React.createElement('div', { style: { marginTop: 12, color: T.muted, fontSize: 13 } }, p.listening ? 'A ouvir… (' + origemLang.speech + ') · toca para parar' : 'Toca para falar')
     ),
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' } }, 'Original'),
-    React.createElement('div', { style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: '14px 16px', minHeight: 50, fontSize: 15, marginBottom: 18 } },
-      (p.originalText || p.interimText)
-        ? [
-            p.originalText && React.createElement('span', { key: 'f', style: { color: T.text } }, p.originalText),
-            p.interimText && React.createElement('span', { key: 'i', style: { color: '#7E8291' } }, (p.originalText ? ' ' : '') + p.interimText)
-          ]
-        : React.createElement('span', { style: { color: T.muted } }, '—')
+    p.interimText && React.createElement('div', { style: { fontSize: 13, color: '#7E8291', marginBottom: 4, fontStyle: 'italic' } }, '… ' + p.interimText),
+    React.createElement('textarea', {
+      value: p.originalText, autoComplete: 'off', placeholder: 'Escreve ou cola aqui…',
+      onChange: function(e) { p.onOriginalTextChange(e.target.value); },
+      rows: 4,
+      style: { width: '100%', background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: '14px 16px', color: T.text, fontSize: 15, marginBottom: 10, boxSizing: 'border-box', resize: 'vertical', fontFamily: "'Inter',system-ui,sans-serif" }
+    }),
+    React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 18 } },
+      React.createElement('button', {
+        onClick: p.onTraduzir, disabled: p.translating || !p.originalText.trim(),
+        style: { flex: 2, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: (p.translating || !p.originalText.trim()) ? 0.6 : 1 }
+      }, p.translating ? 'A traduzir…' : 'Traduzir'),
+      React.createElement('button', {
+        onClick: p.onLimpar, disabled: !p.originalText && !p.translatedText,
+        style: { flex: 1, background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 14, color: T.muted, fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: (!p.originalText && !p.translatedText) ? 0.5 : 1 }
+      }, 'Limpar')
     ),
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' } }, 'Tradução'),
     React.createElement('div', { style: { background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: '14px 16px', minHeight: 50, color: T.text, fontSize: 15, fontWeight: 600, marginBottom: p.vozIndisponivel ? 6 : 18 } },
       p.translating ? 'A traduzir…' : (p.translatedText || '—')
     ),
     p.vozIndisponivel && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginBottom: 18 } }, 'Voz não disponível neste aparelho'),
-    p.translatedText && !p.translating && React.createElement('button', {
-      onClick: p.onRepetir,
-      style: { width: '100%', background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 14, color: T.text, fontWeight: 700, fontSize: 14, cursor: 'pointer' }
-    }, '🔁 Repetir áudio')
+    p.translatedText && !p.translating && React.createElement('div', { style: { display: 'flex', gap: 10 } },
+      React.createElement('button', {
+        onClick: p.onRepetir,
+        style: { flex: 1, background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 14, color: T.text, fontWeight: 700, fontSize: 14, cursor: 'pointer' }
+      }, '🔁 Repetir áudio'),
+      React.createElement('button', {
+        onClick: p.onCopiar,
+        style: { flex: 1, background: '#14161D', border: '0.5px solid #22252F', borderRadius: 10, padding: 14, color: T.text, fontWeight: 700, fontSize: 14, cursor: 'pointer' }
+      }, p.copiado ? '✓ Copiado' : '📋 Copiar')
+    )
   );
 };
 
@@ -27870,7 +27885,9 @@ function VozApp(props) {
   var _s26 = React.useState(null); var erroTrad = _s26[0], setErroTrad = _s26[1];
   var _s29 = React.useState(function() { return vzLoadLangPair().destino; }); var destino = _s29[0], setDestinoState = _s29[1];
   var _s30 = React.useState(false); var vozIndisponivel = _s30[0], setVozIndisponivel = _s30[1];
+  var _s31 = React.useState(false); var copiado = _s31[0], setCopiado = _s31[1];
   var recognitionRef = React.useRef(null);
+  var copiadoTimerRef = React.useRef(null);
   var accumulatedRef = React.useRef('');
   var silenceTimerRef = React.useRef(null);
   var manualStopRef = React.useRef(false);
@@ -28206,6 +28223,25 @@ function VozApp(props) {
     vzSaveLangPair(novoOrigem, novoDestino);
     resetarEstadoTraducao();
   }
+  function traduzirManual() {
+    var texto = originalText.trim();
+    if (!texto) return;
+    traduzirTexto(texto);
+  }
+  function limparTraducao() {
+    cancelarEscuta();
+    resetarEstadoTraducao();
+  }
+  function copiarTraducao() {
+    if (!translatedText || !navigator.clipboard) return;
+    navigator.clipboard.writeText(translatedText).then(function() {
+      setCopiado(true);
+      if (copiadoTimerRef.current) clearTimeout(copiadoTimerRef.current);
+      copiadoTimerRef.current = setTimeout(function() { setCopiado(false); }, 1500);
+    }).catch(function(e) {
+      setErroTrad('Falha ao copiar: ' + (e && e.message ? e.message : e));
+    });
+  }
 
   React.useEffect(function() {
     return function() {
@@ -28213,6 +28249,7 @@ function VozApp(props) {
       if (streamRef.current) streamRef.current.getTracks().forEach(function(t) { t.stop(); });
       manualStopRef.current = true;
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (copiadoTimerRef.current) clearTimeout(copiadoTimerRef.current);
       if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       if (recordedUrl) URL.revokeObjectURL(recordedUrl);
@@ -28256,7 +28293,8 @@ function VozApp(props) {
         onOrigemChange: selecionarOrigem, onDestinoChange: selecionarDestino, onSwap: trocarDirecao,
         listening: listening, onStartListening: iniciarEscuta, onStopListening: pararEscuta,
         interimText: interimText, originalText: originalText, translatedText: translatedText, translating: translating,
-        vozIndisponivel: vozIndisponivel,
+        vozIndisponivel: vozIndisponivel, copiado: copiado,
+        onOriginalTextChange: setOriginalText, onTraduzir: traduzirManual, onLimpar: limparTraducao, onCopiar: copiarTraducao,
         onRepetir: function() { falarTraducao(translatedText); }, erro: erroTrad
       })
     ),
