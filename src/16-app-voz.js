@@ -6,6 +6,37 @@
 var VZ_BUCKET = 'voz';
 var VZ_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
 
+// Categorias das pastas — Privat / Geschäft. Tudo o que já existia fica em
+// Geschäft (é também o valor por omissão na coluna voz_pastas.categoria).
+var VZ_CATEGORIAS = [
+  { key: 'privat', label: 'Privat', emoji: '🏠' },
+  { key: 'geschaeft', label: 'Geschäft', emoji: '💼' }
+];
+var VZ_CAT_DEFAULT = 'geschaeft';
+function vzNormCat(v) { return v === 'privat' ? 'privat' : VZ_CAT_DEFAULT; }
+function vzCatLabel(key) {
+  var k = vzNormCat(key);
+  for (var i = 0; i < VZ_CATEGORIAS.length; i++) { if (VZ_CATEGORIAS[i].key === k) return VZ_CATEGORIAS[i].label; }
+  return VZ_CAT_DEFAULT;
+}
+var VZ_CAT_KEY = 'vz_categoria';
+function vzLoadCat() {
+  try { return vzNormCat(localStorage.getItem(VZ_CAT_KEY)); } catch (e) { return VZ_CAT_DEFAULT; }
+}
+function vzSaveCat(k) {
+  try { localStorage.setItem(VZ_CAT_KEY, vzNormCat(k)); } catch (e) {}
+}
+// Opções de pasta agrupadas por categoria (usadas nos dois <select>)
+function vzPastaOptions(pastas) {
+  return VZ_CATEGORIAS.map(function(cat) {
+    var lista = pastas.filter(function(pa) { return vzNormCat(pa.categoria) === cat.key; });
+    if (!lista.length) return null;
+    return React.createElement('optgroup', { key: cat.key, label: cat.label },
+      lista.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.titulo); })
+    );
+  });
+}
+
 // Tradutor — idiomas disponíveis (código curto para a API de tradução,
 // código de voz para SpeechRecognition/SpeechSynthesis). Alemão usa de-CH
 // com fallback de-DE quando o aparelho não tem voz suíça instalada.
@@ -289,6 +320,24 @@ var VzGrupoPastas = function VzGrupoPastas(p) {
   );
 };
 
+var VzCategoriaTabs = function VzCategoriaTabs(p) {
+  return React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
+    VZ_CATEGORIAS.map(function(cat) {
+      var ativa = p.categoria === cat.key;
+      return React.createElement('button', {
+        key: cat.key,
+        onClick: function() { p.onChange(cat.key); },
+        style: {
+          flex: 1, background: ativa ? T.surface2 : 'transparent',
+          color: ativa ? T.gold : T.muted,
+          border: '1px solid ' + (ativa ? T.gold : T.border),
+          borderRadius: 10, padding: '9px 10px', fontWeight: 800, fontSize: 13, cursor: 'pointer'
+        }
+      }, cat.emoji + ' ' + cat.label);
+    })
+  );
+};
+
 var VzRecorderTab = function VzRecorderTab(p) {
   if (p.gravando) {
     return React.createElement('div', { style: { textAlign: 'center', padding: '40px 16px' } },
@@ -313,7 +362,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
         style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 20, boxSizing: 'border-box' }
       },
         React.createElement('option', { value: '' }, 'Sem pasta'),
-        p.pastas.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.titulo); })
+        vzPastaOptions(p.pastas)
       ),
       React.createElement('div', { style: { display: 'flex', gap: 10 } },
         React.createElement('button', { onClick: p.onDescartar, disabled: p.saving, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, fontSize: 14, cursor: 'pointer' } }, 'Descartar'),
@@ -328,6 +377,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
       React.createElement(VzRecordButton, { gravando: false, onClick: p.onStart }),
       React.createElement('div', { style: { marginTop: 16, color: '#7E8291', fontSize: 13 } }, 'Toca para gravar')
     ),
+    !p.loading && React.createElement(VzCategoriaTabs, { categoria: p.categoria, onChange: p.onCategoriaChange }),
     p.loading && React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: 20 } }, 'A carregar…'),
     !p.loading && p.grupos.map(function(grupo) {
       return React.createElement(VzGrupoPastas, {
@@ -343,8 +393,9 @@ var VzRecorderTab = function VzRecorderTab(p) {
       });
     }),
     !p.loading && React.createElement('div', { style: { marginTop: 24, borderTop: '1px solid ' + T.border, paddingTop: 16 } },
-      React.createElement('div', { style: { fontSize: 12, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Pastas'),
-      p.pastas.map(function(pa) {
+      React.createElement('div', { style: { fontSize: 12, fontWeight: 800, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 } }, 'Pastas · ' + vzCatLabel(p.categoria)),
+      p.pastasCat.length === 0 && React.createElement('div', { style: { color: T.muted, fontSize: 13, padding: '4px 0' } }, 'Ainda não há pastas em ' + vzCatLabel(p.categoria) + '.'),
+      p.pastasCat.map(function(pa) {
         return React.createElement('div', { key: pa.id, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' } },
           React.createElement('div', { style: { flex: 1, color: T.text, fontSize: 14 } }, pa.titulo),
           React.createElement('button', { onClick: function() { p.onEditPasta(pa); }, style: { background: 'none', border: 'none', color: T.muted, cursor: 'pointer', fontSize: 15 } }, '✏️'),
@@ -353,7 +404,7 @@ var VzRecorderTab = function VzRecorderTab(p) {
       }),
       React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 10 } },
         React.createElement('input', {
-          type: 'text', autoComplete: 'off', placeholder: 'Nova pasta…', value: p.novaPastaNome,
+          type: 'text', autoComplete: 'off', placeholder: 'Nova pasta em ' + vzCatLabel(p.categoria) + '…', value: p.novaPastaNome,
           onChange: function(e) { p.onNovaPastaChange(e.target.value); },
           style: { flex: 1, background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 14, boxSizing: 'border-box' }
         }),
@@ -456,6 +507,9 @@ function VozApp(props) {
   var timerRef = React.useRef(null);
 
   // Pastas / gravações — edição
+  var _s34 = React.useState(function() { return vzLoadCat(); }); var categoria = _s34[0], setCategoriaState = _s34[1];
+  function selecionarCategoria(k) { var c = vzNormCat(k); setCategoriaState(c); vzSaveCat(c); }
+
   var _s15 = React.useState(''); var novaPastaNome = _s15[0], setNovaPastaNome = _s15[1];
   var _s16 = React.useState(null); var editPasta = _s16[0], setEditPasta = _s16[1];
   var _s17 = React.useState(null); var editGravacao = _s17[0], setEditGravacao = _s17[1];
@@ -500,7 +554,7 @@ function VozApp(props) {
       var pRes = res[0], gRes = res[1];
       if (pRes.error) { setErro('Falha ao carregar pastas: ' + pRes.error.message); setLoading(false); return; }
       if (gRes.error) { setErro('Falha ao carregar gravações: ' + gRes.error.message); setLoading(false); return; }
-      setPastas(pRes.data || []);
+      setPastas((pRes.data || []).map(function(pa) { return Object.assign({}, pa, { categoria: vzNormCat(pa.categoria) }); }));
       setGravacoes(gRes.data || []);
       setLoading(false);
     }).catch(function(e) {
@@ -619,9 +673,10 @@ function VozApp(props) {
     var titulo = novaPastaNome.trim();
     if (!titulo || !db) return;
     setErro(null);
-    db.from('voz_pastas').insert({ titulo: titulo }).select().then(function(res) {
+    db.from('voz_pastas').insert({ titulo: titulo, categoria: categoria }).select().then(function(res) {
       if (res.error) throw res.error;
-      setPastas(function(prev) { return prev.concat(res.data || []).sort(function(a, b) { return a.titulo.localeCompare(b.titulo); }); });
+      var novas = (res.data || []).map(function(pa) { return Object.assign({}, pa, { categoria: vzNormCat(pa.categoria) }); });
+      setPastas(function(prev) { return prev.concat(novas).sort(function(a, b) { return a.titulo.localeCompare(b.titulo); }); });
       setNovaPastaNome('');
     }).catch(function(e) { setErro('Falha ao criar pasta: ' + (e && e.message ? e.message : e)); });
   }
@@ -629,12 +684,17 @@ function VozApp(props) {
     if (!editPasta || !db) return;
     var titulo = (editPasta.titulo || '').trim();
     if (!titulo) { setErro('O nome da pasta não pode ficar vazio.'); return; }
+    var cat = vzNormCat(editPasta.categoria);
     setErro(null);
-    db.from('voz_pastas').update({ titulo: titulo }).eq('id', editPasta.id).then(function(res) {
+    db.from('voz_pastas').update({ titulo: titulo, categoria: cat }).eq('id', editPasta.id).then(function(res) {
       if (res.error) throw res.error;
-      setPastas(function(prev) { return prev.map(function(pa) { return pa.id === editPasta.id ? Object.assign({}, pa, { titulo: titulo }) : pa; }); });
+      setPastas(function(prev) {
+        return prev.map(function(pa) { return pa.id === editPasta.id ? Object.assign({}, pa, { titulo: titulo, categoria: cat }) : pa; })
+          .sort(function(a, b) { return a.titulo.localeCompare(b.titulo); });
+      });
       setEditPasta(null);
-    }).catch(function(e) { setErro('Falha ao renomear pasta: ' + (e && e.message ? e.message : e)); });
+      selecionarCategoria(cat);
+    }).catch(function(e) { setErro('Falha ao guardar pasta: ' + (e && e.message ? e.message : e)); });
   }
   function apagarPasta(pa) {
     if (!db) return;
@@ -868,10 +928,12 @@ function VozApp(props) {
     };
   }, []);
 
-  var grupos = pastas.map(function(pa) {
+  var pastasCat = pastas.filter(function(pa) { return vzNormCat(pa.categoria) === categoria; });
+
+  var grupos = pastasCat.map(function(pa) {
     return { key: pa.id, nome: pa.titulo, itens: gravacoes.filter(function(g) { return g.pasta_id === pa.id; }) };
   }).concat([{ key: 'sem-pasta', nome: 'Sem pasta', itens: gravacoes.filter(function(g) { return !g.pasta_id; }) }])
-    .filter(function(grupo) { return grupo.itens.length > 0 || grupo.key !== 'sem-pasta' || pastas.length === 0; });
+    .filter(function(grupo) { return grupo.itens.length > 0 || grupo.key !== 'sem-pasta' || pastasCat.length === 0; });
 
   return React.createElement('div', { style: { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: "'Inter',system-ui,sans-serif", paddingBottom: 40 } },
     React.createElement('style', null, '@keyframes vzPulse{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}.vz-ring-pulse{animation:vzPulse 1.6s ease-in-out infinite;}'),
@@ -891,7 +953,8 @@ function VozApp(props) {
         gravando: gravando, elapsedSec: elapsedSec, onStart: iniciarGravacao, onStop: pararGravacao,
         recordedBlob: recordedBlob, recordedUrl: recordedUrl, saveTitulo: saveTitulo, savePastaId: savePastaId,
         onTituloChange: setSaveTitulo, onPastaChange: setSavePastaId, onDescartar: descartarGravacao, onGuardar: guardarGravacao, saving: saving,
-        pastas: pastas, grupos: grupos, loading: loading, erro: erro,
+        pastas: pastas, pastasCat: pastasCat, grupos: grupos, loading: loading, erro: erro,
+        categoria: categoria, onCategoriaChange: selecionarCategoria,
         playingId: playingId, playingUrl: playingUrl, onPlay: tocarGravacao, onPlayEnded: function() { setPlayingId(null); setPlayingUrl(''); },
         onEditGravacao: function(g) { setEditGravacao(Object.assign({}, g)); }, onDeleteGravacao: apagarGravacao,
         novaPastaNome: novaPastaNome, onNovaPastaChange: setNovaPastaNome, onCriarPasta: criarPasta,
@@ -927,7 +990,7 @@ function VozApp(props) {
           style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 18, boxSizing: 'border-box' }
         },
           React.createElement('option', { value: '' }, 'Sem pasta'),
-          pastas.map(function(pa) { return React.createElement('option', { key: pa.id, value: pa.id }, pa.titulo); })
+          vzPastaOptions(pastas)
         ),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           React.createElement('button', { onClick: function() { setEditGravacao(null); }, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
@@ -939,12 +1002,19 @@ function VozApp(props) {
     // ── Modal: editar pasta (renomear) ──
     editPasta && React.createElement('div', { style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 50 } },
       React.createElement('div', { style: { background: T.surface, borderRadius: '18px 18px 0 0', padding: 20, width: '100%' } },
-        React.createElement('div', { style: { fontWeight: 800, fontSize: 16, marginBottom: 14 } }, 'Renomear pasta'),
+        React.createElement('div', { style: { fontWeight: 800, fontSize: 16, marginBottom: 14 } }, 'Editar pasta'),
         React.createElement('input', {
           type: 'text', autoComplete: 'off', value: editPasta.titulo,
           onChange: function(e) { setEditPasta(Object.assign({}, editPasta, { titulo: e.target.value })); },
-          style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 18, boxSizing: 'border-box' }
+          style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }
         }),
+        React.createElement('select', {
+          value: vzNormCat(editPasta.categoria),
+          onChange: function(e) { setEditPasta(Object.assign({}, editPasta, { categoria: e.target.value })); },
+          style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 18, boxSizing: 'border-box' }
+        }, VZ_CATEGORIAS.map(function(cat) {
+          return React.createElement('option', { key: cat.key, value: cat.key }, cat.emoji + ' ' + cat.label);
+        })),
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           React.createElement('button', { onClick: function() { setEditPasta(null); }, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
           React.createElement('button', { onClick: guardarEdicaoPasta, style: { flex: 1, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, 'Guardar')
