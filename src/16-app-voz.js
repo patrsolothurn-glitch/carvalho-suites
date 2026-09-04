@@ -9,8 +9,8 @@ var VZ_MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
 // Categorias das pastas — Privat / Geschäft. Tudo o que já existia fica em
 // Geschäft (é também o valor por omissão na coluna voz_pastas.categoria).
 var VZ_CATEGORIAS = [
-  { key: 'privat', label: 'Privat', emoji: '🏠' },
-  { key: 'geschaeft', label: 'Geschäft', emoji: '💼' }
+  { key: 'geschaeft', label: 'Geschäft', emoji: '💼' },
+  { key: 'privat', label: 'Privat', emoji: '🏠' }
 ];
 var VZ_CAT_DEFAULT = 'geschaeft';
 function vzNormCat(v) { return v === 'privat' ? 'privat' : VZ_CAT_DEFAULT; }
@@ -321,7 +321,7 @@ var VzGrupoPastas = function VzGrupoPastas(p) {
 };
 
 var VzCategoriaTabs = function VzCategoriaTabs(p) {
-  return React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 16 } },
+  return React.createElement('div', { style: { display: 'flex', gap: 6 } },
     VZ_CATEGORIAS.map(function(cat) {
       var ativa = p.categoria === cat.key;
       return React.createElement('button', {
@@ -331,7 +331,7 @@ var VzCategoriaTabs = function VzCategoriaTabs(p) {
           flex: 1, background: ativa ? T.surface2 : 'transparent',
           color: ativa ? T.gold : T.muted,
           border: '1px solid ' + (ativa ? T.gold : T.border),
-          borderRadius: 10, padding: '9px 10px', fontWeight: 800, fontSize: 13, cursor: 'pointer'
+          borderRadius: 8, padding: '6px 10px', fontWeight: 700, fontSize: 12, cursor: 'pointer'
         }
       }, cat.emoji + ' ' + cat.label);
     })
@@ -377,7 +377,6 @@ var VzRecorderTab = function VzRecorderTab(p) {
       React.createElement(VzRecordButton, { gravando: false, onClick: p.onStart }),
       React.createElement('div', { style: { marginTop: 16, color: '#7E8291', fontSize: 13 } }, 'Toca para gravar')
     ),
-    !p.loading && React.createElement(VzCategoriaTabs, { categoria: p.categoria, onChange: p.onCategoriaChange }),
     p.loading && React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: 20 } }, 'A carregar…'),
     !p.loading && p.grupos.map(function(grupo) {
       return React.createElement(VzGrupoPastas, {
@@ -947,6 +946,9 @@ function VozApp(props) {
         onClick: function() { setTab('tradutor'); },
         style: { flex: 1, background: tab === 'tradutor' ? '#D9B94E' : T.surface2, color: tab === 'tradutor' ? '#3A2E05' : T.text, border: 'none', borderRadius: 10, padding: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer' }
       }, '🌐 Tradutor')
+    ),
+    tab === 'gravador' && React.createElement('div', { style: { padding: '10px 16px 0' } },
+      React.createElement(VzCategoriaTabs, { categoria: categoria, onChange: selecionarCategoria })
     ),
     React.createElement('div', { style: { padding: '16px' } },
       tab === 'gravador' && React.createElement(VzRecorderTab, {
