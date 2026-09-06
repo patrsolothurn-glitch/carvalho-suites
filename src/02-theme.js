@@ -169,4 +169,12 @@ var APPS_DATA = [{
   badge: null,
   color: '#7C3AED',
   adminOnly: true
+}, {
+  id: 'wochenplan',
+  emoji: '🟩',
+  name: 'Wochenplan',
+  desc: 'Planeamento semanal de trabalho',
+  badge: null,
+  color: '#12B886',
+  adminOnly: true
 }];
