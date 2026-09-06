@@ -633,7 +633,7 @@ function WpTaskModal(p) {
       React.createElement('div', { className: 'wp-acts' },
         p.id && React.createElement('button', { className: 'wp-del', onClick: p.onApagar, 'aria-label': 'apagar' }, '🗑'),
         React.createElement('button', { onClick: p.onFechar }, 'Abbrechen'),
-        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Sichern')
+        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Speichern')
       )
     )
   );
@@ -665,7 +665,7 @@ function WpPersonModal(p) {
   var e = p.draft;
   return React.createElement('div', { className: 'wp-ov', onClick: function(ev) { if (ev.target === ev.currentTarget) p.onCancelar(); } },
     React.createElement('div', { className: 'wp-sheet', onClick: function(ev) { ev.stopPropagation(); } },
-      React.createElement('h2', null, e.id ? 'Mitarbeiter ändern' : 'Novo Mitarbeiter'),
+      React.createElement('h2', null, e.id ? 'Mitarbeiter ändern' : 'Neuer Mitarbeiter'),
       React.createElement('div', { className: 'wp-two' },
         React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFN' }, 'Name'), React.createElement('input', { id: 'wpFN', type: 'text', autoComplete: 'off', value: e.name || '', placeholder: 'Sandro', onChange: function(ev) { p.onChange('name', ev.target.value); } })),
         React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFNum' }, 'Pers.Nr.'), React.createElement('input', { id: 'wpFNum', type: 'text', autoComplete: 'off', value: e.pers_nr || '', placeholder: '742', onChange: function(ev) { p.onChange('pers_nr', ev.target.value); } }))
@@ -681,7 +681,7 @@ function WpPersonModal(p) {
       p.erro && React.createElement('div', { className: 'wp-errmsg' }, p.erro),
       React.createElement('div', { className: 'wp-acts' },
         React.createElement('button', { onClick: p.onCancelar }, 'Abbrechen'),
-        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Sichern')
+        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Speichern')
       )
     )
   );
@@ -708,7 +708,7 @@ function WpNoteModal(p) {
       React.createElement('div', { className: 'wp-acts' },
         p.temNota && React.createElement('button', { className: 'wp-del', onClick: p.onApagar, 'aria-label': 'apagar' }, '🗑'),
         React.createElement('button', { onClick: p.onFechar }, 'Abbrechen'),
-        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Sichern')
+        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Speichern')
       )
     )
   );
@@ -1245,7 +1245,7 @@ function WochenplanApp(props) {
       onMode: setMode
     }),
     React.createElement('div', { className: 'wp-wrap' },
-      React.createElement('div', { style: { padding: '8px 0 0' } }, React.createElement('button', { className: 'wp-mini', onClick: onBack }, '← Voltar')),
+      React.createElement('div', { style: { padding: '8px 0 0' } }, React.createElement('button', { className: 'wp-mini', onClick: onBack }, '← Zurück')),
       erro && React.createElement('div', { className: 'wp-errmsg', style: { marginTop: 8 } }, '⚠ ' + erro),
       React.createElement(WpBar, {
         rolle: rolle, who: who, leute: leute, mode: mode, wl: wl,
