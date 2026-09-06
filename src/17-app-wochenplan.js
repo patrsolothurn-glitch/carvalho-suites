@@ -53,6 +53,11 @@ function wpDez(m) { return (m / 60).toFixed(1); }
 function wpDezh(h) { return (Math.round((h || 0) * 10) / 10).toString(); }
 function wpDur(a) { return (a.von && a.bis) ? wpMn(a.bis) - wpMn(a.von) : 0; }
 function wpIsLunch(a, mVon, mBis) { return !!(a.von && a.bis && a.von < mBis && a.bis > mVon); }
+// wplan_tasks.von/.bis são colunas `time` no Postgres — o Supabase devolve
+// "07:00:00" mesmo tendo sido gravado "07:00", o que parte wpMn/wpDur
+// (só sabem ler "HH:MM"). Normaliza sempre que uma linha vem da BD.
+function wpNormalizarHora(v) { return v ? String(v).slice(0, 5) : v; }
+function wpNormalizarTarefa(t) { return Object.assign({}, t, { von: wpNormalizarHora(t.von), bis: wpNormalizarHora(t.bis) }); }
 function wpPerson(leute, nome) { return leute.find(function(p) { return p.name === nome; }); }
 function wpSollTag(p, dataKey) { return (p && p.arbeitstage[wpDi(wpMk(dataKey))]) ? p.std_tag : 0; }
 function wpSollWoche(p) { return p ? p.std_tag * p.arbeitstage.reduce(function(a, b) { return a + b; }, 0) : 0; }
@@ -959,7 +964,7 @@ function WochenplanApp(props) {
       if (tRes.error) { setErro('Falha ao carregar tarefas: ' + tRes.error.message); setLoading(false); return; }
       if (gRes.error) { setErro('Falha ao carregar estados do dia: ' + gRes.error.message); setLoading(false); return; }
       setLeute((lRes.data || []).filter(function(p) { return p.aktiv !== false; }));
-      setTasks(tRes.data || []);
+      setTasks((tRes.data || []).map(wpNormalizarTarefa));
       setTagRows(gRes.data || []);
       setLoading(false);
     }).catch(function(e) {
@@ -1029,7 +1034,7 @@ function WochenplanApp(props) {
       : db.from('wplan_tasks').insert(payload).select();
     chain.then(function(res) {
       if (res.error) throw res.error;
-      var linha = (res.data && res.data[0]) || Object.assign({ id: 'tmp-' + Date.now() }, payload);
+      var linha = wpNormalizarTarefa((res.data && res.data[0]) || Object.assign({ id: 'tmp-' + Date.now() }, payload));
       setTasks(function(prev) { return editTaskId ? prev.map(function(x) { return x.id === editTaskId ? linha : x; }) : prev.concat([linha]); });
       wpSaveUltimoTrabalho(payload.arbeit, payload.kunde);
       setGuardandoTask(false);
