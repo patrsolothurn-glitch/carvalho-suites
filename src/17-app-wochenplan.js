@@ -25,6 +25,7 @@ var WP_H0 = 7, WP_H1 = 18, WP_PPM = 0.6;
 var WP_MM = 3.7795;
 var WP_WL_KEY = 'wplan_view_layout';
 var WP_LUNCH_KEY = 'wplan_lunch';
+var WP_ULTIMO_TRABALHO_KEY = 'wplan_ultimo_trabalho';
 
 // ── Datas (tudo em UTC para não haver deslizes de fuso horário) ──
 function wpMk(dateStr) {
@@ -102,6 +103,14 @@ function wpLoadLunch() {
   return { von: '12:00', bis: '13:00' };
 }
 function wpSaveLunch(von, bis) { try { localStorage.setItem(WP_LUNCH_KEY, JSON.stringify({ von: von, bis: bis })); } catch (e) {} }
+function wpLoadUltimoTrabalho() {
+  try {
+    var raw = localStorage.getItem(WP_ULTIMO_TRABALHO_KEY);
+    if (raw) { var o = JSON.parse(raw); if (o) return { arbeit: o.arbeit || '', kunde: o.kunde || '' }; }
+  } catch (e) {}
+  return { arbeit: '', kunde: '' };
+}
+function wpSaveUltimoTrabalho(arbeit, kunde) { try { localStorage.setItem(WP_ULTIMO_TRABALHO_KEY, JSON.stringify({ arbeit: arbeit || '', kunde: kunde || '' })); } catch (e) {} }
 
 // ── CSS (isolada em .wp-app, nunca toca em :root nem em <body>) ──
 var WP_CSS = '\
@@ -280,7 +289,8 @@ function wpJobCard(a, onOpen) {
   },
     React.createElement('h3', null, a.titel, wpStIcon(a.status)),
     React.createElement('p', null, a.arbeit, a.wer && React.createElement('span', null, ' · ', React.createElement('b', { style: { fontWeight: 600, color: 'var(--ink)' } }, a.wer))),
-    (a.auftrag_nr || a.kunde) && React.createElement('div', { className: 'wp-ref' }, [a.auftrag_nr, a.kunde].filter(Boolean).join(' · '))
+    (a.auftrag_nr || a.kunde) && React.createElement('div', { className: 'wp-ref' }, [a.auftrag_nr, a.kunde].filter(Boolean).join(' · ')),
+    a.bemerkungen && React.createElement('div', { style: { fontSize: 12, color: 'var(--ink3)', marginTop: 3, whiteSpace: 'pre-wrap' } }, a.bemerkungen)
   );
 }
 function wpPoolBox(titulo, arr, urgente, onOpen, onNew) {
@@ -607,7 +617,7 @@ function WpTaskModal(p) {
       React.createElement('label', null, 'Priorität'),
       React.createElement('div', { className: 'wp-prios' }, Object.keys(WP_PRIO).map(function(k) {
         var sel = +k === +d.prio;
-        return React.createElement('button', { key: k, className: 'wp-pb', onClick: function() { p.onChange('prio', +k); }, style: { borderColor: sel ? WP_PRIO[k].c : 'var(--line)', background: sel ? WP_PRIO[k].bg : 'var(--card)' } }, React.createElement('b', { style: { color: WP_PRIO[k].c } }, k), WP_PRIO[k].n);
+        return React.createElement('button', { key: k, className: 'wp-pb', onClick: function() { p.onChange('prio', +k); }, style: { borderColor: sel ? WP_PRIO[k].c : 'var(--line)', background: sel ? WP_PRIO[k].bg : 'var(--card)' } }, React.createElement('b', { style: { color: WP_PRIO[k].c } }, k), React.createElement('span', { style: sel ? { color: WP_PRIO[k].c } : null }, WP_PRIO[k].n));
       })),
       React.createElement('label', { htmlFor: 'wpFW' }, 'Mitarbeiter'),
       React.createElement('select', { id: 'wpFW', value: d.wer || '', onChange: function(e) { p.onChange('wer', e.target.value); } },
@@ -623,6 +633,8 @@ function WpTaskModal(p) {
           React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFB' }, 'Bis'), React.createElement('input', { id: 'wpFB', type: 'time', value: d.bis || '12:00', onChange: function(e) { p.onChange('bis', e.target.value); } }))
         )
       ),
+      React.createElement('label', { htmlFor: 'wpFBem' }, 'Bemerkungen'),
+      React.createElement('textarea', { id: 'wpFBem', autoComplete: 'off', rows: 3, style: { width: '100%' }, value: d.bemerkungen || '', onChange: function(e) { p.onChange('bemerkungen', e.target.value); } }),
       p.id && React.createElement('div', null,
         React.createElement('label', null, 'Status'),
         React.createElement('div', { className: 'wp-prios' }, [['offen', 'offen'], ['laeuft', 'läuft'], ['erledigt', 'erledigt']].map(function(o) {
@@ -979,16 +991,17 @@ function WochenplanApp(props) {
 
   // ── Tarefas ──
   function abrirNovaTarefa(pre) {
+    var ultimo = wpLoadUltimoTrabalho();
     setEditTaskId(null);
     setEditTaskErro('');
-    setEditTaskDraft(Object.assign({ datum: cur, von: '07:00', bis: '12:00', titel: '', arbeit: '', auftrag_nr: '', kunde: '', prio: 2, wer: who === 'alle' ? '' : who, status: 'offen' }, pre || {}));
+    setEditTaskDraft(Object.assign({ datum: cur, von: '07:00', bis: '12:00', titel: '', arbeit: ultimo.arbeit, auftrag_nr: '', kunde: ultimo.kunde, prio: 2, wer: who === 'alle' ? '' : who, status: 'offen', bemerkungen: '' }, pre || {}));
   }
   function abrirTarefa(id) {
     var t = tasks.find(function(x) { return x.id === id; });
     if (!t) return;
     setEditTaskId(id);
     setEditTaskErro('');
-    setEditTaskDraft(Object.assign({}, t));
+    setEditTaskDraft(Object.assign({}, t, { bemerkungen: t.bemerkungen || '' }));
   }
   function mudarCampoTarefa(campo, valor) {
     setEditTaskDraft(function(prev) { return Object.assign({}, prev, (function() { var o = {}; o[campo] = valor; return o; })()); });
@@ -1008,7 +1021,7 @@ function WochenplanApp(props) {
       var conflito = tasks.find(function(x) { return x.id !== editTaskId && x.datum === d.datum && x.wer === d.wer && x.von < d.bis && x.bis > d.von; });
       if (conflito && !confirm(d.wer + ' ist ' + conflito.von + '–' + conflito.bis + ' schon auf ' + conflito.titel + '. Trotzdem sichern?')) return;
     }
-    var payload = { datum: d.datum || null, von: d.datum ? d.von : '', bis: d.datum ? d.bis : '', titel: titel, arbeit: (d.arbeit || '').trim(), auftrag_nr: (d.auftrag_nr || '').trim(), kunde: (d.kunde || '').trim(), prio: d.prio, wer: d.wer || null, status: d.status || 'offen' };
+    var payload = { datum: d.datum || null, von: d.datum ? d.von : '', bis: d.datum ? d.bis : '', titel: titel, arbeit: (d.arbeit || '').trim(), auftrag_nr: (d.auftrag_nr || '').trim(), kunde: (d.kunde || '').trim(), prio: d.prio, wer: d.wer || null, status: d.status || 'offen', bemerkungen: (d.bemerkungen || '').trim() };
     setGuardandoTask(true);
     setEditTaskErro('');
     var chain = editTaskId
@@ -1018,6 +1031,7 @@ function WochenplanApp(props) {
       if (res.error) throw res.error;
       var linha = (res.data && res.data[0]) || Object.assign({ id: 'tmp-' + Date.now() }, payload);
       setTasks(function(prev) { return editTaskId ? prev.map(function(x) { return x.id === editTaskId ? linha : x; }) : prev.concat([linha]); });
+      wpSaveUltimoTrabalho(payload.arbeit, payload.kunde);
       setGuardandoTask(false);
       fecharTarefa();
     }).catch(function(e) {
