@@ -97,11 +97,11 @@ var APPS_DATA = [{
   color: T.gold
 }, {
   id: 'agenda',
-  emoji: '📋',
+  emoji: '🟨',
   name: 'Patricio Work',
   desc: 'Gestão de trabalho',
   badge: null,
-  color: T.orange
+  color: '#EAB308'
 }, {
   id: 'familia',
   emoji: '🏠',
