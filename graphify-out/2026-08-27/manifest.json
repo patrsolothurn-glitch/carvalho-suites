@@ -1,0 +1,1478 @@
+{
+  "FINAL-sw.js": {
+    "mtime": 1787781915.1841266,
+    "seen": 1787782785.8612592,
+    "ast_hash": "b4e5f2c2b1c9f8cf3fa61626e0517093",
+    "semantic_hash": "b4e5f2c2b1c9f8cf3fa61626e0517093"
+  },
+  "backups/2026-06-20/agenda_pro_jobs.json": {
+    "mtime": 1787781915.189319,
+    "seen": 1787782785.861264,
+    "ast_hash": "d4320bf7ea6252591b7d3f5e729b4e9d",
+    "semantic_hash": "d4320bf7ea6252591b7d3f5e729b4e9d"
+  },
+  "backups/2026-06-20/escolar_disciplinas.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612666,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-20/escolar_horario.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612688,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-20/escolar_notas.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612711,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-20/escolar_tpc.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612728,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-20/family_events.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.861275,
+    "ast_hash": "387265143609e4968688b4e9543ea14e",
+    "semantic_hash": "387265143609e4968688b4e9543ea14e"
+  },
+  "backups/2026-06-20/horas_entries.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612866,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-20/members.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612893,
+    "ast_hash": "3a3800232222ab1c1b41e83a6919bcb7",
+    "semantic_hash": "3a3800232222ab1c1b41e83a6919bcb7"
+  },
+  "backups/2026-06-20/nutri_products.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.861291,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-20/profiles.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612924,
+    "ast_hash": "67de6a6a96fd6642aac974de604a6263",
+    "semantic_hash": "67de6a6a96fd6642aac974de604a6263"
+  },
+  "backups/2026-06-20/push_subscriptions.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.8612945,
+    "ast_hash": "08a97a136c9c19920ca11220f4971285",
+    "semantic_hash": "08a97a136c9c19920ca11220f4971285"
+  },
+  "backups/2026-06-21/agenda_pro_jobs.json": {
+    "mtime": 1787781915.189872,
+    "seen": 1787782785.861296,
+    "ast_hash": "ac7f5b0eedd546c3d7b52f3e4012c0ae",
+    "semantic_hash": "ac7f5b0eedd546c3d7b52f3e4012c0ae"
+  },
+  "backups/2026-06-21/escolar_disciplinas.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.861297,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-21/escolar_horario.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.861298,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-21/escolar_notas.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8612995,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-21/escolar_tpc.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.861301,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-21/family_events.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8613024,
+    "ast_hash": "5c65d83aa035b8f44dcc1cce1368451d",
+    "semantic_hash": "5c65d83aa035b8f44dcc1cce1368451d"
+  },
+  "backups/2026-06-21/horas_entries.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8613033,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-21/members.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8613045,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-06-21/nutri_products.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.861306,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-21/profiles.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8613074,
+    "ast_hash": "4187a79f9bc0f96be5eac6505e360abf",
+    "semantic_hash": "4187a79f9bc0f96be5eac6505e360abf"
+  },
+  "backups/2026-06-21/push_subscriptions.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8613093,
+    "ast_hash": "ddd4ffa9a3a69436c1702c2fb6e13150",
+    "semantic_hash": "ddd4ffa9a3a69436c1702c2fb6e13150"
+  },
+  "backups/2026-06-28/agenda_pro_jobs.json": {
+    "mtime": 1787781915.1935635,
+    "seen": 1787782785.8613105,
+    "ast_hash": "d077ac8b7f7f7177d4503aa5730dfef2",
+    "semantic_hash": "d077ac8b7f7f7177d4503aa5730dfef2"
+  },
+  "backups/2026-06-28/escolar_disciplinas.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613117,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-06-28/escolar_horario.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613133,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-06-28/escolar_notas.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613145,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-28/escolar_tpc.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613157,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-28/family_events.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613172,
+    "ast_hash": "dcddb3d3388a63b2b183e5e940a03fd9",
+    "semantic_hash": "dcddb3d3388a63b2b183e5e940a03fd9"
+  },
+  "backups/2026-06-28/horas_entries.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613183,
+    "ast_hash": "1098946fc96f2bda51c209b5ba46a47c",
+    "semantic_hash": "1098946fc96f2bda51c209b5ba46a47c"
+  },
+  "backups/2026-06-28/members.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613198,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-06-28/nutri_products.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.861321,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-06-28/profiles.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.861322,
+    "ast_hash": "94912609a9b7d9d5ee9e98353172ee44",
+    "semantic_hash": "94912609a9b7d9d5ee9e98353172ee44"
+  },
+  "backups/2026-06-28/push_subscriptions.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613234,
+    "ast_hash": "ee2d4bcaa22ac19fc61e480762545dba",
+    "semantic_hash": "ee2d4bcaa22ac19fc61e480762545dba"
+  },
+  "backups/2026-07-05/agenda_pro_jobs.json": {
+    "mtime": 1787781915.1968522,
+    "seen": 1787782785.8613245,
+    "ast_hash": "a40db332ce8b1dc06b3afbdd68f83cec",
+    "semantic_hash": "a40db332ce8b1dc06b3afbdd68f83cec"
+  },
+  "backups/2026-07-05/escolar_disciplinas.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613257,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-07-05/escolar_horario.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613274,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-07-05/escolar_notas.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613286,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-05/escolar_tpc.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613303,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-05/family_events.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613324,
+    "ast_hash": "bec7d250b820c80bb9abb6923ac1b305",
+    "semantic_hash": "bec7d250b820c80bb9abb6923ac1b305"
+  },
+  "backups/2026-07-05/horas_entries.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.861334,
+    "ast_hash": "9cbc459fd62acce9e5ae67611c3c9a23",
+    "semantic_hash": "9cbc459fd62acce9e5ae67611c3c9a23"
+  },
+  "backups/2026-07-05/members.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613355,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-07-05/nutri_products.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.861337,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-05/profiles.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613398,
+    "ast_hash": "64a81336b64cc88db381c224ae516a74",
+    "semantic_hash": "64a81336b64cc88db381c224ae516a74"
+  },
+  "backups/2026-07-05/push_subscriptions.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613412,
+    "ast_hash": "e6fff4963bb023ee5538b4251b8df6c1",
+    "semantic_hash": "e6fff4963bb023ee5538b4251b8df6c1"
+  },
+  "backups/2026-07-12/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2011518,
+    "seen": 1787782785.8613427,
+    "ast_hash": "a40db332ce8b1dc06b3afbdd68f83cec",
+    "semantic_hash": "a40db332ce8b1dc06b3afbdd68f83cec"
+  },
+  "backups/2026-07-12/escolar_disciplinas.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.861344,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-07-12/escolar_horario.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613548,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-07-12/escolar_notas.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.861356,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-12/escolar_tpc.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613572,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-12/family_events.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613586,
+    "ast_hash": "568479b7ab9f33912e5e964da1d5dc97",
+    "semantic_hash": "568479b7ab9f33912e5e964da1d5dc97"
+  },
+  "backups/2026-07-12/horas_entries.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613598,
+    "ast_hash": "9cbc459fd62acce9e5ae67611c3c9a23",
+    "semantic_hash": "9cbc459fd62acce9e5ae67611c3c9a23"
+  },
+  "backups/2026-07-12/members.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613615,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-07-12/nutri_products.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.861363,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-12/profiles.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613641,
+    "ast_hash": "a8e030eeaa3c9b2ebba771cc217a26ba",
+    "semantic_hash": "a8e030eeaa3c9b2ebba771cc217a26ba"
+  },
+  "backups/2026-07-12/push_subscriptions.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613682,
+    "ast_hash": "31f657d33ec65bec2b05701393592ebb",
+    "semantic_hash": "31f657d33ec65bec2b05701393592ebb"
+  },
+  "backups/2026-07-19/agenda_pro_jobs.json": {
+    "mtime": 1787781915.205804,
+    "seen": 1787782785.8613694,
+    "ast_hash": "a40db332ce8b1dc06b3afbdd68f83cec",
+    "semantic_hash": "a40db332ce8b1dc06b3afbdd68f83cec"
+  },
+  "backups/2026-07-19/escolar_disciplinas.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613706,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-07-19/escolar_horario.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.861372,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-07-19/escolar_notas.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613732,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-19/escolar_tpc.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613746,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-19/family_events.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.861376,
+    "ast_hash": "1e5200079072e3b62de5f6f4eefe9b54",
+    "semantic_hash": "1e5200079072e3b62de5f6f4eefe9b54"
+  },
+  "backups/2026-07-19/horas_entries.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613772,
+    "ast_hash": "530b0d0013098c79deb1799b72593a13",
+    "semantic_hash": "530b0d0013098c79deb1799b72593a13"
+  },
+  "backups/2026-07-19/members.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613787,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-07-19/nutri_products.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613796,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-07-19/profiles.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.861381,
+    "ast_hash": "dd567cf302d9e424ad1b6338a14616ee",
+    "semantic_hash": "dd567cf302d9e424ad1b6338a14616ee"
+  },
+  "backups/2026-07-19/push_subscriptions.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613825,
+    "ast_hash": "0e260ac1545d5d0838c70a0b0642ff8c",
+    "semantic_hash": "0e260ac1545d5d0838c70a0b0642ff8c"
+  },
+  "backups/2026-07-26/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2107089,
+    "seen": 1787782785.8613837,
+    "ast_hash": "a40db332ce8b1dc06b3afbdd68f83cec",
+    "semantic_hash": "a40db332ce8b1dc06b3afbdd68f83cec"
+  },
+  "backups/2026-07-26/escolar_disciplinas.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613846,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-07-26/escolar_horario.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613863,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-07-26/escolar_notas.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613875,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-26/escolar_tpc.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613887,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-07-26/family_events.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613899,
+    "ast_hash": "f9a8a53b7164767dfdd0be9ec81611b6",
+    "semantic_hash": "f9a8a53b7164767dfdd0be9ec81611b6"
+  },
+  "backups/2026-07-26/horas_entries.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.861391,
+    "ast_hash": "530b0d0013098c79deb1799b72593a13",
+    "semantic_hash": "530b0d0013098c79deb1799b72593a13"
+  },
+  "backups/2026-07-26/members.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613927,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-07-26/nutri_products.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.861394,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-07-26/profiles.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613951,
+    "ast_hash": "dd567cf302d9e424ad1b6338a14616ee",
+    "semantic_hash": "dd567cf302d9e424ad1b6338a14616ee"
+  },
+  "backups/2026-07-26/push_subscriptions.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.8613968,
+    "ast_hash": "2aab14eac57e2c0baadf3e11499a49b8",
+    "semantic_hash": "2aab14eac57e2c0baadf3e11499a49b8"
+  },
+  "backups/2026-08-02/agenda_pro_jobs.json": {
+    "mtime": 1787781915.215045,
+    "seen": 1787782785.861398,
+    "ast_hash": "a40db332ce8b1dc06b3afbdd68f83cec",
+    "semantic_hash": "a40db332ce8b1dc06b3afbdd68f83cec"
+  },
+  "backups/2026-08-02/escolar_disciplinas.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614018,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-02/escolar_horario.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614032,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-02/escolar_notas.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614044,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-02/escolar_tpc.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614058,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-02/family_events.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614073,
+    "ast_hash": "2e5ac7c69617c0fa6e252266c0c01704",
+    "semantic_hash": "2e5ac7c69617c0fa6e252266c0c01704"
+  },
+  "backups/2026-08-02/horas_entries.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614085,
+    "ast_hash": "530b0d0013098c79deb1799b72593a13",
+    "semantic_hash": "530b0d0013098c79deb1799b72593a13"
+  },
+  "backups/2026-08-02/members.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.86141,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-02/nutri_products.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.861413,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-02/profiles.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614147,
+    "ast_hash": "dd567cf302d9e424ad1b6338a14616ee",
+    "semantic_hash": "dd567cf302d9e424ad1b6338a14616ee"
+  },
+  "backups/2026-08-02/push_subscriptions.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614159,
+    "ast_hash": "2aab14eac57e2c0baadf3e11499a49b8",
+    "semantic_hash": "2aab14eac57e2c0baadf3e11499a49b8"
+  },
+  "backups/2026-08-09/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2161267,
+    "seen": 1787782785.8614173,
+    "ast_hash": "2779b502c715a425650150a1164905a3",
+    "semantic_hash": "2779b502c715a425650150a1164905a3"
+  },
+  "backups/2026-08-09/escolar_disciplinas.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614185,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-09/escolar_horario.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614197,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-09/escolar_notas.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.861421,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-09/escolar_tpc.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614223,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-09/family_events.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614237,
+    "ast_hash": "79c797cfd23c5dbcbc0bb464317117dc",
+    "semantic_hash": "79c797cfd23c5dbcbc0bb464317117dc"
+  },
+  "backups/2026-08-09/horas_entries.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.861425,
+    "ast_hash": "fee19365d55bc3e7e983875dd3335641",
+    "semantic_hash": "fee19365d55bc3e7e983875dd3335641"
+  },
+  "backups/2026-08-09/lucas_condutores.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614264,
+    "ast_hash": "3f6e3a0116152a05f418a7168e80ad38",
+    "semantic_hash": "3f6e3a0116152a05f418a7168e80ad38"
+  },
+  "backups/2026-08-09/lucas_config.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.861428,
+    "ast_hash": "f791236cc1175eafc2f4923da918495c",
+    "semantic_hash": "f791236cc1175eafc2f4923da918495c"
+  },
+  "backups/2026-08-09/lucas_semana.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614295,
+    "ast_hash": "cdc1bf4ea7494f522b4338b8275d2bcd",
+    "semantic_hash": "cdc1bf4ea7494f522b4338b8275d2bcd"
+  },
+  "backups/2026-08-09/lucas_visitantes.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614311,
+    "ast_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6",
+    "semantic_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6"
+  },
+  "backups/2026-08-09/members.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614323,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-09/nutri_products.json": {
+    "mtime": 1787781915.2201266,
+    "seen": 1787782785.8614335,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-09/profiles.json": {
+    "mtime": 1787781915.2241268,
+    "seen": 1787782785.8614352,
+    "ast_hash": "6848fa6549a7b8081a060e97ad8babe5",
+    "semantic_hash": "6848fa6549a7b8081a060e97ad8babe5"
+  },
+  "backups/2026-08-09/push_subscriptions.json": {
+    "mtime": 1787781915.2241268,
+    "seen": 1787782785.8614364,
+    "ast_hash": "eb0f1efdd516bcdaeadd114abf00df8b",
+    "semantic_hash": "eb0f1efdd516bcdaeadd114abf00df8b"
+  },
+  "backups/2026-08-09/subscriptions.json": {
+    "mtime": 1787781915.2241268,
+    "seen": 1787782785.8614378,
+    "ast_hash": "bb7b90bf78bbc4036a66853c4c8d665d",
+    "semantic_hash": "bb7b90bf78bbc4036a66853c4c8d665d"
+  },
+  "backups/2026-08-16/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2241268,
+    "seen": 1787782785.861439,
+    "ast_hash": "c50db6ad4661bafb39a5534a16215856",
+    "semantic_hash": "c50db6ad4661bafb39a5534a16215856"
+  },
+  "backups/2026-08-16/escolar_disciplinas.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614402,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-16/escolar_horario.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614416,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-16/escolar_notas.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.861443,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-16/escolar_tpc.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614442,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-16/family_events.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614457,
+    "ast_hash": "16fd49c434fda0cf623ab6f6467ba535",
+    "semantic_hash": "16fd49c434fda0cf623ab6f6467ba535"
+  },
+  "backups/2026-08-16/horas_entries.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.861447,
+    "ast_hash": "3c6ee127388a1287418663e3e2955042",
+    "semantic_hash": "3c6ee127388a1287418663e3e2955042"
+  },
+  "backups/2026-08-16/lucas_condutores.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614485,
+    "ast_hash": "3f6e3a0116152a05f418a7168e80ad38",
+    "semantic_hash": "3f6e3a0116152a05f418a7168e80ad38"
+  },
+  "backups/2026-08-16/lucas_config.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614497,
+    "ast_hash": "f791236cc1175eafc2f4923da918495c",
+    "semantic_hash": "f791236cc1175eafc2f4923da918495c"
+  },
+  "backups/2026-08-16/lucas_semana.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.861451,
+    "ast_hash": "982b6d774b134f61a9d435ea928cf3b9",
+    "semantic_hash": "982b6d774b134f61a9d435ea928cf3b9"
+  },
+  "backups/2026-08-16/lucas_visitantes.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614523,
+    "ast_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6",
+    "semantic_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6"
+  },
+  "backups/2026-08-16/members.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.8614535,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-16/nutri_products.json": {
+    "mtime": 1787781915.230335,
+    "seen": 1787782785.861455,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-16/profiles.json": {
+    "mtime": 1787781915.2321267,
+    "seen": 1787782785.8614562,
+    "ast_hash": "2a8fde083f361a38cdd6612232f4faf7",
+    "semantic_hash": "2a8fde083f361a38cdd6612232f4faf7"
+  },
+  "backups/2026-08-16/push_subscriptions.json": {
+    "mtime": 1787781915.2321267,
+    "seen": 1787782785.8614576,
+    "ast_hash": "8aca87a02e4e7a744aa8eb0390b11860",
+    "semantic_hash": "8aca87a02e4e7a744aa8eb0390b11860"
+  },
+  "backups/2026-08-16/subscriptions.json": {
+    "mtime": 1787781915.2321267,
+    "seen": 1787782785.861459,
+    "ast_hash": "bb7b90bf78bbc4036a66853c4c8d665d",
+    "semantic_hash": "bb7b90bf78bbc4036a66853c4c8d665d"
+  },
+  "backups/2026-08-18/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2321267,
+    "seen": 1787782785.8614714,
+    "ast_hash": "2d03d6a1c17340c17a1f51cd1eb77f39",
+    "semantic_hash": "2d03d6a1c17340c17a1f51cd1eb77f39"
+  },
+  "backups/2026-08-18/escolar_disciplinas.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614728,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-18/escolar_horario.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.861474,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-18/escolar_notas.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614755,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-18/escolar_tpc.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.861477,
+    "ast_hash": "f76ba6c3490da40eb867004dcaa45ef1",
+    "semantic_hash": "f76ba6c3490da40eb867004dcaa45ef1"
+  },
+  "backups/2026-08-18/family_events.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.861478,
+    "ast_hash": "72cae5ea94c6df818874732c544256bd",
+    "semantic_hash": "72cae5ea94c6df818874732c544256bd"
+  },
+  "backups/2026-08-18/horas_entries.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614795,
+    "ast_hash": "3c6ee127388a1287418663e3e2955042",
+    "semantic_hash": "3c6ee127388a1287418663e3e2955042"
+  },
+  "backups/2026-08-18/lucas_condutores.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614807,
+    "ast_hash": "3f6e3a0116152a05f418a7168e80ad38",
+    "semantic_hash": "3f6e3a0116152a05f418a7168e80ad38"
+  },
+  "backups/2026-08-18/lucas_config.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.861482,
+    "ast_hash": "f791236cc1175eafc2f4923da918495c",
+    "semantic_hash": "f791236cc1175eafc2f4923da918495c"
+  },
+  "backups/2026-08-18/lucas_semana.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614833,
+    "ast_hash": "a0ae8076fd0e3610dd42e8c3f550866a",
+    "semantic_hash": "a0ae8076fd0e3610dd42e8c3f550866a"
+  },
+  "backups/2026-08-18/lucas_visitantes.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614845,
+    "ast_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6",
+    "semantic_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6"
+  },
+  "backups/2026-08-18/members.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614857,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-18/nutri_products.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614872,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-18/profiles.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614883,
+    "ast_hash": "2a8fde083f361a38cdd6612232f4faf7",
+    "semantic_hash": "2a8fde083f361a38cdd6612232f4faf7"
+  },
+  "backups/2026-08-18/push_subscriptions.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614898,
+    "ast_hash": "469f24d0106b7ddd0cfe8b916b847735",
+    "semantic_hash": "469f24d0106b7ddd0cfe8b916b847735"
+  },
+  "backups/2026-08-18/subscriptions.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.861491,
+    "ast_hash": "bb7b90bf78bbc4036a66853c4c8d665d",
+    "semantic_hash": "bb7b90bf78bbc4036a66853c4c8d665d"
+  },
+  "backups/2026-08-19/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2373128,
+    "seen": 1787782785.8614922,
+    "ast_hash": "a479ff16deb1f9c1e9639fc25dffa79a",
+    "semantic_hash": "a479ff16deb1f9c1e9639fc25dffa79a"
+  },
+  "backups/2026-08-19/escolar_disciplinas.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8614938,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-19/escolar_horario.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8614953,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-19/escolar_notas.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8614967,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-19/escolar_tpc.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8614976,
+    "ast_hash": "f5b9065844e25a4e9cac2645df1dd842",
+    "semantic_hash": "f5b9065844e25a4e9cac2645df1dd842"
+  },
+  "backups/2026-08-19/family_events.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.861499,
+    "ast_hash": "966c83f60eed5689c137d12b8647756a",
+    "semantic_hash": "966c83f60eed5689c137d12b8647756a"
+  },
+  "backups/2026-08-19/horas_entries.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615005,
+    "ast_hash": "3c6ee127388a1287418663e3e2955042",
+    "semantic_hash": "3c6ee127388a1287418663e3e2955042"
+  },
+  "backups/2026-08-19/lucas_condutores.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615017,
+    "ast_hash": "3f6e3a0116152a05f418a7168e80ad38",
+    "semantic_hash": "3f6e3a0116152a05f418a7168e80ad38"
+  },
+  "backups/2026-08-19/lucas_config.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615031,
+    "ast_hash": "f791236cc1175eafc2f4923da918495c",
+    "semantic_hash": "f791236cc1175eafc2f4923da918495c"
+  },
+  "backups/2026-08-19/lucas_semana.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615046,
+    "ast_hash": "a0ae8076fd0e3610dd42e8c3f550866a",
+    "semantic_hash": "a0ae8076fd0e3610dd42e8c3f550866a"
+  },
+  "backups/2026-08-19/lucas_visitantes.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.861506,
+    "ast_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6",
+    "semantic_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6"
+  },
+  "backups/2026-08-19/members.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615072,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-19/nutri_products.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615084,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-19/profiles.json": {
+    "mtime": 1787781915.243141,
+    "seen": 1787782785.8615096,
+    "ast_hash": "2a8fde083f361a38cdd6612232f4faf7",
+    "semantic_hash": "2a8fde083f361a38cdd6612232f4faf7"
+  },
+  "backups/2026-08-19/push_subscriptions.json": {
+    "mtime": 1787781915.2441268,
+    "seen": 1787782785.8615112,
+    "ast_hash": "38f58905808f7711d0b5732955aefa8e",
+    "semantic_hash": "38f58905808f7711d0b5732955aefa8e"
+  },
+  "backups/2026-08-19/subscriptions.json": {
+    "mtime": 1787781915.2441268,
+    "seen": 1787782785.8615124,
+    "ast_hash": "bb7b90bf78bbc4036a66853c4c8d665d",
+    "semantic_hash": "bb7b90bf78bbc4036a66853c4c8d665d"
+  },
+  "backups/2026-08-21/agenda_pro_jobs.json": {
+    "mtime": 1787781915.2441268,
+    "seen": 1787782785.8615136,
+    "ast_hash": "26606e6764d662c6c1e3c6266832066d",
+    "semantic_hash": "26606e6764d662c6c1e3c6266832066d"
+  },
+  "backups/2026-08-21/escolar_disciplinas.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.861515,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-21/escolar_horario.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615165,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-21/escolar_notas.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.861518,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-21/escolar_tpc.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.861519,
+    "ast_hash": "820744d0cabc35a107f53a50c54b3184",
+    "semantic_hash": "820744d0cabc35a107f53a50c54b3184"
+  },
+  "backups/2026-08-21/family_events.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615203,
+    "ast_hash": "27db6eda27cf41a5eafe084a24044fd2",
+    "semantic_hash": "27db6eda27cf41a5eafe084a24044fd2"
+  },
+  "backups/2026-08-21/horas_entries.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615217,
+    "ast_hash": "0f36b32aa9cc3f7511a8e8a5f99bff73",
+    "semantic_hash": "0f36b32aa9cc3f7511a8e8a5f99bff73"
+  },
+  "backups/2026-08-21/lucas_condutores.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.861523,
+    "ast_hash": "3f6e3a0116152a05f418a7168e80ad38",
+    "semantic_hash": "3f6e3a0116152a05f418a7168e80ad38"
+  },
+  "backups/2026-08-21/lucas_config.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615246,
+    "ast_hash": "f791236cc1175eafc2f4923da918495c",
+    "semantic_hash": "f791236cc1175eafc2f4923da918495c"
+  },
+  "backups/2026-08-21/lucas_semana.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615258,
+    "ast_hash": "a0ae8076fd0e3610dd42e8c3f550866a",
+    "semantic_hash": "a0ae8076fd0e3610dd42e8c3f550866a"
+  },
+  "backups/2026-08-21/lucas_visitantes.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.861527,
+    "ast_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6",
+    "semantic_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6"
+  },
+  "backups/2026-08-21/members.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615284,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-21/nutri_products.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615296,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-21/profiles.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615308,
+    "ast_hash": "a075bf321b1929323e8b9125e923abea",
+    "semantic_hash": "a075bf321b1929323e8b9125e923abea"
+  },
+  "backups/2026-08-21/push_subscriptions.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615322,
+    "ast_hash": "e3cbd73acebf4f76bbe62c3a470d9bcf",
+    "semantic_hash": "e3cbd73acebf4f76bbe62c3a470d9bcf"
+  },
+  "backups/2026-08-21/subscriptions.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615334,
+    "ast_hash": "bb7b90bf78bbc4036a66853c4c8d665d",
+    "semantic_hash": "bb7b90bf78bbc4036a66853c4c8d665d"
+  },
+  "backups/2026-08-23/agenda_pro_jobs.json": {
+    "mtime": 1787781915.248886,
+    "seen": 1787782785.8615348,
+    "ast_hash": "f2fd37fed7426e2c9f497b163df15a5e",
+    "semantic_hash": "f2fd37fed7426e2c9f497b163df15a5e"
+  },
+  "backups/2026-08-23/escolar_disciplinas.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.861536,
+    "ast_hash": "bd1547ee1048b24c1238647790a1d993",
+    "semantic_hash": "bd1547ee1048b24c1238647790a1d993"
+  },
+  "backups/2026-08-23/escolar_horario.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615396,
+    "ast_hash": "0866feb4124dffd4721cc16076a8394d",
+    "semantic_hash": "0866feb4124dffd4721cc16076a8394d"
+  },
+  "backups/2026-08-23/escolar_notas.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615408,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "backups/2026-08-23/escolar_tpc.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615425,
+    "ast_hash": "eb95ce2ac48e595334d24a181f25e624",
+    "semantic_hash": "eb95ce2ac48e595334d24a181f25e624"
+  },
+  "backups/2026-08-23/family_events.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615468,
+    "ast_hash": "8f8df39a6b25bc3fa8d7b15ce700b9b0",
+    "semantic_hash": "8f8df39a6b25bc3fa8d7b15ce700b9b0"
+  },
+  "backups/2026-08-23/horas_entries.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615482,
+    "ast_hash": "0f36b32aa9cc3f7511a8e8a5f99bff73",
+    "semantic_hash": "0f36b32aa9cc3f7511a8e8a5f99bff73"
+  },
+  "backups/2026-08-23/lucas_condutores.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615496,
+    "ast_hash": "3f6e3a0116152a05f418a7168e80ad38",
+    "semantic_hash": "3f6e3a0116152a05f418a7168e80ad38"
+  },
+  "backups/2026-08-23/lucas_config.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615508,
+    "ast_hash": "f791236cc1175eafc2f4923da918495c",
+    "semantic_hash": "f791236cc1175eafc2f4923da918495c"
+  },
+  "backups/2026-08-23/lucas_semana.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615522,
+    "ast_hash": "90e3d58253f62e9cc72f9906cce7908c",
+    "semantic_hash": "90e3d58253f62e9cc72f9906cce7908c"
+  },
+  "backups/2026-08-23/lucas_visitantes.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615534,
+    "ast_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6",
+    "semantic_hash": "2899794ca1ddb9e9c8e0a1d4529e84c6"
+  },
+  "backups/2026-08-23/members.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615546,
+    "ast_hash": "f620c4d7354d656269e62cca356f983d",
+    "semantic_hash": "f620c4d7354d656269e62cca356f983d"
+  },
+  "backups/2026-08-23/nutri_products.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.861556,
+    "ast_hash": "f678b41e338bc9b37da12cd076cf0c66",
+    "semantic_hash": "f678b41e338bc9b37da12cd076cf0c66"
+  },
+  "backups/2026-08-23/profiles.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.8615572,
+    "ast_hash": "8ef5758b14aa21882074c84f88e0dab9",
+    "semantic_hash": "8ef5758b14aa21882074c84f88e0dab9"
+  },
+  "backups/2026-08-23/push_subscriptions.json": {
+    "mtime": 1787781915.2550924,
+    "seen": 1787782785.861561,
+    "ast_hash": "95cddb6687eeb32f38984eae37df5b1c",
+    "semantic_hash": "95cddb6687eeb32f38984eae37df5b1c"
+  },
+  "backups/2026-08-23/subscriptions.json": {
+    "mtime": 1787781915.2561266,
+    "seen": 1787782785.8615623,
+    "ast_hash": "bb7b90bf78bbc4036a66853c4c8d665d",
+    "semantic_hash": "bb7b90bf78bbc4036a66853c4c8d665d"
+  },
+  "build.js": {
+    "mtime": 1787781915.2561266,
+    "seen": 1787782785.861564,
+    "ast_hash": "88cf4e1c3bef8ff15085b5a157bbbce8",
+    "semantic_hash": "88cf4e1c3bef8ff15085b5a157bbbce8"
+  },
+  "carvalho-suite-v75/manifest.json": {
+    "mtime": 1787781915.2721267,
+    "seen": 1787782785.861565,
+    "ast_hash": "1414ca5e1af44a1c6d9ea490f800924d",
+    "semantic_hash": "1414ca5e1af44a1c6d9ea490f800924d"
+  },
+  "carvalho-suite-v75/sw.js": {
+    "mtime": 1787781915.2721267,
+    "seen": 1787782785.8615663,
+    "ast_hash": "36956cba7a75809de4b8fb7458acb19a",
+    "semantic_hash": "36956cba7a75809de4b8fb7458acb19a"
+  },
+  "deploy.js": {
+    "mtime": 1787781915.2721267,
+    "seen": 1787782785.8615675,
+    "ast_hash": "fee51aba9d98ce499f985ada4e49c2f3",
+    "semantic_hash": "fee51aba9d98ce499f985ada4e49c2f3"
+  },
+  "manifest.json": {
+    "mtime": 1787781915.2841268,
+    "seen": 1787782785.861569,
+    "ast_hash": "9cba1afab0ca95430ff215c3139d9fa2",
+    "semantic_hash": "9cba1afab0ca95430ff215c3139d9fa2"
+  },
+  "package.json": {
+    "mtime": 1787781915.2841268,
+    "seen": 1787782785.8615704,
+    "ast_hash": "a8c1bd74bd40da6ddd4ea3f1c8adcaf1",
+    "semantic_hash": "a8c1bd74bd40da6ddd4ea3f1c8adcaf1"
+  },
+  "src/01-helpers.js": {
+    "mtime": 1787781915.2841268,
+    "seen": 1787782785.8615718,
+    "ast_hash": "d0185d9edc769d8050d67bef99d9ed45",
+    "semantic_hash": "d0185d9edc769d8050d67bef99d9ed45"
+  },
+  "src/02-theme.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.8615732,
+    "ast_hash": "603780a82f7e88341c547d487bb05333",
+    "semantic_hash": "603780a82f7e88341c547d487bb05333"
+  },
+  "src/03-data.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.8615744,
+    "ast_hash": "08c30541f67bfce4bdf5b8dbdcd96a9e",
+    "semantic_hash": "08c30541f67bfce4bdf5b8dbdcd96a9e"
+  },
+  "src/04-ui-components.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.8615754,
+    "ast_hash": "7a8e9747dab78edeab51a5447107ad1c",
+    "semantic_hash": "7a8e9747dab78edeab51a5447107ad1c"
+  },
+  "src/05-app-horaspro.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.8615768,
+    "ast_hash": "824f834b8db923f21f4638358e4ec2d7",
+    "semantic_hash": "824f834b8db923f21f4638358e4ec2d7"
+  },
+  "src/06-app-agendapro.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.861578,
+    "ast_hash": "d0f62f882f8d299575f3488b89f809bd",
+    "semantic_hash": "d0f62f882f8d299575f3488b89f809bd"
+  },
+  "src/07-app-familia.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.8615792,
+    "ast_hash": "dc2b58c9a58dc352ae1aa4120075ecc8",
+    "semantic_hash": "dc2b58c9a58dc352ae1aa4120075ecc8"
+  },
+  "src/08-app-nutriguima.js": {
+    "mtime": 1787781915.2898092,
+    "seen": 1787782785.8615806,
+    "ast_hash": "564e6f47ed32e8364b27002a8a1dcde1",
+    "semantic_hash": "564e6f47ed32e8364b27002a8a1dcde1"
+  },
+  "src/09-app-escolar.js": {
+    "mtime": 1787781915.2921267,
+    "seen": 1787782785.8615818,
+    "ast_hash": "90e955048070a9c22189cdded62a4d50",
+    "semantic_hash": "90e955048070a9c22189cdded62a4d50"
+  },
+  "src/10-shell.js": {
+    "mtime": 1787781915.2921267,
+    "seen": 1787782785.861583,
+    "ast_hash": "a3e90d4da6ca326de746e35f9a8a8cbb",
+    "semantic_hash": "a3e90d4da6ca326de746e35f9a8a8cbb"
+  },
+  "src/11-app-subby.js": {
+    "mtime": 1787781915.2921267,
+    "seen": 1787782785.8615844,
+    "ast_hash": "21a9907279957a57edc66ef74f11b1c2",
+    "semantic_hash": "21a9907279957a57edc66ef74f11b1c2"
+  },
+  "src/12-app-lucas.js": {
+    "mtime": 1787781915.2921267,
+    "seen": 1787782785.8615856,
+    "ast_hash": "c719d630c1fe822c1db3c7686b8fe95e",
+    "semantic_hash": "c719d630c1fe822c1db3c7686b8fe95e"
+  },
+  "src/13-app-hauswart.js": {
+    "mtime": 1787781915.2921267,
+    "seen": 1787782785.861587,
+    "ast_hash": "a0a192e07e07c0fd8afefbc6b22b5fff",
+    "semantic_hash": "a0a192e07e07c0fd8afefbc6b22b5fff"
+  },
+  "src/14-app-rapport.js": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.8615882,
+    "ast_hash": "5d0ab81a6f4a13ca77da52b733999950",
+    "semantic_hash": "5d0ab81a6f4a13ca77da52b733999950"
+  },
+  "src/15-app-viagens.js": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.8615894,
+    "ast_hash": "e9a340765230eedba5fd2f5526216522",
+    "semantic_hash": "e9a340765230eedba5fd2f5526216522"
+  },
+  "src/FINAL-02-theme.js": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.8616018,
+    "ast_hash": "065767ce2899e743794eba7cee5d2718",
+    "semantic_hash": "065767ce2899e743794eba7cee5d2718"
+  },
+  "src/FINAL-10-shell.js": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.861603,
+    "ast_hash": "56bcda84689aeeeeef67f465591e6f7c",
+    "semantic_hash": "56bcda84689aeeeeef67f465591e6f7c"
+  },
+  "src/FINAL-15-app-viagens.js": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.8616045,
+    "ast_hash": "830d92f05b47e591cf03329f2abb3921",
+    "semantic_hash": "830d92f05b47e591cf03329f2abb3921"
+  },
+  "supabase-functions/add_magazin.sql": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.861606,
+    "ast_hash": "e39637575de026b5047748ee57cfccbf",
+    "semantic_hash": "e39637575de026b5047748ee57cfccbf"
+  },
+  "supabase-functions/agenda_monteurs.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.861607,
+    "ast_hash": "9a44052156a9e38c700d592265707e71",
+    "semantic_hash": "9a44052156a9e38c700d592265707e71"
+  },
+  "supabase-functions/agenda_monteurs_categoria.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616085,
+    "ast_hash": "73c6039e15b2c7fccedc506a51fad5de",
+    "semantic_hash": "73c6039e15b2c7fccedc506a51fad5de"
+  },
+  "supabase-functions/escolar-test-reminder-cron.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616097,
+    "ast_hash": "2229b0b143aa4364c84df907709c76f6",
+    "semantic_hash": "2229b0b143aa4364c84df907709c76f6"
+  },
+  "supabase-functions/escolar-test-reminder.ts": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.861611,
+    "ast_hash": "8daa72ed288e571a88405a2e3bed2db8",
+    "semantic_hash": "8daa72ed288e571a88405a2e3bed2db8"
+  },
+  "supabase-functions/escolar_perfil.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616123,
+    "ast_hash": "eb21f8a39e41374afdbe58e05ea55bf8",
+    "semantic_hash": "eb21f8a39e41374afdbe58e05ea55bf8"
+  },
+  "supabase-functions/escolar_perfil_1_tabela.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616135,
+    "ast_hash": "7a2d97813ca16268db47926873af25e0",
+    "semantic_hash": "7a2d97813ca16268db47926873af25e0"
+  },
+  "supabase-functions/escolar_perfil_2_dados.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.861615,
+    "ast_hash": "72da0e32765fa26ce90678c49e4c88d1",
+    "semantic_hash": "72da0e32765fa26ce90678c49e4c88d1"
+  },
+  "supabase-functions/horas_projects.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616161,
+    "ast_hash": "af541ef9d06c51eae9e009481dc71b4f",
+    "semantic_hash": "af541ef9d06c51eae9e009481dc71b4f"
+  },
+  "supabase-functions/horas_projects_conta.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616173,
+    "ast_hash": "1435d8a4d8ae2ebbce16162758339432",
+    "semantic_hash": "1435d8a4d8ae2ebbce16162758339432"
+  },
+  "supabase-functions/horas_projects_rate.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616188,
+    "ast_hash": "606f6d37ca769feb4fa9ed0adf1de96b",
+    "semantic_hash": "606f6d37ca769feb4fa9ed0adf1de96b"
+  },
+  "supabase-functions/limpar_sextas_duplicadas.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.86162,
+    "ast_hash": "6dccd3f75b5fa28222c71b35b1bc8771",
+    "semantic_hash": "6dccd3f75b5fa28222c71b35b1bc8771"
+  },
+  "supabase-functions/lucas_horario_1_limpar.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616211,
+    "ast_hash": "0829fde2eca7e4de457596779db0358a",
+    "semantic_hash": "0829fde2eca7e4de457596779db0358a"
+  },
+  "supabase-functions/lucas_horario_2_disciplinas.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616226,
+    "ast_hash": "e19eac0a6fe864857f87ce7d5e3d7d41",
+    "semantic_hash": "e19eac0a6fe864857f87ce7d5e3d7d41"
+  },
+  "supabase-functions/lucas_horario_3_horario.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616238,
+    "ast_hash": "3f57d7bd4cb21e01dab03129b6b702f8",
+    "semantic_hash": "3f57d7bd4cb21e01dab03129b6b702f8"
+  },
+  "supabase-functions/lucas_horario_4_corrigir_wt.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616247,
+    "ast_hash": "95d8fd1bf987b94b08290aa31adf652a",
+    "semantic_hash": "95d8fd1bf987b94b08290aa31adf652a"
+  },
+  "supabase-functions/manage-member.ts": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616264,
+    "ast_hash": "f71cf1264b9aa020bf6ca0024db12ef4",
+    "semantic_hash": "f71cf1264b9aa020bf6ca0024db12ef4"
+  },
+  "supabase-functions/send-push.ts": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616273,
+    "ast_hash": "020707c6d044085680daf748e92c33c7",
+    "semantic_hash": "020707c6d044085680daf748e92c33c7"
+  },
+  "supabase-functions/subby-reminders-cron.sql": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616288,
+    "ast_hash": "80e76f9ea3ca9a99d160aabbdbd07e04",
+    "semantic_hash": "80e76f9ea3ca9a99d160aabbdbd07e04"
+  },
+  "supabase-functions/subby-reminders.ts": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616302,
+    "ast_hash": "e007c86f6b5571701fd7d07bcb43462f",
+    "semantic_hash": "e007c86f6b5571701fd7d07bcb43462f"
+  },
+  "sw.js": {
+    "mtime": 1787781915.3030858,
+    "seen": 1787782785.8616314,
+    "ast_hash": "07b8a389bbe2fd1e745ddda49134af3b",
+    "semantic_hash": "07b8a389bbe2fd1e745ddda49134af3b"
+  },
+  ".github/workflows/backup.yml": {
+    "mtime": 1787781915.1714785,
+    "seen": 1787782785.8616328,
+    "ast_hash": "2c8f0ac4a2b42607639ca785d49a84bd",
+    "semantic_hash": "2c8f0ac4a2b42607639ca785d49a84bd"
+  },
+  ".github/workflows/deploy.yml": {
+    "mtime": 1787781915.1727118,
+    "seen": 1787782785.861634,
+    "ast_hash": "9edb37d85496849f9487cab981208ff9",
+    "semantic_hash": "9edb37d85496849f9487cab981208ff9"
+  },
+  ".github/workflows/keep-alive.yml": {
+    "mtime": 1787781915.1727118,
+    "seen": 1787782785.8616357,
+    "ast_hash": "4e184ff8f02b628cdba33068787c79e6",
+    "semantic_hash": "4e184ff8f02b628cdba33068787c79e6"
+  },
+  "FINAL-build-number.txt": {
+    "mtime": 1787781915.1727118,
+    "seen": 1787782785.8616369,
+    "ast_hash": "8f85517967795eeef66c225f7883bdcb",
+    "semantic_hash": "8f85517967795eeef66c225f7883bdcb"
+  },
+  "FINAL-index.html": {
+    "mtime": 1787781915.1841266,
+    "seen": 1787782785.861638,
+    "ast_hash": "e923fdac9f5e25de484ee1d4907f9edd",
+    "semantic_hash": "e923fdac9f5e25de484ee1d4907f9edd"
+  },
+  "README.md": {
+    "mtime": 1787781915.1841266,
+    "seen": 1787782785.8616395,
+    "ast_hash": "856d807da441a74d6e40798a8cfeded4",
+    "semantic_hash": "856d807da441a74d6e40798a8cfeded4"
+  },
+  "build-number.txt": {
+    "mtime": 1787781915.2561266,
+    "seen": 1787782785.861641,
+    "ast_hash": "3644a684f98ea8fe223c713b77189a77",
+    "semantic_hash": "3644a684f98ea8fe223c713b77189a77"
+  },
+  "carvalho-suite-v75/index.html": {
+    "mtime": 1787781915.2721267,
+    "seen": 1787782785.8616421,
+    "ast_hash": "b6caa775eaaeae8735058caf725b6866",
+    "semantic_hash": "b6caa775eaaeae8735058caf725b6866"
+  },
+  "index.html": {
+    "mtime": 1787781915.2841268,
+    "seen": 1787782785.8616438,
+    "ast_hash": "1f0c0d27448410d73d91e41fdb0c1bca",
+    "semantic_hash": "1f0c0d27448410d73d91e41fdb0c1bca"
+  },
+  "lucas.html": {
+    "mtime": 1787781915.2841268,
+    "seen": 1787782785.8616452,
+    "ast_hash": "6141a2a2ca21f5628cdcf372e85ae501",
+    "semantic_hash": "6141a2a2ca21f5628cdcf372e85ae501"
+  },
+  "src/head.html": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.8616467,
+    "ast_hash": "62a4c318c70e0faa6d762b181e90bd7a",
+    "semantic_hash": "62a4c318c70e0faa6d762b181e90bd7a"
+  },
+  "src/tail.html": {
+    "mtime": 1787781915.2961268,
+    "seen": 1787782785.861648,
+    "ast_hash": "8bbe21994608bfac94f7894aeafd547e",
+    "semantic_hash": "8bbe21994608bfac94f7894aeafd547e"
+  },
+  "carvalho-suite-v75/icon-192.png": {
+    "mtime": 1787781915.2561266,
+    "seen": 1787782785.8616495,
+    "ast_hash": "a56f8467664fe514ff8383e186555491",
+    "semantic_hash": "a56f8467664fe514ff8383e186555491"
+  },
+  "carvalho-suite-v75/icon-512.png": {
+    "mtime": 1787781915.2612565,
+    "seen": 1787782785.8616507,
+    "ast_hash": "9b7b244d77b3a15fb12472a0ddf27708",
+    "semantic_hash": "9b7b244d77b3a15fb12472a0ddf27708"
+  },
+  "icon-192.png": {
+    "mtime": 1787781915.2721267,
+    "seen": 1787782785.8616517,
+    "ast_hash": "a56f8467664fe514ff8383e186555491",
+    "semantic_hash": "a56f8467664fe514ff8383e186555491"
+  },
+  "icon-512.png": {
+    "mtime": 1787781915.2721267,
+    "seen": 1787782785.861653,
+    "ast_hash": "9b7b244d77b3a15fb12472a0ddf27708",
+    "semantic_hash": "9b7b244d77b3a15fb12472a0ddf27708"
+  }
+}

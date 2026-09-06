@@ -48,6 +48,26 @@ function hwFmtDate(d) {
 function hwToday() { return new Date().toISOString().slice(0,10); }
 
 // ── DatePick ──
+function hwPlus30Days(dt) {
+  var r = new Date(dt.getTime());
+  r.setDate(r.getDate() + 30);
+  return r;
+}
+
+function fmtCHF(n) {
+  var v = (Math.round(Number(n) * 100) / 100).toFixed(2);
+  var p = v.split('.');
+  return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + '.' + p[1];
+}
+
+var HW_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+function hwFmtMonthYear(d) {
+  if (!d) return '';
+  var dt = new Date(d + 'T12:00:00');
+  return HW_MONTHS_FULL[dt.getMonth()] + ' ' + dt.getFullYear();
+}
+
 function HwDatePick(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
 
