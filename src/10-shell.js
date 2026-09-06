@@ -1999,6 +1999,10 @@ function CarvalhoSuite() {
           ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
               React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
               React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#12B886' }))
+          : app.id === 'agenda'
+          ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+              React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+              React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#EAB308' }))
           : React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
         React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } },
           app.name,
@@ -2526,6 +2530,10 @@ function CarvalhoSuite() {
         ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
             React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
             React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#12B886' }))
+        : app.id === 'agenda'
+        ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#EAB308' }))
         : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
       , /*#__PURE__*/React.createElement("span", {
         style: {
@@ -2678,6 +2686,10 @@ function CarvalhoSuite() {
         ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
             React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
             React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#12B886' }))
+        : app.id === 'agenda'
+        ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+            React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+            React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#EAB308' }))
         : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
       , /*#__PURE__*/React.createElement("span", {
         style: {
@@ -3264,6 +3276,10 @@ function CarvalhoSuite() {
       ? React.createElement('svg', { width: 28, height: 28, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
           React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
           React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#12B886' }))
+      : app.id === 'agenda'
+      ? React.createElement('svg', { width: 28, height: 28, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
+          React.createElement('rect', { width: 32, height: 32, fill: '#111111' }),
+          React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#EAB308' }))
       : /*#__PURE__*/React.createElement("span", { style: { fontSize: 22 } }, app.emoji)
     ), /*#__PURE__*/React.createElement("div", {
       style: {
