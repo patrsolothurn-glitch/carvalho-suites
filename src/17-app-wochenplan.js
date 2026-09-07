@@ -47,7 +47,10 @@ function wpTodayIso() {
   var n = new Date();
   return wpIso(new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())));
 }
-function wpMn(hhmm) { return hhmm ? (+hhmm.slice(0, 2)) * 60 + (+hhmm.slice(3)) : 0; }
+// slice(3, 5) em vez de slice(3): mesmo que chegue "13:00:00" (com segundos,
+// por não ter passado por wpNormalizarTarefa), fica só com os minutos "00" em
+// vez de "00:00" (que dava NaN em +"00:00" e estragava Raster/KPIs).
+function wpMn(hhmm) { return hhmm ? (+hhmm.slice(0, 2)) * 60 + (+hhmm.slice(3, 5)) : 0; }
 function wpHh(m) { m = Math.round(m); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); }
 function wpDez(m) { return (m / 60).toFixed(1); }
 function wpDezh(h) { return (Math.round((h || 0) * 10) / 10).toString(); }
@@ -281,10 +284,10 @@ var WP_CSS = '\
 }';
 
 // ── Peças pequenas ao nível do módulo ─────────────────────────────
-var WP_ROXO = '#5946B5';
+var WP_AMBAR = 'var(--warn)';
 function wpStIcon(s) {
-  var cor = s === 'erledigt' ? 'var(--ok)' : s === 'laeuft' ? 'var(--run)' : s === 'gebaut_nio' ? WP_ROXO : 'var(--ink3)';
-  var ic = s === 'erledigt' ? '✓' : s === 'laeuft' ? '◐' : s === 'gebaut_nio' ? '✗' : '○';
+  var cor = s === 'erledigt' ? 'var(--ok)' : s === 'laeuft' ? 'var(--run)' : s === 'gebaut_nio' ? WP_AMBAR : 'var(--ink3)';
+  var ic = s === 'erledigt' ? '✓' : s === 'laeuft' ? '◐' : s === 'gebaut_nio' ? '⚠' : '○';
   return React.createElement('span', { className: 'wp-st', style: { color: cor } }, ic);
 }
 function wpJobCard(a, onOpen) {
@@ -368,6 +371,7 @@ function WpKpis(p) {
   if (p.mode === 'tag' || p.rolle !== 'bauleiter') return null;
   var W = wpWeekTasks(p.tasks, p.cur, p.who);
   var done = W.filter(function(a) { return a.status === 'erledigt'; });
+  var nio = W.filter(function(a) { return a.status === 'gebaut_nio'; });
   var plan = 0, ist = 0;
   W.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
   var soll = (p.who === 'alle' ? p.leute.reduce(function(s, pe) { return s + wpSollWoche(pe); }, 0) : wpSollWoche(wpPerson(p.leute, p.who))) * 60;
@@ -377,6 +381,7 @@ function WpKpis(p) {
   return React.createElement('div', { className: 'wp-kpis' },
     React.createElement('div', { className: 'wp-kpi' }, React.createElement('small', null, 'Aufträge'), React.createElement('b', null, W.length), React.createElement('u', null, wpPoolL(p.tasks, p.who, true).length, ' dringend')),
     React.createElement('div', { className: 'wp-kpi' }, React.createElement('small', null, 'Erledigt'), React.createElement('b', { style: { color: 'var(--ok)' } }, done.length), React.createElement('u', null, 'von ', W.length)),
+    React.createElement('div', { className: 'wp-kpi' }, React.createElement('small', null, 'Gebaut n.i.o'), React.createElement('b', { style: { color: WP_AMBAR } }, nio.length), React.createElement('u', null, 'von ', W.length)),
     React.createElement('div', { className: 'wp-kpi' }, React.createElement('small', null, 'Geplant'), React.createElement('b', null, wpDez(plan)), React.createElement('u', null, 'Std')),
     React.createElement('div', { className: 'wp-kpi' }, React.createElement('small', null, 'Geleistet'), React.createElement('b', null, wpDez(ist)), React.createElement('u', null, 'Std')),
     React.createElement('div', { className: 'wp-kpi' }, React.createElement('small', null, 'Auslastung'), React.createElement('b', null, aus, '%'), React.createElement('div', { className: 'wp-load' }, React.createElement('i', { className: cls, style: { width: Math.min(aus, 100) + '%' } }))),
@@ -402,7 +407,7 @@ function WpLegend() {
     Object.keys(WP_PRIO).map(function(k) {
       return React.createElement('span', { key: k }, React.createElement('i', { style: { background: WP_PRIO[k].c } }), k + ' ' + WP_PRIO[k].n);
     }),
-    React.createElement('span', { style: { marginLeft: 'auto' } }, '○ offen   ◐ läuft   ✓ erledigt')
+    React.createElement('span', { style: { marginLeft: 'auto' } }, '○ offen   ◐ läuft   ✓ erledigt   ', React.createElement('span', { style: { color: WP_AMBAR } }, '⚠ gebaut n.i.o'))
   );
 }
 function WpBalancoBanner(p) {
@@ -645,7 +650,7 @@ function WpTaskModal(p) {
         React.createElement('label', null, 'Status'),
         React.createElement('div', { className: 'wp-prios' }, [['offen', 'offen'], ['laeuft', 'läuft'], ['erledigt', 'erledigt'], ['gebaut_nio', 'Gebaut n.i.o']].map(function(o) {
           var sel = d.status === o[0];
-          var cor = o[0] === 'gebaut_nio' ? WP_ROXO : 'var(--ink)';
+          var cor = o[0] === 'gebaut_nio' ? WP_AMBAR : 'var(--ink)';
           return React.createElement('button', { key: o[0], className: 'wp-pb', onClick: function() { p.onChange('status', o[0]); }, style: { borderColor: sel ? cor : 'var(--line)', color: sel ? cor : null } }, o[1]);
         }))
       ),
@@ -768,7 +773,7 @@ function WpPrintPlan(p) {
           return React.createElement('td', { key: k },
             st && React.createElement('b', null, WP_DST[st][0]),
             L.map(function(a) {
-              return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), (a.status === 'erledigt' ? '☒ ' : a.status === 'laeuft' ? '◐ ' : a.status === 'gebaut_nio' ? '✗ ' : '☐ ') + a.titel + (a.auftrag_nr ? ' ' : ''), a.auftrag_nr && React.createElement('b', null, a.auftrag_nr));
+              return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), (a.status === 'erledigt' ? '☒ ' : a.status === 'laeuft' ? '◐ ' : a.status === 'gebaut_nio' ? '⚠ ' : '☐ ') + a.titel + (a.auftrag_nr ? ' ' : ''), a.auftrag_nr && React.createElement('b', null, a.auftrag_nr));
             })
           );
         });
@@ -815,7 +820,7 @@ function WpPrintBericht(p) {
       return React.createElement('div', { key: k },
         React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(wpMk(k)) + (st ? ' — ' + WP_DST[st][0] : '') + ' · ' + wpDez(s) + ' h geleistet'),
         L.map(function(a) {
-          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '✗' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
         notas.map(function(r) {
           return React.createElement('div', { key: 'n' + r.wer, style: { fontSize: '8pt', padding: '3px 0 0 20px' } }, React.createElement('i', null, 'Notiz' + (p.who === 'alle' ? ' (' + r.wer + ')' : '') + ': ' + r.notiz));
@@ -839,7 +844,7 @@ function WpPrintListe(p) {
       return React.createElement('div', { key: k },
         React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + WP_DST[st][0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
         L.map(function(a) {
-          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '✗' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
         notas.map(function(r) {
           return React.createElement('div', { key: 'n' + r.wer, style: { fontSize: '8pt', padding: '3px 0 0 20px' } }, (p.who === 'alle' ? r.wer + ': ' : '') + r.notiz);
