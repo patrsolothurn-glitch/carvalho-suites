@@ -278,7 +278,8 @@ var WP_CSS = '\
 .wp-notlines{flex:1 1 auto;min-height:0;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 9.7mm,#ccc 9.7mm,#ccc 10mm);background-position:top}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
 .wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
-.wp-vorschau-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);flex:none}\
+.wp-vorschau-wrap,.wp-vorschau-inner{color:#000;font-size:10pt}\
+.wp-vorschau-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-titulo{font-weight:700;font-size:14px;color:var(--ink)}\
 .wp-vorschau-wrap{flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8}\
 .wp-vorschau-inner{background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.25);transform-origin:top center;flex:none;align-self:flex-start}\
