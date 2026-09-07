@@ -283,6 +283,16 @@ function vzToggleSet(setter, key) {
   });
 }
 
+function vozIsoWeek(d) {
+  var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  var y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - y0) / 86400000 + 1) / 7);
+}
+function vozNorm(s) {
+  return String(s || '').replace(/\s+/g, '').toLowerCase();
+}
+
 var VZ_LIMITE_LISTA = 3;
 
 var VzGrupoPastas = function VzGrupoPastas(p) {
@@ -513,9 +523,21 @@ function VozApp(props) {
   var _s16 = React.useState(null); var editPasta = _s16[0], setEditPasta = _s16[1];
   var _s17 = React.useState(null); var editGravacao = _s17[0], setEditGravacao = _s17[1];
 
-  // Listas colapsáveis — abertas por omissão, limitadas a 3; só local
+  // Listas colapsáveis — só a pasta da semana ISO atual arranca aberta
+  // (inicialização única, ver initAbertas abaixo); limitadas a 3, só local
   var _s27 = React.useState(new Set()); var collapsedGroups = _s27[0], setCollapsedGroups = _s27[1];
   var _s28 = React.useState(new Set()); var expandedGroups = _s28[0], setExpandedGroups = _s28[1];
+  var initAbertas = React.useRef(false);
+
+  React.useEffect(function() {
+    if (initAbertas.current || !pastas.length) return;
+    initAbertas.current = true;
+    var alvo = 'kw' + vozIsoWeek(new Date());
+    var fechar = new Set();
+    pastas.forEach(function(pa) { if (vozNorm(pa.titulo) !== alvo) fechar.add(pa.id); });
+    fechar.add('sem-pasta');
+    setCollapsedGroups(fechar);
+  }, [pastas]);
 
   // Transcrição — colapsada por omissão; copiar
   var _s32 = React.useState(new Set()); var expandedTranscricoes = _s32[0], setExpandedTranscricoes = _s32[1];
