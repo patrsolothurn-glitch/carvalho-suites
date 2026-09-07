@@ -293,6 +293,38 @@ function vozNorm(s) {
   return String(s || '').replace(/\s+/g, '').toLowerCase();
 }
 
+function vozDiaKey(ts) {
+  var d = new Date(ts);
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+
+function vozDiaLabel(ts) {
+  var dias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  var d = new Date(ts);
+  var hoje = new Date();
+  var k = vozDiaKey(ts);
+  if (k === vozDiaKey(hoje)) return 'Hoje';
+  var ontem = new Date(hoje.getTime() - 86400000);
+  if (k === vozDiaKey(ontem)) return 'Ontem';
+  return dias[d.getDay()] + ', ' + d.getDate() + '.' +
+         (d.getMonth() + 1) + '.' + d.getFullYear();
+}
+
+function vozAgruparPorDia(lista) {
+  var mapa = {};
+  var ordem = [];
+  lista.forEach(function(g) {
+    var k = vozDiaKey(g.gravado_em);
+    if (!mapa[k]) { mapa[k] = []; ordem.push(k); }
+    mapa[k].push(g);
+  });
+  return ordem.map(function(k) {
+    return { key: k, label: vozDiaLabel(mapa[k][0].gravado_em), itens: mapa[k] };
+  });
+}
+
 var VZ_LIMITE_LISTA = 3;
 
 var VzGrupoPastas = function VzGrupoPastas(p) {
@@ -311,13 +343,20 @@ var VzGrupoPastas = function VzGrupoPastas(p) {
       React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: T.gold, textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 } }, '📁 ' + grupo.nome + ' (' + n + ')')
     ),
     !collapsed && n === 0 && React.createElement('div', { style: { color: T.muted, fontSize: 13, padding: '4px 0 8px' } }, 'Sem gravações'),
-    !collapsed && visiveis.map(function(g) {
-      return React.createElement(VzGravacaoRow, {
-        key: g.id, g: g, playingId: p.playingId, playingUrl: p.playingUrl,
-        onPlay: p.onPlay, onPlayEnded: p.onPlayEnded, onEdit: p.onEdit, onDelete: p.onDelete,
-        transcricaoExpandida: p.expandedTranscricoes.has(g.id), onToggleTranscricao: p.onToggleTranscricao,
-        copiedId: p.copiedId, onCopiarTranscricao: p.onCopiarTranscricao
-      });
+    !collapsed && vozAgruparPorDia(visiveis).map(function(dia, idx) {
+      return React.createElement('div', { key: dia.key, style: { marginTop: idx === 0 ? 0 : 10 } },
+        React.createElement('div', {
+          style: { fontSize: 11, fontWeight: 600, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.4, padding: '2px 0 6px' }
+        }, dia.label + ' (' + dia.itens.length + ')'),
+        dia.itens.map(function(g) {
+          return React.createElement(VzGravacaoRow, {
+            key: g.id, g: g, playingId: p.playingId, playingUrl: p.playingUrl,
+            onPlay: p.onPlay, onPlayEnded: p.onPlayEnded, onEdit: p.onEdit, onDelete: p.onDelete,
+            transcricaoExpandida: p.expandedTranscricoes.has(g.id), onToggleTranscricao: p.onToggleTranscricao,
+            copiedId: p.copiedId, onCopiarTranscricao: p.onCopiarTranscricao
+          });
+        })
+      );
     }),
     !collapsed && restantes > 0 && React.createElement('button', {
       onClick: p.onToggleExpand,
