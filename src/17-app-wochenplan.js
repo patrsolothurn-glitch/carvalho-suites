@@ -279,8 +279,9 @@ var WP_CSS = '\
 .wp-notlines{flex:1 1 auto;min-height:0;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 9.7mm,#ccc 9.7mm,#ccc 10mm);background-position:top}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
 .wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
-.wp-vorschau-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
-.wp-vorschau-titulo{font-weight:700;font-size:14px;color:var(--ink)}\
+.wp-vorschau-top{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
+.wp-vorschau-top .wp-mini:first-child{margin-right:auto}\
+.wp-vorschau-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-wrap{flex:0 1 auto;max-height:100%;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8;box-sizing:border-box}\
 .wp-vorschau-inner{box-shadow:0 1px 6px rgba(0,0,0,.25);transform-origin:top center;flex:none;align-self:flex-start}\
 .wp-vorschau-inner,.wp-vorschau-inner *{color:#000!important;background-color:#fff!important;font-size:10pt}\
@@ -375,16 +376,9 @@ function WpBar(p) {
     ),
     React.createElement('span', { className: 'wp-sep' }),
     bl ? React.createElement(React.Fragment, null,
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('plan'); } }, 'Wochenplan A4'),
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onVorschau('plan'); } }, 'Vorschau'),
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('bericht'); } }, 'Wochenübersicht A4'),
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onVorschau('bericht'); } }, 'Vorschau'),
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('beide'); } }, 'Beidseitig · 2 Seiten'),
+      React.createElement('button', { className: 'wp-chip', onClick: p.onVorschau }, 'Vorschau'),
       React.createElement('button', { className: 'wp-chip', onClick: p.onCsv }, 'CSV')
-    ) : React.createElement(React.Fragment, null,
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('liste'); } }, p.mode === 'tag' ? 'Tag drucken' : 'Woche drucken'),
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onVorschau('liste'); } }, 'Vorschau')
-    )
+    ) : React.createElement('button', { className: 'wp-chip', onClick: p.onVorschau }, 'Vorschau')
   );
 }
 function WpKpis(p) {
@@ -910,7 +904,7 @@ function WpPrintArea(p) {
       React.createElement('div', { id: 'wp-printInner', ref: p.innerRef },
         tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
         tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        tipo === 'liste' && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: p.mode, orient: orient }),
+        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
           React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient }),
           React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
@@ -921,16 +915,27 @@ function WpPrintArea(p) {
     )
   );
 }
+var WP_VORSCHAU_ABAS = {
+  bauleiter: [['plan', 'Wochenplan A4'], ['bericht', 'Wochenübersicht A4'], ['beide', 'Beidseitig']],
+  monteur: [['tag', 'Tagesplan'], ['woche', 'Wochenliste']]
+};
 function WpVorschau(p) {
   var tipo = p.tipo;
   if (!tipo) return null;
-  var orient = tipo === 'plan' ? 'landscape' : 'portrait';
-  var titulo = tipo === 'plan' ? 'Wochenplan A4' : tipo === 'bericht' ? 'Wochenübersicht A4' : (p.mode === 'tag' ? 'Tagesplan' : 'Wochenliste');
+  var orient = (tipo === 'plan' || tipo === 'beide') ? 'landscape' : 'portrait';
+  var abas = WP_VORSCHAU_ABAS[p.rolle === 'bauleiter' ? 'bauleiter' : 'monteur'];
   return React.createElement('div', { className: 'wp-vorschau' },
     React.createElement('div', { className: 'wp-vorschau-top wp-noprint' },
       React.createElement('button', { className: 'wp-mini', onClick: p.onZurueck }, '← Zurück'),
-      React.createElement('div', { className: 'wp-vorschau-titulo' }, titulo),
       React.createElement('button', { className: 'wp-mini wp-vorschau-drucken', onClick: p.onDrucken }, '🖨️ Drucken')
+    ),
+    React.createElement('div', { className: 'wp-vorschau-tabs wp-noprint' },
+      abas.map(function(a) {
+        return React.createElement('button', {
+          key: a[0], className: 'wp-chip' + (tipo === a[0] ? ' wp-on' : ''),
+          onClick: function() { p.onAba(a[0]); }
+        }, a[1]);
+      })
     ),
     React.createElement('div', { className: 'wp-vorschau-wrap', ref: p.wrapRef },
       React.createElement('div', {
@@ -939,7 +944,13 @@ function WpVorschau(p) {
       },
         tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
         tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        tipo === 'liste' && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: p.mode, orient: orient })
+        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient }),
+        tipo === 'beide' && React.createElement(React.Fragment, null,
+          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient }),
+          React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
+          React.createElement('div', { className: 'wp-pbreak' }),
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient })
+        )
       )
     )
   );
@@ -1298,25 +1309,33 @@ function WochenplanApp(props) {
   }, [printJob]);
 
   // ── Vorschau (pré-visualização no ecrã, mesmos componentes de impressão) ──
-  function acionarVorschau(tipo) { setPreviewJob(tipo); }
+  function acionarVorschau() {
+    setPreviewJob(rolle === 'bauleiter' ? 'plan' : (mode === 'tag' ? 'tag' : 'woche'));
+  }
   React.useEffect(function() {
     if (!previewJob) return;
     function ajustarEscala() {
       var wrap = vorschauWrapRef.current, inner = vorschauInnerRef.current;
       if (!wrap || !inner) return;
-      var orient = previewJob === 'plan' ? 'landscape' : 'portrait';
+      var orient = (previewJob === 'plan' || previewJob === 'beide') ? 'landscape' : 'portrait';
       var wmm = (orient === 'landscape' ? 297 : 210) - 20;
       var hmm = (orient === 'landscape' ? 210 : 297) - 20;
       var pageWpx = wmm * WP_MM;
       var nutz = hmm * WP_MM - 6;
       // 1) conteúdo: mesma lógica do wpFitA4 — mede à largura real da página
-      // e encolhe só se o conteúdo for mais alto do que uma folha A4.
+      // e encolhe só se o conteúdo for mais alto do que uma folha A4. No
+      // Beidseitig há duas .wp-pagina (uma por folha) — usa-se a que
+      // precisar de encolher mais, para as duas caberem por igual.
       inner.style.transform = 'none';
       inner.style.width = pageWpx + 'px';
-      var altoNatural = inner.scrollHeight;
-      var fConteudo = altoNatural > nutz ? nutz / altoNatural : 1;
+      var paginas = inner.querySelectorAll('.wp-pagina');
+      var alturas = paginas.length ? Array.prototype.map.call(paginas, function(el) { return el.scrollHeight; }) : [inner.scrollHeight];
+      var fConteudo = 1;
+      alturas.forEach(function(alto) {
+        var f = alto > nutz ? nutz / alto : 1;
+        if (f < fConteudo) fConteudo = f;
+      });
       if (fConteudo < 0.5) fConteudo = 0.5;
-      if (fConteudo > 1) fConteudo = 1;
       // 2) ecrã: encolhe o resultado (já com as proporções certas) para caber
       // na largura disponível — nunca amplia.
       var wrapRect = wrap.getBoundingClientRect();
@@ -1376,7 +1395,7 @@ function WochenplanApp(props) {
         rolle: rolle, who: who, leute: leute, mode: mode, wl: wl,
         onRolle: setRolle, onWho: setWho, onTeam: function() { setTeamModalAberto(true); },
         onWl: function(v) { setWl(v); wpSaveLayout(v); },
-        onPrint: acionarImpressao, onCsv: function() { wpCsvExport(tasks, cur, who); },
+        onCsv: function() { wpCsvExport(tasks, cur, who); },
         onVorschau: acionarVorschau
       }),
       React.createElement(WpKpis, { mode: mode, rolle: rolle, tasks: tasks, leute: leute, cur: cur, who: who }),
@@ -1392,12 +1411,13 @@ function WochenplanApp(props) {
       ),
       React.createElement(WpLegend, null)
     ),
-    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, mode: mode, innerRef: printInnerRef, areaRef: printAreaRef }),
+    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef }),
 
     previewJob && React.createElement(WpVorschau, {
-      tipo: previewJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, mode: mode,
+      tipo: previewJob, rolle: rolle, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who,
       wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef,
       onZurueck: function() { setPreviewJob(null); },
+      onAba: setPreviewJob,
       onDrucken: function() { acionarImpressao(previewJob); }
     }),
 
