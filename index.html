@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-07T21:13:57.975Z
+  Gerado em: 2026-09-07T21:19:57.220Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-251";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-252";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -28949,12 +28949,17 @@ var WP_CSS = '\
 .wp-notiz{margin-top:10px;flex:1 1 auto;min-height:14mm;display:flex;flex-direction:column}\
 .wp-notlines{flex:1 1 auto;min-height:0;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 9.7mm,#ccc 9.7mm,#ccc 10mm);background-position:top}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
+.wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
+.wp-vorschau-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);flex:none}\
+.wp-vorschau-titulo{font-weight:700;font-size:14px;color:var(--ink)}\
+.wp-vorschau-wrap{flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8}\
+.wp-vorschau-inner{background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.25);transform-origin:top center;flex:none;align-self:flex-start}\
 @media print{\
   @page{margin:10mm}\
   html,body{width:auto;height:auto}\
   body{background:#fff;color:#000;padding:0;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}\
   .wp-app{--bg:#fff;background:#fff;min-height:0;padding-bottom:0}\
-  .wp-top,.wp-bar,.wp-kpis,.wp-cols,.wp-scroll,.wp-alarm,.wp-legend,.wp-abs,.wp-ov,.wp-week,.wp-noprint{display:none!important}\
+  .wp-top,.wp-bar,.wp-kpis,.wp-cols,.wp-scroll,.wp-alarm,.wp-legend,.wp-abs,.wp-ov,.wp-week,.wp-noprint,.wp-vorschau{display:none!important}\
   #wp-printArea{display:block!important}\
   .wp-pbreak{break-before:page;page-break-before:always}\
 }';
@@ -29037,10 +29042,15 @@ function WpBar(p) {
     React.createElement('span', { className: 'wp-sep' }),
     bl ? React.createElement(React.Fragment, null,
       React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('plan'); } }, 'Wochenplan A4'),
+      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onVorschau('plan'); } }, 'Vorschau'),
       React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('bericht'); } }, 'Wochenübersicht A4'),
+      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onVorschau('bericht'); } }, 'Vorschau'),
       React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('beide'); } }, 'Beidseitig · 2 Seiten'),
       React.createElement('button', { className: 'wp-chip', onClick: p.onCsv }, 'CSV')
-    ) : React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('liste'); } }, p.mode === 'tag' ? 'Tag drucken' : 'Woche drucken')
+    ) : React.createElement(React.Fragment, null,
+      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('liste'); } }, p.mode === 'tag' ? 'Tag drucken' : 'Woche drucken'),
+      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onVorschau('liste'); } }, 'Vorschau')
+    )
   );
 }
 function WpKpis(p) {
@@ -29577,6 +29587,29 @@ function WpPrintArea(p) {
     )
   );
 }
+function WpVorschau(p) {
+  var tipo = p.tipo;
+  if (!tipo) return null;
+  var orient = tipo === 'plan' ? 'landscape' : 'portrait';
+  var titulo = tipo === 'plan' ? 'Wochenplan A4' : tipo === 'bericht' ? 'Wochenübersicht A4' : (p.mode === 'tag' ? 'Tagesplan' : 'Wochenliste');
+  return React.createElement('div', { className: 'wp-vorschau' },
+    React.createElement('div', { className: 'wp-vorschau-top wp-noprint' },
+      React.createElement('button', { className: 'wp-mini', onClick: p.onZurueck }, '← Zurück'),
+      React.createElement('div', { className: 'wp-vorschau-titulo' }, titulo),
+      React.createElement('button', { className: 'wp-mini wp-vorschau-drucken', onClick: p.onDrucken }, '🖨️ Drucken')
+    ),
+    React.createElement('div', { className: 'wp-vorschau-wrap', ref: p.wrapRef },
+      React.createElement('div', {
+        className: 'wp-vorschau-inner', ref: p.innerRef,
+        style: { width: ((orient === 'landscape' ? 297 : 210) - 20) + 'mm' }
+      },
+        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
+        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
+        tipo === 'liste' && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: p.mode, orient: orient })
+      )
+    )
+  );
+}
 function wpFitA4(innerEl, areaEl, orient, paginas) {
   if (!innerEl || !areaEl) return;
   var wmm = (orient === 'landscape' ? 297 : 210) - 20;
@@ -29650,6 +29683,9 @@ function WochenplanApp(props) {
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
   var printInnerRef = React.useRef(null);
   var printAreaRef = React.useRef(null);
+  var _s28 = React.useState(null); var previewJob = _s28[0], setPreviewJob = _s28[1];
+  var vorschauWrapRef = React.useRef(null);
+  var vorschauInnerRef = React.useRef(null);
 
   var _s27 = React.useState(0); var agoraTick = _s27[0], setAgoraTick = _s27[1];
 
@@ -29927,6 +29963,25 @@ function WochenplanApp(props) {
     return function() { cancelAnimationFrame(id); };
   }, [printJob]);
 
+  // ── Vorschau (pré-visualização no ecrã, mesmos componentes de impressão) ──
+  function acionarVorschau(tipo) { setPreviewJob(tipo); }
+  React.useEffect(function() {
+    if (!previewJob) return;
+    function ajustarEscala() {
+      var wrap = vorschauWrapRef.current, inner = vorschauInnerRef.current;
+      if (!wrap || !inner) return;
+      inner.style.transform = 'none';
+      var wrapRect = wrap.getBoundingClientRect();
+      var innerRect = inner.getBoundingClientRect();
+      var pad = 32;
+      var f = Math.min((wrapRect.width - pad) / innerRect.width, (wrapRect.height - pad) / innerRect.height, 1);
+      if (f < 1) inner.style.transform = 'scale(' + f.toFixed(3) + ')';
+    }
+    var id = requestAnimationFrame(ajustarEscala);
+    window.addEventListener('resize', ajustarEscala);
+    return function() { cancelAnimationFrame(id); window.removeEventListener('resize', ajustarEscala); };
+  }, [previewJob]);
+
   React.useEffect(function() {
     return function() {
       if (notaStreamRef.current) notaStreamRef.current.getTracks().forEach(function(t) { t.stop(); });
@@ -29972,7 +30027,8 @@ function WochenplanApp(props) {
         rolle: rolle, who: who, leute: leute, mode: mode, wl: wl,
         onRolle: setRolle, onWho: setWho, onTeam: function() { setTeamModalAberto(true); },
         onWl: function(v) { setWl(v); wpSaveLayout(v); },
-        onPrint: acionarImpressao, onCsv: function() { wpCsvExport(tasks, cur, who); }
+        onPrint: acionarImpressao, onCsv: function() { wpCsvExport(tasks, cur, who); },
+        onVorschau: acionarVorschau
       }),
       React.createElement(WpKpis, { mode: mode, rolle: rolle, tasks: tasks, leute: leute, cur: cur, who: who }),
       React.createElement(WpAlarm, { tasks: tasks, who: who, onOpen: abrirTarefa }),
@@ -29988,6 +30044,13 @@ function WochenplanApp(props) {
       React.createElement(WpLegend, null)
     ),
     React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, mode: mode, innerRef: printInnerRef, areaRef: printAreaRef }),
+
+    previewJob && React.createElement(WpVorschau, {
+      tipo: previewJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, mode: mode,
+      wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef,
+      onZurueck: function() { setPreviewJob(null); },
+      onDrucken: function() { acionarImpressao(previewJob); }
+    }),
 
     editTaskDraft && React.createElement(WpTaskModal, {
       id: editTaskId, draft: editTaskDraft, leute: leute, cur: cur, erro: editTaskErro, guardando: guardandoTask,
