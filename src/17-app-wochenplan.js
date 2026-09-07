@@ -278,11 +278,15 @@ var WP_CSS = '\
 .wp-notlines{flex:1 1 auto;min-height:0;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 9.7mm,#ccc 9.7mm,#ccc 10mm);background-position:top}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
 .wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
-.wp-vorschau-wrap,.wp-vorschau-inner{color:#000;font-size:10pt}\
 .wp-vorschau-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-titulo{font-weight:700;font-size:14px;color:var(--ink)}\
-.wp-vorschau-wrap{flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8}\
-.wp-vorschau-inner{background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.25);transform-origin:top center;flex:none;align-self:flex-start}\
+.wp-vorschau-wrap{flex:0 1 auto;max-height:100%;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8;box-sizing:border-box}\
+.wp-vorschau-inner{box-shadow:0 1px 6px rgba(0,0,0,.25);transform-origin:top center;flex:none;align-self:flex-start}\
+.wp-vorschau-inner,.wp-vorschau-inner *{color:#000!important;background-color:#fff!important;font-size:10pt}\
+.wp-vorschau-inner .wp-pt2 th,.wp-vorschau-inner .wp-pt2 td{font-size:8pt}\
+.wp-vorschau-inner .wp-pd{font-size:9pt}\
+.wp-vorschau-inner .wp-pl{font-size:8.5pt}\
+.wp-vorschau-inner .wp-sig{font-size:8pt}\
 @media print{\
   @page{margin:10mm}\
   html,body{width:auto;height:auto}\
@@ -1299,12 +1303,27 @@ function WochenplanApp(props) {
     function ajustarEscala() {
       var wrap = vorschauWrapRef.current, inner = vorschauInnerRef.current;
       if (!wrap || !inner) return;
+      var orient = previewJob === 'plan' ? 'landscape' : 'portrait';
+      var wmm = (orient === 'landscape' ? 297 : 210) - 20;
+      var hmm = (orient === 'landscape' ? 210 : 297) - 20;
+      var pageWpx = wmm * WP_MM;
+      var nutz = hmm * WP_MM - 6;
+      // 1) conteúdo: mesma lógica do wpFitA4 — mede à largura real da página
+      // e encolhe só se o conteúdo for mais alto do que uma folha A4.
       inner.style.transform = 'none';
+      inner.style.width = pageWpx + 'px';
+      var altoNatural = inner.scrollHeight;
+      var fConteudo = altoNatural > nutz ? nutz / altoNatural : 1;
+      if (fConteudo < 0.5) fConteudo = 0.5;
+      if (fConteudo > 1) fConteudo = 1;
+      // 2) ecrã: encolhe o resultado (já com as proporções certas) para caber
+      // na largura disponível — nunca amplia.
       var wrapRect = wrap.getBoundingClientRect();
-      var innerRect = inner.getBoundingClientRect();
       var pad = 32;
-      var f = Math.min((wrapRect.width - pad) / innerRect.width, (wrapRect.height - pad) / innerRect.height, 1);
-      if (f < 1) inner.style.transform = 'scale(' + f.toFixed(3) + ')';
+      var fEcra = Math.min((wrapRect.width - pad) / pageWpx, 1);
+      var fFinal = fConteudo * fEcra;
+      inner.style.width = (pageWpx / fConteudo) + 'px';
+      inner.style.transform = 'scale(' + fFinal.toFixed(4) + ')';
     }
     var id = requestAnimationFrame(ajustarEscala);
     window.addEventListener('resize', ajustarEscala);
