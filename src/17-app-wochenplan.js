@@ -365,16 +365,10 @@ function WpBar(p) {
     React.createElement('span', { className: 'wp-sep' }),
     bl ? React.createElement(React.Fragment, null,
       React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('plan'); } }, 'Wochenplan A4'),
-      React.createElement('button', { className: 'wp-chip', disabled: p.gerandoPdf, onClick: function() { p.onPdf('plan'); } }, p.gerandoPdf === 'plan' ? 'A gerar…' : 'Als PDF'),
       React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('bericht'); } }, 'Wochenübersicht A4'),
-      React.createElement('button', { className: 'wp-chip', disabled: p.gerandoPdf, onClick: function() { p.onPdf('bericht'); } }, p.gerandoPdf === 'bericht' ? 'A gerar…' : 'Als PDF'),
       React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('beide'); } }, 'Beidseitig · 2 Seiten'),
-      React.createElement('button', { className: 'wp-chip', disabled: p.gerandoPdf, onClick: function() { p.onPdf('beide'); } }, p.gerandoPdf === 'beide' ? 'A gerar…' : 'Als PDF'),
       React.createElement('button', { className: 'wp-chip', onClick: p.onCsv }, 'CSV')
-    ) : React.createElement(React.Fragment, null,
-      React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('liste'); } }, p.mode === 'tag' ? 'Tag drucken' : 'Woche drucken'),
-      React.createElement('button', { className: 'wp-chip', disabled: p.gerandoPdf, onClick: function() { p.onPdf('liste'); } }, p.gerandoPdf === 'liste' ? 'A gerar…' : 'Als PDF')
-    )
+    ) : React.createElement('button', { className: 'wp-chip', onClick: function() { p.onPrint('liste'); } }, p.mode === 'tag' ? 'Tag drucken' : 'Woche drucken')
   );
 }
 function WpKpis(p) {
@@ -904,14 +898,10 @@ function WpPrintArea(p) {
         tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who }),
         tipo === 'liste' && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: p.mode }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
-          React.createElement('div', { className: 'wp-pdf-pagina' },
-            React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2' }),
-            React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht')
-          ),
+          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2' }),
+          React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
           React.createElement('div', { className: 'wp-pbreak' }),
-          React.createElement('div', { className: 'wp-pdf-pagina' },
-            React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2' })
-          )
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2' })
         )
       )
     )
@@ -933,71 +923,6 @@ function wpFitA4(innerEl, areaEl, orient, paginas) {
   if (f > 1) f = 1;
   if (f < 1) { innerEl.style.width = (wmm * WP_MM / f) + 'px'; innerEl.style.transform = 'scale(' + f.toFixed(3) + ')'; }
   areaEl.style.cssText = '';
-}
-
-// ── Exportar como PDF (mesmo conteúdo do #wp-printArea, sem diálogo de impressão) ──
-var wpPdfLibsPromise = null;
-function wpCarregarScript(src) {
-  return new Promise(function(resolve, reject) {
-    if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
-    var s = document.createElement('script');
-    s.src = src;
-    s.onload = function() { resolve(); };
-    s.onerror = function() { reject(new Error('Falha ao carregar ' + src)); };
-    document.head.appendChild(s);
-  });
-}
-function wpCarregarPdfLibs() {
-  if (!wpPdfLibsPromise) {
-    wpPdfLibsPromise = Promise.all([
-      wpCarregarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
-      wpCarregarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
-    ]);
-  }
-  return wpPdfLibsPromise;
-}
-function wpNomeArquivoPdf(tipo, cur, mode) {
-  var c = wpMk(cur);
-  if (tipo === 'liste' && mode === 'tag') return 'Tagesplan_' + cur + '.pdf';
-  if (tipo === 'liste') return 'Wochenliste_KW' + wpKw(c) + '.pdf';
-  if (tipo === 'plan') return 'Wochenplan_KW' + wpKw(c) + '.pdf';
-  if (tipo === 'bericht') return 'Wochenuebersicht_KW' + wpKw(c) + '.pdf';
-  return 'Wochenplan_Wochenuebersicht_KW' + wpKw(c) + '.pdf';
-}
-function wpAdicionarPaginaPdf(pdf, canvas, orient, primeira) {
-  var pageW = orient === 'landscape' ? 297 : 210;
-  var pageH = orient === 'landscape' ? 210 : 297;
-  var imgW = pageW, imgH = canvas.height * imgW / canvas.width;
-  if (!primeira) pdf.addPage('a4', orient);
-  pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, imgW, Math.min(imgH, pageH));
-}
-function wpBaixarPdf(tipo, cur, mode, innerEl, areaEl) {
-  if (!innerEl || !areaEl) return Promise.reject(new Error('Área de impressão não encontrada.'));
-  var orient = (tipo === 'plan' || tipo === 'beide') ? 'landscape' : 'portrait';
-  return wpCarregarPdfLibs().then(function() {
-    wpFitA4(innerEl, areaEl, orient, tipo === 'beide' ? 2 : 1);
-    areaEl.style.cssText = 'display:block;position:absolute;left:-10000px;top:0';
-    var paginas = tipo === 'beide' ? innerEl.querySelectorAll('.wp-pdf-pagina') : [innerEl];
-    var pdf = new window.jspdf.jsPDF({ orientation: orient, unit: 'mm', format: 'a4' });
-    var p = Promise.resolve();
-    Array.prototype.forEach.call(paginas, function(el, i) {
-      p = p.then(function() {
-        return window.html2canvas(el, { scale: 2, backgroundColor: '#fff' });
-      }).then(function(canvas) {
-        wpAdicionarPaginaPdf(pdf, canvas, orient, i === 0);
-      });
-    });
-    return p.then(function() {
-      pdf.save(wpNomeArquivoPdf(tipo, cur, mode));
-    });
-  }).then(function() {
-    innerEl.style.transform = 'none'; innerEl.style.width = '';
-    areaEl.style.cssText = '';
-  }, function(e) {
-    innerEl.style.transform = 'none'; innerEl.style.width = '';
-    areaEl.style.cssText = '';
-    throw e;
-  });
 }
 function wpCsvExport(tasks, cur, who) {
   var linhas = [['Datum', 'Von', 'Bis', 'Std', 'Einsatzort', 'Arbeit', 'AuftragsNr', 'Kunde', 'Prio', 'Mitarbeiter', 'Status']];
@@ -1055,7 +980,6 @@ function WochenplanApp(props) {
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
   var printInnerRef = React.useRef(null);
   var printAreaRef = React.useRef(null);
-  var _s28 = React.useState(null); var pdfJob = _s28[0], setPdfJob = _s28[1];
 
   var _s27 = React.useState(0); var agoraTick = _s27[0], setAgoraTick = _s27[1];
 
@@ -1333,20 +1257,6 @@ function WochenplanApp(props) {
     return function() { cancelAnimationFrame(id); };
   }, [printJob]);
 
-  // ── Exportar PDF (mesmo conteúdo do #wp-printArea, sem diálogo de impressão) ──
-  function acionarPdf(tipo) { if (!pdfJob) setPdfJob(tipo); }
-  React.useEffect(function() {
-    if (!pdfJob) return;
-    var id = requestAnimationFrame(function() {
-      wpBaixarPdf(pdfJob, cur, mode, printInnerRef.current, printAreaRef.current).catch(function(e) {
-        setErro('Falha ao gerar PDF: ' + (e && e.message ? e.message : e));
-      }).then(function() {
-        setPdfJob(null);
-      });
-    });
-    return function() { cancelAnimationFrame(id); };
-  }, [pdfJob]);
-
   React.useEffect(function() {
     return function() {
       if (notaStreamRef.current) notaStreamRef.current.getTracks().forEach(function(t) { t.stop(); });
@@ -1392,8 +1302,7 @@ function WochenplanApp(props) {
         rolle: rolle, who: who, leute: leute, mode: mode, wl: wl,
         onRolle: setRolle, onWho: setWho, onTeam: function() { setTeamModalAberto(true); },
         onWl: function(v) { setWl(v); wpSaveLayout(v); },
-        onPrint: acionarImpressao, onCsv: function() { wpCsvExport(tasks, cur, who); },
-        onPdf: acionarPdf, gerandoPdf: pdfJob
+        onPrint: acionarImpressao, onCsv: function() { wpCsvExport(tasks, cur, who); }
       }),
       React.createElement(WpKpis, { mode: mode, rolle: rolle, tasks: tasks, leute: leute, cur: cur, who: who }),
       React.createElement(WpAlarm, { tasks: tasks, who: who, onOpen: abrirTarefa }),
@@ -1408,7 +1317,7 @@ function WochenplanApp(props) {
       ),
       React.createElement(WpLegend, null)
     ),
-    React.createElement(WpPrintArea, { printJob: printJob || pdfJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, mode: mode, innerRef: printInnerRef, areaRef: printAreaRef }),
+    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, mode: mode, innerRef: printInnerRef, areaRef: printAreaRef }),
 
     editTaskDraft && React.createElement(WpTaskModal, {
       id: editTaskId, draft: editTaskDraft, leute: leute, cur: cur, erro: editTaskErro, guardando: guardandoTask,
