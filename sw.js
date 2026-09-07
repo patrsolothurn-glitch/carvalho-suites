@@ -1,6 +1,6 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
 <<<<<<< HEAD
-const CACHE = 'carvalho-v568c9ad7';
+const CACHE = 'carvalho-v2dd294e9';
 =======
 const CACHE = 'carvalho-v24dc4279';
 >>>>>>> origin/main
