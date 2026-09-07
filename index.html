@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-07T16:44:26.026Z
+  Gerado em: 2026-09-07T18:54:56.984Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-245";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-246";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -27725,7 +27725,10 @@ var VzGravacaoRow = function VzGravacaoRow(props) {
           onClick: temTranscricao ? function() { props.onToggleTranscricao(g.id); } : undefined,
           style: { fontWeight: 700, fontSize: 14, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: temTranscricao ? 'pointer' : 'default' }
         }, vzTitleCase(g.titulo), temTranscricao && React.createElement('span', { style: { color: '#6E7183', fontSize: 11, marginLeft: 6 } }, expandida ? '▴' : '▾')),
-        React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 2 } }, vzFmtDateTime(g.gravado_em) + ' · ' + vzFmtDuration(g.duracao_seg) + (arquivada ? ' · no Drive' : '')),
+        React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 2 } },
+          vzFmtDateTime(vozDataEfetiva(g)) + ' · ' + vzFmtDuration(g.duracao_seg) + (arquivada ? ' · no Drive' : ''),
+          g.data_ref && React.createElement('span', { title: 'Data ajustada manualmente', style: { marginLeft: 4, color: T.muted } }, '•')
+        ),
         temTranscricao && expandida && React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-wrap' } }, '“' + g.transcricao + '”')
       ),
       React.createElement('button', { onClick: function() { props.onEdit(g); }, style: { background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex' } }, React.createElement(VzIconEdit, { color: '#6E7183' })),
@@ -27757,6 +27760,32 @@ function vozNorm(s) {
   return String(s || '').replace(/\s+/g, '').toLowerCase();
 }
 
+// data/hora efetiva de uma gravação — data_ref (se definida) senão gravado_em
+function vozDataEfetiva(g) {
+  return g.data_ref || g.gravado_em;
+}
+
+// valor para o input datetime-local (hora local, sem segundos)
+function vozParaInput(ts) {
+  var d = new Date(ts);
+  var p = function(n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+         'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+// gravações sempre ordenadas pela data efetiva, mais recente primeiro
+function vozOrdenarGravacoes(lista) {
+  return lista.slice().sort(function(a, b) {
+    return new Date(vozDataEfetiva(b)) - new Date(vozDataEfetiva(a));
+  });
+}
+
+// KW (número) de um título de pasta tipo "KW 37" / "Kw37" — null se não for esse padrão
+function vozExtrairKw(titulo) {
+  var m = vozNorm(titulo).match(/^kw(\d+)$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 function vozDiaKey(ts) {
   var d = new Date(ts);
   return d.getFullYear() + '-' +
@@ -27780,12 +27809,12 @@ function vozAgruparPorDia(lista) {
   var mapa = {};
   var ordem = [];
   lista.forEach(function(g) {
-    var k = vozDiaKey(g.gravado_em);
+    var k = vozDiaKey(vozDataEfetiva(g));
     if (!mapa[k]) { mapa[k] = []; ordem.push(k); }
     mapa[k].push(g);
   });
   return ordem.map(function(k) {
-    return { key: k, label: vozDiaLabel(mapa[k][0].gravado_em), itens: mapa[k] };
+    return { key: k, label: vozDiaLabel(vozDataEfetiva(mapa[k][0])), itens: mapa[k] };
   });
 }
 
@@ -27867,6 +27896,12 @@ var VzRecorderTab = function VzRecorderTab(p) {
       React.createElement('input', {
         type: 'text', autoComplete: 'off', value: p.saveTitulo, placeholder: vzFmtDateTime(new Date()),
         onChange: function(e) { p.onTituloChange(e.target.value); },
+        style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 14, boxSizing: 'border-box' }
+      }),
+      React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' } }, 'Data e hora'),
+      React.createElement('input', {
+        type: 'datetime-local', autoComplete: 'off', value: p.saveDataRef,
+        onChange: function(e) { p.onDataRefChange(e.target.value); },
         style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 14, boxSizing: 'border-box' }
       }),
       React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' } }, 'Pasta'),
@@ -28025,6 +28060,9 @@ function VozApp(props) {
   var _s15 = React.useState(''); var novaPastaNome = _s15[0], setNovaPastaNome = _s15[1];
   var _s16 = React.useState(null); var editPasta = _s16[0], setEditPasta = _s16[1];
   var _s17 = React.useState(null); var editGravacao = _s17[0], setEditGravacao = _s17[1];
+  var _s35 = React.useState(''); var saveDataRef = _s35[0], setSaveDataRef = _s35[1];
+  var _s36 = React.useState(false); var saveDataRefManual = _s36[0], setSaveDataRefManual = _s36[1];
+  var _s37 = React.useState(null); var kwConfirm = _s37[0], setKwConfirm = _s37[1];
 
   // Listas colapsáveis — só a pasta da semana ISO atual arranca aberta
   // (inicialização única, ver initAbertas abaixo); limitadas a 3, só local
@@ -28073,13 +28111,13 @@ function VozApp(props) {
     setLoading(true);
     Promise.all([
       db.from('voz_pastas').select('*').order('titulo', { ascending: true }),
-      db.from('voz_gravacoes').select('*').order('gravado_em', { ascending: false })
+      db.from('voz_gravacoes').select('*')
     ]).then(function(res) {
       var pRes = res[0], gRes = res[1];
       if (pRes.error) { setErro('Falha ao carregar pastas: ' + pRes.error.message); setLoading(false); return; }
       if (gRes.error) { setErro('Falha ao carregar gravações: ' + gRes.error.message); setLoading(false); return; }
       setPastas((pRes.data || []).map(function(pa) { return Object.assign({}, pa, { categoria: vzNormCat(pa.categoria) }); }));
-      setGravacoes(gRes.data || []);
+      setGravacoes(vozOrdenarGravacoes(gRes.data || []));
       setLoading(false);
     }).catch(function(e) {
       setErro('Falha ao carregar: ' + (e && e.message ? e.message : e));
@@ -28118,6 +28156,8 @@ function VozApp(props) {
         setRecordedDurationSec(durSec);
         setSaveTitulo('');
         setSavePastaId(null);
+        setSaveDataRef(vozParaInput(new Date()));
+        setSaveDataRefManual(false);
         if (streamRef.current) { streamRef.current.getTracks().forEach(function(t) { t.stop(); }); streamRef.current = null; }
       };
       mediaRecorderRef.current = rec;
@@ -28143,39 +28183,50 @@ function VozApp(props) {
   function guardarGravacao() {
     if (!db) { setErro('Sem ligação à base de dados.'); return; }
     if (!profile || !profile.id) { setErro('Sem utilizador identificado.'); return; }
-    setSaving(true);
-    setErro(null);
     var titulo = saveTitulo.trim() || vzFmtDateTime(new Date());
     var gravadoEm = new Date().toISOString();
-    var uploadedPath = null;
-    vzUploadRecording(db, profile.id, recordedBlob, recordedMime).then(function(path) {
-      uploadedPath = path;
-      return db.from('voz_gravacoes').insert({
-        pasta_id: savePastaId,
-        titulo: titulo,
-        gravado_em: gravadoEm,
-        duracao_seg: recordedDurationSec,
-        mime_type: recordedMime,
-        storage_path: path
-      }).select();
-    }).then(function(res) {
-      if (res.error) throw res.error;
-      var novaLinha = (res.data && res.data[0]) || { id: 'tmp-' + Date.now(), pasta_id: savePastaId, titulo: titulo, gravado_em: gravadoEm, duracao_seg: recordedDurationSec, mime_type: recordedMime, storage_path: uploadedPath };
-      setGravacoes(function(prev) { return [novaLinha].concat(prev); });
-      descartarGravacao();
-      setSaving(false);
-    }).catch(function(e) {
-      setSaving(false);
-      var msg = 'Falha ao guardar: ' + (e && e.message ? e.message : e);
-      if (uploadedPath) {
-        db.storage.from(VZ_BUCKET).remove([uploadedPath]).then(function(rmRes) {
-          if (rmRes.error) setErro(msg + ' (e falhou também limpar o ficheiro já enviado — fica órfão no storage: ' + rmRes.error.message + ')');
-          else setErro(msg);
-        }).catch(function() { setErro(msg + ' (e falhou também limpar o ficheiro já enviado)'); });
-      } else {
-        setErro(msg);
-      }
-    });
+    var dataRefISO = (saveDataRefManual && saveDataRef) ? new Date(saveDataRef).toISOString() : null;
+
+    function prosseguir(pastaIdFinal) {
+      setSaving(true);
+      setErro(null);
+      var uploadedPath = null;
+      vzUploadRecording(db, profile.id, recordedBlob, recordedMime).then(function(path) {
+        uploadedPath = path;
+        return db.from('voz_gravacoes').insert({
+          pasta_id: pastaIdFinal,
+          titulo: titulo,
+          gravado_em: gravadoEm,
+          data_ref: dataRefISO,
+          duracao_seg: recordedDurationSec,
+          mime_type: recordedMime,
+          storage_path: path
+        }).select();
+      }).then(function(res) {
+        if (res.error) throw res.error;
+        var novaLinha = (res.data && res.data[0]) || { id: 'tmp-' + Date.now(), pasta_id: pastaIdFinal, titulo: titulo, gravado_em: gravadoEm, data_ref: dataRefISO, duracao_seg: recordedDurationSec, mime_type: recordedMime, storage_path: uploadedPath };
+        setGravacoes(function(prev) { return vozOrdenarGravacoes([novaLinha].concat(prev)); });
+        descartarGravacao();
+        setSaving(false);
+      }).catch(function(e) {
+        setSaving(false);
+        var msg = 'Falha ao guardar: ' + (e && e.message ? e.message : e);
+        if (uploadedPath) {
+          db.storage.from(VZ_BUCKET).remove([uploadedPath]).then(function(rmRes) {
+            if (rmRes.error) setErro(msg + ' (e falhou também limpar o ficheiro já enviado — fica órfão no storage: ' + rmRes.error.message + ')');
+            else setErro(msg);
+          }).catch(function() { setErro(msg + ' (e falhou também limpar o ficheiro já enviado)'); });
+        } else {
+          setErro(msg);
+        }
+      });
+    }
+
+    if (dataRefISO) {
+      vozPedirConfirmacaoKw(dataRefISO, savePastaId, categoria, prosseguir);
+    } else {
+      prosseguir(savePastaId);
+    }
   }
 
   // ── Reprodução (URL assinado, gerado no momento) ──
@@ -28231,17 +28282,57 @@ function VozApp(props) {
     }).catch(function(e) { setErro('Falha ao apagar pasta: ' + (e && e.message ? e.message : e)); });
   }
 
+  // Se a data escolhida for de outra KW, pergunta antes de prosseguir; senão chama continuar() logo.
+  function vozPedirConfirmacaoKw(dataISO, pastaIdAtual, categoriaContexto, continuar) {
+    var alvoKw = vozIsoWeek(new Date(dataISO));
+    var pastaAtual = pastas.filter(function(pa) { return pa.id === pastaIdAtual; })[0] || null;
+    var kwAtual = pastaAtual ? vozExtrairKw(pastaAtual.titulo) : null;
+    if (kwAtual === alvoKw) { continuar(pastaIdAtual); return; }
+    var cat = pastaAtual ? vzNormCat(pastaAtual.categoria) : categoriaContexto;
+    var existente = pastas.filter(function(pa) { return vzNormCat(pa.categoria) === cat && vozExtrairKw(pa.titulo) === alvoKw; })[0] || null;
+    setKwConfirm({
+      alvoKw: alvoKw,
+      existente: existente,
+      onManter: function() { setKwConfirm(null); continuar(pastaIdAtual); },
+      onMover: function() {
+        if (existente) { setKwConfirm(null); continuar(existente.id); return; }
+        db.from('voz_pastas').insert({ titulo: 'KW ' + alvoKw, categoria: cat }).select().then(function(res) {
+          if (res.error) throw res.error;
+          var nova = Object.assign({}, res.data[0], { categoria: vzNormCat(res.data[0].categoria) });
+          setPastas(function(prev) { return prev.concat([nova]).sort(function(a, b) { return a.titulo.localeCompare(b.titulo); }); });
+          setKwConfirm(null);
+          continuar(nova.id);
+        }).catch(function(e) {
+          setKwConfirm(null);
+          setErro('Falha ao criar pasta: ' + (e && e.message ? e.message : e));
+        });
+      }
+    });
+  }
+
   // ── Gravações — renomear / mover / apagar ──
   function guardarEdicaoGravacao() {
     if (!editGravacao || !db) return;
     var titulo = (editGravacao.titulo || '').trim();
     if (!titulo) { setErro('O título não pode ficar vazio.'); return; }
     setErro(null);
-    db.from('voz_gravacoes').update({ titulo: titulo, pasta_id: editGravacao.pasta_id }).eq('id', editGravacao.id).then(function(res) {
-      if (res.error) throw res.error;
-      setGravacoes(function(prev) { return prev.map(function(g) { return g.id === editGravacao.id ? Object.assign({}, g, { titulo: titulo, pasta_id: editGravacao.pasta_id }) : g; }); });
-      setEditGravacao(null);
-    }).catch(function(e) { setErro('Falha ao atualizar gravação: ' + (e && e.message ? e.message : e)); });
+    var novoDataRef = editGravacao._dataRefNull ? null
+      : (editGravacao._dataAlterada && editGravacao._dataInput) ? new Date(editGravacao._dataInput).toISOString()
+      : editGravacao.data_ref;
+
+    function prosseguir(pastaIdFinal) {
+      db.from('voz_gravacoes').update({ titulo: titulo, pasta_id: pastaIdFinal, data_ref: novoDataRef }).eq('id', editGravacao.id).then(function(res) {
+        if (res.error) throw res.error;
+        setGravacoes(function(prev) { return vozOrdenarGravacoes(prev.map(function(g) { return g.id === editGravacao.id ? Object.assign({}, g, { titulo: titulo, pasta_id: pastaIdFinal, data_ref: novoDataRef }) : g; })); });
+        setEditGravacao(null);
+      }).catch(function(e) { setErro('Falha ao atualizar gravação: ' + (e && e.message ? e.message : e)); });
+    }
+
+    if (editGravacao._dataAlterada && novoDataRef) {
+      vozPedirConfirmacaoKw(novoDataRef, editGravacao.pasta_id, categoria, prosseguir);
+    } else {
+      prosseguir(editGravacao.pasta_id);
+    }
   }
   function apagarGravacao(g) {
     if (!db) return;
@@ -28479,11 +28570,12 @@ function VozApp(props) {
       tab === 'gravador' && React.createElement(VzRecorderTab, {
         gravando: gravando, elapsedSec: elapsedSec, onStart: iniciarGravacao, onStop: pararGravacao,
         recordedBlob: recordedBlob, recordedUrl: recordedUrl, saveTitulo: saveTitulo, savePastaId: savePastaId,
+        saveDataRef: saveDataRef, onDataRefChange: function(v) { setSaveDataRef(v); setSaveDataRefManual(true); },
         onTituloChange: setSaveTitulo, onPastaChange: setSavePastaId, onDescartar: descartarGravacao, onGuardar: guardarGravacao, saving: saving,
         pastas: pastas, pastasCat: pastasCat, grupos: grupos, loading: loading, erro: erro,
         categoria: categoria, onCategoriaChange: selecionarCategoria,
         playingId: playingId, playingUrl: playingUrl, onPlay: tocarGravacao, onPlayEnded: function() { setPlayingId(null); setPlayingUrl(''); },
-        onEditGravacao: function(g) { setEditGravacao(Object.assign({}, g)); }, onDeleteGravacao: apagarGravacao,
+        onEditGravacao: function(g) { setEditGravacao(Object.assign({}, g, { _dataInput: vozParaInput(vozDataEfetiva(g)), _dataAlterada: false, _dataRefNull: false })); }, onDeleteGravacao: apagarGravacao,
         novaPastaNome: novaPastaNome, onNovaPastaChange: setNovaPastaNome, onCriarPasta: criarPasta,
         onEditPasta: function(pa) { setEditPasta(Object.assign({}, pa)); }, onDeletePasta: apagarPasta,
         collapsedGroups: collapsedGroups, expandedGroups: expandedGroups,
@@ -28510,6 +28602,18 @@ function VozApp(props) {
         React.createElement('input', {
           type: 'text', autoComplete: 'off', value: editGravacao.titulo,
           onChange: function(e) { setEditGravacao(Object.assign({}, editGravacao, { titulo: e.target.value })); },
+          style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }
+        }),
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 } },
+          React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700, textTransform: 'uppercase', flex: 1 } }, 'Data e hora'),
+          editGravacao.data_ref && React.createElement('button', {
+            onClick: function() { setEditGravacao(Object.assign({}, editGravacao, { _dataInput: vozParaInput(editGravacao.gravado_em), _dataAlterada: false, _dataRefNull: true })); },
+            style: { background: 'none', border: 'none', color: T.gold, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }
+          }, 'Repor data real')
+        ),
+        React.createElement('input', {
+          type: 'datetime-local', autoComplete: 'off', value: editGravacao._dataInput,
+          onChange: function(e) { setEditGravacao(Object.assign({}, editGravacao, { _dataInput: e.target.value, _dataAlterada: true, _dataRefNull: false })); },
           style: { width: '100%', background: T.surface2, border: '1px solid ' + T.border, borderRadius: 10, padding: '12px 14px', color: T.text, fontSize: 15, marginBottom: 10, boxSizing: 'border-box' }
         }),
         React.createElement('select', {
@@ -28545,6 +28649,21 @@ function VozApp(props) {
         React.createElement('div', { style: { display: 'flex', gap: 10 } },
           React.createElement('button', { onClick: function() { setEditPasta(null); }, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Cancelar'),
           React.createElement('button', { onClick: guardarEdicaoPasta, style: { flex: 1, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, 'Guardar')
+        )
+      )
+    ),
+
+    // ── Modal: confirmar mudança de pasta KW por causa da data escolhida ──
+    kwConfirm && React.createElement('div', { style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', zIndex: 60 } },
+      React.createElement('div', { style: { background: T.surface, borderRadius: '18px 18px 0 0', padding: 20, width: '100%' } },
+        React.createElement('div', { style: { fontWeight: 800, fontSize: 16, marginBottom: 4 } },
+          kwConfirm.existente
+            ? 'Esta data é da KW ' + kwConfirm.alvoKw + '. Mover para a pasta Kw ' + kwConfirm.alvoKw + '?'
+            : 'Não existe pasta Kw ' + kwConfirm.alvoKw + '. Criar e mover?'
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 10, marginTop: 16 } },
+          React.createElement('button', { onClick: kwConfirm.onManter, style: { flex: 1, background: T.surface2, color: T.muted, border: 'none', borderRadius: 10, padding: 14, fontWeight: 700, cursor: 'pointer' } }, 'Manter aqui'),
+          React.createElement('button', { onClick: kwConfirm.onMover, style: { flex: 1, background: '#40445A', color: '#E8E9EF', border: 'none', borderRadius: 10, padding: 14, fontWeight: 800, cursor: 'pointer' } }, kwConfirm.existente ? 'Mover' : 'Criar e mover')
         )
       )
     )
