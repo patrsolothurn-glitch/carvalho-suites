@@ -819,7 +819,7 @@ function CarvalhoSuite() {
           if (_urlApp === 'lucas' && data.is_admin) {
             setApp('escola_lucas');
             setScreen('app');
-          } else if (data.default_app && allowed.indexOf(data.default_app) !== -1) {
+          } else if (data.default_app && (data.is_admin || allowed.indexOf(data.default_app) !== -1)) {
             setApp(data.default_app);
             setScreen('app');
           }
