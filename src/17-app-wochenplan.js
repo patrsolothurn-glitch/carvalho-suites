@@ -743,13 +743,16 @@ function WpNoteModal(p) {
 }
 
 // ── Impressão (JSX, nunca strings de HTML cru) ─────────────────
-function wpKopfZeile(titulo, cur, seite2, who, leute) {
+function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
   var c = wpMk(cur), m = wpMon(c);
   var pessoa = (who && who !== 'alle') ? (leute || []).filter(function(pe) { return pe.name === who; })[0] : null;
+  var d = diaIso ? wpMk(diaIso) : null;
+  var tituloLinha = d ? (titulo + ' ' + WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + c.getUTCFullYear()) : (titulo + ' KW ' + wpKw(c));
   return React.createElement('div', { className: 'wp-ph' },
     React.createElement('div', null,
-      React.createElement('span', { className: 'wp-lg' }), React.createElement('b', null, titulo + ' KW ' + wpKw(c)), React.createElement('br'),
-      React.createElement('span', { style: { fontSize: '8.5pt' } }, wpFmt(m) + '–' + wpFmt(wpAddD(m, 6)) + c.getUTCFullYear())
+      React.createElement('span', { className: 'wp-lg' }), React.createElement('b', null, tituloLinha),
+      !d && React.createElement(React.Fragment, null, React.createElement('br'),
+        React.createElement('span', { style: { fontSize: '8.5pt' } }, wpFmt(m) + '–' + wpFmt(wpAddD(m, 6)) + c.getUTCFullYear()))
     ),
     React.createElement('div', { style: { textAlign: 'right', fontSize: '8.5pt' } },
       seite2 && React.createElement('div', null, seite2),
@@ -774,7 +777,7 @@ function WpPrintPlan(p) {
   var sp = wpSpaet(p.tasks, wpTodayIso(), p.who);
   var dr = wpPoolL(p.tasks, p.who, true);
   return React.createElement(React.Fragment, null,
-    wpKopfZeile('Einsatzplan', p.cur, p.seite, p.who, p.leute),
+    wpKopfZeile('Wochenplan', p.cur, p.seite, p.who, p.leute),
     React.createElement('table', { className: 'wp-pt2' },
       React.createElement('thead', null, React.createElement('tr', null,
         React.createElement('th', { className: 'wp-w' }, 'Mitarbeiter'),
@@ -809,12 +812,12 @@ function WpPrintPlan(p) {
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Erstellt / Datum'), React.createElement('div', null, 'Bauleiter'), React.createElement('div', null, 'Kenntnisnahme Monteur'))
   );
 }
-function WpPrintBericht(p) {
+function WpPrintUebersicht(p) {
   var W = wpWeekTasks(p.tasks, p.cur, p.who), days = wpWeekDays(p.cur);
   var plan = 0, ist = 0;
   W.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
   return React.createElement(React.Fragment, null,
-    wpKopfZeile('Wochenbericht', p.cur, p.seite, p.who, p.leute),
+    wpKopfZeile('Wochenübersicht', p.cur, p.seite, p.who, p.leute),
     React.createElement('div', { className: 'wp-sum' },
       React.createElement('span', null, React.createElement('b', null, 'Aufträge:'), ' ' + W.length),
       React.createElement('span', null, React.createElement('b', null, 'Erledigt:'), ' ' + W.filter(function(a) { return a.status === 'erledigt'; }).length),
@@ -855,7 +858,7 @@ function WpPrintListe(p) {
   var sp = wpSpaet(p.tasks, wpTodayIso(), p.who);
   var dr = wpPoolL(p.tasks, p.who, true);
   return React.createElement(React.Fragment, null,
-    wpKopfZeile(nurTag ? 'Tagesliste' : 'Wochenplan', p.cur, null, p.who, p.leute),
+    wpKopfZeile(nurTag ? 'Tagesplan' : 'Wochenliste', p.cur, null, p.who, p.leute, nurTag ? p.cur : null),
     tage.map(function(k) {
       var L = wpByDay(p.tasks, k, p.who), st = wpStatOf(p.tagRows, p.leute, k, p.who), notas = wpNotasDoDia(p.tagRows, k, p.who), d = wpMk(k);
       if (!L.length && !st && !notas.length) return null;
@@ -891,13 +894,13 @@ function WpPrintArea(p) {
     React.createElement('div', { id: 'wp-printArea', ref: p.areaRef },
       React.createElement('div', { id: 'wp-printInner', ref: p.innerRef },
         tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who }),
-        tipo === 'bericht' && React.createElement(WpPrintBericht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who }),
+        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who }),
         tipo === 'liste' && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: p.mode }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
           React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2' }),
-          React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenbericht'),
+          React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
           React.createElement('div', { className: 'wp-pbreak' }),
-          React.createElement(WpPrintBericht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2' })
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2' })
         )
       )
     )
@@ -928,7 +931,7 @@ function wpCsvExport(tasks, cur, who) {
   var txt = '﻿' + linhas.map(function(r) { return r.map(function(x) { return '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"'; }).join(';'); }).join('\n');
   var u = URL.createObjectURL(new Blob([txt], { type: 'text/csv' }));
   var a = document.createElement('a');
-  a.href = u; a.download = 'Einsatzplan_KW' + wpKw(wpMk(cur)) + '.csv'; a.click();
+  a.href = u; a.download = 'Wochenplan_KW' + wpKw(wpMk(cur)) + '.csv'; a.click();
   setTimeout(function() { URL.revokeObjectURL(u); }, 2000);
 }
 
