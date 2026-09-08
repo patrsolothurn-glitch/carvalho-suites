@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-08T04:14:01.720Z
+  Gerado em: 2026-09-08T15:44:04.247Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-258";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-259";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26527,6 +26527,9 @@ function RpTagesView(props) {
   var _fOtdrNok = React.useState(false);            var fOtdrNok = _fOtdrNok[0], setFOtdrNok = _fOtdrNok[1];
   var _fMufFot  = React.useState(false);            var fMufFot = _fMufFot[0], setFMufFot = _fMufFot[1];
   var _fProb    = React.useState('');               var fProb = _fProb[0], setFProb = _fProb[1];
+  // Wochenplan (wplan_tasks) prefill
+  var _wpOpts   = React.useState([]);               var wpOpts = _wpOpts[0], setWpOpts = _wpOpts[1];
+  var _wpTask   = React.useState(null);             var wpTask = _wpTask[0], setWpTask = _wpTask[1];
 
   function load() {
     if (!db) return;
@@ -26544,8 +26547,41 @@ function RpTagesView(props) {
     setFBepKab(''); setFBepKabC(''); setFBepGod(''); setFBepGAG(''); setFBepSws(''); setFBepFot(false);
     setFMufAnz('0'); setFMufTyp(''); setFMufTypC(''); setFMufFas('0'); setFOtdrOk(false); setFOtdrNok(false); setFMufFot(false);
     setFProb('');
+    setWpOpts([]); setWpTask(null);
   }
-  function openNew() { resetForm(); setForm('new'); }
+  // ── Wochenplan → Tagesrapport (leitura apenas, nunca escreve em wplan_tasks)
+  function wpApply(t) {
+    if (!t) return;
+    setWpTask(t);
+    setWpOpts([]);
+    if (t.kunde) setFKunde(t.kunde);
+    if (t.titel) setFOrt(t.titel);
+    if (t.auftrag_nr) setFAuftrag(t.auftrag_nr);
+    if (t.arbeit) setFBeschrieb(t.arbeit);
+    if (t.wer) setFTeam(t.wer);
+    if (t.von) setFHS(t.von);
+    if (t.bis) setFHE(t.bis);
+  }
+  function wpClear() {
+    setWpTask(null);
+    setFKunde(''); setFOrt(''); setFAuftrag(''); setFBeschrieb(''); setFTeam('');
+    setFHS('07:00'); setFHE('17:00');
+  }
+  function wpLoadFor(datum) {
+    if (!db || !datum) return;
+    setWpOpts([]); setWpTask(null);
+    db.from('wplan_tasks').select('*').eq('datum', datum).order('von')
+      .then(function(r) {
+        if (r.error) return;
+        var usados = {};
+        (list || []).forEach(function(x) { if (x.wplan_task_id) usados[String(x.wplan_task_id)] = 1; });
+        var livres = (r.data || []).filter(function(t) { return !usados[String(t.id)]; });
+        if (livres.length === 1) wpApply(livres[0]);
+        else if (livres.length > 1) setWpOpts(livres);
+      })
+      .catch(function() {});
+  }
+  function openNew() { resetForm(); setForm('new'); wpLoadFor(rpToday()); }
   function openEdit(item) {
     setFTyp(item.typ || 'arbeitsrapport');
     setFNr(item.rapport_nr || '');
@@ -26566,6 +26602,7 @@ function RpTagesView(props) {
     setFMufAnz(String(item.muffe_anzahl||0)); setFMufTyp(item.muffe_typ||''); setFMufTypC(item.muffe_typ_custom||'');
     setFMufFas(String(item.muffe_fasern||0)); setFOtdrOk(!!item.otdr_ok); setFOtdrNok(!!item.otdr_nok); setFMufFot(!!item.muffe_fotos);
     setFProb(item.probleme || item.bemerkungen || '');
+    setWpOpts([]); setWpTask(null);
     setViewItem(null); setForm(item);
   }
   function save() {
@@ -26593,7 +26630,8 @@ function RpTagesView(props) {
       bep_godoo: fBepGod.trim(), bep_gag: fBepGAG.trim(), bep_swisscom: fBepSws.trim(), bep_fotos: fBepFot,
       muffe_anzahl: parseInt(fMufAnz)||0, muffe_typ: fMufTyp, muffe_typ_custom: fMufTypC.trim(),
       muffe_fasern: parseInt(fMufFas)||0, otdr_ok: fOtdrOk, otdr_nok: fOtdrNok, muffe_fotos: fMufFot,
-      probleme: fProb.trim()
+      probleme: fProb.trim(),
+      wplan_task_id: wpTask ? String(wpTask.id) : ((form && form !== 'new' && form.wplan_task_id) ? form.wplan_task_id : null)
     };
     var op = form === 'new'
       ? db.from('rapport_tages').insert(payload)
@@ -26721,6 +26759,40 @@ function RpTagesView(props) {
       onClose: function() { setForm(null); },
       children: React.createElement('div', null,
 
+        // ── Wochenplan: aviso quando foi copiado
+        wpTask && React.createElement('div', {
+          style: { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '8px 10px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }
+        },
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#10B981' } }, '📋 Aus Wochenplan übernommen'),
+            React.createElement('div', { style: { fontSize: 11, color: '#94A3B8', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+              [wpTask.titel, wpTask.von && wpTask.bis ? wpTask.von + '–' + wpTask.bis : ''].filter(Boolean).join(' · '))
+          ),
+          RpBtn({ label: '↺ Leeren', sm: true, ghost: true, onClick: wpClear })
+        ),
+
+        // ── Wochenplan: escolher quando há mais do que um
+        wpOpts.length > 1 && React.createElement('div', {
+          style: { background: '#111827', border: '1px solid #1E293B', borderRadius: 10, padding: '8px 10px', marginBottom: 12 }
+        },
+          React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#F59E0B', marginBottom: 6 } }, '📋 ' + wpOpts.length + ' Einsätze im Wochenplan'),
+          wpOpts.map(function(t) {
+            return React.createElement('button', {
+              key: String(t.id),
+              onClick: function() { wpApply(t); },
+              style: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: '1px solid #2A2A38', borderRadius: 8, padding: '6px 8px', marginBottom: 5, color: '#CBD5E1', fontSize: 12, cursor: 'pointer' }
+            },
+              React.createElement('div', { style: { fontWeight: 700 } }, t.titel || '—'),
+              React.createElement('div', { style: { fontSize: 11, color: '#64748B', marginTop: 1 } },
+                [t.von && t.bis ? t.von + '–' + t.bis : '', t.kunde, t.wer].filter(Boolean).join(' · '))
+            );
+          }),
+          React.createElement('button', {
+            onClick: function() { setWpOpts([]); },
+            style: { background: 'none', border: 'none', color: '#64748B', fontSize: 11, cursor: 'pointer', padding: '2px 0' }
+          }, 'Ohne Wochenplan ausfüllen')
+        ),
+
         // Typ toggle
         React.createElement('div', { style: { display: 'flex', gap: 6, marginBottom: 14 } },
           ['arbeitsrapport', 'regierapport'].map(function(t) {
@@ -26735,7 +26807,7 @@ function RpTagesView(props) {
         // Rapport Nr + Datum
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 12 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Rapport Nr.' }), RpInput({ value: fNr, onChange: setFNr, placeholder: 'z.B. 2151' })),
-          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: setFDate }))
+          React.createElement('div', { style: { flex: 2 } }, RpLabel({ text: 'Datum' }), RpInput({ type: 'date', value: fDate, onChange: function(v) { setFDate(v); if (form === 'new') wpLoadFor(v); } }))
         ),
 
         // Kunde + Montageort
