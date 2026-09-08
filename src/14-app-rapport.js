@@ -112,6 +112,20 @@ function RpInput(props) {
     style: Object.assign({}, rpS.input, props.style || {})
   });
 }
+function RpIoToggle(props) {
+  var val = props.value || '';
+  var opts = [{ v: 'i.O', c: '#10B981' }, { v: 'n.i.O', c: '#EF4444' }];
+  return React.createElement('div', { style: { display: 'flex', gap: 6 } },
+    opts.map(function(o) {
+      var active = val === o.v;
+      return React.createElement('button', {
+        key: o.v,
+        onClick: function() { props.onChange(active ? '' : o.v); },
+        style: { flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid ' + (active ? o.c : '#2A2A38'), background: active ? o.c + '22' : 'transparent', color: active ? o.c : '#64748B', fontSize: 12, fontWeight: active ? 700 : 400, cursor: 'pointer' }
+      }, o.v);
+    })
+  );
+}
 function RpTextarea(props) {
   return React.createElement('textarea', {
     value: props.value,
@@ -481,12 +495,13 @@ function rpPrintTages(item) {
     +'<table><tr><th class="sec" colspan="2">Personal / Arbeitszeit</th></tr>'
     +row('Team',item.team)+row('Arbeitszeit',(item.h_start||'—')+' – '+(item.h_end||'—'))
     +row('Fahrzeug / KM',(item.fahrzeug||'')+(item.km?' · '+item.km+' km':''))+'</table>'
-    +(item.bep_kabel_typ||item.bep_godoo||item.bep_gag
+    +(item.bep_kabel_typ||item.bep_godoo||item.bep_gag||item.bep_swisscom||item.bep_b_nummer
       ?'<table><tr><th class="sec" colspan="2">BEP Spezifisch</th></tr>'
        +row('Kabel Typ',item.bep_kabel_typ+(item.bep_kabel_typ_custom?' / '+item.bep_kabel_typ_custom:''))
        +row('Zuständig (Godoo)',item.bep_godoo)
-       +row('GAG Messung',item.bep_gag?item.bep_gag+' dB':'')
-       +row('Swisscom Messung',item.bep_swisscom?item.bep_swisscom+' dB':'')
+       +row('B-Nummer',item.bep_b_nummer)
+       +row('GAG Messung',item.bep_gag)
+       +row('Swisscom Messung',item.bep_swisscom)
        +(item.bep_fotos?'<tr><td colspan="2" class="val">☑ Fotos gemacht</td></tr>':'')
        +'</table>':''  )
     +(item.muffe_anzahl>0||item.muffe_typ
@@ -546,6 +561,7 @@ function RpTagesView(props) {
   var _fBepGod  = React.useState('');               var fBepGod = _fBepGod[0], setFBepGod = _fBepGod[1];
   var _fBepGAG  = React.useState('');               var fBepGAG = _fBepGAG[0], setFBepGAG = _fBepGAG[1];
   var _fBepSws  = React.useState('');               var fBepSws = _fBepSws[0], setFBepSws = _fBepSws[1];
+  var _fBepBnr  = React.useState('');               var fBepBnr = _fBepBnr[0], setFBepBnr = _fBepBnr[1];
   var _fBepFot  = React.useState(false);            var fBepFot = _fBepFot[0], setFBepFot = _fBepFot[1];
   // Muffe Spezifisch
   var _fMufAnz  = React.useState('0');              var fMufAnz = _fMufAnz[0], setFMufAnz = _fMufAnz[1];
@@ -573,7 +589,7 @@ function RpTagesView(props) {
     setFKunde(''); setFOrt(''); setFAuftrag(''); setFBeschrieb('');
     setFTeam(''); setFHS('07:00'); setFHE('17:00');
     setFFahrzeug('PW'); setFKm(''); setFMat(''); setFStatus('draft');
-    setFBepKab(''); setFBepKabC(''); setFBepGod(''); setFBepGAG(''); setFBepSws(''); setFBepFot(false);
+    setFBepKab(''); setFBepKabC(''); setFBepGod(''); setFBepGAG(''); setFBepSws(''); setFBepBnr(''); setFBepFot(false);
     setFMufAnz('0'); setFMufTyp(''); setFMufTypC(''); setFMufFas('0'); setFOtdrOk(false); setFOtdrNok(false); setFMufFot(false);
     setFProb('');
     setWpOpts([]); setWpTask(null);
@@ -627,7 +643,7 @@ function RpTagesView(props) {
     setFMat(item.material || '');
     setFStatus(item.status || 'draft');
     setFBepKab(item.bep_kabel_typ||''); setFBepKabC(item.bep_kabel_typ_custom||'');
-    setFBepGod(item.bep_godoo||''); setFBepGAG(item.bep_gag||''); setFBepSws(item.bep_swisscom||''); setFBepFot(!!item.bep_fotos);
+    setFBepGod(item.bep_godoo||''); setFBepGAG(item.bep_gag||''); setFBepSws(item.bep_swisscom||''); setFBepBnr(item.bep_b_nummer||''); setFBepFot(!!item.bep_fotos);
     setFMufAnz(String(item.muffe_anzahl||0)); setFMufTyp(item.muffe_typ||''); setFMufTypC(item.muffe_typ_custom||'');
     setFMufFas(String(item.muffe_fasern||0)); setFOtdrOk(!!item.otdr_ok); setFOtdrNok(!!item.otdr_nok); setFMufFot(!!item.muffe_fotos);
     setFProb(item.probleme || item.bemerkungen || '');
@@ -656,7 +672,7 @@ function RpTagesView(props) {
       material: fMat.trim(),
       status: fStatus,
       bep_kabel_typ: fBepKab, bep_kabel_typ_custom: fBepKabC.trim(),
-      bep_godoo: fBepGod.trim(), bep_gag: fBepGAG.trim(), bep_swisscom: fBepSws.trim(), bep_fotos: fBepFot,
+      bep_godoo: fBepGod.trim(), bep_gag: fBepGAG.trim(), bep_swisscom: fBepSws.trim(), bep_b_nummer: fBepBnr.trim(), bep_fotos: fBepFot,
       muffe_anzahl: parseInt(fMufAnz)||0, muffe_typ: fMufTyp, muffe_typ_custom: fMufTypC.trim(),
       muffe_fasern: parseInt(fMufFas)||0, otdr_ok: fOtdrOk, otdr_nok: fOtdrNok, muffe_fotos: fMufFot,
       probleme: fProb.trim(),
@@ -747,7 +763,7 @@ function RpTagesView(props) {
             React.createElement('div', { style: { fontSize: 12, color: '#FCA5A5', whiteSpace: 'pre-wrap' } }, item.probleme)
           ),
           // BEP summary card
-          (item.bep_kabel_typ || item.bep_godoo || item.bep_gag) && React.createElement('div', {
+          (item.bep_kabel_typ || item.bep_godoo || item.bep_gag || item.bep_swisscom || item.bep_b_nummer) && React.createElement('div', {
             style: { background: '#1E3A5F', border: '1px solid #3B82F644', borderRadius: 10, padding: '8px 10px', marginBottom: 8 }
           },
             React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: '#3B82F6', marginBottom: 5 } }, '📦 BEP'),
@@ -755,6 +771,7 @@ function RpTagesView(props) {
               item.bep_kabel_typ && React.createElement('span', null, '🗂 ' + item.bep_kabel_typ + (item.bep_kabel_typ_custom ? ' / ' + item.bep_kabel_typ_custom : '')),
               item.bep_godoo && React.createElement('span', null, '📱 Godoo: ' + item.bep_godoo)
             ),
+            item.bep_b_nummer && React.createElement('div', { style: { fontSize: 11, color: '#CBD5E1', marginTop: 3, fontWeight: 700 } }, '🔢 ' + item.bep_b_nummer),
             (item.bep_godoo || item.bep_gag || item.bep_swisscom) && React.createElement('div', { style: { display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: '#94A3B8', marginTop: 3 } },
               item.bep_godoo && React.createElement('span', null, '📍 ' + item.bep_godoo),
               item.bep_gag && React.createElement('span', null, 'GAG: ' + item.bep_gag),
@@ -878,9 +895,10 @@ function RpTagesView(props) {
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 8 } },
           React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Zuständig (Godoo)' }), RpInput({ value: fBepGod, onChange: setFBepGod, placeholder: 'Name Zuständiger' })),
         ),
+        RpField({ label: 'B-Nummer', children: RpInput({ value: fBepBnr, onChange: setFBepBnr, placeholder: 'z.B. B.252.010.802.9' }) }),
         React.createElement('div', { style: { display: 'flex', gap: 10, marginBottom: 8 } },
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'GAG Messung' }), RpInput({ value: fBepGAG, onChange: setFBepGAG, placeholder: 'z.B. 1.2 dB' })),
-          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Swisscom Messung' }), RpInput({ value: fBepSws, onChange: setFBepSws, placeholder: 'z.B. 0.8 dB' }))
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'GAG Messung' }), RpIoToggle({ value: fBepGAG, onChange: setFBepGAG })),
+          React.createElement('div', { style: { flex: 1 } }, RpLabel({ text: 'Swisscom Messung' }), RpIoToggle({ value: fBepSws, onChange: setFBepSws }))
         ),
         React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' } },
           React.createElement('input', { type: 'checkbox', checked: fBepFot, onChange: function(e) { setFBepFot(e.target.checked); } }),
