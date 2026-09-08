@@ -148,11 +148,11 @@ var WP_CSS = '\
 .wp-kpi small{display:block;font-size:11px;color:var(--ink2)}\
 .wp-kpi b{font-size:19px;font-weight:600;letter-spacing:-.02em}\
 .wp-kpi u{text-decoration:none;font-size:11px;color:var(--ink3);margin-left:3px}\
-.wp-alarm{background:#FAE8E6;border-left:5px solid #BE2318;padding:8px 11px;margin:9px 0}\
-.wp-alarm h3{font-size:12.5px;color:#BE2318;margin-bottom:4px}\
-.wp-alrow{display:flex;gap:8px;font-size:13px;padding:3px 0;cursor:pointer;align-items:baseline}\
-.wp-alrow span:first-child{color:#BE2318}\
-.wp-alrow span:last-child{margin-left:auto;color:#BE2318;font-size:11.5px;opacity:.9}\
+.wp-alarm{margin:9px 0}\
+.wp-alarm h3{font-size:13px;font-weight:700;color:#BE2318;margin-bottom:6px}\
+.wp-alarm .wp-job{margin-bottom:6px}\
+.wp-alarm .wp-job h3{display:flex;align-items:baseline;color:#fff}\
+.wp-alarm .wp-job .wp-aldata{margin-left:auto;flex:none;color:#BE2318;font-weight:600;font-size:13px}\
 .wp-cols{display:grid;grid-template-columns:1fr;gap:13px}\
 @media(min-width:860px){.wp-cols{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}}\
 .wp-slot{display:flex;gap:9px;margin-bottom:6px}\
@@ -406,12 +406,14 @@ function WpAlarm(p) {
   var l = wpSpaet(p.tasks, wpTodayIso(), p.who);
   if (!l.length) return null;
   return React.createElement('div', { className: 'wp-alarm' },
-    React.createElement('h3', null, 'Nicht erledigt · ', l.length),
+    React.createElement('h3', null, '⚠ Nicht erledigt · ' + l.length),
     l.map(function(a) {
       var d = wpMk(a.datum);
-      return React.createElement('div', { key: a.id, className: 'wp-alrow', onClick: function() { p.onOpen(a.id); } },
-        React.createElement('span', null, a.titel, a.auftrag_nr && React.createElement('span', { style: { color: 'var(--ink3)', fontSize: 11.5 } }, ' ', a.auftrag_nr)),
-        React.createElement('span', null, WP_DAY[wpDi(d)] + ' ' + wpFmt(d) + (a.wer ? ' · ' + a.wer : ''))
+      return React.createElement('div', {
+        key: a.id, className: 'wp-job', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: '#BE2318' }
+      },
+        React.createElement('h3', null, a.titel, React.createElement('span', { className: 'wp-aldata' }, WP_DAY[wpDi(d)] + ' ' + wpFmt(d))),
+        React.createElement('p', null, a.arbeit + (a.wer ? ' · ' + a.wer : ''))
       );
     })
   );
