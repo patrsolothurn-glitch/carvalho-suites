@@ -509,7 +509,7 @@ function WpWocheKarten(p) {
   for (var i = 0; i < 7; i++) {
     var dd = wpAddD(m, i), k = wpIso(dd), L = wpByDay(p.tasks, k, p.who), st = wpStatOf(p.tagRows, p.leute, k, p.who);
     var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
-    dias.push(React.createElement('div', { key: k, className: 'wp-wd' + (k === p.cur ? ' wp-sel' : ''), onClick: function() { p.onDia(k); } },
+    dias.push(React.createElement('div', { key: k, className: 'wp-wd' + (k === p.cur ? ' wp-sel' : ''), onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('h4', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_DAY[i] + ' ' + wpFmt(dd), soma > 0 && React.createElement('em', null, wpDez(soma) + 'h')),
       st && React.createElement('div', { className: 'wp-tg', style: { background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
       L.map(function(a) {
@@ -533,7 +533,7 @@ function WpWocheRaster(p) {
     var dd = wpAddD(m, i), k = wpIso(dd), L = wpByDay(p.tasks, k, p.who), st = wpStatOf(p.tagRows, p.leute, k, p.who);
     var linhas = [];
     for (var qq = 1; qq < WP_H1 - WP_H0; qq++) linhas.push(React.createElement('div', { key: 'l' + qq, className: 'wp-gl', style: { top: (qq * 60 * WP_PPM) + 'px' } }));
-    cols.push(React.createElement('div', { key: k, className: 'wp-gc', onClick: function() { p.onDia(k); } },
+    cols.push(React.createElement('div', { key: k, className: 'wp-gc', onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('b', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_DAY[i] + ' ' + wpFmt(dd)),
       React.createElement('div', { className: 'wp-gbox' + (k === p.cur ? ' wp-sel' : ''), style: { height: tot } },
         linhas,
@@ -557,7 +557,7 @@ function WpWocheListe(p) {
   for (var i = 0; i < 7; i++) {
     var dd = wpAddD(m, i), k = wpIso(dd), L = wpByDay(p.tasks, k, p.who), st = wpStatOf(p.tagRows, p.leute, k, p.who);
     var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
-    dias.push(React.createElement('div', { key: k, className: 'wp-ld', onClick: function() { p.onDia(k); } },
+    dias.push(React.createElement('div', { key: k, className: 'wp-ld', onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
         React.createElement('h4', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(dd)),
         st && React.createElement('span', { className: 'wp-tg', style: { margin: 0, background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
@@ -586,7 +586,7 @@ function WpTeamView(p) {
     React.createElement('table', { className: 'wp-pt' },
       React.createElement('thead', null, React.createElement('tr', null,
         React.createElement('th', { className: 'wp-who' }, 'Mitarbeiter'),
-        W.map(function(k, i) { return React.createElement('th', { key: k, style: k === wpTodayIso() ? { color: 'var(--or)' } : null }, WP_DAY[i] + ' ' + wpFmt(wpAddD(m, i))); }),
+        W.map(function(k, i) { return React.createElement('th', { key: k, onClick: function() { p.onDia(k); }, style: Object.assign({ cursor: 'pointer' }, k === wpTodayIso() ? { color: 'var(--or)' } : null) }, WP_DAY[i] + ' ' + wpFmt(wpAddD(m, i))); }),
         React.createElement('th', { style: { width: 76 } }, 'Woche')
       )),
       React.createElement('tbody', null, linhas.map(function(nm) {
@@ -1409,7 +1409,7 @@ function WochenplanApp(props) {
           notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); }
         })),
         mode === 'woche' && (wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } }))),
-        mode === 'team' && rolle === 'bauleiter' && React.createElement(WpTeamView, Object.assign({}, diaAtualObj, { onOpen: abrirTarefa }))
+        mode === 'team' && rolle === 'bauleiter' && React.createElement(WpTeamView, Object.assign({}, diaAtualObj, { onOpen: abrirTarefa, onDia: function(k) { setCur(k); setMode('tag'); } }))
       ),
       React.createElement(WpLegend, null)
     ),
