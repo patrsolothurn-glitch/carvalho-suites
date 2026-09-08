@@ -841,6 +841,31 @@ function EscolarApp(_ref31) {
       });
     }, 4000);
   };
+  var fmtDataEscolar = function fmtDataEscolar(iso) {
+    var p = String(iso || '').split('-');
+    return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : (iso || '');
+  };
+  // Aviso A: push imediato só para o Patricio quando um teste é criado,
+  // editado ou apagado. Nunca bloqueia a gravação — é sempre o último
+  // passo, disparado depois de escolar_tpc/family_events já terem sido
+  // gravados (ver pontos de chamada).
+  var sendEscolarPushToPatricio = function sendEscolarPushToPatricio(title, body) {
+    if (!window.supabaseClient) return;
+    getEligibleProfileIds('escolar', 'patricio').then(function (ids) {
+      if (!ids.length) return;
+      return window.supabaseClient.functions.invoke('send-push', {
+        body: { title: title, body: body, profileIds: ids }
+      }).then(function (res) {
+        if (res && res.error) {
+          console.error('[escolar] send-push falhou:', res.error);
+          addEscolarToast('⚠️ Falha ao enviar notificação: ' + title);
+        }
+      });
+    }).catch(function (err) {
+      console.error('[escolar] erro ao enviar push:', err);
+      addEscolarToast('⚠️ Falha ao enviar notificação: ' + title);
+    });
+  };
   // Check TPC on load
   (0, _react.useEffect)(function () {
     var today = '2026-06-15';
@@ -4103,7 +4128,9 @@ function EscolarApp(_ref31) {
         var disc = aluno.disciplinas.find(function (d) {
           return d.id === tpcRow.discId;
         });
-        var tituloTeste = '📚 Teste: ' + ((disc === null || disc === void 0 ? void 0 : disc.nome) || 'Escola') + (titulo ? ' — ' + titulo : '');
+        var nomeDisc = (disc && disc.nome) || 'Escola';
+        var tituloTeste = '📚 Teste: ' + nomeDisc + (titulo ? ' — ' + titulo : '');
+        var pushTitle = '📚 Novo teste: ' + aluno.nome + ' — ' + nomeDisc + ' — ' + fmtDataEscolar(data);
         window.supabaseClient.from('family_events').insert({
           title: tituloTeste,
           emoji: '📚',
@@ -4117,9 +4144,16 @@ function EscolarApp(_ref31) {
           source: 'escolar',
           source_id: novoId,
           created_by: aluno.nome
-        }).then(function () {}).catch(function (err) {
+        }).then(function (res) {
+          if (res && res.error) {
+            console.error('[escolar] falha ao criar evento em family_events:', res.error);
+            addEscolarToast('⚠️ Falha ao avisar a Família sobre o teste: ' + tituloTeste);
+          }
+          sendEscolarPushToPatricio(pushTitle, titulo || 'Novo teste registado');
+        }).catch(function (err) {
           console.error('[escolar] falha ao criar evento em family_events:', err);
           addEscolarToast('⚠️ Falha ao avisar a Família sobre o teste: ' + tituloTeste);
+          sendEscolarPushToPatricio(pushTitle, titulo || 'Novo teste registado');
         });
       }
       setNovaTPC({
@@ -4229,6 +4263,7 @@ function EscolarApp(_ref31) {
       }
     }, isEdTpc ? '✕' : '✏️'), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        var eraTeste = t.tipo === 'teste';
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.filter(function (x) {
@@ -4237,6 +4272,16 @@ function EscolarApp(_ref31) {
           });
         }, 'tpc');
         setEditTpcId(null);
+        if (eraTeste) {
+          var discDel = aluno.disciplinas.find(function (d) {
+            return d.id === t.discId;
+          });
+          var nomeDiscDel = (discDel && discDel.nome) || 'Escola';
+          sendEscolarPushToPatricio(
+            '🗑️ Teste apagado: ' + aluno.nome + ' — ' + nomeDiscDel + ' — ' + fmtDataEscolar(t.data),
+            t.titulo || 'Teste removido'
+          );
+        }
       },
       style: {
         background: 'rgba(220,38,38,0.1)',
@@ -4396,6 +4441,16 @@ function EscolarApp(_ref31) {
           });
         }, 'tpc');
         setEditTpcId(null);
+        if (t.tipo === 'teste') {
+          var discEd = aluno.disciplinas.find(function (d) {
+            return d.id === discId;
+          });
+          var nomeDiscEd = (discEd && discEd.nome) || 'Escola';
+          sendEscolarPushToPatricio(
+            '\u270f\ufe0f Teste editado: ' + aluno.nome + ' \u2014 ' + nomeDiscEd + ' \u2014 ' + fmtDataEscolar(data),
+            titulo || 'Teste atualizado'
+          );
+        }
       },
       style: {
         width: '100%',
