@@ -76,7 +76,12 @@ function main() {
   const newCacheVersion = 'carvalho-v' + contentHash;
   let oldCacheVersion = null;
   if (fs.existsSync(SW_FILE)) {
-    const swMatch = fs.readFileSync(SW_FILE, 'utf8').match(/const CACHE = '([^']+)';/);
+    const swRaw = fs.readFileSync(SW_FILE, 'utf8');
+    if (swRaw.includes('<<<<<<<') || swRaw.includes('=======') || swRaw.includes('>>>>>>>')) {
+      console.error('✗ ERRO: sw.js tem marcadores de conflito Git por resolver (<<<<<<< / ======= / >>>>>>>). Build interrompido — resolve o conflito à mão antes de correr node build.js outra vez.');
+      process.exit(1);
+    }
+    const swMatch = swRaw.match(/const CACHE = '([^']+)';/);
     if (swMatch) oldCacheVersion = swMatch[1];
   }
   let buildNo = 0;
