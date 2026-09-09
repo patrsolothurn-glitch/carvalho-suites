@@ -600,7 +600,7 @@ function CarvalhoSuite() {
           endpoint: key.endpoint,
           p256dh: key.keys.p256dh,
           auth: key.keys.auth
-        }, { onConflict: 'profile_id,endpoint' }).then(function (res) {
+        }, { onConflict: 'endpoint' }).then(function (res) {
           if (res && res.error) {
             console.error('[push] falha ao gravar subscrição em push_subscriptions:', res.error);
             setUpdMsg('⚠️ Falha ao registar notificações no servidor: ' + res.error.message);
