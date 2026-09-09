@@ -32,6 +32,10 @@ function CarvalhoSuite() {
     _useStateProfile2 = _slicedToArray(_useStateProfile, 2),
     profile = _useStateProfile2[0],
     setProfile = _useStateProfile2[1];
+  var profileRef = (0, _react.useRef)(null);
+  (0, _react.useEffect)(function () {
+    profileRef.current = profile;
+  }, [profile]);
   var _useStateProfiles = (0, _react.useState)([]),
     _useStateProfiles2 = _slicedToArray(_useStateProfiles, 2),
     allProfiles = _useStateProfiles2[0],
@@ -536,42 +540,99 @@ function CarvalhoSuite() {
     _useStateNotifBannerDismissed2 = _slicedToArray(_useStateNotifBannerDismissed, 2),
     notifBannerDismissed = _useStateNotifBannerDismissed2[0],
     setNotifBannerDismissed = _useStateNotifBannerDismissed2[1];
-  var subscribeToPush = function subscribeToPush() {
+  // Espera pelo profile carregado (useState só atualiza a closure no
+  // próximo render — usamos o ref para ver sempre o valor mais recente,
+  // mesmo dentro de uma cadeia de promises já em curso). Nunca devolve
+  // silenciosamente antes de tentar — só desiste ao fim do timeout.
+  var waitForProfile = function waitForProfile() {
+    if (profileRef.current) return Promise.resolve(profileRef.current);
+    var tentativas = 0;
+    return new Promise(function (resolve) {
+      var poll = function poll() {
+        if (profileRef.current || tentativas >= 20) {
+          resolve(profileRef.current);
+          return;
+        }
+        tentativas++;
+        setTimeout(poll, 300);
+      };
+      poll();
+    });
+  };
+  // Reconciliação da subscrição push — corre sempre que a app abre/volta
+  // a ficar visível, em vez de só em eventos pontuais. Idempotente: pode
+  // ser chamada quantas vezes for preciso sem duplicar nada (getSubscription
+  // devolve a existente, e o upsert é por profile_id+endpoint).
+  var pushSyncInFlightRef = (0, _react.useRef)(null);
+  var ensurePushSubscription = function ensurePushSubscription() {
+    if (pushSyncInFlightRef.current) return pushSyncInFlightRef.current;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve();
-    return navigator.serviceWorker.ready.then(function (reg) {
+    var run = Promise.resolve().then(function () {
+      // a) garantir o service worker
+      return navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg) return navigator.serviceWorker.ready;
+        return navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function () {
+          return navigator.serviceWorker.ready;
+        });
+      });
+    }).then(function (reg) {
+      // b) esperar pelo profile — nunca desistir sem tentar
+      return waitForProfile().then(function (p) {
+        return { reg: reg, profile: p };
+      });
+    }).then(function (ctx) {
+      // c) sem permissão concedida, sai sem erro
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      if (!ctx.profile) return;
+      var reg = ctx.reg;
+      // d) usa a subscrição existente, ou cria uma nova
       return reg.pushManager.getSubscription().then(function (existing) {
-        if (existing) return existing;
-        return reg.pushManager.subscribe({
+        return existing || reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
-      });
-    }).then(function (sub) {
-      if (!sub || !profile || !window.supabaseClient) return;
-      var key = sub.toJSON();
-      return window.supabaseClient.from('push_subscriptions').upsert({
-        profile_id: profile.id,
-        endpoint: key.endpoint,
-        p256dh: key.keys.p256dh,
-        auth: key.keys.auth
-      }, { onConflict: 'profile_id,endpoint' }).then(function (res) {
-        if (res && res.error) {
-          console.error('[push] falha ao gravar subscrição em push_subscriptions:', res.error);
-          setUpdMsg('⚠️ Falha ao registar notificações no servidor: ' + res.error.message);
-        }
+      }).then(function (sub) {
+        if (!sub || !window.supabaseClient) return;
+        var key = sub.toJSON();
+        // e) grava/atualiza no servidor
+        return window.supabaseClient.from('push_subscriptions').upsert({
+          profile_id: ctx.profile.id,
+          endpoint: key.endpoint,
+          p256dh: key.keys.p256dh,
+          auth: key.keys.auth
+        }, { onConflict: 'profile_id,endpoint' }).then(function (res) {
+          if (res && res.error) {
+            console.error('[push] falha ao gravar subscrição em push_subscriptions:', res.error);
+            setUpdMsg('⚠️ Falha ao registar notificações no servidor: ' + res.error.message);
+          }
+        });
       });
     }).catch(function (err) {
-      console.error('[push] falha ao subscrever push:', err);
+      console.error('[push] falha ao reconciliar subscrição push:', err);
       setUpdMsg('⚠️ Falha ao ativar notificações: ' + (err && err.message ? err.message : err));
+    }).then(function () {
+      pushSyncInFlightRef.current = null;
     });
+    pushSyncInFlightRef.current = run;
+    return run;
   };
+  (0, _react.useEffect)(function () {
+    if (typeof document === 'undefined') return;
+    var onVisibilityChange = function onVisibilityChange() {
+      if (document.visibilityState === 'visible') ensurePushSubscription();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return function () {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
   var requestNotifPermission = function requestNotifPermission() {
     if (typeof Notification === 'undefined') return;
     Notification.requestPermission().then(function (perm) {
       setNotifPerm(perm);
       if (perm === 'granted') {
         loadNotifData();
-        subscribeToPush();
+        ensurePushSubscription();
       }
     });
   };
@@ -899,7 +960,7 @@ function CarvalhoSuite() {
         fetchProfile(s.user.id, true);
         setScreen('hub');
         loadNotifData();
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') subscribeToPush();
+        ensurePushSubscription();
       }
       setCheckingAuth(false);
     });
@@ -912,7 +973,7 @@ function CarvalhoSuite() {
       if (s && s.user) {
         fetchProfile(s.user.id);
         loadNotifData();
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') subscribeToPush();
+        ensurePushSubscription();
       } else {
         setProfile(null);
       }
@@ -1194,26 +1255,7 @@ function CarvalhoSuite() {
         window.location.reload();
       });
     };
-    if (typeof Notification === 'undefined') {
-      proceedWithReset();
-    } else if (Notification.permission === 'default') {
-      setUpdMsg('A pedir permissão de notificações...');
-      Notification.requestPermission().then(function (perm) {
-        setNotifPerm(perm);
-        if (perm === 'granted') {
-          loadNotifData();
-          return subscribeToPush().then(proceedWithReset);
-        }
-        proceedWithReset();
-      }).catch(function () {
-        proceedWithReset();
-      });
-    } else if (Notification.permission === 'denied') {
-      setUpdMsg('⚠️ Notificações bloqueadas no telemóvel/navegador — ativa manualmente nas definições de notificações antes de continuar. A reiniciar...');
-      setTimeout(proceedWithReset, 2500);
-    } else {
-      subscribeToPush().then(proceedWithReset);
-    }
+    proceedWithReset();
   };
   var testPushNotif = function testPushNotif() {
     setPushTestChecking(true);
@@ -1958,6 +2000,26 @@ function CarvalhoSuite() {
         cursor: 'pointer'
       }
     }, "🧹 Limpar cache e reiniciar"),
+    isAdmin && React.createElement("button", {
+      onClick: function () {
+        setUpdMsg('A forçar registo da subscrição push...');
+        ensurePushSubscription().then(function () {
+          setUpdMsg('✓ Registo de push reconciliado — usa "Testar notificações push" abaixo para confirmar.');
+        });
+      },
+      style: {
+        width: '100%',
+        marginTop: 8,
+        background: 'rgba(59,130,246,0.08)',
+        border: '1px solid rgba(59,130,246,0.3)',
+        borderRadius: 12,
+        padding: '12px',
+        color: '#3B82F6',
+        fontSize: 14,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "🔄 Forçar registo de push"),
     isAdmin && React.createElement("button", {
       onClick: testPushNotif,
       disabled: pushTestChecking,
