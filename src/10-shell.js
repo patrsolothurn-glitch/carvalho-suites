@@ -537,8 +537,8 @@ function CarvalhoSuite() {
     notifBannerDismissed = _useStateNotifBannerDismissed2[0],
     setNotifBannerDismissed = _useStateNotifBannerDismissed2[1];
   var subscribeToPush = function subscribeToPush() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    navigator.serviceWorker.ready.then(function (reg) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve();
+    return navigator.serviceWorker.ready.then(function (reg) {
       return reg.pushManager.getSubscription().then(function (existing) {
         if (existing) return existing;
         return reg.pushManager.subscribe({
@@ -549,13 +549,21 @@ function CarvalhoSuite() {
     }).then(function (sub) {
       if (!sub || !profile || !window.supabaseClient) return;
       var key = sub.toJSON();
-      window.supabaseClient.from('push_subscriptions').upsert({
+      return window.supabaseClient.from('push_subscriptions').upsert({
         profile_id: profile.id,
         endpoint: key.endpoint,
         p256dh: key.keys.p256dh,
         auth: key.keys.auth
-      }, { onConflict: 'profile_id,endpoint' }).then(function () {}).catch(function () {});
-    }).catch(function () {});
+      }, { onConflict: 'profile_id,endpoint' }).then(function (res) {
+        if (res && res.error) {
+          console.error('[push] falha ao gravar subscrição em push_subscriptions:', res.error);
+          setUpdMsg('⚠️ Falha ao registar notificações no servidor: ' + res.error.message);
+        }
+      });
+    }).catch(function (err) {
+      console.error('[push] falha ao subscrever push:', err);
+      setUpdMsg('⚠️ Falha ao ativar notificações: ' + (err && err.message ? err.message : err));
+    });
   };
   var requestNotifPermission = function requestNotifPermission() {
     if (typeof Notification === 'undefined') return;
@@ -1194,7 +1202,7 @@ function CarvalhoSuite() {
         setNotifPerm(perm);
         if (perm === 'granted') {
           loadNotifData();
-          subscribeToPush();
+          return subscribeToPush().then(proceedWithReset);
         }
         proceedWithReset();
       }).catch(function () {
@@ -1204,18 +1212,23 @@ function CarvalhoSuite() {
       setUpdMsg('⚠️ Notificações bloqueadas no telemóvel/navegador — ativa manualmente nas definições de notificações antes de continuar. A reiniciar...');
       setTimeout(proceedWithReset, 2500);
     } else {
-      subscribeToPush();
-      proceedWithReset();
+      subscribeToPush().then(proceedWithReset);
     }
   };
   var testPushNotif = function testPushNotif() {
     setPushTestChecking(true);
     setPushTestMsg('A verificar...');
     var lines = [];
+    var localEndpoint = null;
     var subCheck = 'serviceWorker' in navigator ? navigator.serviceWorker.ready.then(function (reg) {
       return reg.pushManager.getSubscription();
     }).then(function (sub) {
-      lines.push(sub ? '✓ Este aparelho tem subscrição push ativa (local).' : '✗ Este aparelho NÃO tem subscrição push local.');
+      if (sub) {
+        localEndpoint = sub.endpoint;
+        lines.push('✓ Este aparelho tem subscrição push ativa (local).');
+      } else {
+        lines.push('✗ Este aparelho NÃO tem subscrição push local.');
+      }
     }).catch(function () {
       lines.push('✗ Erro ao verificar subscrição local.');
     }) : Promise.resolve().then(function () {
@@ -1228,7 +1241,20 @@ function CarvalhoSuite() {
         setPushTestChecking(false);
         return;
       }
-      return window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id).then(function (res) {
+      var endpointCheck = !localEndpoint ? Promise.resolve() : window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('endpoint', localEndpoint).then(function (res) {
+        if (res && res.error) {
+          console.error('[push] falha ao verificar endpoint no servidor:', res.error);
+          lines.push('✗ Erro ao verificar o endpoint no servidor: ' + res.error.message);
+          return;
+        }
+        lines.push((res.count || 0) > 0 ? '✓ O endpoint deste aparelho ESTÁ registado no servidor.' : '✗ O endpoint deste aparelho NÃO está registado no servidor — as notificações NÃO vão chegar aqui.');
+      }).catch(function (err) {
+        console.error('[push] falha ao verificar endpoint no servidor:', err);
+        lines.push('✗ Erro ao verificar o endpoint no servidor.');
+      });
+      return endpointCheck.then(function () {
+        return window.supabaseClient.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('profile_id', profile.id);
+      }).then(function (res) {
         lines.push((res.count || 0) + ' subscrição(ões) guardada(s) no servidor para o TEU perfil.');
       }).then(function () {
         return window.supabaseClient.from('push_subscriptions').select('profile_id');
