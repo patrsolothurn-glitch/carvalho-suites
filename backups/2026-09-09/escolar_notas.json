@@ -1,0 +1,4 @@
+[{"id":1810,"aluno":"lucas","disc_id":2,"semestre":1,"valor":5.10,"data":null,"created_at":"2026-09-08T15:25:31.849641+00:00"}, 
+ {"id":1811,"aluno":"lucas","disc_id":5,"semestre":1,"valor":5.70,"data":null,"created_at":"2026-09-08T15:25:31.849641+00:00"}, 
+ {"id":1812,"aluno":"lucas","disc_id":7,"semestre":1,"valor":6.00,"data":null,"created_at":"2026-09-08T15:25:31.849641+00:00"}, 
+ {"id":1813,"aluno":"lucas","disc_id":19,"semestre":1,"valor":5.75,"data":null,"created_at":"2026-09-08T15:25:31.849641+00:00"}]
