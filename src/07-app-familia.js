@@ -100,6 +100,10 @@ function FamiliaApp(_ref19) {
     _useState108 = _slicedToArray(_useState107, 2),
     editEvKey = _useState108[0],
     setEditEvKey = _useState108[1];
+  var editEvKeyRef = (0, _react.useRef)(null);
+  (0, _react.useEffect)(function () {
+    editEvKeyRef.current = editEvKey;
+  }, [editEvKey]);
   var _useStateEditEvErr = (0, _react.useState)(''),
     _useStateEditEvErr2 = _slicedToArray(_useStateEditEvErr, 2),
     editEvErr = _useStateEditEvErr2[0],
@@ -120,6 +124,10 @@ function FamiliaApp(_ref19) {
     _useStateEditFoto2 = _slicedToArray(_useStateEditFoto, 2),
     editFoto = _useStateEditFoto2[0],
     setEditFoto = _useStateEditFoto2[1];
+  var _useStateEditFotoLoading = (0, _react.useState)(false),
+    _useStateEditFotoLoading2 = _slicedToArray(_useStateEditFotoLoading, 2),
+    editFotoLoading = _useStateEditFotoLoading2[0],
+    setEditFotoLoading = _useStateEditFotoLoading2[1];
   var _useState109 = (0, _react.useState)({}),
     _useState110 = _slicedToArray(_useState109, 2),
     memberPhotos = _useState110[0],
@@ -291,8 +299,31 @@ function FamiliaApp(_ref19) {
   // ── SINCRONIZAÇÃO COM SUPABASE ────────────────────────────────────
   var loadFamilyEvents = function loadFamilyEvents() {
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('family_events').select('*').then(function (res) {
+    // photo_url pode ir até dezenas de kB em base64 — não faz parte do
+    // select principal (evita trazer todas as fotos só para mostrar o
+    // calendário/listas). Preserva as fotos já carregadas nesta sessão
+    // (ex.: acabadas de criar, ou já vistas) para não as "esquecer" ao
+    // recarregar.
+    var knownFotos = {};
+    Object.keys(events).forEach(function (d) {
+      (events[d] || []).forEach(function (item) {
+        if (item.id && item.foto) knownFotos[item.id] = item.foto;
+      });
+    });
+    Object.keys(eventsArquivados).forEach(function (d) {
+      (eventsArquivados[d] || []).forEach(function (item) {
+        if (item.id && item.foto) knownFotos[item.id] = item.foto;
+      });
+    });
+    Promise.all([
+      window.supabaseClient.from('family_events').select('id, member_id, title, description, event_date, event_time, created_by, created_at, updated_at, emoji, color, participant_ids, source, source_id, categoria, concluido, arquivado, reminder_minutes'),
+      window.supabaseClient.from('family_events').select('id').not('photo_url', 'is', null).catch(function () { return { data: [] }; })
+    ]).then(function (results) {
+      var res = results[0];
+      var resFotos = results[1];
       if (res.error || !res.data) return;
+      var comFoto = {};
+      ((resFotos && resFotos.data) || []).forEach(function (r) { comFoto[r.id] = true; });
       var built = {};
       var builtArq = {};
       res.data.forEach(function (row) {
@@ -308,7 +339,10 @@ function FamiliaApp(_ref19) {
           hora: row.event_time || '',
           nota: row.description || '',
           lembrete: row.reminder_minutes || null,
-          foto: row.photo_url || null
+          // tem_foto vem de uma 2ª query leve (só ids, sem base64) — o
+          // badge/miniatura fica correto sem trazer photo_url de todos.
+          temFoto: !!comFoto[row.id],
+          foto: knownFotos[row.id] || null
         };
         // Todos os eventos vão para built (para o calendário mostrar feitos)
         (built[d] || (built[d] = [])).push(evObj);
@@ -320,6 +354,36 @@ function FamiliaApp(_ref19) {
       setEvents(built);
       setEventsArquivados(builtArq);
     }).catch(function () {});
+  };
+  // Vai buscar o photo_url de UM evento (só quando é preciso mostrá-lo —
+  // ao abrir o dia com o evento visível, ou ao editar). Guarda o
+  // resultado no próprio evento em estado, por isso só pede uma vez por
+  // sessão para o mesmo evento.
+  var fetchEventPhoto = function fetchEventPhoto(ev, dateStr) {
+    if (!window.supabaseClient || !ev.id) return Promise.resolve(ev.foto || null);
+    if (ev.foto) return Promise.resolve(ev.foto);
+    return window.supabaseClient.from('family_events').select('photo_url').eq('id', ev.id).single().then(function (res) {
+      if (res.error) {
+        console.error('[familia] falha ao carregar foto do evento:', res.error);
+        return null;
+      }
+      var foto = (res.data && res.data.photo_url) || null;
+      var patch = function (p) {
+        var d = _objectSpread({}, p);
+        if (d[dateStr]) {
+          d[dateStr] = d[dateStr].map(function (item) {
+            return item.id === ev.id ? _objectSpread(_objectSpread({}, item), {}, { foto: foto }) : item;
+          });
+        }
+        return d;
+      };
+      setEvents(patch);
+      setEventsArquivados(patch);
+      return foto;
+    }).catch(function (err) {
+      console.error('[familia] falha ao carregar foto do evento:', err);
+      return null;
+    });
   };
   var loadMemberPhotos = function loadMemberPhotos() {
     if (!window.supabaseClient) return;
@@ -570,7 +634,25 @@ function FamiliaApp(_ref19) {
           created_by: currentMemberId
         };
       });
-      window.supabaseClient.from('family_events').insert(rows).then(function () { loadFamilyEvents();
+      window.supabaseClient.from('family_events').insert(rows).select('id').then(function (insRes) {
+        // Sabendo já o id real, marcamos a foto acabada de criar como
+        // "conhecida" antes do reload — assim loadFamilyEvents() não a
+        // troca pelo botão "carregar foto" só porque ainda não tinha id.
+        var insertedIds = ((insRes && insRes.data) || []).map(function (r) { return r.id; });
+        if (insertedIds.length && ev.foto) {
+          var patchId = insertedIds[0];
+          setEvents(function (p) {
+            var np = _objectSpread({}, p);
+            Object.keys(updates).forEach(function (d) {
+              if (!np[d]) return;
+              np[d] = np[d].map(function (item) {
+                return item === ev ? _objectSpread(_objectSpread({}, item), {}, { id: patchId }) : item;
+              });
+            });
+            return np;
+          });
+        }
+        loadFamilyEvents();
         try {
           getEligibleProfileIds('familia', null).then(function (ids) {
             if (!ids.length) return;
@@ -1807,14 +1889,23 @@ function FamiliaApp(_ref19) {
         fontSize: 11,
         marginTop: 3
       }
-    }, "\uD83D\uDCDD ", ev.nota), ev.foto && /*#__PURE__*/React.createElement("img", {
+    }, "\uD83D\uDCDD ", ev.nota), ev.foto ? /*#__PURE__*/React.createElement("img", {
       src: ev.foto,
       onClick: function onClick() { setFotoLightbox(ev.foto); },
       style: {
         width: 56, height: 56, objectFit: 'cover', borderRadius: 10,
         border: "1px solid ".concat(F.border), marginTop: 6, cursor: 'pointer'
       }
-    })), /*#__PURE__*/React.createElement("div", {
+    }) : ev.temFoto && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick(e) { if (e && e.stopPropagation) e.stopPropagation(); fetchEventPhoto(ev, selDateStr); },
+      title: "Ver foto",
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 56, height: 56, borderRadius: 10,
+        border: "1px dashed ".concat(F.border), background: F.surface2,
+        marginTop: 6, cursor: 'pointer', color: F.muted, fontSize: 20
+      }
+    }, "\uD83D\uDCF7")), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 6,
@@ -1876,7 +1967,29 @@ function FamiliaApp(_ref19) {
       }
     }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        if (!isEditing) { setEditDate(selDateStr); setEditLembrete(ev.lembrete || null); setEditFoto(ev.foto || null); }
+        if (!isEditing) {
+          setEditDate(selDateStr);
+          setEditLembrete(ev.lembrete || null);
+          if (ev.foto) {
+            setEditFoto(ev.foto);
+            setEditFotoLoading(false);
+          } else if (ev.temFoto) {
+            setEditFoto(null);
+            setEditFotoLoading(true);
+            fetchEventPhoto(ev, selDateStr).then(function (foto) {
+              // Só aplica se ainda estivermos a editar este mesmo evento
+              // (evita que uma resposta tardia apareça noutro evento se
+              // o utilizador cancelar/trocar entretanto).
+              if (editEvKeyRef.current === evKey) {
+                setEditFoto(foto);
+                setEditFotoLoading(false);
+              }
+            });
+          } else {
+            setEditFoto(null);
+            setEditFotoLoading(false);
+          }
+        }
         return setEditEvKey(isEditing ? null : evKey);
       },
       style: {
@@ -2194,7 +2307,14 @@ function FamiliaApp(_ref19) {
       style: { color: F.muted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }
     }, "\uD83D\uDCF7 Foto"), /*#__PURE__*/React.createElement("div", {
       style: { marginBottom: 14 }
-    }, editFoto ? /*#__PURE__*/React.createElement("div", {
+    }, editFotoLoading ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 80, height: 80, borderRadius: 10,
+        border: "2px dashed ".concat(F.border),
+        background: F.surface2, color: F.muted, fontSize: 11, fontWeight: 700, textAlign: 'center'
+      }
+    }, "A carregar\u2026") : editFoto ? /*#__PURE__*/React.createElement("div", {
       style: { position: 'relative', width: 80, height: 80 }
     }, /*#__PURE__*/React.createElement("img", {
       src: editFoto,
@@ -2251,7 +2371,7 @@ function FamiliaApp(_ref19) {
         cursor: 'pointer'
       }
     }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-      disabled: editEvSaving,
+      disabled: editEvSaving || editFotoLoading,
       onClick: function onClick() {
         var _document$getElementB2, _document$getElementB3, _document$getElementB5;
         var titulo = ((_document$getElementB2 = document.getElementById("ev-t-".concat(evKey))) === null || _document$getElementB2 === void 0 ? void 0 : _document$getElementB2.value.trim()) || ev.t;
@@ -2351,16 +2471,16 @@ function FamiliaApp(_ref19) {
       },
       style: {
         flex: 2,
-        background: editEvSaving ? F.muted : "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
+        background: (editEvSaving || editFotoLoading) ? F.muted : "linear-gradient(135deg,".concat(F.coral, ",#F59458)"),
         border: 'none',
         borderRadius: 10,
         padding: '10px',
         color: '#fff',
         fontSize: 13,
         fontWeight: 800,
-        cursor: editEvSaving ? 'default' : 'pointer'
+        cursor: (editEvSaving || editFotoLoading) ? 'default' : 'pointer'
       }
-    }, editEvSaving ? 'A guardar…' : '✓ Guardar')), editEvErr && /*#__PURE__*/React.createElement("p", {
+    }, editEvSaving ? 'A guardar…' : editFotoLoading ? 'A carregar foto…' : '✓ Guardar')), editEvErr && /*#__PURE__*/React.createElement("p", {
       style: {
         color: '#DC2626',
         fontSize: 12,
