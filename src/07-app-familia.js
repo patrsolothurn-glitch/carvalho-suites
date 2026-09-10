@@ -339,6 +339,7 @@ function FamiliaApp(_ref19) {
           hora: row.event_time || '',
           nota: row.description || '',
           lembrete: row.reminder_minutes || null,
+          source: row.source || null,
           // tem_foto vem de uma 2ª query leve (só ids, sem base64) — o
           // badge/miniatura fica correto sem trazer photo_url de todos.
           temFoto: !!comFoto[row.id],
@@ -2003,6 +2004,34 @@ function FamiliaApp(_ref19) {
       }
     }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        if (ev.source) {
+          // Eventos sincronizados de outra app n\u00E3o se apagam daqui \u2014 s\u00F3
+          // na app de origem. Abre o painel de edi\u00E7\u00E3o (onde j\u00E1 existe o
+          // s\u00EDtio de mostrar mensagens) para explicar isso.
+          if (!isEditing) {
+            setEditDate(selDateStr);
+            setEditLembrete(ev.lembrete || null);
+            if (ev.foto) {
+              setEditFoto(ev.foto);
+              setEditFotoLoading(false);
+            } else if (ev.temFoto) {
+              setEditFoto(null);
+              setEditFotoLoading(true);
+              fetchEventPhoto(ev, selDateStr).then(function (foto) {
+                if (editEvKeyRef.current === evKey) {
+                  setEditFoto(foto);
+                  setEditFotoLoading(false);
+                }
+              });
+            } else {
+              setEditFoto(null);
+              setEditFotoLoading(false);
+            }
+            setEditEvKey(evKey);
+          }
+          setEditEvErr(ev.source === 'agenda_pro' ? 'Este evento vem do Patricio Work. Para o tirar daqui, desmarca a partilha l\u00E1.' : ev.source === 'escolar' ? 'Este evento vem da Vida Escolar. Apaga o teste l\u00E1.' : 'Este evento vem de outra app.');
+          return;
+        }
         if (window.supabaseClient && ev.id) {
           window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { }).catch(function () {});
           try {
@@ -2050,7 +2079,13 @@ function FamiliaApp(_ref19) {
         letterSpacing: '0.5px',
         marginBottom: 10
       }
-    }, "Editar evento"), /*#__PURE__*/React.createElement("p", {
+    }, "Editar evento"), ev.source && /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: F.muted,
+        fontSize: 11,
+        marginBottom: 10
+      }
+    }, ev.source === 'agenda_pro' ? '💼 Vem do Patricio Work' : ev.source === 'escolar' ? '📚 Vem da Vida Escolar' : null), /*#__PURE__*/React.createElement("p", {
       style: {
         color: F.muted,
         fontSize: 10,
@@ -2061,6 +2096,7 @@ function FamiliaApp(_ref19) {
     }, "T\xEDtulo"), /*#__PURE__*/React.createElement("input", {
       defaultValue: ev.t,
       id: "ev-t-".concat(evKey),
+      disabled: !!ev.source,
       autoComplete: "off",
       style: {
         width: '100%',
@@ -2081,6 +2117,7 @@ function FamiliaApp(_ref19) {
       value: editDate,
       onChange: function onChange(e) { return setEditDate(e.target.value); },
       id: "ev-d-".concat(evKey),
+      disabled: !!ev.source,
       style: {
         width: '100%',
         background: F.surface2,
@@ -2106,6 +2143,7 @@ function FamiliaApp(_ref19) {
       type: "checkbox",
       id: "ev-allday-".concat(evKey),
       defaultChecked: !ev.hora,
+      disabled: !!ev.source,
       style: {
         width: 16,
         height: 16,
@@ -2139,6 +2177,7 @@ function FamiliaApp(_ref19) {
       type: "time",
       defaultValue: ev.hora || '',
       id: "ev-h-".concat(evKey),
+      disabled: !!ev.source,
       style: {
         width: '100%',
         background: F.surface2,
@@ -2166,6 +2205,7 @@ function FamiliaApp(_ref19) {
       style: { display: 'flex', gap: 6, marginBottom: 8 }
     }, /*#__PURE__*/React.createElement("button", {
       type: 'button',
+      disabled: !!ev.source,
       onClick: function onClick() {
         members.forEach(function (mb) {
           if (mb.id === 'todos') return;
@@ -2179,6 +2219,7 @@ function FamiliaApp(_ref19) {
       }
     }, "\uD83D\uDC64 S\xF3 eu"), /*#__PURE__*/React.createElement("button", {
       type: 'button',
+      disabled: !!ev.source,
       onClick: function onClick() {
         members.forEach(function (mb) {
           if (mb.id === 'todos') return;
@@ -2208,6 +2249,7 @@ function FamiliaApp(_ref19) {
         type: "checkbox",
         id: "ev-w-".concat(evKey, "-").concat(mb.id),
         defaultChecked: defChecked,
+        disabled: !!ev.source,
         style: { width: 13, height: 13, accentColor: mb.color }
       }), /*#__PURE__*/React.createElement("span", {
         style: { fontSize: 12 }
@@ -2225,6 +2267,7 @@ function FamiliaApp(_ref19) {
     }, "Nota"), /*#__PURE__*/React.createElement("input", {
       defaultValue: ev.nota || '',
       id: "ev-n-".concat(evKey),
+      disabled: !!ev.source,
       autoComplete: "off",
       placeholder: "Opcional",
       style: {
@@ -2255,10 +2298,12 @@ function FamiliaApp(_ref19) {
         id: "ev-cat-".concat(evKey, "-").concat(ck),
         value: ck,
         defaultChecked: (ev.categoria || 'familia') === ck,
+        disabled: !!ev.source,
         style: { display: 'none' }
       }), /*#__PURE__*/React.createElement("span", {
         id: "ev-cat-lbl-".concat(evKey, "-").concat(ck),
         onClick: function onClick() {
+          if (ev.source) return;
           document.querySelectorAll('[name="ev-cat-'.concat(evKey, '"]')).forEach(function(r) { r.checked = r.value === ck; });
           document.querySelectorAll('[id^="ev-cat-lbl-'.concat(evKey, '"]')).forEach(function(l) {
             var lck = l.id.replace('ev-cat-lbl-'.concat(evKey, '-'), '');
@@ -2273,7 +2318,7 @@ function FamiliaApp(_ref19) {
           background: (ev.categoria || 'familia') === ck ? cat.color : F.surface2,
           color: (ev.categoria || 'familia') === ck ? '#fff' : F.muted,
           border: '1.5px solid ' + ((ev.categoria || 'familia') === ck ? cat.color : F.border),
-          borderRadius: 20, padding: '5px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer'
+          borderRadius: 20, padding: '5px 10px', fontSize: 12, fontWeight: 800, cursor: ev.source ? 'default' : 'pointer'
         }
       }, cat.emoji, " ", cat.label));
     })), /*#__PURE__*/React.createElement("p", {
@@ -2431,7 +2476,12 @@ function FamiliaApp(_ref19) {
           lembrete: editLembrete,
           foto: editFoto
         });
-        window.supabaseClient.from('family_events').update({
+        // Eventos com source (sincronizados de outra app) só podem mudar
+        // lembrete e foto — os outros campos pertencem à app de origem.
+        var updatePayload = ev.source ? {
+          reminder_minutes: editLembrete,
+          photo_url: editFoto
+        } : {
           title: titulo,
           event_date: newDate,
           event_time: hora || null,
@@ -2442,7 +2492,8 @@ function FamiliaApp(_ref19) {
           categoria: newCategoria,
           reminder_minutes: editLembrete,
           photo_url: editFoto
-        }).eq('id', ev.id).then(function (res) {
+        };
+        window.supabaseClient.from('family_events').update(updatePayload).eq('id', ev.id).then(function (res) {
           setEditEvSaving(false);
           if (res.error) {
             setEditEvErr('Erro ao guardar: ' + res.error.message);
@@ -3026,6 +3077,11 @@ function FamiliaApp(_ref19) {
           }, "\u21A9\uFE0F"),
           React.createElement("button", {
             onClick: function onClick() {
+              if (ev.source) {
+                // Eventos sincronizados n\u00E3o se apagam daqui \u2014 s\u00F3 na app de origem.
+                window.alert('Saltado ' + allIds.length + ' evento(s) \u2014 vem do ' + (ev.source === 'agenda_pro' ? 'Patricio Work' : ev.source === 'escolar' ? 'Vida Escolar' : ev.source) + ', apaga-o l\u00E1.');
+                return;
+              }
               allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').delete().eq('id', id).then(function() {}).catch(function() {}); });
               allDates.forEach(function (d) {
                 setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });

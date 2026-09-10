@@ -902,6 +902,10 @@ function AgendaProApp(_ref13) {
     if (partilhado) {
       var alvo = jobData.partilhadoCom && jobData.partilhadoCom !== 'todos' ? [jobData.partilhadoCom] : ['todos'];
       window.supabaseClient.from('family_events').select('id').eq('source', 'agenda_pro').eq('source_id', jobId).then(function (res) {
+        if (res.error) {
+          console.error('[agenda_pro→familia] falha ao procurar evento partilhado existente:', res.error);
+          return;
+        }
         var existing = res.data && res.data[0];
         var payload = {
           title: '💼 ' + (jobData.proj || 'Trabalho'),
@@ -918,13 +922,39 @@ function AgendaProApp(_ref13) {
           created_by: jobData.monteur || 'patricio'
         };
         if (existing) {
-          window.supabaseClient.from('family_events').update(payload).eq('id', existing.id).then(function () {}).catch(function () {});
+          window.supabaseClient.from('family_events').update(payload).eq('id', existing.id).then(function (res2) {
+            if (res2.error) {
+              console.error('[agenda_pro→familia] falha ao atualizar evento partilhado:', res2.error);
+              setSaveErr('Guardado, mas não foi partilhado com a Família: ' + res2.error.message);
+            }
+          }).catch(function (err) {
+            console.error('[agenda_pro→familia] falha ao atualizar evento partilhado:', err);
+            setSaveErr('Guardado, mas não foi partilhado com a Família: ' + (err && err.message ? err.message : err));
+          });
         } else {
-          window.supabaseClient.from('family_events').insert(payload).then(function () {}).catch(function () {});
+          window.supabaseClient.from('family_events').insert(payload).then(function (res2) {
+            if (res2.error) {
+              console.error('[agenda_pro→familia] falha ao criar evento partilhado:', res2.error);
+              setSaveErr('Guardado, mas não foi partilhado com a Família: ' + res2.error.message);
+            }
+          }).catch(function (err) {
+            console.error('[agenda_pro→familia] falha ao criar evento partilhado:', err);
+            setSaveErr('Guardado, mas não foi partilhado com a Família: ' + (err && err.message ? err.message : err));
+          });
         }
-      }).catch(function () {});
+      }).catch(function (err) {
+        console.error('[agenda_pro→familia] falha ao procurar evento partilhado existente:', err);
+      });
     } else {
-      window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', jobId).then(function () {}).catch(function () {});
+      window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', jobId).then(function (res) {
+        if (res.error) {
+          console.error('[agenda_pro→familia] falha ao remover evento partilhado:', res.error);
+          setSaveErr('Guardado, mas não foi possível remover a partilha com a Família: ' + res.error.message);
+        }
+      }).catch(function (err) {
+        console.error('[agenda_pro→familia] falha ao remover evento partilhado:', err);
+        setSaveErr('Guardado, mas não foi possível remover a partilha com a Família: ' + (err && err.message ? err.message : err));
+      });
     }
   };
   var saveForm = function saveForm() {
@@ -1225,7 +1255,13 @@ function AgendaProApp(_ref13) {
     });
     if (window.supabaseClient) {
       window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function () {}).catch(function () {});
-      window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', id).then(function () {}).catch(function () {});
+      window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', id).then(function (res) {
+        if (res.error) {
+          console.error('[agenda_pro→familia] falha ao remover evento partilhado ao apagar trabalho:', res.error);
+        }
+      }).catch(function (err) {
+        console.error('[agenda_pro→familia] falha ao remover evento partilhado ao apagar trabalho:', err);
+      });
     }
   };
   var ACard = function ACard(_ref14) {
