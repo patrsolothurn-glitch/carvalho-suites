@@ -1012,6 +1012,9 @@ function HorasProApp(_ref9) {
       } catch (e) {}
     };
   }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadEntries(); loadProjects(); });
+  }, []);
   var _useStateProjSaveErr = (0, _react.useState)(''),
     _useStateProjSaveErr2 = _slicedToArray(_useStateProjSaveErr, 2),
     projSaveErr = _useStateProjSaveErr2[0],

@@ -1058,6 +1058,9 @@ function WochenplanApp(props) {
     });
   }
   React.useEffect(function() { carregar(); }, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { carregar(); });
+  }, []);
 
   // Perfil "Monteur" arranca já com o próprio nome escolhido
   React.useEffect(function() {

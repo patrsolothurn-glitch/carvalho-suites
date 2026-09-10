@@ -1328,6 +1328,9 @@ function EscolarApp(_ref31) {
   (0, _react.useEffect)(function () {
     loadEscolarData();
   }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadEscolarData(); });
+  }, []);
   // Refetch quando a app volta a ficar visivel apos background.
   // Em mobile a aba pode ficar suspensa horas — sem isto, dados editados
   // noutro telemovel nao aparecem ate forcar hard refresh.

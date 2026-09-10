@@ -72,6 +72,9 @@ function ViagensApp(props) {
     db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { doLoad(); });
   }
   React.useEffect(load, [year]);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { load(); });
+  }, []);
 
   function byMonth(m) { return trips.filter(function(t) { return t.mes === m; }); }
 

@@ -852,6 +852,9 @@ function AgendaProApp(_ref13) {
       } catch (e) {}
     };
   }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadJobs(); loadMonteurs(); });
+  }, []);
   var openForm = function openForm() {
     var appt = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
     if (appt) {

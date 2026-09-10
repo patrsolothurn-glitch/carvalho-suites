@@ -140,6 +140,9 @@ function NutriguimaApp(_ref29) {
     if (sessionStorage.getItem('nutri_nome') !== null && sessionStorage.getItem('nutri_nome') !== '') { setShowAddProd(true); }
   }, []);
   (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadNutriData(); });
+  }, []);
+  (0, _react.useEffect)(function () {
     if (showAddProd) {
       if (novoNomeRef.current) novoNomeRef.current.value = sessionStorage.getItem('nutri_nome') || '';
       if (novoPrecoRef.current) novoPrecoRef.current.value = sessionStorage.getItem('nutri_preco') || '';
