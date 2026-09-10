@@ -52,6 +52,31 @@ function CarvalhoSuite() {
     _useStateProfileErr2 = _slicedToArray(_useStateProfileErr, 2),
     profileErr = _useStateProfileErr2[0],
     setProfileErr = _useStateProfileErr2[1];
+  var _useStateShellErr = (0, _react.useState)(''),
+    _useStateShellErr2 = _slicedToArray(_useStateShellErr, 2),
+    shellErr = _useStateShellErr2[0],
+    setShellErr = _useStateShellErr2[1];
+  function shellFail(contexto, erro) {
+    console.error('[shell] ' + contexto + ':', erro);
+    setShellErr(contexto + ' — ' + ((erro && erro.message) || String(erro)));
+  }
+  var errBanner = shellErr ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: T.red,
+      fontSize: 11,
+      fontWeight: 700,
+      padding: '8px 10px',
+      background: 'rgba(239,68,68,0.1)',
+      borderBottom: "1px solid ".concat(T.goldBrd),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "⚠ ", shellErr), /*#__PURE__*/React.createElement("span", {
+    onClick: function onClick() { return setShellErr(''); },
+    style: { cursor: 'pointer', fontWeight: 900, padding: '0 6px' }
+  }, "✕")) : null;
   var _useStateCheckingAuth = (0, _react.useState)(true),
     _useStateCheckingAuth2 = _slicedToArray(_useStateCheckingAuth, 2),
     checkingAuth = _useStateCheckingAuth2[0],
@@ -308,7 +333,9 @@ function CarvalhoSuite() {
         return !t.feito;
       }).length;
       setEscolarPendentes(pendentes);
-    }).catch(function () {});
+    }).catch(function (e) {
+      console.error('[shell] escolar_tpc:', e);
+    });
   }, [isAdmin, profile && profile.member_id]);
   var _useStateNotifData = (0, _react.useState)([]),
     _useStateNotifData2 = _slicedToArray(_useStateNotifData, 2),
@@ -332,9 +359,11 @@ function CarvalhoSuite() {
     else if (it.id.indexOf('job_') === 0) { table = 'agenda_pro_jobs'; realId = it.id.slice(4); }
     else if (it.id.indexOf('esc_') === 0) { table = 'escolar_tpc'; realId = it.id.slice(4); }
     if (!table || !realId) return;
-    window.supabaseClient.from(table).delete().eq('id', realId).then(function () {
+    var onFailDelete = function (erro) { shellFail('Não foi possível apagar o item', erro); };
+    window.supabaseClient.from(table).delete().eq('id', realId).then(function (res) {
+      if (res.error) return onFailDelete(res.error);
       setHojeItems(function (p) { return p.filter(function (x) { return x.id !== it.id; }); });
-    }).catch(function () {});
+    }).catch(onFailDelete);
   };
   var dismissHojeItem = function dismissHojeItem(id) {
     if (!profile) return;
@@ -345,7 +374,10 @@ function CarvalhoSuite() {
       return p ? _objectSpread(_objectSpread({}, p), {}, { dismissed_hoje: next }) : p;
     });
     if (window.supabaseClient && profile.id) {
-      window.supabaseClient.from('profiles').update({ dismissed_hoje: next }).eq('id', profile.id).then(function () {}).catch(function () {});
+      var onFailDismiss = function (erro) { shellFail('Não foi possível dispensar o item', erro); };
+      window.supabaseClient.from('profiles').update({ dismissed_hoje: next }).eq('id', profile.id).then(function (res) {
+        if (res.error) onFailDismiss(res.error);
+      }).catch(onFailDismiss);
     }
   };
   var loadHojeData = function loadHojeData() {
@@ -442,6 +474,8 @@ function CarvalhoSuite() {
     ]).then(function (resArr) {
       var famRes = resArr[0],
         jobRes = resArr[1];
+      if (famRes && famRes.error) console.error('[shell] loadNotifData family_events:', famRes.error);
+      if (jobRes && jobRes.error) console.error('[shell] loadNotifData agenda_pro_jobs:', jobRes.error);
       var items = [];
       if (famRes && famRes.data) {
         famRes.data.forEach(function (row) {
@@ -480,7 +514,9 @@ function CarvalhoSuite() {
       });
       setNotifItems(items);
       notifyNewItems(items);
-    }).catch(function () {});
+    }).catch(function (e) {
+      console.error('[shell] loadNotifData:', e);
+    });
   };
   var notifyNewItems = function notifyNewItems(items) {
     try {
@@ -648,9 +684,12 @@ function CarvalhoSuite() {
         return _objectSpread(_objectSpread({}, p), {}, { read_notifications: nextRead });
       });
       if (window.supabaseClient && profile.id) {
+        var onFailRead = function (erro) { shellFail('Não foi possível marcar como lida', erro); };
         window.supabaseClient.from('profiles').update({
           read_notifications: nextRead
-        }).eq('id', profile.id).then(function () {}).catch(function () {});
+        }).eq('id', profile.id).then(function (res) {
+          if (res.error) onFailRead(res.error);
+        }).catch(onFailRead);
       }
     }
     setApp(notif.appId);
@@ -660,22 +699,28 @@ function CarvalhoSuite() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('*').then(function (res) {
       if (!res.error && res.data) setAllProfiles(res.data);
-    }).catch(function () {});
+    }).catch(function (e) {
+      console.error('[shell] loadAllProfiles:', e);
+    });
     window.supabaseClient.from('pending_invites').select('*').then(function (res) {
       if (!res.error && res.data) setPendingInvites(res.data);
-    }).catch(function () {});
+    }).catch(function (e) {
+      console.error('[shell] pending_invites:', e);
+    });
   };
   var addInvite = function addInvite() {
     var email = newInviteEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) return;
     if (!window.supabaseClient) return;
+    var onFailInvite = function (erro) { shellFail('Não foi possível criar o convite', erro); };
     window.supabaseClient.from('pending_invites').insert({
       email: email,
       allowed_apps: []
-    }).then(function () {
+    }).then(function (res) {
+      if (res.error) return onFailInvite(res.error);
       setNewInviteEmail('');
       loadAllProfiles();
-    }).catch(function () {});
+    }).catch(onFailInvite);
   };
   var removeInvite = function removeInvite(email) {
     setPendingInvites(function (ps) {
@@ -684,7 +729,10 @@ function CarvalhoSuite() {
       });
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('pending_invites').delete().eq('email', email).then(function () {}).catch(function () {});
+      var onFailRemoveInvite = function (erro) { shellFail('Não foi possível remover o convite', erro); };
+      window.supabaseClient.from('pending_invites').delete().eq('email', email).then(function (res) {
+        if (res.error) onFailRemoveInvite(res.error);
+      }).catch(onFailRemoveInvite);
     }
   };
   var toggleInvitePerm = function toggleInvitePerm(email, aid) {
@@ -704,9 +752,12 @@ function CarvalhoSuite() {
       });
     });
     if (window.supabaseClient) {
+      var onFailInvitePerm = function (erro) { shellFail('Não foi possível guardar as permissões do convite', erro); };
       window.supabaseClient.from('pending_invites').update({
         allowed_apps: next
-      }).eq('email', email).then(function () {}).catch(function () {});
+      }).eq('email', email).then(function (res) {
+        if (res.error) onFailInvitePerm(res.error);
+      }).catch(onFailInvitePerm);
     }
   };
   var togglePerm = function togglePerm(uid, aid) {
@@ -718,6 +769,7 @@ function CarvalhoSuite() {
     var next = current.includes(aid) ? current.filter(function (x) {
       return x !== aid;
     }) : [].concat(_toConsumableArray(current), [aid]);
+    var prevAllProfiles = allProfiles;
     setAllProfiles(function (ps) {
       return ps.map(function (p) {
         return p.id === uid ? _objectSpread(_objectSpread({}, p), {}, {
@@ -726,9 +778,15 @@ function CarvalhoSuite() {
       });
     });
     if (window.supabaseClient) {
+      var onFailPerm = function (erro) {
+        setAllProfiles(prevAllProfiles);
+        shellFail('Não foi possível guardar as permissões', erro);
+      };
       window.supabaseClient.from('profiles').update({
         allowed_apps: next
-      }).eq('id', uid).then(function () {}).catch(function () {});
+      }).eq('id', uid).then(function (res) {
+        if (res.error) onFailPerm(res.error);
+      }).catch(onFailPerm);
     }
   };
   var fnErr = function fnErr(res) {
@@ -770,11 +828,18 @@ function CarvalhoSuite() {
     });
   };
   var toggleDisabled = function toggleDisabled(uid, current) {
+    var prevAllProfiles = allProfiles;
     setAllProfiles(function (ps) {
       return ps.map(function (p) { return p.id === uid ? _objectSpread(_objectSpread({}, p), {}, { disabled: !current }) : p; });
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('profiles').update({ disabled: !current }).eq('id', uid).then(function () {}).catch(function () {});
+      var onFailDisabled = function (erro) {
+        setAllProfiles(prevAllProfiles);
+        shellFail('Não foi possível alterar o acesso deste utilizador', erro);
+      };
+      window.supabaseClient.from('profiles').update({ disabled: !current }).eq('id', uid).then(function (res) {
+        if (res.error) onFailDisabled(res.error);
+      }).catch(onFailDisabled);
     }
   };
   var handleMemberPhotoUpload = function handleMemberPhotoUpload(e) {
@@ -839,7 +904,10 @@ function CarvalhoSuite() {
     setProfile(function (p) {
       return p ? _objectSpread(_objectSpread({}, p), {}, { notification_prefs: newPrefs }) : p;
     });
-    window.supabaseClient.from('profiles').update({ notification_prefs: newPrefs }).eq('id', profile.id).then(function () {}).catch(function () {});
+    var onFailNotifPrefs = function (erro) { shellFail('Não foi possível guardar os avisos', erro); };
+    window.supabaseClient.from('profiles').update({ notification_prefs: newPrefs }).eq('id', profile.id).then(function (res) {
+      if (res.error) onFailNotifPrefs(res.error);
+    }).catch(onFailNotifPrefs);
   };
   var toggleNotifApp = function toggleNotifApp(appId) {
     var disabledApps = (profile && profile.notification_prefs && profile.notification_prefs.disabledApps) || [];
@@ -854,14 +922,20 @@ function CarvalhoSuite() {
     setProfile(function (p) {
       return p ? _objectSpread(_objectSpread({}, p), {}, { theme: themeName }) : p;
     });
-    window.supabaseClient.from('profiles').update({ theme: themeName }).eq('id', profile.id).then(function () {}).catch(function () {});
+    var onFailTheme = function (erro) { shellFail('Não foi possível guardar o tema', erro); };
+    window.supabaseClient.from('profiles').update({ theme: themeName }).eq('id', profile.id).then(function (res) {
+      if (res.error) onFailTheme(res.error);
+    }).catch(onFailTheme);
   };
   var setDefaultApp = function setDefaultApp(appId) {
     if (!profile || !window.supabaseClient) return;
     setProfile(function (p) {
       return p ? _objectSpread(_objectSpread({}, p), {}, { default_app: appId }) : p;
     });
-    window.supabaseClient.from('profiles').update({ default_app: appId }).eq('id', profile.id).then(function () {}).catch(function () {});
+    var onFailDefaultApp = function (erro) { shellFail('Não foi possível guardar a app inicial', erro); };
+    window.supabaseClient.from('profiles').update({ default_app: appId }).eq('id', profile.id).then(function (res) {
+      if (res.error) onFailDefaultApp(res.error);
+    }).catch(onFailDefaultApp);
   };
   var fetchProfile = function fetchProfile(userId, isInitialEntry) {
     if (!window.supabaseClient) return;
@@ -869,7 +943,9 @@ function CarvalhoSuite() {
       var data = res.data && res.data[0];
       if (!res.error && data) {
         if (data.disabled) {
-          window.supabaseClient.auth.signOut().catch(function () {});
+          window.supabaseClient.auth.signOut().catch(function (e) {
+            console.warn('[shell] signOut falhou:', e);
+          });
           setSession(null);
           setProfile(null);
           setScreen('login');
@@ -935,7 +1011,10 @@ function CarvalhoSuite() {
       resizeProfilePhoto(ev.target.result, 240).then(function (resized) {
         setProfile(function (p) { return _objectSpread(_objectSpread({}, p), {}, { photo_url: resized }); });
         if (window.supabaseClient && profile.id) {
-          window.supabaseClient.from('profiles').update({ photo_url: resized }).eq('id', profile.id).then(function () {}).catch(function () {});
+          var onFailMyPhoto = function (erro) { shellFail('Não foi possível guardar a foto', erro); };
+          window.supabaseClient.from('profiles').update({ photo_url: resized }).eq('id', profile.id).then(function (res) {
+            if (res.error) onFailMyPhoto(res.error);
+          }).catch(onFailMyPhoto);
         }
       });
     };
@@ -945,7 +1024,10 @@ function CarvalhoSuite() {
     if (!profile) return;
     setProfile(function (p) { return _objectSpread(_objectSpread({}, p), {}, { photo_url: null }); });
     if (window.supabaseClient && profile.id) {
-      window.supabaseClient.from('profiles').update({ photo_url: null }).eq('id', profile.id).then(function () {}).catch(function () {});
+      var onFailRemovePhoto = function (erro) { shellFail('Não foi possível remover a foto', erro); };
+      window.supabaseClient.from('profiles').update({ photo_url: null }).eq('id', profile.id).then(function (res) {
+        if (res.error) onFailRemovePhoto(res.error);
+      }).catch(onFailRemovePhoto);
     }
   };
   (0, _react.useEffect)(function () {
@@ -1162,7 +1244,9 @@ function CarvalhoSuite() {
   };
   var doLogout = function doLogout() {
     if (window.supabaseClient) {
-      window.supabaseClient.auth.signOut().catch(function () {});
+      window.supabaseClient.auth.signOut().catch(function (e) {
+        console.warn('[shell] signOut falhou:', e);
+      });
     }
     setSession(null);
     setProfile(null);
@@ -1195,7 +1279,10 @@ function CarvalhoSuite() {
       return p ? _objectSpread(_objectSpread({}, p), {}, { read_notifications: nextRead }) : p;
     });
     if (window.supabaseClient && profile.id) {
-      window.supabaseClient.from('profiles').update({ read_notifications: nextRead }).eq('id', profile.id).then(function () {}).catch(function () {});
+      var onFailReadAll = function (erro) { shellFail('Não foi possível marcar como lidas', erro); };
+      window.supabaseClient.from('profiles').update({ read_notifications: nextRead }).eq('id', profile.id).then(function (res) {
+        if (res.error) onFailReadAll(res.error);
+      }).catch(onFailReadAll);
     }
   }, [screen, notifItems]);
   var checkForUpdate = function checkForUpdate() {
@@ -1744,7 +1831,7 @@ function CarvalhoSuite() {
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 80
     })
-  }, /*#__PURE__*/React.createElement(TopBar, {
+  }, errBanner, /*#__PURE__*/React.createElement(TopBar, {
     onBack: function onBack() {
       return setScreen('hub');
     },
@@ -1907,7 +1994,7 @@ function CarvalhoSuite() {
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 80
     })
-  }, /*#__PURE__*/React.createElement("div", {
+  }, errBanner, /*#__PURE__*/React.createElement("div", {
     style: {
       background: T.surface,
       borderBottom: "1px solid ".concat(T.goldBrd),
@@ -2218,7 +2305,7 @@ function CarvalhoSuite() {
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 80
     })
-  }, /*#__PURE__*/React.createElement(TopBar, {
+  }, errBanner, /*#__PURE__*/React.createElement(TopBar, {
     onBack: function onBack() {
       return setScreen('hub');
     },
@@ -2983,7 +3070,7 @@ function CarvalhoSuite() {
     style: _objectSpread(_objectSpread({}, wrap), {}, {
       paddingBottom: 90
     })
-  }, /*#__PURE__*/React.createElement("div", {
+  }, errBanner, /*#__PURE__*/React.createElement("div", {
     style: {
       background: T.surface,
       borderBottom: "1px solid ".concat(T.goldBrd),
