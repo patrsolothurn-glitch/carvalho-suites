@@ -317,7 +317,7 @@ function FamiliaApp(_ref19) {
     });
     Promise.all([
       window.supabaseClient.from('family_events').select('id, member_id, title, description, event_date, event_time, created_by, created_at, updated_at, emoji, color, participant_ids, source, source_id, categoria, concluido, arquivado, reminder_minutes'),
-      window.supabaseClient.from('family_events').select('id').not('photo_url', 'is', null).catch(function () { return { data: [] }; })
+      window.supabaseClient.from('family_events').select('id').not('photo_url', 'is', null).then(function (r) { return r; }).catch(function () { return { data: [] }; })
     ]).then(function (results) {
       var res = results[0];
       var resFotos = results[1];

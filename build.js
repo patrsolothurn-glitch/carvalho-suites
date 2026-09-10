@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 'use strict';
+// NUNCA chamar .catch() ou .finally() direto numa query Supabase.
+// O PostgrestBuilder é um thenable, não uma Promise: só tem .then().
+// Padrão certo:  .then(function (res) { ... }).catch(function (e) { ... })
 /**
  * build.js — monta o index.html da Carvalho Suite a partir dos
  * ficheiros fonte em src/, e valida a sintaxe ANTES de escrever
