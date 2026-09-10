@@ -18,7 +18,7 @@ jobs:
         run: |
           DATE=$(date +%Y-%m-%d)
           mkdir -p "backups/$DATE"
-          TABLES="profiles members horas_entries agenda_pro_jobs family_events nutri_products escolar_disciplinas escolar_horario escolar_notas escolar_tpc push_subscriptions subscriptions lucas_condutores lucas_visitantes lucas_semana lucas_config"
+          TABLES="profiles members horas_entries agenda_pro_jobs family_events nutri_products escolar_disciplinas escolar_horario escolar_notas escolar_tpc push_subscriptions subscriptions lucas_condutores lucas_visitantes lucas_semana lucas_config horaspro_settings horaspro_projects horas_projects agenda_monteurs escolar_eventos escolar_perfil hauswart_data rapport_planung rapport_tages rapport_wochen family_trips voz_pastas voz_gravacoes wplan_leute wplan_tasks wplan_tag pending_invites"
           for T in $TABLES; do
             echo "A exportar $T..."
             curl -sf "$SUPABASE_URL/rest/v1/$T?select=*" \
