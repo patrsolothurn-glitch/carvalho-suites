@@ -2712,6 +2712,7 @@ function EscolarApp(_ref31) {
             })
           });
         }, 'disciplinas');
+        setEditAula(null);
       },
       style: {
         width: '100%',
