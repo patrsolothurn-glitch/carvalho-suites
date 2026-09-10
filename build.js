@@ -41,11 +41,13 @@ const JS_SECTIONS = [
 ];
 
 function read(name) {
-  // Se existir FINAL-{name}, usa-o em vez de {name} (protege de merges externos)
   const finalPath = path.join(SRC_DIR, 'FINAL-' + name);
-  const regularPath = path.join(SRC_DIR, name);
-  const p = fs.existsSync(finalPath) ? finalPath : regularPath;
-  return fs.readFileSync(p, 'utf8');
+  if (fs.existsSync(finalPath)) {
+    console.error('✗ ERRO: existe src/FINAL-' + name + '. Ficheiros FINAL-* deixaram de ser suportados.');
+    console.error('  Copia o conteúdo para src/' + name + ' e apaga o FINAL-. Build interrompido.');
+    process.exit(1);
+  }
+  return fs.readFileSync(path.join(SRC_DIR, name), 'utf8');
 }
 
 function main() {
