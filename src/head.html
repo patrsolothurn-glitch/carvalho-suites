@@ -54,20 +54,50 @@
             cont.style.cssText = 'position:fixed;bottom:80px;left:10px;right:10px;z-index:99999;display:flex;flex-direction:column;gap:8px;font-family:system-ui';
             document.body.appendChild(cont);
           }
-          while (cont.children.length >= MAX_TOASTS) cont.removeChild(cont.firstChild);
-          var msg = (err && (err.message || err.msg)) || String(err);
-          var det = [];
-          if (err && err.code) det.push('code: ' + err.code);
-          if (err && err.details) det.push(err.details);
-          if (err && err.hint) det.push('hint: ' + err.hint);
+          var isAdmin = window.__cs_admin === true;
           var agora = new Date().toTimeString().slice(0, 8);
+          var titulo, corpo, det, hora;
+          if (isAdmin) {
+            var msg = (err && (err.message || err.msg)) || String(err);
+            det = [];
+            if (err && err.code) det.push('code: ' + err.code);
+            if (err && err.details) det.push(err.details);
+            if (err && err.hint) det.push('hint: ' + err.hint);
+            titulo = 'Erro \u2014 ' + origem;
+            corpo = msg;
+            hora = agora;
+          } else {
+            det = [];
+            titulo = 'Sem liga\u00e7\u00e3o';
+            corpo = 'N\u00e3o foi poss\u00edvel falar com o servidor. Tenta outra vez daqui a pouco.';
+            hora = '';
+          }
+
+          var existente = null;
+          for (var i = 0; i < cont.children.length; i++) {
+            if (cont.children[i].dataset.msg === corpo) { existente = cont.children[i]; break; }
+          }
+          if (existente) {
+            var n = (parseInt(existente.dataset.count, 10) || 1) + 1;
+            existente.dataset.count = String(n);
+            var cntEl = existente.querySelector('.__cs_cnt');
+            if (cntEl) cntEl.textContent = ' \u00d7' + n;
+            var horaEl = existente.querySelector('.__cs_hora');
+            if (horaEl && hora) horaEl.textContent = hora + ' \u00b7 toca para fechar';
+            console.error('[' + origem + ']', err);
+            return;
+          }
+
+          while (cont.children.length >= MAX_TOASTS) cont.removeChild(cont.firstChild);
           var box = document.createElement('div');
+          box.dataset.msg = corpo;
+          box.dataset.count = '1';
           box.style.cssText = 'background:#7f1d1d;border:1px solid #ef4444;border-radius:14px;padding:12px 14px;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.5)';
           box.innerHTML =
-            '<div style="font-weight:800;font-size:14px;margin-bottom:4px">\u26a0\ufe0f Erro \u2014 ' + origem + '</div>' +
-            '<div style="font-size:13px;word-break:break-word">' + msg.replace(/</g, '&lt;') + '</div>' +
+            '<div style="font-weight:800;font-size:14px;margin-bottom:4px">\u26a0\ufe0f ' + titulo + '<span class="__cs_cnt" style="opacity:.75"></span></div>' +
+            '<div style="font-size:13px;word-break:break-word">' + corpo.replace(/</g, '&lt;') + '</div>' +
             (det.length ? '<div style="font-size:11px;opacity:.85;margin-top:4px;word-break:break-word">' + det.join(' \u00b7 ').replace(/</g, '&lt;') + '</div>' : '') +
-            '<div style="font-size:10px;opacity:.6;margin-top:6px">' + agora + ' \u00b7 toca para fechar</div>';
+            (hora ? '<div class="__cs_hora" style="font-size:10px;opacity:.6;margin-top:6px">' + hora + ' \u00b7 toca para fechar</div>' : '<div style="font-size:10px;opacity:.6;margin-top:6px">toca para fechar</div>');
           box.onclick = function () { box.remove(); };
           cont.appendChild(box);
           console.error('[' + origem + ']', err);
