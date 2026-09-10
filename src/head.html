@@ -47,6 +47,11 @@
       var MAX_TOASTS = 3;
       window.mostrarErro = function (origem, err) {
         try {
+          var msgTxt = (err && (err.message || err.msg)) || String(err);
+          if (navigator.onLine === false || /Failed to fetch|NetworkError|Load failed/.test(msgTxt)) {
+            window.csModoOffline(true);
+            return;
+          }
           var cont = document.getElementById('__err_toasts');
           if (!cont) {
             cont = document.createElement('div');
@@ -103,6 +108,29 @@
           console.error('[' + origem + ']', err);
         } catch (e) { console.error(e); }
       };
+
+      // ── Faixa de "sem rede" — falta de ligação não é erro da app ────
+      var OFFLINE_BANNER_ID = '__cs_offline_banner';
+      window.csModoOffline = function (offline) {
+        try {
+          var banner = document.getElementById(OFFLINE_BANNER_ID);
+          if (offline) {
+            if (banner) return;
+            banner = document.createElement('div');
+            banner.id = OFFLINE_BANNER_ID;
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:#2a2a33;color:#e5e5e5;font-family:system-ui;font-size:12px;font-weight:600;text-align:center;padding:6px 10px';
+            banner.textContent = '📴 Sem rede — a trabalhar com os últimos dados';
+            document.body.appendChild(banner);
+            document.body.style.paddingTop = banner.offsetHeight + 'px';
+          } else if (banner) {
+            banner.remove();
+            document.body.style.paddingTop = '';
+          }
+        } catch (e) { console.error(e); }
+      };
+      window.addEventListener('offline', function () { window.csModoOffline(true); });
+      window.addEventListener('online', function () { window.csModoOffline(false); });
+      if (navigator.onLine === false) window.csModoOffline(true);
 
       // Erros JS não tratados
       window.addEventListener('error', function (ev) {

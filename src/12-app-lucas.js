@@ -590,6 +590,9 @@ function LucasApp(_ref) {
   useEffect(function () {
     if (view === 'historico') loadHistory();
   }, [view, fDriver, fDay, fPeriod, fSlot]);
+  useEffect(function () {
+    return window.csAoVoltarRede(function () { loadSchedule(); loadDrivers(); });
+  }, []);
   function flash(msg, err) {
     setToast({
       msg: msg,

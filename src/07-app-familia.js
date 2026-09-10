@@ -436,6 +436,9 @@ function FamiliaApp(_ref19) {
       } catch (e) {}
     };
   }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadFamilyEvents(); });
+  }, []);
   var yr = curMonth.getFullYear(),
     mo = curMonth.getMonth();
   var daysInMo = new Date(yr, mo + 1, 0).getDate();

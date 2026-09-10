@@ -661,6 +661,9 @@ function VozApp(props) {
     });
   }
   React.useEffect(function() { carregar(); }, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { carregar(); });
+  }, []);
 
   // ── Gravar ──
   function iniciarGravacao() {

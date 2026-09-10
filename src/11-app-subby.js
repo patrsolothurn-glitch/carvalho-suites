@@ -167,6 +167,10 @@ var SubbyApp = function SubbyApp(_ref) {
 
   (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); fetchFX(); }, []);
 
+  (0,_react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadSubs(); loadOrdem(); });
+  }, []);
+
   // Calcular badge (subscrições a vencer em breve não confirmadas)
   (0,_react.useEffect)(function() {
     var urgentes = subs.filter(function(s) {

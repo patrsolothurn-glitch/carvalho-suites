@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-10T21:42:11.726Z
+  Gerado em: 2026-09-10T22:05:27.785Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-274";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-276";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -55,6 +55,11 @@
       var MAX_TOASTS = 3;
       window.mostrarErro = function (origem, err) {
         try {
+          var msgTxt = (err && (err.message || err.msg)) || String(err);
+          if (navigator.onLine === false || /Failed to fetch|NetworkError|Load failed/.test(msgTxt)) {
+            window.csModoOffline(true);
+            return;
+          }
           var cont = document.getElementById('__err_toasts');
           if (!cont) {
             cont = document.createElement('div');
@@ -111,6 +116,29 @@
           console.error('[' + origem + ']', err);
         } catch (e) { console.error(e); }
       };
+
+      // ── Faixa de "sem rede" — falta de ligação não é erro da app ────
+      var OFFLINE_BANNER_ID = '__cs_offline_banner';
+      window.csModoOffline = function (offline) {
+        try {
+          var banner = document.getElementById(OFFLINE_BANNER_ID);
+          if (offline) {
+            if (banner) return;
+            banner = document.createElement('div');
+            banner.id = OFFLINE_BANNER_ID;
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:#2a2a33;color:#e5e5e5;font-family:system-ui;font-size:12px;font-weight:600;text-align:center;padding:6px 10px';
+            banner.textContent = '📴 Sem rede — a trabalhar com os últimos dados';
+            document.body.appendChild(banner);
+            document.body.style.paddingTop = banner.offsetHeight + 'px';
+          } else if (banner) {
+            banner.remove();
+            document.body.style.paddingTop = '';
+          }
+        } catch (e) { console.error(e); }
+      };
+      window.addEventListener('offline', function () { window.csModoOffline(true); });
+      window.addEventListener('online', function () { window.csModoOffline(false); });
+      if (navigator.onLine === false) window.csModoOffline(true);
 
       // Erros JS não tratados
       window.addEventListener('error', function (ev) {
@@ -174,6 +202,11 @@ function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t =
 function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+window.csAoVoltarRede = function (fn) {
+  var h = function () { try { fn(); } catch (e) { console.error('[rede]', e); } };
+  window.addEventListener('online', h);
+  return function () { window.removeEventListener('online', h); };
+};
 // cache-bust: 20260825142141
 
 // ── TOKENS ─────────────────────────────────────────────────────────
@@ -1680,6 +1713,9 @@ function HorasProApp(_ref9) {
         window.supabaseClient.removeChannel(projChannel);
       } catch (e) {}
     };
+  }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadEntries(); loadProjects(); });
   }, []);
   var _useStateProjSaveErr = (0, _react.useState)(''),
     _useStateProjSaveErr2 = _slicedToArray(_useStateProjSaveErr, 2),
@@ -6380,6 +6416,9 @@ function AgendaProApp(_ref13) {
       } catch (e) {}
     };
   }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadJobs(); loadMonteurs(); });
+  }, []);
   var openForm = function openForm() {
     var appt = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
     if (appt) {
@@ -10220,6 +10259,9 @@ function FamiliaApp(_ref19) {
       } catch (e) {}
     };
   }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadFamilyEvents(); });
+  }, []);
   var yr = curMonth.getFullYear(),
     mo = curMonth.getMonth();
   var daysInMo = new Date(yr, mo + 1, 0).getDate();
@@ -13640,6 +13682,9 @@ function NutriguimaApp(_ref29) {
     if (sessionStorage.getItem('nutri_nome') !== null && sessionStorage.getItem('nutri_nome') !== '') { setShowAddProd(true); }
   }, []);
   (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadNutriData(); });
+  }, []);
+  (0, _react.useEffect)(function () {
     if (showAddProd) {
       if (novoNomeRef.current) novoNomeRef.current.value = sessionStorage.getItem('nutri_nome') || '';
       if (novoPrecoRef.current) novoPrecoRef.current.value = sessionStorage.getItem('nutri_preco') || '';
@@ -16284,6 +16329,9 @@ function EscolarApp(_ref31) {
   };
   (0, _react.useEffect)(function () {
     loadEscolarData();
+  }, []);
+  (0, _react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadEscolarData(); });
   }, []);
   // Refetch quando a app volta a ficar visivel apos background.
   // Em mobile a aba pode ficar suspensa horas — sem isto, dados editados
@@ -20581,6 +20629,10 @@ var SubbyApp = function SubbyApp(_ref) {
 
   (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); fetchFX(); }, []);
 
+  (0,_react.useEffect)(function () {
+    return window.csAoVoltarRede(function () { loadSubs(); loadOrdem(); });
+  }, []);
+
   // Calcular badge (subscrições a vencer em breve não confirmadas)
   (0,_react.useEffect)(function() {
     var urgentes = subs.filter(function(s) {
@@ -21670,6 +21722,9 @@ function LucasApp(_ref) {
   useEffect(function () {
     if (view === 'historico') loadHistory();
   }, [view, fDriver, fDay, fPeriod, fSlot]);
+  useEffect(function () {
+    return window.csAoVoltarRede(function () { loadSchedule(); loadDrivers(); });
+  }, []);
   function flash(msg, err) {
     setToast({
       msg: msg,
@@ -25190,8 +25245,8 @@ var HauswartApp = function(props) {
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
-  React.useEffect(function() {
-    if (!window.supabaseClient) { setReady(true); return; }
+  var loadHauswartData = function() {
+    if (!window.supabaseClient) return;
     window.supabaseClient.from('hauswart_data').select('*').eq('member_id', owner).single()
       .then(function(res) {
         if (!res.error && res.data) {
@@ -25212,6 +25267,15 @@ var HauswartApp = function(props) {
         }
         setReady(true);
       });
+  };
+
+  React.useEffect(function() {
+    if (!window.supabaseClient) { setReady(true); return; }
+    loadHauswartData();
+  }, []);
+
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { loadHauswartData(); });
   }, []);
 
   var hwSync = function(w, m, c, a) {
@@ -26534,6 +26598,9 @@ function RpPlanungView(props) {
   }
 
   React.useEffect(function() { loadJobs(); }, [monday]);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { loadJobs(); });
+  }, []);
 
   function openNew(date) {
     setFDate(date || rpToday());
@@ -26851,6 +26918,9 @@ function RpTagesView(props) {
       .then(function(r) { setList(r.data || []); setLoading(false); });
   }
   React.useEffect(load, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { load(); });
+  }, []);
 
   function resetForm() {
     setFTyp('arbeitsrapport'); setFNr(''); setFDate(rpToday());
@@ -27302,6 +27372,9 @@ function RpWochenView(props) {
       .then(function(r) { setList(r.data || []); setLoading(false); });
   }
   React.useEffect(load, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { load(); });
+  }, []);
 
   function autoFill(kw, jahr) {
     // load tagesrapporte for that KW and compute totals
@@ -27569,6 +27642,9 @@ function ViagensApp(props) {
     db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { doLoad(); });
   }
   React.useEffect(load, [year]);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { load(); });
+  }, []);
 
   function byMonth(m) { return trips.filter(function(t) { return t.mes === m; }); }
 
@@ -28512,6 +28588,9 @@ function VozApp(props) {
     });
   }
   React.useEffect(function() { carregar(); }, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { carregar(); });
+  }, []);
 
   // ── Gravar ──
   function iniciarGravacao() {
@@ -30117,6 +30196,9 @@ function WochenplanApp(props) {
     });
   }
   React.useEffect(function() { carregar(); }, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { carregar(); });
+  }, []);
 
   // Perfil "Monteur" arranca já com o próprio nome escolhido
   React.useEffect(function() {

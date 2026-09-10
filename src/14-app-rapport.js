@@ -266,6 +266,9 @@ function RpPlanungView(props) {
   }
 
   React.useEffect(function() { loadJobs(); }, [monday]);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { loadJobs(); });
+  }, []);
 
   function openNew(date) {
     setFDate(date || rpToday());
@@ -583,6 +586,9 @@ function RpTagesView(props) {
       .then(function(r) { setList(r.data || []); setLoading(false); });
   }
   React.useEffect(load, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { load(); });
+  }, []);
 
   function resetForm() {
     setFTyp('arbeitsrapport'); setFNr(''); setFDate(rpToday());
@@ -1034,6 +1040,9 @@ function RpWochenView(props) {
       .then(function(r) { setList(r.data || []); setLoading(false); });
   }
   React.useEffect(load, []);
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { load(); });
+  }, []);
 
   function autoFill(kw, jahr) {
     // load tagesrapporte for that KW and compute totals

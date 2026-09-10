@@ -271,8 +271,8 @@ var HauswartApp = function(props) {
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
 
-  React.useEffect(function() {
-    if (!window.supabaseClient) { setReady(true); return; }
+  var loadHauswartData = function() {
+    if (!window.supabaseClient) return;
     window.supabaseClient.from('hauswart_data').select('*').eq('member_id', owner).single()
       .then(function(res) {
         if (!res.error && res.data) {
@@ -293,6 +293,15 @@ var HauswartApp = function(props) {
         }
         setReady(true);
       });
+  };
+
+  React.useEffect(function() {
+    if (!window.supabaseClient) { setReady(true); return; }
+    loadHauswartData();
+  }, []);
+
+  React.useEffect(function () {
+    return window.csAoVoltarRede(function () { loadHauswartData(); });
   }, []);
 
   var hwSync = function(w, m, c, a) {
