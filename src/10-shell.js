@@ -305,6 +305,7 @@ function CarvalhoSuite() {
   var myDisplayName = (profile && (profile.display_name || profile.email)) || user.name;
   var myEmoji = profile && profile.is_admin ? '👑' : '👤';
   var isAdmin = !!(profile && profile.is_admin);
+  window.__cs_admin = isAdmin;
   var myAvatarEmoji = {
     patricio: '👨‍💼',
     esposa: '👩',
