@@ -2700,15 +2700,14 @@ function EscolarApp(_ref31) {
       }
     }))), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        var _document$getElementB9, _document$getElementB0;
-        var prof = ((_document$getElementB9 = document.getElementById("prof-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i))) === null || _document$getElementB9 === void 0 ? void 0 : _document$getElementB9.value) || '';
-        var tel = ((_document$getElementB0 = document.getElementById("tel-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i))) === null || _document$getElementB0 === void 0 ? void 0 : _document$getElementB0.value) || '';
+        var elProf = document.getElementById("prof-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i));
+        var elTel = document.getElementById("tel-".concat(alunoKey, "-").concat(dayIdx, "-").concat(i));
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             disciplinas: al.disciplinas.map(function (d) {
               return d.id === aula.discId ? _objectSpread(_objectSpread({}, d), {}, {
-                prof: prof,
-                tel: tel
+                prof: elProf ? elProf.value : d.prof,
+                tel: elTel ? elTel.value : d.tel
               }) : d;
             })
           });
@@ -3218,14 +3217,15 @@ function EscolarApp(_ref31) {
           var _document$getElementB1;
           return ((_document$getElementB1 = document.getElementById("disc-".concat(d.id, "-").concat(k))) === null || _document$getElementB1 === void 0 ? void 0 : _document$getElementB1.value) || '';
         };
+        var getEl = function (k) { return document.getElementById("disc-".concat(d.id, "-").concat(k)); };
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             disciplinas: al.disciplinas.map(function (x) {
               return x.id === d.id ? _objectSpread(_objectSpread({}, x), {}, {
                 nome: get('nome') || x.nome,
                 abr: get('abr') || x.abr,
-                prof: get('prof'),
-                tel: get('tel')
+                prof: (function () { var e = getEl('prof'); return e ? e.value : x.prof; })(),
+                tel: (function () { var e = getEl('tel'); return e ? e.value : x.tel; })()
               }) : x;
             })
           });
