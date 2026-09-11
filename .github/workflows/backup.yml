@@ -2,7 +2,7 @@ name: Backup Supabase Data
 
 on:
   schedule:
-    - cron: '0 3 * * 0'   # Todos os domingos às 03:00 UTC (04:00/05:00 na Suíça)
+    - cron: '0 3 * * *'   # Todos os dias às 03:00 UTC (04:00/05:00 na Suíça)
   workflow_dispatch: {}    # Permite correr manualmente em qualquer altura
 
 jobs:
