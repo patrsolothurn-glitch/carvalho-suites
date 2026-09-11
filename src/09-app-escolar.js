@@ -1114,7 +1114,7 @@ function EscolarApp(_ref31) {
   // Igual a setAluno, mas para uma chave explícita — necessário para os
   // Eventos escolares, que podem ter de gravar no snapshot de um aluno
   // que não é o que está a ser visto no ecrã (ex: evento para Lucas & Liam).
-  var setAlunoKey = function setAlunoKey(targetKey, fn, domain) {
+  var setAlunoPorChave = function setAlunoPorChave(targetKey, fn, domain) {
     return setAlunosData(function (p) {
       var newData = fn(p[targetKey]);
       _saveLatest[targetKey] = newData;
@@ -1146,7 +1146,7 @@ function EscolarApp(_ref31) {
     if (form.liam) targetKeys.push('liam');
     ['lucas', 'liam'].forEach(function (k) {
       var shouldHave = targetKeys.indexOf(k) !== -1;
-      setAlunoKey(k, function (al) {
+      setAlunoPorChave(k, function (al) {
         var semEste = (al.eventos || []).filter(function (ev) { return ev.id !== eventoId; });
         return _objectSpread(_objectSpread({}, al), {}, {
           eventos: shouldHave ? [].concat(_toConsumableArray(semEste), [payload]) : semEste
@@ -1156,7 +1156,7 @@ function EscolarApp(_ref31) {
   };
   var deleteEvento = function deleteEvento(eventoId) {
     ['lucas', 'liam'].forEach(function (k) {
-      setAlunoKey(k, function (al) {
+      setAlunoPorChave(k, function (al) {
         return _objectSpread(_objectSpread({}, al), {}, {
           eventos: (al.eventos || []).filter(function (ev) { return ev.id !== eventoId; })
         });
