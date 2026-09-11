@@ -219,11 +219,12 @@ function HwDatePick(props) {
 function HwFld(props) {
   var label = props.label, value = props.value, onChange = props.onChange;
   var type = props.type || 'text', step = props.step, min = props.min;
+  var inputMode = props.inputMode;
   var placeholder = props.placeholder || '', mono = props.mono;
   return React.createElement('div', { style: { marginBottom: 12 } },
     React.createElement('label', { style: { display: 'block', fontSize: 12, color: '#64748b', marginBottom: 4 } }, label),
     React.createElement('input', {
-      type: type, step: step, min: min,
+      type: type, step: step, min: min, inputMode: inputMode,
       value: value || '', placeholder: placeholder,
       onChange: function(e) { onChange(e.target.value); },
       style: { width: '100%', background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '9px 12px', color: '#f1f5f9', fontSize: mono ? 12 : 14, fontFamily: mono ? 'monospace' : 'inherit', boxSizing: 'border-box', outline: 'none' }
@@ -282,7 +283,8 @@ var HauswartApp = function(props) {
           if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats',  d.mats); }
           if (d.cfg   && Object.keys(d.cfg).length) { var m2 = Object.assign({}, HW_DEFAULTS, d.cfg); setCfgRaw(m2); hwSave('cfg', m2); }
           if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
-        } else {
+        } else if (res.error && res.error.code === 'PGRST116') {
+          // Linha genuinamente inexistente para este member_id — seguro semear a partir do localStorage.
           var lw = hwLoad('works') || []; var lm = hwLoad('mats') || [];
           var lc = hwLoad('cfg') || {}; var la = hwLoad('archive') || [];
           if (lw.length > 0 || lm.length > 0 || la.length > 0) {
@@ -299,6 +301,11 @@ var HauswartApp = function(props) {
               window.mostrarErro('Hauswart', e);
             });
           }
+        } else if (res.error) {
+          // Qualquer outro erro (rede, RLS, timeout...) NÃO significa "não há dados" —
+          // não escrever nada, manter o que já está em memória, só avisar.
+          console.warn('loadHauswartData:', res.error.message || res.error);
+          window.mostrarErro('Hauswart', res.error);
         }
         setReady(true);
       });
@@ -534,8 +541,8 @@ function HwWorkTab(props) {
       React.createElement(HwDatePick, { label: 'Datum', value: f.date, onChange: function(v) { upd('date', v); } }),
       React.createElement(HwFld, { label: 'Beschreibung', value: f.description, onChange: function(v) { upd('description', v); }, placeholder: 'z.B. Treppenhaus reinigen...' }),
       React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } },
-        React.createElement(HwFld, { label: 'Stunden', type: 'number', step: '0.25', value: f.hours, onChange: function(v) { upd('hours', v); } }),
-        React.createElement(HwFld, { label: 'CHF/Std.', type: 'number', step: '0.5', value: f.rate, onChange: function(v) { upd('rate', v); } })
+        React.createElement(HwFld, { label: 'Stunden', type: 'text', inputMode: 'decimal', value: f.hours, onChange: function(v) { upd('hours', v.replace(/[^0-9.,-]/g, '')); } }),
+        React.createElement(HwFld, { label: 'CHF/Std.', type: 'text', inputMode: 'decimal', value: f.rate, onChange: function(v) { upd('rate', v.replace(/[^0-9.,-]/g, '')); } })
       ),
       f.hours && f.rate && React.createElement('div', { style: Object.assign({}, S.card, { borderLeft: '3px solid #22c55e', marginBottom: 16 }) },
         React.createElement('div', { style: { fontSize: 12, color: '#64748b' } }, 'Total'),
@@ -599,7 +606,7 @@ function HwMatsTab(props) {
       React.createElement(HwHdr, { title: editing ? 'Material bearbeiten' : 'Neues Material', back: function() { setView('list'); } }),
       React.createElement(HwDatePick, { label: 'Datum', value: f.date, onChange: function(v) { upd('date', v); } }),
       React.createElement(HwFld, { label: 'Beschreibung', value: f.description, onChange: function(v) { upd('description', v); }, placeholder: 'z.B. Reinigungsmittel 5L...' }),
-      React.createElement(HwFld, { label: 'Preis (CHF)', type: 'number', step: '0.05', value: f.price, onChange: function(v) { upd('price', v); }, placeholder: '0.00' }),
+      React.createElement(HwFld, { label: 'Preis (CHF)', type: 'text', inputMode: 'decimal', value: f.price, onChange: function(v) { upd('price', v.replace(/[^0-9.,-]/g, '')); }, placeholder: '0.00' }),
       React.createElement('button', { onClick: onSave, style: S.btn }, editing ? '✓ Speichern' : '+ Hinzufügen')
     );
   }
@@ -738,7 +745,10 @@ function HwCfgTab(props) {
   var saved = _useStateSaved[0], setSaved = _useStateSaved[1];
   var upd = function(k, v) { setF(function(p) { var n = {}; Object.assign(n, p); n[k] = v; return n; }); };
 
-  var onSave = function() { updC(f); setSaved(true); setTimeout(function() { setSaved(false); }, 2000); };
+  var onSave = function() {
+    updC(Object.assign({}, f, { pauschale: hwNum(f.pauschale) || 0, rate: hwNum(f.rate) || 35 }));
+    setSaved(true); setTimeout(function() { setSaved(false); }, 2000);
+  };
 
   return React.createElement('div', null,
     React.createElement(HwHdr, { title: 'Einstellungen' }),
@@ -762,8 +772,8 @@ function HwCfgTab(props) {
 
     React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 12 }) },
       React.createElement('div', { style: S.secLabel }, '💰 Preços'),
-      React.createElement(HwFld, { label: 'Quartalspauschale (CHF)', type: 'number', step: '10', value: f.pauschale, onChange: function(v) { upd('pauschale', parseFloat(v) || 0); } }),
-      React.createElement(HwFld, { label: 'CHF/Stunde (extra)', type: 'number', step: '0.5', value: f.rate, onChange: function(v) { upd('rate', parseFloat(v) || 35); } })
+      React.createElement(HwFld, { label: 'Quartalspauschale (CHF)', type: 'text', inputMode: 'decimal', value: f.pauschale, onChange: function(v) { upd('pauschale', v.replace(/[^0-9.,-]/g, '')); } }),
+      React.createElement(HwFld, { label: 'CHF/Stunde (extra)', type: 'text', inputMode: 'decimal', value: f.rate, onChange: function(v) { upd('rate', v.replace(/[^0-9.,-]/g, '')); } })
     ),
 
     React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 12 }) },
