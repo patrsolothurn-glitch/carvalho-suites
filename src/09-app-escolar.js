@@ -905,12 +905,11 @@ function EscolarApp(_ref31) {
         if (r && r.error) console.warn('[escolar] INSERT ' + tbl + ' falhou:', r.error.message || r.error);
       };
     };
+    var isBadDiscId = function isBadDiscId(v) {
+      return v === null || v === undefined || Number.isNaN(v);
+    };
     var ps = [];
-    if (inc('disciplinas')) ps.push(sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE disciplinas falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
-        return;
-      }
+    if (inc('disciplinas')) ps.push((function () {
       var rows = (data.disciplinas || []).map(function (d) {
         return {
           id: d.id,
@@ -923,13 +922,29 @@ function EscolarApp(_ref31) {
           cor: d.cor || ''
         };
       });
-      if (rows.length > 0) return sb.from('escolar_disciplinas').insert(rows).then(logIns('disciplinas'));
-    }).catch(function (e) { console.warn('[escolar] erro disciplinas:', e); }));
-    if (inc('horario')) ps.push(sb.from('escolar_horario').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE horario falhou — NAO inserindo:', delRes.error.message);
-        return;
+      var apagarEInserir = function apagarEInserir() {
+        return sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
+          if (delRes && delRes.error) {
+            console.warn('[escolar] DELETE disciplinas falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
+            return;
+          }
+          if (rows.length > 0) return sb.from('escolar_disciplinas').insert(rows).then(logIns('disciplinas'));
+        }).catch(function (e) { console.warn('[escolar] erro disciplinas:', e); });
+      };
+      if (rows.length === 0) {
+        return sb.from('escolar_disciplinas').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
+          var n = (cntRes && cntRes.count) || 0;
+          if (n >= 2) {
+            console.warn('[escolar] disciplinas: gravacao cancelada, ' + n + ' registos ficariam perdidos');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de disciplinas cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
+            return;
+          }
+          return apagarEInserir();
+        }).catch(function (e) { console.warn('[escolar] erro contagem disciplinas:', e); });
       }
+      return apagarEInserir();
+    })());
+    if (inc('horario')) ps.push((function () {
       var rows = [];
       Object.keys(data.horario || {}).forEach(function (dia) {
         (data.horario[dia] || []).forEach(function (slot) {
@@ -944,13 +959,35 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      if (rows.length > 0) return sb.from('escolar_horario').insert(rows).then(logIns('horario'));
-    }).catch(function (e) { console.warn('[escolar] erro horario:', e); }));
-    if (inc('notas')) ps.push(sb.from('escolar_notas').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE notas falhou:', delRes.error.message);
-        return;
+      var semDisciplina = rows.filter(function (r) { return !r.livre && isBadDiscId(r.disc_id); });
+      if (semDisciplina.length > 0) {
+        console.warn('[escolar] horario: gravacao cancelada, ' + semDisciplina.length + ' aulas sem disciplina');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        return Promise.resolve();
       }
+      var apagarEInserir = function apagarEInserir() {
+        return sb.from('escolar_horario').delete().eq('aluno', key).then(function (delRes) {
+          if (delRes && delRes.error) {
+            console.warn('[escolar] DELETE horario falhou — NAO inserindo:', delRes.error.message);
+            return;
+          }
+          if (rows.length > 0) return sb.from('escolar_horario').insert(rows).then(logIns('horario'));
+        }).catch(function (e) { console.warn('[escolar] erro horario:', e); });
+      };
+      if (rows.length === 0) {
+        return sb.from('escolar_horario').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
+          var n = (cntRes && cntRes.count) || 0;
+          if (n >= 2) {
+            console.warn('[escolar] horario: gravacao cancelada, ' + n + ' registos ficariam perdidos');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
+            return;
+          }
+          return apagarEInserir();
+        }).catch(function (e) { console.warn('[escolar] erro contagem horario:', e); });
+      }
+      return apagarEInserir();
+    })());
+    if (inc('notas')) ps.push((function () {
       var rows = [];
       Object.keys(data.notas || {}).forEach(function (discId) {
         Object.keys(data.notas[discId] || {}).forEach(function (sem) {
@@ -964,13 +1001,35 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      if (rows.length > 0) return sb.from('escolar_notas').insert(rows).then(logIns('notas'));
-    }).catch(function (e) { console.warn('[escolar] erro notas:', e); }));
-    if (inc('tpc')) ps.push(sb.from('escolar_tpc').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE tpc falhou:', delRes.error.message);
-        return;
+      var semDisciplina = rows.filter(function (r) { return isBadDiscId(r.disc_id); });
+      if (semDisciplina.length > 0) {
+        console.warn('[escolar] notas: gravacao cancelada, ' + semDisciplina.length + ' notas sem disciplina');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de notas cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        return Promise.resolve();
       }
+      var apagarEInserir = function apagarEInserir() {
+        return sb.from('escolar_notas').delete().eq('aluno', key).then(function (delRes) {
+          if (delRes && delRes.error) {
+            console.warn('[escolar] DELETE notas falhou:', delRes.error.message);
+            return;
+          }
+          if (rows.length > 0) return sb.from('escolar_notas').insert(rows).then(logIns('notas'));
+        }).catch(function (e) { console.warn('[escolar] erro notas:', e); });
+      };
+      if (rows.length === 0) {
+        return sb.from('escolar_notas').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
+          var n = (cntRes && cntRes.count) || 0;
+          if (n >= 2) {
+            console.warn('[escolar] notas: gravacao cancelada, ' + n + ' registos ficariam perdidos');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de notas cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
+            return;
+          }
+          return apagarEInserir();
+        }).catch(function (e) { console.warn('[escolar] erro contagem notas:', e); });
+      }
+      return apagarEInserir();
+    })());
+    if (inc('tpc')) ps.push((function () {
       var rows = (data.tpc || []).map(function (t) {
         return {
           id: t.id,
@@ -982,13 +1041,35 @@ function EscolarApp(_ref31) {
           tipo: t.tipo || 'tpc'
         };
       });
-      if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
-    }).catch(function (e) { console.warn('[escolar] erro tpc:', e); }));
-    if (inc('eventos')) ps.push(sb.from('escolar_eventos').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE eventos falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
-        return;
+      var semDisciplina = rows.filter(function (r) { return isBadDiscId(r.disc_id); });
+      if (semDisciplina.length > 0) {
+        console.warn('[escolar] tpc: gravacao cancelada, ' + semDisciplina.length + ' registos sem disciplina');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        return Promise.resolve();
       }
+      var apagarEInserir = function apagarEInserir() {
+        return sb.from('escolar_tpc').delete().eq('aluno', key).then(function (delRes) {
+          if (delRes && delRes.error) {
+            console.warn('[escolar] DELETE tpc falhou:', delRes.error.message);
+            return;
+          }
+          if (rows.length > 0) return sb.from('escolar_tpc').insert(rows).then(logIns('tpc'));
+        }).catch(function (e) { console.warn('[escolar] erro tpc:', e); });
+      };
+      if (rows.length === 0) {
+        return sb.from('escolar_tpc').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
+          var n = (cntRes && cntRes.count) || 0;
+          if (n >= 2) {
+            console.warn('[escolar] tpc: gravacao cancelada, ' + n + ' registos ficariam perdidos');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
+            return;
+          }
+          return apagarEInserir();
+        }).catch(function (e) { console.warn('[escolar] erro contagem tpc:', e); });
+      }
+      return apagarEInserir();
+    })());
+    if (inc('eventos')) ps.push((function () {
       var rows = (data.eventos || []).map(function (ev) {
         return {
           id: ev.id,
@@ -999,8 +1080,28 @@ function EscolarApp(_ref31) {
           nota: ev.nota || ''
         };
       });
-      if (rows.length > 0) return sb.from('escolar_eventos').insert(rows).then(logIns('eventos'));
-    }).catch(function (e) { console.warn('[escolar] erro eventos:', e); }));
+      var apagarEInserir = function apagarEInserir() {
+        return sb.from('escolar_eventos').delete().eq('aluno', key).then(function (delRes) {
+          if (delRes && delRes.error) {
+            console.warn('[escolar] DELETE eventos falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
+            return;
+          }
+          if (rows.length > 0) return sb.from('escolar_eventos').insert(rows).then(logIns('eventos'));
+        }).catch(function (e) { console.warn('[escolar] erro eventos:', e); });
+      };
+      if (rows.length === 0) {
+        return sb.from('escolar_eventos').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
+          var n = (cntRes && cntRes.count) || 0;
+          if (n >= 2) {
+            console.warn('[escolar] eventos: gravacao cancelada, ' + n + ' registos ficariam perdidos');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de eventos cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
+            return;
+          }
+          return apagarEInserir();
+        }).catch(function (e) { console.warn('[escolar] erro contagem eventos:', e); });
+      }
+      return apagarEInserir();
+    })());
     if (inc('perfil')) ps.push(sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
       if (delRes && delRes.error) {
         console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
