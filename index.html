@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-11T09:41:18.160Z
+  Gerado em: 2026-09-11T09:56:33.333Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-282";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-283";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25128,6 +25128,7 @@ function hwFmtDate(d) {
   return new Date(d + 'T12:00:00').toLocaleDateString('de-CH');
 }
 function hwToday() { return new Date().toISOString().slice(0,10); }
+function hwNum(v) { return parseFloat(String(v).replace(',', '.')); }
 
 // ── DatePick ──
 function hwPlus30Days(dt) {
@@ -25370,7 +25371,15 @@ var HauswartApp = function(props) {
             window.supabaseClient.from('hauswart_data').upsert(
               { member_id: owner, works: lw, mats: lm, cfg: lc, archive: la, updated_at: new Date().toISOString() },
               { onConflict: 'member_id' }
-            ).then(function() {});
+            ).then(function(res2) {
+              if (res2 && res2.error && res2.error.code !== 'PGRST205') {
+                console.warn('loadHauswartData seed:', res2.error.message);
+                window.mostrarErro('Hauswart', res2.error);
+              }
+            }).catch(function(e) {
+              console.warn('loadHauswartData seed erro:', e);
+              window.mostrarErro('Hauswart', e);
+            });
           }
         }
         setReady(true);
@@ -25393,7 +25402,13 @@ var HauswartApp = function(props) {
       { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: new Date().toISOString() },
       { onConflict: 'member_id' }
     ).then(function(res) {
-      if (res && res.error && res.error.code !== 'PGRST205') console.warn('hwSync:', res.error.message);
+      if (res && res.error && res.error.code !== 'PGRST205') {
+        console.warn('hwSync:', res.error.message);
+        window.mostrarErro('Hauswart', res.error);
+      }
+    }).catch(function(e) {
+      console.warn('hwSync erro:', e);
+      window.mostrarErro('Hauswart', e);
     });
   };
 
@@ -25458,13 +25473,18 @@ var HauswartApp = function(props) {
           works: works.slice(),
           mats: mats.slice(),
           cfg: Object.assign({}, cfg),
+          invoiceDate: cfg.invoiceDate,
           dateArchived: hwToday(),
           paid: false,
           datePaid: null,
         };
-        updA(archive.concat([entry]));
-        updW([]); updM([]);
-        updC(Object.assign({}, cfg, { invoiceDate: '', serviceDate: '' }));
+        var novoArchive = archive.concat([entry]);
+        var novoCfg = Object.assign({}, cfg, { invoiceDate: '', serviceDate: '' });
+        setArchiveRaw(novoArchive);
+        setWorksRaw([]);
+        setMatsRaw([]);
+        setCfgRaw(novoCfg);
+        hwSync([], [], novoCfg, novoArchive);
         setPrint(false); setTab('arquivo');
       }
     });
@@ -25498,7 +25518,10 @@ var HauswartApp = function(props) {
       tab === 'dash' && React.createElement(HwDash, { works: works, mats: mats, pauschale: pauschale, total: total, totalWork: totalWork, totalMats: totalMats, setTab: setTab, S: S, cfg: cfg }),
       tab === 'work' && React.createElement(HwWorkTab, { works: works, cfg: cfg, updW: updW, S: S }),
       tab === 'mats' && React.createElement(HwMatsTab, { mats: mats, updM: updM, S: S }),
-      tab === 'invoice' && React.createElement(HwInvoiceTab, { works: works, mats: mats, cfg: cfg, total: total, totalWork: totalWork, totalMats: totalMats, pauschale: pauschale, beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, updC: updC, onPrint: function() { setPrint(true); }, S: S }),
+      tab === 'invoice' && React.createElement(HwInvoiceTab, { works: works, mats: mats, cfg: cfg, total: total, totalWork: totalWork, totalMats: totalMats, pauschale: pauschale, beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, updC: updC, onPrint: function() {
+        if (!cfg.invoiceDate) { window.alert('Preenche primeiro a Data de envio (Rechnungsdatum) nas Definições.'); return; }
+        setPrint(true);
+      }, S: S }),
       tab === 'arquivo' && React.createElement(HwArquivoTab, { archive: archive, updA: updA, S: S }),
       tab === 'cfg' && React.createElement(HwCfgTab, { cfg: cfg, updC: updC, S: S })
     ),
@@ -25577,8 +25600,9 @@ function HwWorkTab(props) {
   var openNew = function() { setF({ date: hwToday(), description: '', hours: 1, rate: cfg.rate || 35 }); setEditing(null); setView('form'); };
   var openEdit = function(w) { setF(Object.assign({}, w)); setEditing(w); setView('form'); };
   var onSave = function() {
-    if (!f.description || !f.hours) return;
-    var entry = Object.assign({}, f, { hours: parseFloat(f.hours), rate: parseFloat(f.rate) });
+    var hours = hwNum(f.hours), rate = hwNum(f.rate);
+    if (!f.description || !hours) { window.alert('Preenche a descrição e as horas (usa ponto ou vírgula, ex: 1.5 ou 1,5).'); return; }
+    var entry = Object.assign({}, f, { hours: hours, rate: rate });
     if (editing) updW(works.map(function(w) { return w.id === f.id ? entry : w; }));
     else updW(works.concat([Object.assign({}, entry, { id: hwUid() })]));
     setView('list');
@@ -25597,7 +25621,7 @@ function HwWorkTab(props) {
       ),
       f.hours && f.rate && React.createElement('div', { style: Object.assign({}, S.card, { borderLeft: '3px solid #22c55e', marginBottom: 16 }) },
         React.createElement('div', { style: { fontSize: 12, color: '#64748b' } }, 'Total'),
-        React.createElement('div', { style: { fontSize: 22, fontWeight: 700, color: '#22c55e' } }, hwChf(parseFloat(f.hours||0) * parseFloat(f.rate||0)))
+        React.createElement('div', { style: { fontSize: 22, fontWeight: 700, color: '#22c55e' } }, hwChf(hwNum(f.hours||0) * hwNum(f.rate||0)))
       ),
       React.createElement('button', { onClick: onSave, style: S.btn }, editing ? '✓ Speichern' : '+ Hinzufügen')
     );
@@ -25643,9 +25667,10 @@ function HwMatsTab(props) {
   var openNew = function() { setF({ date: hwToday(), description: '', price: '' }); setEditing(null); setView('form'); };
   var openEdit = function(m) { setF(Object.assign({}, m)); setEditing(m); setView('form'); };
   var onSave = function() {
-    if (!f.description || !f.price) return;
-    if (editing) updM(mats.map(function(m) { return m.id === f.id ? Object.assign({}, f, { price: parseFloat(f.price) }) : m; }));
-    else updM(mats.concat([Object.assign({}, f, { id: hwUid(), price: parseFloat(f.price) })]));
+    var price = hwNum(f.price);
+    if (!f.description || !price) { window.alert('Preenche a descrição e o preço (usa ponto ou vírgula, ex: 5.50 ou 5,50).'); return; }
+    if (editing) updM(mats.map(function(m) { return m.id === f.id ? Object.assign({}, f, { price: price }) : m; }));
+    else updM(mats.concat([Object.assign({}, f, { id: hwUid(), price: price })]));
     setView('list');
   };
   var onDel = function(id) { if (confirm('Löschen?')) updM(mats.filter(function(m) { return m.id !== id; })); };
@@ -25760,7 +25785,7 @@ function HwInvoiceTab(props) {
     React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 14 }) },
       React.createElement('div', { style: S.secLabel }, '📅 Datas da fatura'),
       React.createElement(HwDatePick, { label: '🚀 Data de envio (Rechnungsdatum)', value: cfg.invoiceDate || '', onChange: function(v) { updC(Object.assign({}, cfg, { invoiceDate: v })); } }),
-      !cfg.invoiceDate && React.createElement('div', { style: { fontSize: 11, color: '#475569', marginTop: -8, marginBottom: 10 } }, '📌 Vazio = hoje automático'),
+      !cfg.invoiceDate && React.createElement('div', { style: { fontSize: 11, color: '#f87171', marginTop: -8, marginBottom: 10 } }, '⚠️ Obrigatório antes de imprimir'),
       React.createElement('div', { style: { marginTop: 10, fontSize: 12, color: '#64748b' } }, '📋 Leistungszeitraum (automático pelo trimestre)'),
       React.createElement('div', { style: { background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: '9px 12px', color: '#93c5fd', fontSize: 13, fontWeight: 600, marginTop: 4 } },
         (function() {
@@ -26135,7 +26160,7 @@ function HwPrintView(props) {
             + '<div class="zahl">'
             + '<div style="font-size:12px;font-weight:900;margin-bottom:6px;">Zahlteil</div>'
             + '<div style="display:flex;gap:8px;align-items:flex-start;">'
-            + '<div><img src="' + qrUrl + '" class="qrimg" alt="QR"/>'
+            + '<div><img src="' + qrUrl + '" class="qrimg" alt="QR" onerror="var d=document.createElement(\'div\');d.className=\'qrimg qrerr\';d.style.cssText=\'background:#7f1d1d;border:1px solid #ef4444;color:#fff;font-weight:700;font-size:7px;line-height:1.3;padding:4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;\';d.textContent=\'⚠️ QR não carregou — NÃO IMPRIMIR. Verifica a ligação e recarrega.\';this.parentNode.replaceChild(d,this);"/>'
             + '<div class="row"><div class="col"><div class="lbl">Währung</div><div class="big">CHF</div></div><div class="col"><div class="lbl">Betrag</div><div class="big">' + total.toFixed(2) + '</div></div></div>'
             + '</div>'
             + '<div style="flex:1;min-width:0;">'
@@ -26363,6 +26388,9 @@ function HwZahlteil(props) {
   var qrData = hwQrContent(cfg, total, referenz);
   var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=175x175&ecc=M&data=' + encodeURIComponent(qrData);
 
+  var _useStateQrFail = React.useState(false);
+  var qrFailed = _useStateQrFail[0], setQrFailed = _useStateQrFail[1];
+
   var F = { fontFamily: 'Arial, Helvetica, sans-serif', color: '#000' };
   var label = function(t) { return React.createElement('div', { style: Object.assign({}, F, { fontSize: 7, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }) }, t); };
   var val = function(t) { return React.createElement('div', { style: Object.assign({}, F, { fontSize: 9, lineHeight: 1.5 }) }, t); };
@@ -26392,10 +26420,15 @@ function HwZahlteil(props) {
     React.createElement('div', { style: { display: 'flex', gap: '5mm', alignItems: 'flex-start' } },
       // QR code block
       React.createElement('div', null,
-        React.createElement('img', {
-          src: qrUrl, width: 133, height: 133, alt: 'Swiss QR',
-          style: { display: 'block', border: '1px solid #e0e0e0' }
-        }),
+        qrFailed
+          ? React.createElement('div', {
+              style: { width: 133, height: 133, boxSizing: 'border-box', background: '#7f1d1d', border: '1px solid #ef4444', color: '#fff', fontWeight: 700, fontSize: 9, lineHeight: 1.3, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }
+            }, '⚠️ QR não carregou — NÃO IMPRIMIR. Verifica a ligação e recarrega.')
+          : React.createElement('img', {
+              src: qrUrl, width: 133, height: 133, alt: 'Swiss QR',
+              style: { display: 'block', border: '1px solid #e0e0e0' },
+              onError: function() { setQrFailed(true); }
+            }),
         React.createElement('div', { style: { display: 'flex', gap: 12, marginTop: '4mm' } },
           React.createElement('div', null, label('Währung'), React.createElement('div', { style: Object.assign({}, F, { fontSize: 12, fontWeight: 700 }) }, 'CHF')),
           React.createElement('div', null, label('Betrag'), React.createElement('div', { style: Object.assign({}, F, { fontSize: 12, fontWeight: 700 }) }, total.toFixed(2)))
