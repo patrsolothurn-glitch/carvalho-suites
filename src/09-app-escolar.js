@@ -1398,6 +1398,9 @@ function EscolarApp(_ref31) {
     if (n === null || n === undefined || isNaN(n)) return '';
     return parseFloat(Number(n).toFixed(2)).toString();
   };
+  // SEK P Grenchen (Lucas): média mínima 4.0 e 19 pontos nas 5 notas mais
+  // baixas. O Liam está na primária de Selzach, onde esta regra não existe.
+  var temRegraSekP = alunoKey === 'lucas';
   var calcMediaGeral = function calcMediaGeral(sem) {
     var todas = aluno.disciplinas.map(function (d) {
       return {
@@ -1463,6 +1466,9 @@ function EscolarApp(_ref31) {
       return (a.dataInicio || '').localeCompare(b.dataInicio || '');
     });
   })();
+  var eventosDoAluno = todosEventos.filter(function (ev) {
+    return (ev.alunos || []).indexOf(alunoKey) !== -1;
+  });
   // Calendar helpers
   var yr = calMonth.getFullYear(),
     mo = calMonth.getMonth();
@@ -1482,7 +1488,7 @@ function EscolarApp(_ref31) {
   };
   var getDayEventos = function getDayEventos(d) {
     var dStr = "".concat(yr, "-").concat(String(mo + 1).padStart(2, '0'), "-").concat(String(d).padStart(2, '0'));
-    return todosEventos.filter(function (ev) {
+    return eventosDoAluno.filter(function (ev) {
       var fim = ev.dataFim || ev.dataInicio;
       return ev.dataInicio && dStr >= ev.dataInicio && dStr <= fim;
     });
@@ -3880,13 +3886,13 @@ function EscolarApp(_ref31) {
       flex: 2, background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"), border: 'none',
       borderRadius: 10, padding: '10px', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer'
     }
-  }, "✓ Guardar"))), todosEventos.length === 0 && !showAddEvento && /*#__PURE__*/React.createElement(ECard, {
+  }, "✓ Guardar"))), eventosDoAluno.length === 0 && !showAddEvento && /*#__PURE__*/React.createElement(ECard, {
     style: { padding: '24px', textAlign: 'center' }
   }, /*#__PURE__*/React.createElement("span", {
     style: { fontSize: 32 }
   }, "📢"), /*#__PURE__*/React.createElement("p", {
     style: { color: E.muted, fontSize: 13, marginTop: 8 }
-  }, "Sem eventos escolares marcados")), todosEventos.map(function (ev) {
+  }, "Sem eventos escolares marcados")), eventosDoAluno.map(function (ev) {
     var _todayStrEv = new Date().toISOString().slice(0, 10);
     var isPast = (ev.dataFim || ev.dataInicio) < _todayStrEv;
     return /*#__PURE__*/React.createElement(EventoRow, {
@@ -4701,7 +4707,7 @@ function EscolarApp(_ref31) {
     }, s, "\xBA Semestre");
   })), function () {
     var mg = calcMediaGeral(semestre);
-    if (!mg) return null;
+    if (!temRegraSekP || !mg) return null;
     return /*#__PURE__*/React.createElement(ECard, {
       style: {
         padding: '14px',
@@ -5041,7 +5047,7 @@ function EscolarApp(_ref31) {
     }, s, "\xBA Semestre");
   })), function () {
     var mg = calcMediaGeral(semestre);
-    if (!mg) return null;
+    if (!temRegraSekP || !mg) return null;
     return /*#__PURE__*/React.createElement(ECard, {
       style: {
         padding: '14px',
@@ -5238,7 +5244,7 @@ function EscolarApp(_ref31) {
         fontSize: "8",
         fill: "#555"
       }, disc.nome.slice(0, 5)));
-    }), /*#__PURE__*/React.createElement("line", {
+    }), temRegraSekP && /*#__PURE__*/React.createElement("line", {
       x1: "28",
       y1: 140 - (4 - 1) / 5 * 120,
       x2: w,
@@ -5247,7 +5253,7 @@ function EscolarApp(_ref31) {
       strokeWidth: "1.5",
       strokeDasharray: "5,3"
     }));
-  }()), /*#__PURE__*/React.createElement("p", {
+  }()), temRegraSekP && /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
