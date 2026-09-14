@@ -152,6 +152,10 @@ function FamiliaApp(_ref19) {
     _useStateAddingEvent2 = _slicedToArray(_useStateAddingEvent, 2),
     addingEvent = _useStateAddingEvent2[0],
     setAddingEvent = _useStateAddingEvent2[1];
+  var _useStateAddEvErr = (0, _react.useState)(''),
+    _useStateAddEvErr2 = _slicedToArray(_useStateAddEvErr, 2),
+    addEvErr = _useStateAddEvErr2[0],
+    setAddEvErr = _useStateAddEvErr2[1];
   var _useStateFotoLightbox = (0, _react.useState)(null),
     _useStateFotoLightbox2 = _slicedToArray(_useStateFotoLightbox, 2),
     fotoLightbox = _useStateFotoLightbox2[0],
@@ -586,6 +590,11 @@ function FamiliaApp(_ref19) {
   var addEvent = function addEvent() {
     if (!form.titulo || !form.dataDE) return;
     if (addingEvent) return;
+    if (!window.supabaseClient) {
+      setAddEvErr('Sem ligação ao servidor — não foi guardado.');
+      return;
+    }
+    setAddEvErr('');
     setAddingEvent(true);
     var participantes = form.participantes && form.participantes.length > 0 ? form.participantes : ['todos'];
     var firstSpecific = participantes.find(function (id) {
@@ -621,71 +630,91 @@ function FamiliaApp(_ref19) {
       });
       return np;
     });
-    if (window.supabaseClient) {
-      var rows = Object.keys(updates).map(function (d) {
-        return {
-          member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
-          participant_ids: participantes,
-          title: ev.t,
-          description: ev.nota || null,
-          event_date: d,
-          event_time: ev.hora || null,
-          emoji: ev.emoji,
-          color: ev.color,
-          categoria: ev.categoria,
-          reminder_minutes: form.lembrete || null,
-          photo_url: ev.foto || null,
-          created_by: currentMemberId
-        };
+    var removeOptimistic = function removeOptimistic() {
+      setEvents(function (p) {
+        var np = _objectSpread({}, p);
+        Object.keys(updates).forEach(function (d) {
+          if (!np[d]) return;
+          np[d] = np[d].filter(function (item) {
+            return item !== ev;
+          });
+        });
+        return np;
       });
-      window.supabaseClient.from('family_events').insert(rows).select('id').then(function (insRes) {
-        // Sabendo já o id real, marcamos a foto acabada de criar como
-        // "conhecida" antes do reload — assim loadFamilyEvents() não a
-        // troca pelo botão "carregar foto" só porque ainda não tinha id.
-        var insertedIds = ((insRes && insRes.data) || []).map(function (r) { return r.id; });
-        if (insertedIds.length && ev.foto) {
-          var patchId = insertedIds[0];
-          setEvents(function (p) {
-            var np = _objectSpread({}, p);
-            Object.keys(updates).forEach(function (d) {
-              if (!np[d]) return;
-              np[d] = np[d].map(function (item) {
-                return item === ev ? _objectSpread(_objectSpread({}, item), {}, { id: patchId }) : item;
-              });
-            });
-            return np;
-          });
-        }
-        loadFamilyEvents();
-        try {
-          getEligibleProfileIds('familia', null).then(function (ids) {
-            if (!ids.length) return;
-            window.supabaseClient.functions.invoke('send-push', {
-              body: {
-                title: 'Família Carvalho',
-                body: ev.t + (ev.hora ? ' · ' + ev.hora : ''),
-                profileIds: ids
-              }
-            }).catch(function () {});
-          });
-        } catch (e) {}
-      }).catch(function () {});
-    }
-    setForm({
-      titulo: '',
-      emoji: '📅',
-      participantes: ['todos'],
-      categoria: 'familia',
-      dataDE: '',
-      dataATE: '',
-      hora: '',
-      diaTodo: false,
-      nota: '',
-      lembrete: null,
-      foto: null
+    };
+    var rows = Object.keys(updates).map(function (d) {
+      return {
+        member_id: participantes.indexOf('todos') !== -1 ? null : participantes[0],
+        participant_ids: participantes,
+        title: ev.t,
+        description: ev.nota || null,
+        event_date: d,
+        event_time: ev.hora || null,
+        emoji: ev.emoji,
+        color: ev.color,
+        categoria: ev.categoria,
+        reminder_minutes: form.lembrete || null,
+        photo_url: ev.foto || null,
+        created_by: currentMemberId
+      };
     });
-    setAddingEvent(false);
-    setShowAdd(false);
+    window.supabaseClient.from('family_events').insert(rows).select('id').then(function (insRes) {
+      setAddingEvent(false);
+      if (insRes && insRes.error) {
+        setAddEvErr('Erro ao guardar: ' + insRes.error.message);
+        removeOptimistic();
+        return;
+      }
+      setAddEvErr('');
+      // Sabendo já o id real, marcamos a foto acabada de criar como
+      // "conhecida" antes do reload — assim loadFamilyEvents() não a
+      // troca pelo botão "carregar foto" só porque ainda não tinha id.
+      var insertedIds = ((insRes && insRes.data) || []).map(function (r) { return r.id; });
+      if (insertedIds.length && ev.foto) {
+        var patchId = insertedIds[0];
+        setEvents(function (p) {
+          var np = _objectSpread({}, p);
+          Object.keys(updates).forEach(function (d) {
+            if (!np[d]) return;
+            np[d] = np[d].map(function (item) {
+              return item === ev ? _objectSpread(_objectSpread({}, item), {}, { id: patchId }) : item;
+            });
+          });
+          return np;
+        });
+      }
+      loadFamilyEvents();
+      try {
+        getEligibleProfileIds('familia', null).then(function (ids) {
+          if (!ids.length) return;
+          window.supabaseClient.functions.invoke('send-push', {
+            body: {
+              title: 'Família Carvalho',
+              body: ev.t + (ev.hora ? ' · ' + ev.hora : ''),
+              profileIds: ids
+            }
+          }).catch(function () {});
+        });
+      } catch (e) {}
+      setForm({
+        titulo: '',
+        emoji: '📅',
+        participantes: ['todos'],
+        categoria: 'familia',
+        dataDE: '',
+        dataATE: '',
+        hora: '',
+        diaTodo: false,
+        nota: '',
+        lembrete: null,
+        foto: null
+      });
+      setShowAdd(false);
+    }).catch(function (e) {
+      setAddingEvent(false);
+      setAddEvErr('Erro de ligação: ' + (e && e.message || String(e)));
+      removeOptimistic();
+    });
   };
   var FCard = function FCard(_ref20) {
     var children = _ref20.children,
@@ -2036,19 +2065,34 @@ function FamiliaApp(_ref19) {
           return;
         }
         if (window.supabaseClient && ev.id) {
-          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function () { }).catch(function () {});
-          try {
-            getEligibleProfileIds('familia', null).then(function (ids) {
-              if (!ids.length) return;
-              window.supabaseClient.functions.invoke('send-push', {
-                body: {
-                  title: 'Fam\u00edlia Carvalho',
-                  body: '\uD83D\uDDD1\uFE0F ' + ev.t + ' foi apagado',
-                  profileIds: ids
-                }
-              }).catch(function () {});
+          window.supabaseClient.from('family_events').delete().eq('id', ev.id).then(function (res) {
+            if (res && res.error) {
+              window.mostrarErro('Fam\u00edlia Carvalho', res.error);
+              return;
+            }
+            try {
+              getEligibleProfileIds('familia', null).then(function (ids) {
+                if (!ids.length) return;
+                window.supabaseClient.functions.invoke('send-push', {
+                  body: {
+                    title: 'Fam\u00edlia Carvalho',
+                    body: '\uD83D\uDDD1\uFE0F ' + ev.t + ' foi apagado',
+                    profileIds: ids
+                  }
+                }).catch(function () {});
+              });
+            } catch (e) {}
+            (verArquivados ? setEventsArquivados : setEvents)(function (p) {
+              var d = _objectSpread({}, p);
+              d[selDateStr] = (d[selDateStr] || []).filter(function (item) {
+                return item.id !== ev.id;
+              });
+              return d;
             });
-          } catch (e) {}
+          }).catch(function (e) {
+            window.mostrarErro('Fam\u00edlia Carvalho', e);
+          });
+          return;
         }
         return (verArquivados ? setEventsArquivados : setEvents)(function (p) {
           var d = _objectSpread({}, p);
@@ -3085,10 +3129,29 @@ function FamiliaApp(_ref19) {
                 window.alert('Saltado ' + allIds.length + ' evento(s) \u2014 vem do ' + (ev.source === 'agenda_pro' ? 'Patricio Work' : ev.source === 'escolar' ? 'Vida Escolar' : ev.source) + ', apaga-o l\u00E1.');
                 return;
               }
-              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').delete().eq('id', id).then(function() {}).catch(function() {}); });
-              allDates.forEach(function (d) {
-                setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
-                setEvents(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
+              var removeIds = function removeIds(ids) {
+                allDates.forEach(function (d) {
+                  setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return ids.indexOf(it.id) === -1; }); return nx; });
+                  setEvents(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return ids.indexOf(it.id) === -1; }); return nx; });
+                });
+              };
+              if (!window.supabaseClient) {
+                removeIds(allIds);
+                return;
+              }
+              Promise.all(allIds.map(function (id) {
+                return window.supabaseClient.from('family_events').delete().eq('id', id).then(function (res) {
+                  return { id: id, ok: !(res && res.error) };
+                }).catch(function () {
+                  return { id: id, ok: false };
+                });
+              })).then(function (results) {
+                var okIds = results.filter(function (r) { return r.ok; }).map(function (r) { return r.id; });
+                var failCount = results.length - okIds.length;
+                removeIds(okIds);
+                if (failCount > 0) {
+                  window.mostrarErro('Fam\u00EDlia Carvalho', { message: failCount + ' evento(s) n\u00E3o foram apagados. Tenta novamente.' });
+                }
               });
             },
             style: { background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 8, padding: '5px 7px', cursor: 'pointer', color: F.red, fontSize: 12 }
@@ -3691,7 +3754,14 @@ function FamiliaApp(_ref19) {
       cursor: addingEvent ? 'default' : 'pointer',
       boxShadow: addingEvent ? 'none' : "0 4px 14px rgba(232,119,58,0.3)"
     }
-  }, addingEvent ? 'A guardar…' : '✓ Adicionar'))))), fotoLightbox && /*#__PURE__*/React.createElement("div", {
+  }, addingEvent ? 'A guardar…' : '✓ Adicionar')), addEvErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: '#DC2626',
+      fontSize: 12,
+      marginTop: 8,
+      textAlign: 'center'
+    }
+  }, "⚠️ ", addEvErr)))), fotoLightbox && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick() { setFotoLightbox(null); },
     style: {
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
