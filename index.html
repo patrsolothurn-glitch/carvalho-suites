@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-14T16:34:33.288Z
+  Gerado em: 2026-09-14T18:50:23.331Z
 -->
 <html lang="pt">
 <head>
@@ -27,7 +27,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-287";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-288";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -25355,6 +25355,9 @@ var HauswartApp = function(props) {
   var ready = _useStateReady[0], setReady = _useStateReady[1];
   var _useStatePrint = React.useState(false);
   var printMode = _useStatePrint[0], setPrint = _useStatePrint[1];
+  // Guarda o updated_at que veio do servidor, para o hwSync poder detetar
+  // se outro aparelho gravou entretanto (ver hwSync abaixo).
+  var lastUpdatedAtRef = React.useRef(null);
 
   var loadHauswartData = function() {
     if (!window.supabaseClient) return;
@@ -25362,12 +25365,14 @@ var HauswartApp = function(props) {
       .then(function(res) {
         if (!res.error && res.data) {
           var d = res.data;
+          lastUpdatedAtRef.current = d.updated_at || null;
           if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
           if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats',  d.mats); }
           if (d.cfg   && Object.keys(d.cfg).length) { var m2 = Object.assign({}, HW_DEFAULTS, d.cfg); setCfgRaw(m2); hwSave('cfg', m2); }
           if (d.archive && d.archive.length) { setArchiveRaw(d.archive); hwSave('archive', d.archive); }
         } else if (res.error && res.error.code === 'PGRST116') {
           // Linha genuinamente inexistente para este member_id — seguro semear a partir do localStorage.
+          lastUpdatedAtRef.current = null;
           var lw = hwLoad('works') || []; var lm = hwLoad('mats') || [];
           var lc = hwLoad('cfg') || {}; var la = hwLoad('archive') || [];
           if (lw.length > 0 || lm.length > 0 || la.length > 0) {
@@ -25406,18 +25411,41 @@ var HauswartApp = function(props) {
   var hwSync = function(w, m, c, a) {
     hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
     if (!window.supabaseClient) return;
-    window.supabaseClient.from('hauswart_data').upsert(
-      { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: new Date().toISOString() },
-      { onConflict: 'member_id' }
-    ).then(function(res) {
-      if (res && res.error && res.error.code !== 'PGRST205') {
-        console.warn('hwSync:', res.error.message);
-        window.mostrarErro('Hauswart', res.error);
-      }
-    }).catch(function(e) {
-      console.warn('hwSync erro:', e);
-      window.mostrarErro('Hauswart', e);
-    });
+    var doUpsert = function() {
+      var nowIso = new Date().toISOString();
+      window.supabaseClient.from('hauswart_data').upsert(
+        { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: nowIso },
+        { onConflict: 'member_id' }
+      ).then(function(res) {
+        if (res && res.error && res.error.code !== 'PGRST205') {
+          console.warn('hwSync:', res.error.message);
+          window.mostrarErro('Hauswart', res.error);
+          return;
+        }
+        lastUpdatedAtRef.current = nowIso;
+      }).catch(function(e) {
+        console.warn('hwSync erro:', e);
+        window.mostrarErro('Hauswart', e);
+      });
+    };
+    // Antes de gravar, confirma que ninguém gravou por cima entretanto
+    // noutro aparelho. Se a leitura falhar, não bloqueia — grava na mesma.
+    window.supabaseClient.from('hauswart_data').select('updated_at').eq('member_id', owner).single()
+      .then(function(checkRes) {
+        if (checkRes && !checkRes.error && checkRes.data && checkRes.data.updated_at) {
+          var serverTs = new Date(checkRes.data.updated_at).getTime();
+          var localTs = lastUpdatedAtRef.current ? new Date(lastUpdatedAtRef.current).getTime() : 0;
+          if (serverTs > localTs) {
+            console.warn('hwSync: conflito — servidor mais recente que o local, gravação cancelada');
+            window.mostrarErro('Hauswart', { message: 'Estes dados foram alterados noutro aparelho. Não gravei para não apagar esse trabalho. Recarrega a app e repete.' });
+            return;
+          }
+        }
+        doUpsert();
+      }).catch(function(e) {
+        console.warn('hwSync: falha ao verificar updated_at, a gravar na mesma:', e);
+        doUpsert();
+      });
   };
 
   var updW = function(v) { setWorksRaw(v); hwSync(v, mats, cfg, archive); };
@@ -25459,13 +25487,25 @@ var HauswartApp = function(props) {
   };
 
   if (printMode) {
+    var isReprint = printMode && typeof printMode === 'object';
+    var pv = isReprint ? printMode : null;
+    var pInvNum = isReprint ? (pv.invNum || (pv.invLabel || '').split(' ').pop()) : invNum;
     return React.createElement(HwPrintView, {
-      works: works, mats: mats, cfg: cfg, total: total,
-      totalWork: totalWork, totalMats: totalMats, pauschale: pauschale,
-      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, invNum: invNum,
-      leistungszeitraum: leistungszeitraum,
+      works: isReprint ? pv.works : works,
+      mats: isReprint ? pv.mats : mats,
+      cfg: isReprint ? pv.cfg : cfg,
+      total: isReprint ? pv.total : total,
+      totalWork: isReprint ? pv.totalWork : totalWork,
+      totalMats: isReprint ? pv.totalMats : totalMats,
+      pauschale: isReprint ? pv.pauschale : pauschale,
+      beschreibung: isReprint ? pv.beschreibung : beschreibung,
+      referenz: isReprint ? pv.referenz : referenz,
+      invLabel: isReprint ? pv.invLabel : invLabel,
+      invNum: pInvNum,
+      leistungszeitraum: isReprint ? pv.leistungszeitraum : leistungszeitraum,
+      isReprint: isReprint,
       onBack: function() { setPrint(false); },
-      onNew: function() {
+      onNew: isReprint ? null : function() {
         // Guardar no arquivo antes de limpar
         var entry = {
           id: hwUid(),
@@ -25473,6 +25513,7 @@ var HauswartApp = function(props) {
           quarter: cfg.quarter,
           referenz: referenz,
           invLabel: invLabel,
+          invNum: invNum,
           beschreibung: beschreibung,
           leistungszeitraum: leistungszeitraum,
           total: total,
@@ -25531,7 +25572,7 @@ var HauswartApp = function(props) {
         if (!cfg.invoiceDate) { window.alert('Preenche primeiro a Data de envio (Rechnungsdatum) nas Definições.'); return; }
         setPrint(true);
       }, S: S }),
-      tab === 'arquivo' && React.createElement(HwArquivoTab, { archive: archive, updA: updA, S: S }),
+      tab === 'arquivo' && React.createElement(HwArquivoTab, { archive: archive, updA: updA, setPrint: setPrint, S: S }),
       tab === 'cfg' && React.createElement(HwCfgTab, { cfg: cfg, updC: updC, S: S })
     ),
     // Nav
@@ -25893,7 +25934,7 @@ function HwCfgTab(props) {
 
 // ── ARQUIVO ──
 function HwArquivoTab(props) {
-  var archive = props.archive, updA = props.updA, S = props.S;
+  var archive = props.archive, updA = props.updA, setPrint = props.setPrint, S = props.S;
   var _useStateOpen = React.useState({});
   var openYears = _useStateOpen[0], setOpenYears = _useStateOpen[1];
 
@@ -25903,7 +25944,10 @@ function HwArquivoTab(props) {
 
   var markPaid = function(id) {
     updA(archive.map(function(a) {
-      return a.id === id ? Object.assign({}, a, { paid: true, datePaid: hwToday() }) : a;
+      if (a.id !== id) return a;
+      return a.paid
+        ? Object.assign({}, a, { paid: false, datePaid: null })
+        : Object.assign({}, a, { paid: true, datePaid: hwToday() });
     }));
   };
 
@@ -25987,10 +26031,14 @@ function HwArquivoTab(props) {
               React.createElement('div', { style: { textAlign: 'right', flexShrink: 0 } },
                 React.createElement('div', { style: { fontWeight: 700, fontSize: 15, color: a.paid ? '#22c55e' : '#f59e0b' } }, hwChf(a.total)),
                 React.createElement('div', { style: { display: 'flex', gap: 5, marginTop: 8, justifyContent: 'flex-end' } },
-                  !a.paid && React.createElement('button', {
+                  React.createElement('button', {
+                    onClick: function() { setPrint(a); },
+                    style: { background: '#1d4ed822', color: '#93c5fd', border: 'none', borderRadius: 6, padding: '5px 8px', fontSize: 12, cursor: 'pointer' }
+                  }, '🖨️'),
+                  React.createElement('button', {
                     onClick: function() { markPaid(a.id); },
-                    style: { background: '#14532d', color: '#4ade80', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
-                  }, '✓ Pago'),
+                    style: { background: a.paid ? '#7c2d12' : '#14532d', color: a.paid ? '#fdba74' : '#4ade80', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
+                  }, a.paid ? '↺ Desmarcar' : '✓ Pago'),
                   React.createElement('button', {
                     onClick: function() { delEntry(a.id); },
                     style: { background: '#450a0a', color: '#f87171', border: 'none', borderRadius: 6, padding: '5px 8px', fontSize: 12, cursor: 'pointer' }
@@ -26011,7 +26059,7 @@ function HwPrintView(props) {
   var pauschale = props.pauschale;
   var beschreibung = props.beschreibung, referenz = props.referenz, invNum = props.invNum;
   var leistungszeitraum = props.leistungszeitraum;
-  var onBack = props.onBack, onNew = props.onNew;
+  var onBack = props.onBack, onNew = props.onNew, isReprint = props.isReprint;
 
   var _useStateScale = React.useState(1);
   var scale = _useStateScale[0], setScale = _useStateScale[1];
@@ -26049,9 +26097,10 @@ function HwPrintView(props) {
     };
   }, []);
 
-  var invoiceDateObj = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00') : new Date();
-  var dateStr = invoiceDateObj.toLocaleDateString('de-CH');
-  var faelligStr = hwPlus30Days(invoiceDateObj).toLocaleDateString('de-CH');
+  var dataFaltando = isReprint && !cfg.invoiceDate;
+  var invoiceDateObj = cfg.invoiceDate ? new Date(cfg.invoiceDate + 'T12:00:00') : (isReprint ? null : new Date());
+  var dateStr = invoiceDateObj ? invoiceDateObj.toLocaleDateString('de-CH') : '⚠️ data não registada';
+  var faelligStr = invoiceDateObj ? hwPlus30Days(invoiceDateObj).toLocaleDateString('de-CH') : '—';
 
   var grupos = [
     {
@@ -26102,7 +26151,7 @@ function HwPrintView(props) {
     // Toolbar
     React.createElement('div', { className: 'no-print', style: { background: '#1e293b', padding: '10px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 } },
       React.createElement('button', { onClick: onBack, style: { background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '← Zurück'),
-      React.createElement('button', { onClick: function() { window.print(); }, style: { background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, padding: '8px 22px', cursor: 'pointer', fontSize: 14, fontWeight: 700 } }, '🖨️ Drucken / PDF'),
+      React.createElement('button', { onClick: function() { if (dataFaltando) { window.alert('Esta fatura não tem data registada — não é possível imprimir sem isso.'); return; } window.print(); }, disabled: dataFaltando, style: { background: dataFaltando ? '#334155' : '#1d4ed8', color: dataFaltando ? '#64748b' : 'white', border: 'none', borderRadius: 8, padding: '8px 22px', cursor: dataFaltando ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 700 } }, '🖨️ Drucken / PDF'),
       React.createElement('button', {
         onClick: function() {
           var qrData = hwQrContent(cfg, total, referenz);
@@ -26190,7 +26239,7 @@ function HwPrintView(props) {
         },
         style: { background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
       }, '🖨️ Imprimir QR'),
-      React.createElement('button', { onClick: onNew, style: { background: '#14532d', color: '#4ade80', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '✓ Abgerechnet — Neue Rechnung')
+      typeof onNew === 'function' && React.createElement('button', { onClick: onNew, style: { background: '#14532d', color: '#4ade80', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '✓ Abgerechnet — Neue Rechnung')
     ),
 
     // A4
@@ -26210,7 +26259,7 @@ function HwPrintView(props) {
               React.createElement('div', { className: 'doctype' },
                 React.createElement('h1', null, 'Rechnung'),
                 React.createElement('div', { className: 'nr' }, invNum),
-                React.createElement('div', { className: 'place' }, 'Selzach, ' + dateStr)
+                React.createElement('div', { className: 'place' }, dataFaltando ? dateStr : 'Selzach, ' + dateStr)
               )
             ),
             React.createElement('div', { className: 'rule' }),
