@@ -1,0 +1,13 @@
+[{"id":1787072860739,"aluno":"lucas","disc_id":6,"titulo":"Test Grundkenntnisse","data":"2026-09-14","feito":false,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":"2026-09-12T06:00:03.248+00:00"}, 
+ {"id":1788886631759,"aluno":"lucas","disc_id":4,"titulo":"Test","data":"2026-09-14","feito":false,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":"2026-09-12T06:00:03.248+00:00"}, 
+ {"id":1787072168038,"aluno":"lucas","disc_id":3,"titulo":"Test Voci leçon 1","data":"2026-09-10","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787072044061,"aluno":"lucas","disc_id":19,"titulo":"Test","data":"2026-08-26","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787072106135,"aluno":"lucas","disc_id":9,"titulo":"Test Europa 1","data":"2026-09-02","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787072138376,"aluno":"lucas","disc_id":5,"titulo":"Test Voci & Grammatik","data":"2026-09-03","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787073044155,"aluno":"lucas","disc_id":3,"titulo":"Test Gramatik leçon 1","data":"2026-09-17","feito":false,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787136435029,"aluno":"lucas","disc_id":2,"titulo":"Test","data":"2026-08-26","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787319070611,"aluno":"lucas","disc_id":7,"titulo":"Test","data":"2026-09-01","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787844292930,"aluno":"lucas","disc_id":14,"titulo":"Test","data":"2026-09-30","feito":false,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1788886559308,"aluno":"lucas","disc_id":2,"titulo":"Test","data":"2026-10-19","feito":false,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1788886588621,"aluno":"lucas","disc_id":1,"titulo":"Test Verben 1","data":"2026-10-21","feito":false,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}, 
+ {"id":1787075703523,"aluno":"lucas","disc_id":1,"titulo":"Test Leseverstehen","data":"2026-09-11","feito":true,"created_at":"2026-09-11T12:35:44.68918+00:00","tipo":"teste","reminder_sent_at":null}]
