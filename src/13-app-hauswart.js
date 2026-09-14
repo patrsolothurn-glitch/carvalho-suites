@@ -22,6 +22,7 @@ var HW_DEFAULTS = {
   year: new Date().getFullYear(),
   invoiceDate: '',
   serviceDate: '',
+  invNumManual: '',
 };
 
 var HW_QUARTERS = [
@@ -355,7 +356,8 @@ var HauswartApp = function(props) {
   var beschreibung = 'Für geleistete Hauswartung vom ' + qObj.from + ' bis ' + qObj.to + ' ' + cfg.year + ', ' + cfg.location;
   var referenz = 'Hauswart ' + cfg.quarter + ' ' + cfg.year;
   var qNum = { Q1:1, Q2:2, Q3:3, Q4:4 }[cfg.quarter] || 1;
-  var invNum = 'R' + cfg.year + '-' + String(qNum).padStart(4,'0');
+  var invNumAuto = 'R' + cfg.year + '-' + String(qNum).padStart(4,'0');
+  var invNum = (cfg.invNumManual && String(cfg.invNumManual).trim()) ? String(cfg.invNumManual).trim() : invNumAuto;
   var invLabel = cfg.quarter + ' Rechnung ' + invNum;
   var leistungszeitraum = new Date(cfg.year + '-' + qObj.startDay + 'T12:00:00').toLocaleDateString('de-CH')
     + ' \u2013 '
@@ -378,7 +380,7 @@ var HauswartApp = function(props) {
     return React.createElement(HwPrintView, {
       works: works, mats: mats, cfg: cfg, total: total,
       totalWork: totalWork, totalMats: totalMats, pauschale: pauschale,
-      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel,
+      beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, invNum: invNum,
       leistungszeitraum: leistungszeitraum,
       onBack: function() { setPrint(false); },
       onNew: function() {
@@ -404,7 +406,7 @@ var HauswartApp = function(props) {
           datePaid: null,
         };
         var novoArchive = archive.concat([entry]);
-        var novoCfg = Object.assign({}, cfg, { invoiceDate: '', serviceDate: '' });
+        var novoCfg = Object.assign({}, cfg, { invoiceDate: '', serviceDate: '', invNumManual: '' });
         setArchiveRaw(novoArchive);
         setWorksRaw([]);
         setMatsRaw([]);
@@ -767,7 +769,8 @@ function HwCfgTab(props) {
       React.createElement(HwFld, { label: 'Jahr', type: 'number', value: f.year, onChange: function(v) { upd('year', parseInt(v) || 2026); } }),
       React.createElement('div', { style: { fontSize: 12, color: '#3b82f6', background: '#1d4ed822', borderRadius: 8, padding: '8px 10px', lineHeight: 1.5 } },
         'Für geleistete Hauswartung vom ', (HW_QUARTERS.find(function(q) { return q.key === f.quarter; }) || HW_QUARTERS[2]).from, ' bis ', (HW_QUARTERS.find(function(q) { return q.key === f.quarter; }) || HW_QUARTERS[2]).to, ' ', f.year
-      )
+      ),
+      React.createElement(HwFld, { label: 'Rechnungsnummer (vazio = automático)', value: f.invNumManual || '', onChange: function(v) { upd('invNumManual', v); }, placeholder: 'R' + f.year + '-' + String({ Q1:1, Q2:2, Q3:3, Q4:4 }[f.quarter] || 1).padStart(4,'0') })
     ),
 
     React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 12 }) },
@@ -1142,7 +1145,8 @@ function HwPrintView(props) {
                 )
               ),
               React.createElement('dl', { className: 'meta' },
-                [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Fällig bis', faelligStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
+                // TEMPORARIAMENTE ESCONDIDO (14/09): ['Fällig bis', faelligStr] — repor dentro do array para voltar a mostrar
+                [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
                   return React.createElement('div', { key: row[0] },
                     React.createElement('dt', null, row[0]),
                     React.createElement('dd', null, row[1])
@@ -1196,8 +1200,9 @@ function HwPrintView(props) {
                 React.createElement('div', null, cfg.bank + ' · ' + cfg.name)
               ),
               React.createElement('div', { className: 'term' },
-                React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
-                React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
+                // TEMPORARIAMENTE ESCONDIDO (14/09) — descomentar as duas linhas para repor:
+                // React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
+                // React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
                 React.createElement('div', { className: 'ref' }, 'Referenz: ' + referenz)
               )
             )
