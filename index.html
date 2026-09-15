@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-15T12:14:52.831Z
+  Gerado em: 2026-09-15T14:47:47.034Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-294";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-295";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -26141,6 +26141,9 @@ function HwPrintView(props) {
   var _useStateScale = React.useState(1);
   var scale = _useStateScale[0], setScale = _useStateScale[1];
 
+  var _useKopie = React.useState(false);
+  var kopie = _useKopie[0], setKopie = _useKopie[1];
+
   React.useEffect(function() {
     var updateScreen = function() {
       var w = window.innerWidth;
@@ -26149,21 +26152,22 @@ function HwPrintView(props) {
     updateScreen();
     window.addEventListener('resize', updateScreen);
     var beforePrint = function() {
-      var pp = document.getElementById('print-page');
-      if (!pp) return;
-      var A4H = Math.round(297 * 96 / 25.4);
-      var h = pp.scrollHeight;
-      if (h > A4H) {
-        var s = (A4H / h).toFixed(4);
-        pp.dataset.ps = s;
-        pp.style.transform = 'scale(' + s + ')';
-        pp.style.transformOrigin = 'top left';
-        pp.style.height = Math.round(h * parseFloat(s)) + 'px';
-      }
+      document.querySelectorAll('.hw-sheet').forEach(function(pp) {
+        var A4H = Math.round(297 * 96 / 25.4);
+        var h = pp.scrollHeight;
+        if (h > A4H) {
+          var s = (A4H / h).toFixed(4);
+          pp.dataset.ps = s;
+          pp.style.transform = 'scale(' + s + ')';
+          pp.style.transformOrigin = 'top left';
+          pp.style.height = Math.round(h * parseFloat(s)) + 'px';
+        }
+      });
     };
     var afterPrint = function() {
-      var pp = document.getElementById('print-page');
-      if (pp && pp.dataset.ps) { pp.style.transform = ''; pp.style.height = ''; delete pp.dataset.ps; }
+      document.querySelectorAll('.hw-sheet').forEach(function(pp) {
+        if (pp.dataset.ps) { pp.style.transform = ''; pp.style.height = ''; delete pp.dataset.ps; }
+      });
     };
     window.addEventListener('beforeprint', beforePrint);
     window.addEventListener('afterprint', afterPrint);
@@ -26224,11 +26228,123 @@ function HwPrintView(props) {
     ));
   });
 
+  var renderSheet = function(isKopie) {
+    return React.createElement('div', {
+      key: isKopie ? 'kopie' : 'orig',
+      id: isKopie ? undefined : 'print-page',
+      className: 'hw-sheet page' + (isKopie ? ' is-kopie' : '')
+    },
+      React.createElement('div', { className: 'body-flex' },
+        // Absender + Titel
+        React.createElement('div', { className: 'top' },
+          React.createElement('div', { className: 'sender' },
+            React.createElement('div', { className: 'name' }, cfg.name),
+            React.createElement('div', { className: 'line' }, cfg.address),
+            React.createElement('div', { className: 'line' }, cfg.city),
+            cfg.phone && React.createElement('div', { className: 'line' }, cfg.phone),
+            cfg.email && React.createElement('div', { className: 'line' }, cfg.email)
+          ),
+          React.createElement('div', { className: 'doctype' },
+            React.createElement('h1', null, 'Rechnung'),
+            React.createElement('div', { className: 'nr' }, invNum),
+            React.createElement('div', { className: 'place' }, dataFaltando ? dateStr : 'Selzach, ' + dateStr),
+            isKopie && React.createElement('div', { className: 'kopie-mark' }, 'Kopie')
+          )
+        ),
+        React.createElement('div', { className: 'rule' }),
+
+        // Empfänger + Details
+        React.createElement('div', { className: 'band' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'eyebrow' }, 'Rechnungsempfänger'),
+            React.createElement('div', { className: 'recipient' },
+              React.createElement('div', { className: 'org' }, cfg.clientName),
+              cfg.clientContact && React.createElement('div', null, cfg.clientContact),
+              React.createElement('div', null, cfg.clientAddress),
+              React.createElement('div', null, cfg.clientCity)
+            )
+          ),
+          React.createElement('dl', { className: 'meta' },
+            // TEMPORARIAMENTE ESCONDIDO (14/09): ['Fällig bis', faelligStr] — repor dentro do array para voltar a mostrar
+            [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
+              return React.createElement('div', { key: row[0] },
+                React.createElement('dt', null, row[0]),
+                React.createElement('dd', null, row[1])
+              );
+            })
+          )
+        ),
+
+        // Betreff
+        React.createElement('p', { className: 'subject' },
+          React.createElement('strong', null, 'Hauswartung ' + cfg.quarter + '. Quartal ' + cfg.year),
+          React.createElement('br', null),
+          beschreibung
+        ),
+
+        // POSITIONEN
+        React.createElement('table', null,
+          React.createElement('thead', null,
+            React.createElement('tr', null,
+              React.createElement('th', null, 'Position'),
+              React.createElement('th', { className: 'num' }, 'Menge'),
+              React.createElement('th', { className: 'num' }, 'Ansatz'),
+              React.createElement('th', { className: 'num' }, 'Betrag CHF')
+            )
+          ),
+          React.createElement('tbody', null, tbodyRows)
+        ),
+
+        // TOTAL
+        React.createElement('div', { className: 'totals' },
+          React.createElement('div', { className: 'box' },
+            grupos.map(function(g) {
+              return React.createElement('div', { className: 'row', key: g.key },
+                React.createElement('span', null, g.label),
+                React.createElement('span', null, fmtCHF(g.sum))
+              );
+            }),
+            React.createElement('div', { className: 'grand' },
+              React.createElement('span', { className: 'lbl' }, 'Total CHF'),
+              React.createElement('span', { className: 'val' }, fmtCHF(total))
+            ),
+            React.createElement('div', { className: 'note' }, 'Ohne Mehrwertsteuer — nicht steuerpflichtig')
+          )
+        ),
+
+        // BANK
+        React.createElement('div', { className: 'pay' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'eyebrow' }, 'Zahlbar an'),
+            React.createElement('div', { className: 'iban' }, cfg.iban),
+            React.createElement('div', null, cfg.bank + ' · ' + cfg.name)
+          ),
+          React.createElement('div', { className: 'term' },
+            // TEMPORARIAMENTE ESCONDIDO (14/09) — descomentar as duas linhas para repor:
+            // React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
+            // React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
+            React.createElement('div', { className: 'ref' }, 'Referenz: ' + referenz)
+          )
+        )
+      ), // body-flex
+
+      // FOOTER
+      React.createElement('footer', null,
+        React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen.'),
+        React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · Seite 1/1')
+      )
+    ); // #print-page
+  };
+
   return React.createElement('div', { className: 'hw-print-outer', style: { background: '#94a3b8' } },
     // Toolbar
     React.createElement('div', { className: 'no-print', style: { background: '#1e293b', padding: '10px 16px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 } },
       React.createElement('button', { onClick: onBack, style: { background: '#334155', color: '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13 } }, '← Zurück'),
       React.createElement('button', { onClick: function() { if (dataFaltando) { window.alert('Esta fatura não tem data registada — não é possível imprimir sem isso.'); return; } window.print(); }, disabled: dataFaltando, style: { background: dataFaltando ? '#334155' : '#1d4ed8', color: dataFaltando ? '#64748b' : 'white', border: 'none', borderRadius: 8, padding: '8px 22px', cursor: dataFaltando ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 700 } }, '🖨️ Drucken / PDF'),
+      React.createElement('button', {
+        onClick: function() { setKopie(!kopie); },
+        style: { background: kopie ? '#166534' : '#334155', color: kopie ? '#4ade80' : '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
+      }, kopie ? '📄 Kopie: AN' : '📄 Kopie: AUS'),
       React.createElement('button', {
         onClick: function() {
           var qrData = hwQrContent(cfg, total, referenz);
@@ -26322,106 +26438,8 @@ function HwPrintView(props) {
     // A4
     React.createElement('div', { className: 'hw-scale-outer', style: { width: '100%', overflow: 'hidden', background: '#94a3b8', paddingBottom: 32 } },
       React.createElement('div', { className: 'hw-scale-inner', style: { width: 794, transformOrigin: 'top left', transform: 'scale(' + scale + ')', height: scale < 1 ? (1123 * scale) + 'px' : 'auto' } },
-        React.createElement('div', { id: 'print-page', className: 'page' },
-          React.createElement('div', { className: 'body-flex' },
-            // Absender + Titel
-            React.createElement('div', { className: 'top' },
-              React.createElement('div', { className: 'sender' },
-                React.createElement('div', { className: 'name' }, cfg.name),
-                React.createElement('div', { className: 'line' }, cfg.address),
-                React.createElement('div', { className: 'line' }, cfg.city),
-                cfg.phone && React.createElement('div', { className: 'line' }, cfg.phone),
-                cfg.email && React.createElement('div', { className: 'line' }, cfg.email)
-              ),
-              React.createElement('div', { className: 'doctype' },
-                React.createElement('h1', null, 'Rechnung'),
-                React.createElement('div', { className: 'nr' }, invNum),
-                React.createElement('div', { className: 'place' }, dataFaltando ? dateStr : 'Selzach, ' + dateStr)
-              )
-            ),
-            React.createElement('div', { className: 'rule' }),
-
-            // Empfänger + Details
-            React.createElement('div', { className: 'band' },
-              React.createElement('div', null,
-                React.createElement('div', { className: 'eyebrow' }, 'Rechnungsempfänger'),
-                React.createElement('div', { className: 'recipient' },
-                  React.createElement('div', { className: 'org' }, cfg.clientName),
-                  cfg.clientContact && React.createElement('div', null, cfg.clientContact),
-                  React.createElement('div', null, cfg.clientAddress),
-                  React.createElement('div', null, cfg.clientCity)
-                )
-              ),
-              React.createElement('dl', { className: 'meta' },
-                // TEMPORARIAMENTE ESCONDIDO (14/09): ['Fällig bis', faelligStr] — repor dentro do array para voltar a mostrar
-                [['Rechnungsnummer', invNum], ['Rechnungsdatum', dateStr], ['Leistungszeitraum', leistungszeitraum], ['Arbeitsort', cfg.location]].map(function(row) {
-                  return React.createElement('div', { key: row[0] },
-                    React.createElement('dt', null, row[0]),
-                    React.createElement('dd', null, row[1])
-                  );
-                })
-              )
-            ),
-
-            // Betreff
-            React.createElement('p', { className: 'subject' },
-              React.createElement('strong', null, 'Hauswartung ' + cfg.quarter + '. Quartal ' + cfg.year),
-              React.createElement('br', null),
-              beschreibung
-            ),
-
-            // POSITIONEN
-            React.createElement('table', null,
-              React.createElement('thead', null,
-                React.createElement('tr', null,
-                  React.createElement('th', null, 'Position'),
-                  React.createElement('th', { className: 'num' }, 'Menge'),
-                  React.createElement('th', { className: 'num' }, 'Ansatz'),
-                  React.createElement('th', { className: 'num' }, 'Betrag CHF')
-                )
-              ),
-              React.createElement('tbody', null, tbodyRows)
-            ),
-
-            // TOTAL
-            React.createElement('div', { className: 'totals' },
-              React.createElement('div', { className: 'box' },
-                grupos.map(function(g) {
-                  return React.createElement('div', { className: 'row', key: g.key },
-                    React.createElement('span', null, g.label),
-                    React.createElement('span', null, fmtCHF(g.sum))
-                  );
-                }),
-                React.createElement('div', { className: 'grand' },
-                  React.createElement('span', { className: 'lbl' }, 'Total CHF'),
-                  React.createElement('span', { className: 'val' }, fmtCHF(total))
-                ),
-                React.createElement('div', { className: 'note' }, 'Ohne Mehrwertsteuer — nicht steuerpflichtig')
-              )
-            ),
-
-            // BANK
-            React.createElement('div', { className: 'pay' },
-              React.createElement('div', null,
-                React.createElement('div', { className: 'eyebrow' }, 'Zahlbar an'),
-                React.createElement('div', { className: 'iban' }, cfg.iban),
-                React.createElement('div', null, cfg.bank + ' · ' + cfg.name)
-              ),
-              React.createElement('div', { className: 'term' },
-                // TEMPORARIAMENTE ESCONDIDO (14/09) — descomentar as duas linhas para repor:
-                // React.createElement('div', { className: 'eyebrow' }, 'Zahlungsfrist'),
-                // React.createElement('div', null, '30 Tage netto, bis ' + faelligStr),
-                React.createElement('div', { className: 'ref' }, 'Referenz: ' + referenz)
-              )
-            )
-          ), // body-flex
-
-          // FOOTER
-          React.createElement('footer', null,
-            React.createElement('span', null, 'Vielen Dank für Ihr Vertrauen.'),
-            React.createElement('span', null, cfg.name + ' · ' + cfg.city + ' · Seite 1/1')
-          )
-        ) // #print-page
+        renderSheet(false),
+        kopie && renderSheet(true)
       ) // scale wrapper
     ), // outer grey bg
 
@@ -26433,51 +26451,53 @@ function HwPrintView(props) {
     ),
 
     React.createElement('style', null,
-      '#print-page.page, #print-page.page *{box-sizing:border-box;}' +
-      '#print-page.page{width:210mm;min-height:297mm;padding:18mm 18mm 14mm;display:flex;flex-direction:column;background:#fff;font-family:Helvetica,Arial,"Helvetica Neue",sans-serif;color:#14181d;box-shadow:0 8px 40px rgba(0,0,0,.3);}' +
-      '#print-page .body-flex{flex:1;}' +
-      '#print-page .top{display:flex;justify-content:space-between;align-items:flex-start;}' +
-      '#print-page .sender{font-size:9.5pt;line-height:1.5;}' +
-      '#print-page .sender .name{font-weight:700;font-size:10.5pt;}' +
-      '#print-page .sender .line{color:#6b7280;}' +
-      '#print-page .doctype{text-align:right;}' +
-      '#print-page .doctype h1{margin:0;font-size:17pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}' +
-      '#print-page .doctype .nr{margin-top:4px;font-size:10pt;font-weight:600;color:#1d4ed8;font-variant-numeric:tabular-nums;}' +
-      '#print-page .doctype .place{margin-top:2px;font-size:9pt;color:#6b7280;}' +
-      '#print-page .rule{height:1px;background:#14181d;margin-top:12px;}' +
-      '#print-page .band{display:flex;justify-content:space-between;margin-top:18px;}' +
-      '#print-page .eyebrow{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}' +
-      '#print-page .recipient{font-size:10pt;line-height:1.5;}' +
-      '#print-page .recipient .org{font-weight:700;}' +
-      '#print-page .meta{width:76mm;font-size:9pt;border-top:1px solid #dfe3e8;margin:0;}' +
-      '#print-page .meta div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dfe3e8;}' +
-      '#print-page .meta dt{color:#6b7280;}' +
-      '#print-page .meta dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}' +
-      '#print-page .subject{margin-top:18px;font-size:10pt;line-height:1.55;}' +
-      '#print-page table{width:100%;border-collapse:collapse;margin-top:14px;font-size:9.5pt;}' +
-      '#print-page thead th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:600;text-align:left;padding:0 0 5px;border-bottom:1px solid #14181d;}' +
-      '#print-page thead th.num{text-align:right;}' +
-      '#print-page tr.section td{padding:14px 0 5px;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border-bottom:1px solid #14181d;}' +
-      '#print-page tbody td{padding:8px 0;border-bottom:1px solid #dfe3e8;vertical-align:top;}' +
-      '#print-page tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}' +
-      '#print-page .pos-title{font-weight:600;}' +
-      '#print-page .pos-sub{color:#6b7280;font-size:8pt;margin-top:2px;}' +
-      '#print-page tr.subtotal td{padding:6px 0;border-bottom:0;color:#6b7280;font-size:8.5pt;}' +
-      '#print-page tr.subtotal td.num{color:#14181d;font-weight:600;}' +
-      '#print-page tr{break-inside:avoid;page-break-inside:avoid;}' +
-      '#print-page .totals{margin-top:14px;display:flex;justify-content:flex-end;}' +
-      '#print-page .totals .box{width:76mm;}' +
-      '#print-page .totals .row{display:flex;justify-content:space-between;padding:4px 0;font-size:9pt;color:#6b7280;}' +
-      '#print-page .totals .row span:last-child{color:#14181d;font-variant-numeric:tabular-nums;}' +
-      '#print-page .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #14181d;}' +
-      '#print-page .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
-      '#print-page .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
-      '#print-page .totals .note{margin-top:5px;font-size:8pt;color:#6b7280;text-align:right;}' +
-      '#print-page .pay{margin-top:20px;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:9pt;line-height:1.55;}' +
-      '#print-page .pay .iban{font-family:"Courier New",monospace;font-size:9.5pt;letter-spacing:.04em;}' +
-      '#print-page .pay .term{text-align:right;}' +
-      '#print-page .pay .term .ref{font-weight:700;margin-top:2px;}' +
-      '#print-page footer{margin-top:auto;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:8pt;color:#6b7280;}'
+      '.hw-sheet.page, .hw-sheet.page *{box-sizing:border-box;}' +
+      '.hw-sheet.page{width:210mm;min-height:297mm;padding:18mm 18mm 14mm;display:flex;flex-direction:column;background:#fff;font-family:Helvetica,Arial,"Helvetica Neue",sans-serif;color:#14181d;box-shadow:0 8px 40px rgba(0,0,0,.3);}' +
+      '.hw-sheet .body-flex{flex:1;}' +
+      '.hw-sheet .top{display:flex;justify-content:space-between;align-items:flex-start;}' +
+      '.hw-sheet .sender{font-size:9.5pt;line-height:1.5;}' +
+      '.hw-sheet .sender .name{font-weight:700;font-size:10.5pt;}' +
+      '.hw-sheet .sender .line{color:#6b7280;}' +
+      '.hw-sheet .doctype{text-align:right;}' +
+      '.hw-sheet .doctype h1{margin:0;font-size:17pt;font-weight:600;letter-spacing:.22em;text-transform:uppercase;}' +
+      '.hw-sheet .doctype .nr{margin-top:4px;font-size:10pt;font-weight:600;color:#1d4ed8;font-variant-numeric:tabular-nums;}' +
+      '.hw-sheet .doctype .place{margin-top:2px;font-size:9pt;color:#6b7280;}' +
+      '.hw-sheet .rule{height:1px;background:#14181d;margin-top:12px;}' +
+      '.hw-sheet .band{display:flex;justify-content:space-between;margin-top:18px;}' +
+      '.hw-sheet .eyebrow{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:5px;}' +
+      '.hw-sheet .recipient{font-size:10pt;line-height:1.5;}' +
+      '.hw-sheet .recipient .org{font-weight:700;}' +
+      '.hw-sheet .meta{width:76mm;font-size:9pt;border-top:1px solid #dfe3e8;margin:0;}' +
+      '.hw-sheet .meta div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dfe3e8;}' +
+      '.hw-sheet .meta dt{color:#6b7280;}' +
+      '.hw-sheet .meta dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}' +
+      '.hw-sheet .subject{margin-top:18px;font-size:10pt;line-height:1.55;}' +
+      '.hw-sheet table{width:100%;border-collapse:collapse;margin-top:14px;font-size:9.5pt;}' +
+      '.hw-sheet thead th{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:600;text-align:left;padding:0 0 5px;border-bottom:1px solid #14181d;}' +
+      '.hw-sheet thead th.num{text-align:right;}' +
+      '.hw-sheet tr.section td{padding:14px 0 5px;font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;font-weight:700;border-bottom:1px solid #14181d;}' +
+      '.hw-sheet tbody td{padding:8px 0;border-bottom:1px solid #dfe3e8;vertical-align:top;}' +
+      '.hw-sheet tbody td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}' +
+      '.hw-sheet .pos-title{font-weight:600;}' +
+      '.hw-sheet .pos-sub{color:#6b7280;font-size:8pt;margin-top:2px;}' +
+      '.hw-sheet tr.subtotal td{padding:6px 0;border-bottom:0;color:#6b7280;font-size:8.5pt;}' +
+      '.hw-sheet tr.subtotal td.num{color:#14181d;font-weight:600;}' +
+      '.hw-sheet tr{break-inside:avoid;page-break-inside:avoid;}' +
+      '.hw-sheet .totals{margin-top:14px;display:flex;justify-content:flex-end;}' +
+      '.hw-sheet .totals .box{width:76mm;}' +
+      '.hw-sheet .totals .row{display:flex;justify-content:space-between;padding:4px 0;font-size:9pt;color:#6b7280;}' +
+      '.hw-sheet .totals .row span:last-child{color:#14181d;font-variant-numeric:tabular-nums;}' +
+      '.hw-sheet .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #14181d;}' +
+      '.hw-sheet .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
+      '.hw-sheet .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
+      '.hw-sheet .totals .note{margin-top:5px;font-size:8pt;color:#6b7280;text-align:right;}' +
+      '.hw-sheet .pay{margin-top:20px;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:9pt;line-height:1.55;}' +
+      '.hw-sheet .pay .iban{font-family:"Courier New",monospace;font-size:9.5pt;letter-spacing:.04em;}' +
+      '.hw-sheet .pay .term{text-align:right;}' +
+      '.hw-sheet .pay .term .ref{font-weight:700;margin-top:2px;}' +
+      '.hw-sheet footer{margin-top:auto;padding-top:12px;border-top:1px solid #dfe3e8;display:flex;justify-content:space-between;font-size:8pt;color:#6b7280;}' +
+      '.hw-sheet .doctype .kopie-mark{margin-top:3px;font-size:9pt;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#6b7280;}' +
+      '.hw-sheet.is-kopie{page-break-before:always;break-before:always;}'
     ),
     React.createElement('style', null,
       '@media print {' +
@@ -26487,7 +26507,7 @@ function HwPrintView(props) {
       '  .hw-print-outer { background: white !important; }' +
       '  .hw-scale-outer { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; }' +
       '  .hw-scale-inner { transform: none !important; width: 100% !important; height: auto !important; }' +
-      '  #print-page.page { box-shadow: none !important; } ' +
+      '  .hw-sheet.page { box-shadow: none !important; } ' +
       '  .hw-zahlteil-print { display: block !important; background: white !important; }' +
       '  #zahlteil-page { background: white !important; }' +
       '  #zahlteil-page > div { background: white !important; width: 100% !important; }' +
