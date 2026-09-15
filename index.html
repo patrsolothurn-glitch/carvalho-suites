@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-15T12:04:35.324Z
+  Gerado em: 2026-09-15T12:14:52.831Z
 -->
 <html lang="pt">
 <head>
@@ -16,6 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Carvalho"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="google" content="notranslate"/>
+  <!-- cache-bust: manifest.json orientation corrigida (portrait -> any) -->
   <link rel="manifest" href="manifest.json"/>
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png"/>
@@ -27,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-292";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-294";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -12727,7 +12728,13 @@ function FamiliaApp(_ref19) {
         var isLast = i === evs.length - 1;
         return /*#__PURE__*/React.createElement("div", {
           key: i,
-          onClick: function onClick() { setSelDateStr(date); setMainView('mes'); },
+          onClick: function onClick() {
+            var p = String(date).split('-');
+            skipDayResetRef.current = true;
+            setCurMonth(new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1));
+            setSelDay(parseInt(p[2], 10));
+            setMainView('mes');
+          },
           style: {
             display: 'flex',
             alignItems: 'stretch',
