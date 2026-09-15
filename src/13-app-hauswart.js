@@ -985,6 +985,9 @@ function HwPrintView(props) {
   var _useKopie = React.useState(false);
   var kopie = _useKopie[0], setKopie = _useKopie[1];
 
+  var _useQr = React.useState(true);
+  var qrOn = _useQr[0], setQrOn = _useQr[1];
+
   React.useEffect(function() {
     var updateScreen = function() {
       var w = window.innerWidth;
@@ -1187,6 +1190,10 @@ function HwPrintView(props) {
         style: { background: kopie ? '#166534' : '#334155', color: kopie ? '#4ade80' : '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
       }, kopie ? '📄 Kopie: AN' : '📄 Kopie: AUS'),
       React.createElement('button', {
+        onClick: function() { setQrOn(!qrOn); },
+        style: { background: qrOn ? '#166534' : '#334155', color: qrOn ? '#4ade80' : '#94a3b8', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }
+      }, qrOn ? '🧾 QR: AN' : '🧾 QR: AUS'),
+      React.createElement('button', {
         onClick: function() {
           var qrData = hwQrContent(cfg, total, referenz);
           var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=M&data=' + encodeURIComponent(qrData);
@@ -1285,7 +1292,7 @@ function HwPrintView(props) {
     ), // outer grey bg
 
     // ── ZAHLTEIL: separate page, bottom-aligned ──
-    React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
+    qrOn && React.createElement('div', { className: 'hw-zahlteil-print', style: { display: 'none' } },
       React.createElement('div', { id: 'zahlteil-page' },
         React.createElement(HwZahlteil, { cfg: cfg, total: total, referenz: referenz, leistungszeitraum: leistungszeitraum })
       )
