@@ -40,6 +40,7 @@ const JS_SECTIONS = [
   '15-app-viagens.js', // app Viagens Família
   '16-app-voz.js', // app Voz (gravador + tradutor)
   '17-app-wochenplan.js', // app Wochenplan — planeamento semanal de trabalho
+  '18-app-horasvoz.js', // app Horas por Voz — registo de horas por voz (admin only)
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
