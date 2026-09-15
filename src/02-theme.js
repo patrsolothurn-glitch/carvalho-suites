@@ -179,10 +179,10 @@ var APPS_DATA = [{
   adminOnly: true
 }, {
   id: 'horasvoz',
-  emoji: '🟥',
+  emoji: '🟦',
   name: 'Horas por Voz',
   desc: 'Registo de horas a 70% por voz',
   badge: null,
-  color: T.red,
+  color: '#2563EB',
   adminOnly: true
 }];
