@@ -129,11 +129,11 @@ var WP_CSS = '\
 .wp-app h1,.wp-app h2,.wp-app h3,.wp-app h4{margin:0;font-weight:600}\
 .wp-wrap{max-width:1240px;margin:0 auto;padding:0 12px}\
 .wp-top{background:#0E0F10;color:#fff;position:sticky;top:0;z-index:40;padding:9px 0 10px;border-bottom:3px solid var(--or)}\
-.wp-topin{display:flex;align-items:center;gap:11px}\
+.wp-topin{display:flex;align-items:center;gap:11px;flex-wrap:wrap}\
 .wp-mk{width:24px;height:24px;background:var(--or);flex:none;border-radius:2px}\
 .wp-tt{font-size:16px;font-weight:600;letter-spacing:-.01em}\
 .wp-ts{font-size:11.5px;color:#9DA1A7;margin-top:1px}\
-.wp-navwrap{margin-left:auto;display:flex;gap:5px;align-items:center}\
+.wp-navwrap{margin-left:auto;display:flex;gap:5px;align-items:center;flex-wrap:wrap}\
 .wp-nb{background:#232629;border:none;color:#fff;height:32px;min-width:32px;padding:0 11px;border-radius:6px;font-size:13px;cursor:pointer}\
 .wp-nb.wp-on{background:var(--or);font-weight:600}\
 .wp-bar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:9px 0 3px}\
@@ -143,7 +143,9 @@ var WP_CSS = '\
 .wp-roll{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:2px;gap:2px}\
 .wp-roll .wp-chip{border:none;background:none;height:26px;padding:0 12px}\
 .wp-roll .wp-chip.wp-on{background:var(--or);color:#fff;border-color:var(--or)}\
-.wp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:7px;margin:10px 0}\
+.wp-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0}\
+@media(min-width:600px){.wp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}\
+@media(min-width:1000px){.wp-kpis{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}}\
 .wp-kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}\
 .wp-kpi small{display:block;font-size:11px;color:var(--ink2)}\
 .wp-kpi b{font-size:19px;font-weight:600;letter-spacing:-.02em}\
@@ -214,6 +216,15 @@ var WP_CSS = '\
 .wp-load i.wp-mid{background:var(--warn)}\
 .wp-load i.wp-hi{background:#BE2318}\
 .wp-cellh{font-size:10px;color:var(--ink3);text-align:right}\
+.wp-team-narrow{display:none}\
+@media(max-width:599px){.wp-team-wide{display:none}.wp-team-narrow{display:block}}\
+.wp-tmd{border-top:1px solid var(--line);padding:8px 0}\
+.wp-tmd:first-child{border-top:none}\
+.wp-tmd h4{font-size:13.5px;margin:0 0 6px;cursor:pointer}\
+.wp-tmp{margin-bottom:8px}\
+.wp-tmp:last-child{margin-bottom:0}\
+.wp-tmp-h{display:flex;align-items:baseline;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:3px}\
+.wp-tmp-h span{margin-left:auto;font-weight:400;color:var(--ink3)}\
 .wp-ld{border-top:1px solid var(--line);padding:7px 0;cursor:pointer}\
 .wp-ld>div:first-child{display:flex;align-items:center;gap:8px;margin-bottom:3px}\
 .wp-ld h4{margin:0;font-size:13.5px}\
@@ -294,7 +305,7 @@ var WP_CSS = '\
   html,body{width:auto;height:auto}\
   body{background:#fff;color:#000;padding:0;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}\
   .wp-app{--bg:#fff;background:#fff;min-height:0;padding-bottom:0}\
-  .wp-top,.wp-bar,.wp-kpis,.wp-cols,.wp-scroll,.wp-alarm,.wp-legend,.wp-abs,.wp-ov,.wp-week,.wp-noprint,.wp-vorschau{display:none!important}\
+  .wp-top,.wp-bar,.wp-kpis,.wp-cols,.wp-scroll,.wp-alarm,.wp-legend,.wp-abs,.wp-ov,.wp-week,.wp-noprint,.wp-vorschau,.wp-team-narrow{display:none!important}\
   #wp-printArea{display:block!important}\
   .wp-pbreak{break-before:page;page-break-before:always}\
 }';
@@ -578,11 +589,42 @@ function WpWocheListe(p) {
 }
 
 // ── Vista Team (Plantafel) ─────────────────────────────────────
+// Abaixo de 600px a tabela de 7 colunas não cabe (e não deve obrigar a
+// scroll lateral da página): mostra-se em vez disso uma lista por dia.
+// As duas variantes são sempre geradas; o CSS (.wp-team-wide/.wp-team-narrow)
+// é que decide qual aparece, sem depender de JS a medir o ecrã.
+function WpTeamNarrow(p, W, m) {
+  var pessoas = p.leute.filter(function(pe) { return p.who === 'alle' || pe.name === p.who; });
+  return W.map(function(k, i) {
+    var dd = wpAddD(m, i);
+    var blocos = pessoas.map(function(pe) {
+      var L = p.tasks.filter(function(a) { return a.datum === k && a.wer === pe.name; }).sort(function(x, y) { return x.von < y.von ? -1 : 1; });
+      var st = wpStatOf(p.tagRows, p.leute, k, p.who, pe.name);
+      if (!L.length && !st) return null;
+      var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
+      return React.createElement('div', { key: pe.name, className: 'wp-tmp' },
+        React.createElement('div', { className: 'wp-tmp-h' }, pe.name, soma > 0 && React.createElement('span', null, wpDez(soma) + 'h')),
+        st && React.createElement('div', { className: 'wp-tg', style: { background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
+        L.map(function(a) {
+          return React.createElement('div', { key: a.id, className: 'wp-pc', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
+            React.createElement('b', null, wpStIcon(a.status), a.von + '–' + a.bis),
+            React.createElement('span', { style: a.status === 'erledigt' ? { textDecoration: 'line-through', color: 'var(--ink3)' } : null }, a.titel)
+          );
+        })
+      );
+    }).filter(Boolean);
+    return React.createElement('div', { key: k, className: 'wp-tmd' },
+      React.createElement('h4', { onClick: function() { p.onDia(k); }, style: k === wpTodayIso() ? { color: 'var(--or)' } : null }, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(dd)),
+      blocos.length ? blocos : React.createElement('div', { style: { fontSize: 12.5, color: 'var(--ink3)' } }, '–')
+    );
+  });
+}
 function WpTeamView(p) {
   var W = wpWeekDays(p.cur), m = wpMon(wpMk(p.cur));
   var linhas = p.leute.filter(function(pe) { return p.who === 'alle' || pe.name === p.who; }).map(function(pe) { return pe.name; });
   if (p.who === 'alle') linhas.push('');
-  return React.createElement('div', { className: 'wp-scroll' },
+  return React.createElement(React.Fragment, null,
+  React.createElement('div', { className: 'wp-scroll wp-team-wide' },
     React.createElement('table', { className: 'wp-pt' },
       React.createElement('thead', null, React.createElement('tr', null,
         React.createElement('th', { className: 'wp-who' }, 'Mitarbeiter'),
@@ -623,6 +665,8 @@ function WpTeamView(p) {
         );
       }))
     )
+  ),
+  React.createElement('div', { className: 'wp-team-narrow' }, WpTeamNarrow(p, W, m))
   );
 }
 
