@@ -2904,7 +2904,13 @@ function FamiliaApp(_ref19) {
         var isLast = i === evs.length - 1;
         return /*#__PURE__*/React.createElement("div", {
           key: i,
-          onClick: function onClick() { setSelDateStr(date); setMainView('mes'); },
+          onClick: function onClick() {
+            var p = String(date).split('-');
+            skipDayResetRef.current = true;
+            setCurMonth(new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1));
+            setSelDay(parseInt(p[2], 10));
+            setMainView('mes');
+          },
           style: {
             display: 'flex',
             alignItems: 'stretch',
