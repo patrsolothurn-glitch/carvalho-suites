@@ -688,6 +688,7 @@ function HorasVozApp(props) {
   var _s40 = React.useState(''); var toast = _s40[0], setToast = _s40[1];
   var _s41 = React.useState(false); var confirmDiaLivreAberto = _s41[0], setConfirmDiaLivreAberto = _s41[1];
   var _s42 = React.useState(null); var confirmDescartar = _s42[0], setConfirmDescartar = _s42[1]; // data pendente
+  var _s43 = React.useState(100); var pctComparar = _s43[0], setPctComparar = _s43[1]; // percentagem extra a comparar (Dia/Semana/Mês)
   var editorSnapshotRef = React.useRef(null);
   var pendingDiaLivreRef = React.useRef(null);
   var vozPendenteRef = React.useRef(null);
@@ -754,6 +755,26 @@ function HorasVozApp(props) {
     }
     return { dias: dias, totalMes: totalMes, metaMes: metaMes, feriasN: feriasN, doenteN: doenteN };
   }, [curMonthObj.y, curMonthObj.m, registos, configs]);
+
+  // Mesma soma que mesData, mas com a percentagem trocada — para a
+  // comparação "a 100% / a X%". Não é useMemo (só corre ao ver o Mês,
+  // custo desprezável) e não mexe em mesData nem no motor de cálculo.
+  function hvTotalMetaMesAPercentagem(y, m, pct) {
+    var nDias = hvDaysInMonth(y, m);
+    var totalMes = 0, metaMes = 0;
+    for (var dia = 1; dia <= nDias; dia++) {
+      var dateStr = hvIsoDate(y, m, dia);
+      var idx = hvDi(hvMk(dateStr));
+      if (idx >= 5) continue;
+      var row = registos[dateStr];
+      var seg = hvIso(hvMon(hvMk(dateStr)));
+      var cfgSPct = Object.assign({}, hvConfigParaSemana(configs.length ? configs : [HV_CONFIG_DEFAULT], seg), { percentagem: pct });
+      var wk = hvComputeWeek(cfgSPct, hvWeekDays(seg).map(function (d) { return { date: d, row: registos[d] || null }; }));
+      totalMes += hvTotalDia(row, cfgSPct, wk.der);
+      metaMes += wk.metas[idx];
+    }
+    return { totalMes: totalMes, metaMes: metaMes };
+  }
 
   var anoData = React.useMemo(function () {
     var hoje = hvTodayIso();
@@ -912,7 +933,12 @@ function HorasVozApp(props) {
     setEditorAberto(true);
   }
   function abrirEditorOutroHorario() {
-    abrirEditorComValores({ tipo: 'trabalho', fracao: 1, manha_inicio: cfgHoje.manha_inicio, manha_fim: cfgHoje.manha_fim, tarde_inicio: cfgHoje.tarde_inicio, tarde_fim: cfgHoje.tarde_fim, texto_original: '' });
+    abrirEditorComValores({
+      tipo: 'trabalho', fracao: 1,
+      manha_inicio: cfgHoje.manha_inicio.slice(0, 5), manha_fim: cfgHoje.manha_fim.slice(0, 5),
+      tarde_inicio: cfgHoje.tarde_inicio.slice(0, 5), tarde_fim: cfgHoje.tarde_fim.slice(0, 5),
+      texto_original: ''
+    });
   }
   function abrirEditorParaEditar() {
     var row = registos[curDate];
@@ -1153,6 +1179,27 @@ function HorasVozApp(props) {
     });
   }
 
+  // Comparação a 100% / a uma percentagem à escolha — só chama de novo as
+  // mesmas funções puras do motor (hvComputeWeek/hvDerivados/hvCredito/
+  // hvTotalDia) com percentagem substituída no cfg; nunca as altera.
+  function renderComparacaoPct(pares) {
+    return React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
+      React.createElement('div', { style: Object.assign({}, HV_ESTILO.etiquetaSm, { marginBottom: 6 }) }, 'Comparar percentagem'),
+      pares.map(function (p, i) {
+        return React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--hv-texto)', marginBottom: i < pares.length - 1 ? 4 : 0 } },
+          React.createElement('span', null, p.label),
+          React.createElement('span', null, hvMinToHM(p.total * 60) + ' de ' + hvMinToHM(p.meta * 60))
+        );
+      }),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--hv-borda)' } },
+        React.createElement('span', { style: { fontSize: 12, color: 'var(--hv-texto2)' } }, 'Comparar a:'),
+        React.createElement('button', { className: 'hv-time-btn', style: { width: 32, height: 32, fontSize: 15 }, onClick: function () { setPctComparar(Math.max(5, pctComparar - 5)); } }, '−'),
+        React.createElement('span', { style: { fontSize: 14, fontWeight: 800, color: 'var(--hv-texto)', minWidth: 42, textAlign: 'center' } }, pctComparar + '%'),
+        React.createElement('button', { className: 'hv-time-btn', style: { width: 32, height: 32, fontSize: 15 }, onClick: function () { setPctComparar(Math.min(150, pctComparar + 5)); } }, '+')
+      )
+    );
+  }
+
   function renderFaixaSemana() {
     var dias = hvDiasSemanaCompleta();
     var hoje = hvTodayIso();
@@ -1210,7 +1257,7 @@ function HorasVozApp(props) {
       },
         React.createElement('span', null, saving ? 'A gravar…' : '✓ Dia normal'),
         React.createElement('span', { style: { fontSize: 11, fontWeight: 600, opacity: .85 } },
-          cfgHoje.manha_inicio + '–' + cfgHoje.manha_fim + ' · ' + cfgHoje.tarde_inicio + '–' + cfgHoje.tarde_fim + ' = ' + hvMinToHM(previewMin))
+          cfgHoje.manha_inicio.slice(0, 5) + '–' + cfgHoje.manha_fim.slice(0, 5) + ' · ' + cfgHoje.tarde_inicio.slice(0, 5) + '–' + cfgHoje.tarde_fim.slice(0, 5) + ' = ' + hvMinToHM(previewMin))
       ),
       vozIndisponivel
         ? React.createElement('div', { style: { display: 'flex', gap: 8 } },
@@ -1313,11 +1360,25 @@ function HorasVozApp(props) {
 
   function renderDia() {
     var temRegisto = !!registos[curDate];
+    var weekDaysArrHoje = hvWeekDays(mondayCur).map(function (d) { return { date: d, row: registos[d] || null }; });
+    var der100 = hvDerivados(Object.assign({}, cfgHoje, { percentagem: 100 }));
+    var weekCalc100 = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: 100 }), weekDaysArrHoje);
+    var meta100 = curIsoDow <= 6 ? weekCalc100.metas[curIsoDow] : 0;
+    var total100 = trabalhadoMinAtual / 60 + hvCredito(payloadAtual, cfgHoje, der100);
+    var paresPct = [{ label: '100%', total: total100, meta: meta100 }];
+    if (pctComparar !== 100) {
+      var derPct = hvDerivados(Object.assign({}, cfgHoje, { percentagem: pctComparar }));
+      var weekCalcPct = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: pctComparar }), weekDaysArrHoje);
+      var metaPct = curIsoDow <= 6 ? weekCalcPct.metas[curIsoDow] : 0;
+      var totalPct = trabalhadoMinAtual / 60 + hvCredito(payloadAtual, cfgHoje, derPct);
+      paresPct.push({ label: pctComparar + '%', total: totalPct, meta: metaPct });
+    }
     return React.createElement('div', { style: HV_ESTILO.pagina },
       erro && React.createElement(HvCard, null, React.createElement('p', { style: HV_ESTILO.erroTexto }, '⚠️ ' + erro)),
       renderFaixaSemana(),
       renderBarraData(),
-      editorAberto ? renderModoC() : (temRegisto ? renderModoB() : renderModoA())
+      editorAberto ? renderModoC() : (temRegisto ? renderModoB() : renderModoA()),
+      renderComparacaoPct(paresPct)
     );
   }
 
@@ -1355,8 +1416,8 @@ function HorasVozApp(props) {
         React.createElement('h2', { style: { color: 'var(--hv-texto)', fontSize: 16, fontWeight: 800 } }, '⋯ Mais'),
         React.createElement('button', { onClick: function () { setMaisAberto(false); }, style: { background: 'none', border: 'none', color: 'var(--hv-texto2)', fontSize: 18, cursor: 'pointer' } }, '✕')
       ),
-      React.createElement('button', { className: 'hv-mais-item', onClick: function () { setMaisAberto(false); abrirEditorComValores({ tipo: 'ferias', fracao: 0.5, manha_inicio: cfgHoje.manha_inicio, manha_fim: cfgHoje.manha_fim, tarde_inicio: null, tarde_fim: null, texto_original: '' }); } }, '🏖 Meio dia férias'),
-      React.createElement('button', { className: 'hv-mais-item', onClick: function () { setMaisAberto(false); abrirEditorComValores({ tipo: 'doente', fracao: 0.5, manha_inicio: cfgHoje.manha_inicio, manha_fim: cfgHoje.manha_fim, tarde_inicio: null, tarde_fim: null, texto_original: '' }); } }, '🤒 Meio dia doente'),
+      React.createElement('button', { className: 'hv-mais-item', onClick: function () { setMaisAberto(false); abrirEditorComValores({ tipo: 'ferias', fracao: 0.5, manha_inicio: cfgHoje.manha_inicio.slice(0, 5), manha_fim: cfgHoje.manha_fim.slice(0, 5), tarde_inicio: null, tarde_fim: null, texto_original: '' }); } }, '🏖 Meio dia férias'),
+      React.createElement('button', { className: 'hv-mais-item', onClick: function () { setMaisAberto(false); abrirEditorComValores({ tipo: 'doente', fracao: 0.5, manha_inicio: cfgHoje.manha_inicio.slice(0, 5), manha_fim: cfgHoje.manha_fim.slice(0, 5), tarde_inicio: null, tarde_fim: null, texto_original: '' }); } }, '🤒 Meio dia doente'),
       React.createElement('button', { className: 'hv-mais-item', onClick: function () { setMaisAberto(false); abrirEditorComValores({ tipo: 'feriado', fracao: 1, manha_inicio: null, manha_fim: null, tarde_inicio: null, tarde_fim: null, texto_original: '' }); } }, '🎉 Feriado'),
       React.createElement('button', { className: 'hv-mais-item', onClick: function () { setMaisAberto(false); abrirEditorComValores({ tipo: 'fecho', fracao: 1, manha_inicio: null, manha_fim: null, tarde_inicio: null, tarde_fim: null, texto_original: '' }); } }, '🔒 Fecho Dez.'),
       React.createElement('button', { className: 'hv-mais-item', onClick: acaoIgualOntem }, '📋 Igual a ontem'),
@@ -1383,6 +1444,15 @@ function HorasVozApp(props) {
     var metaMediaFalta = diasFaltamTrabalho.length ? (falta / diasFaltamTrabalho.length) : 0;
     var mostrarLegenda = !HV_LEGENDA_SEMANA_VISTA;
     if (!HV_LEGENDA_SEMANA_VISTA) HV_LEGENDA_SEMANA_VISTA = true;
+    var weekDaysArrSemana = hvWeekDays(mondayCur).map(function (d) { return { date: d, row: registos[d] || null }; });
+    var weekCalc100 = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: 100 }), weekDaysArrSemana);
+    var totalSemana100 = dias.reduce(function (s, d) { return s + hvTotalDia(d.row, cfgSemana, weekCalc100.der); }, 0);
+    var paresPctSemana = [{ label: '100%', total: totalSemana100, meta: weekCalc100.meta_semana }];
+    if (pctComparar !== 100) {
+      var weekCalcPctSemana = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: pctComparar }), weekDaysArrSemana);
+      var totalSemanaPct = dias.reduce(function (s, d) { return s + hvTotalDia(d.row, cfgSemana, weekCalcPctSemana.der); }, 0);
+      paresPctSemana.push({ label: pctComparar + '%', total: totalSemanaPct, meta: weekCalcPctSemana.meta_semana });
+    }
     return React.createElement('div', { style: HV_ESTILO.pagina },
       React.createElement('div', { style: HV_ESTILO.linhaTopo },
         React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { setCurDate(hvIso(hvAddD(hvMk(mondayCur), -7))); } }, '‹'),
@@ -1396,6 +1466,7 @@ function HorasVozApp(props) {
           'Falta ' + hvMinToHM(falta * 60) + ' → ' + diasFaltamTrabalho.map(function (d) { return HV_DIA_CURTO[d.isoDow - 1]; }).join('–') + ' ' + hvMinToHM(metaMediaFalta * 60) + ' por dia'
         )
       ),
+      renderComparacaoPct(paresPctSemana),
       mostrarLegenda && React.createElement('div', { className: 'hv-legenda' }, React.createElement('span', null, 'Feito · Meta · Saldo')),
       React.createElement(HvCard, { style: { padding: 0 } }, React.createElement('div', { style: { padding: '0 16px' } }, linhas))
     );
@@ -1416,6 +1487,12 @@ function HorasVozApp(props) {
     // Saldo até hoje: só soma dias <= hoje (hoje só se gravado) — mesmo
     // agregado usado na Semana, sem tocar nos totais/metas por dia.
     var saldoAteHoje = hvSomaSaldoAteHoje(diasUteis.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje);
+    var mes100 = hvTotalMetaMesAPercentagem(y, m, 100);
+    var paresPctMes = [{ label: '100%', total: mes100.totalMes, meta: mes100.metaMes }];
+    if (pctComparar !== 100) {
+      var mesPct = hvTotalMetaMesAPercentagem(y, m, pctComparar);
+      paresPctMes.push({ label: pctComparar + '%', total: mesPct.totalMes, meta: mesPct.metaMes });
+    }
     return React.createElement('div', { style: HV_ESTILO.pagina },
       React.createElement('div', { style: HV_ESTILO.linhaTopo },
         React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { var d = new Date(Date.UTC(y, m - 1, 1)); setCurMonthObj({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); } }, '‹'),
@@ -1430,6 +1507,7 @@ function HorasVozApp(props) {
         ),
         React.createElement('div', { style: HV_ESTILO.textoMuted }, '🏖 ' + hvDez(mesData.feriasN) + ' dias de férias · 🤒 ' + hvDez(mesData.doenteN) + ' dias doente')
       ),
+      renderComparacaoPct(paresPctMes),
       React.createElement(HvCard, { style: { padding: 0 } }, React.createElement('div', { style: { padding: '0 8px' } }, linhas))
     );
   }
