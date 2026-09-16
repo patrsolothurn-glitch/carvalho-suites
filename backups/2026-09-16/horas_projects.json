@@ -1,0 +1,7 @@
+[{"id":4,"name":"BUDI-S","description":"Buildi","color":"#22A06B","created_at":"2026-06-20T23:56:28.872853+00:00","hourly_rate":0,"conta_estatisticas":true}, 
+ {"id":3,"name":"BUDI-1S","description":"Buildi - 1a fase","color":"#D97706","created_at":"2026-06-20T23:56:28.872853+00:00","hourly_rate":0,"conta_estatisticas":true}, 
+ {"id":2,"name":"BUDI-2S","description":"Buildi - 2a fase","color":"#D97706","created_at":"2026-06-20T23:56:28.872853+00:00","hourly_rate":0,"conta_estatisticas":true}, 
+ {"id":7,"name":"Magazin","description":null,"color":null,"created_at":"2026-06-21T09:51:37.989437+00:00","hourly_rate":60,"conta_estatisticas":true}, 
+ {"id":1,"name":"POP GREN04","description":"Grenchen - Fibra otica","color":"#2563EB","created_at":"2026-06-20T23:56:28.872853+00:00","hourly_rate":90,"conta_estatisticas":true}, 
+ {"id":5,"name":"POP GREN05","description":"Lengnau","color":"#A855F7","created_at":"2026-06-20T23:57:57.461249+00:00","hourly_rate":90,"conta_estatisticas":true}, 
+ {"id":6,"name":"Nachschiessen","description":null,"color":null,"created_at":"2026-06-21T09:13:31.589532+00:00","hourly_rate":90,"conta_estatisticas":true}]
