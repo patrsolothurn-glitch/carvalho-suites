@@ -2061,7 +2061,7 @@ function FamiliaApp(_ref19) {
             }
             setEditEvKey(evKey);
           }
-          setEditEvErr(ev.source === 'agenda_pro' ? 'Este evento vem do Patricio Work. Para o tirar daqui, desmarca a partilha l\u00E1.' : ev.source === 'escolar' ? 'Este evento vem da Vida Escolar. Apaga o teste l\u00E1.' : 'Este evento vem de outra app.');
+          setEditEvErr(ev.source === 'agenda_pro' ? 'Este evento vem do Patricio Work. Para o tirar daqui, desmarca a partilha l\u00E1.' : ev.source === 'escolar' ? 'Este evento vem da Vida Escolar. Apaga o teste l\u00E1.' : ev.source === 'escolar_evento' ? 'Este evento vem da Vida Escolar. Apaga-o l\u00E1.' : 'Este evento vem de outra app.');
           return;
         }
         if (window.supabaseClient && ev.id) {
@@ -2132,7 +2132,7 @@ function FamiliaApp(_ref19) {
         fontSize: 11,
         marginBottom: 10
       }
-    }, ev.source === 'agenda_pro' ? '💼 Vem do Patricio Work' : ev.source === 'escolar' ? '📚 Vem da Vida Escolar' : null), /*#__PURE__*/React.createElement("p", {
+    }, ev.source === 'agenda_pro' ? '💼 Vem do Patricio Work' : (ev.source === 'escolar' || ev.source === 'escolar_evento') ? '📚 Vem da Vida Escolar' : null), /*#__PURE__*/React.createElement("p", {
       style: {
         color: F.muted,
         fontSize: 10,
@@ -3132,7 +3132,7 @@ function FamiliaApp(_ref19) {
             onClick: function onClick() {
               if (ev.source) {
                 // Eventos sincronizados n\u00E3o se apagam daqui \u2014 s\u00F3 na app de origem.
-                window.alert('Saltado ' + allIds.length + ' evento(s) \u2014 vem do ' + (ev.source === 'agenda_pro' ? 'Patricio Work' : ev.source === 'escolar' ? 'Vida Escolar' : ev.source) + ', apaga-o l\u00E1.');
+                window.alert('Saltado ' + allIds.length + ' evento(s) \u2014 vem do ' + (ev.source === 'agenda_pro' ? 'Patricio Work' : (ev.source === 'escolar' || ev.source === 'escolar_evento') ? 'Vida Escolar' : ev.source) + ', apaga-o l\u00E1.');
                 return;
               }
               var removeIds = function removeIds(ids) {
