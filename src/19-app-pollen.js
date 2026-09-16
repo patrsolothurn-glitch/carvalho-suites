@@ -48,19 +48,49 @@ var POL_LIMITES = {
   olive: [[1, 10, 'fraco'], [11, 99, 'moderado'], [100, 349, 'forte'], [350, Infinity, 'muito_forte']]
 };
 var POL_NIVEL_INFO = {
+  vestigios: { label: 'Vestígios', cor: '#CBD5E1' },
   fraco: { label: 'Fraco', cor: '#12A150' },
   moderado: { label: 'Moderado', cor: '#FFD21F' },
   forte: { label: 'Forte', cor: '#F97316' },
   muito_forte: { label: 'Muito forte', cor: '#DC2626' }
 };
+// Classifica um valor (grãos/m³, pode vir com decimais da Open-Meteo) num
+// nível. As faixas de POL_LIMITES só têm limites inteiros (fonte MeteoSchweiz),
+// por isso classifica-se SÓ pelo limite INFERIOR de cada faixa, do nível
+// mais alto para o mais baixo — nunca pelos dois limites em conjunto, que
+// deixava valores decimais "entre faixas" (ex.: 5.5, 19.6) cair no
+// 'muito_forte' por defeito no fim da função. Valores > 0 e < 1 (vestígios
+// de pólen, ainda não uma carga real) ficam num nível à parte, que não
+// conta para alertas. valor <= 0 ou sem valor devolve null (o chamador
+// decide se é "fora de época" ou "sem dados" a partir do valor em si).
 function polClassificarNivel(tipoId, valor) {
   if (valor == null || valor <= 0) return null;
+  if (valor < 1) return 'vestigios';
   var faixas = POL_LIMITES[tipoId];
   if (!faixas) return null;
-  for (var i = 0; i < faixas.length; i++) {
-    if (valor >= faixas[i][0] && valor <= faixas[i][1]) return faixas[i][2];
+  for (var i = faixas.length - 1; i >= 0; i--) {
+    if (valor >= faixas[i][0]) return faixas[i][2];
   }
-  return 'muito_forte';
+  // Abaixo do limite inferior da faixa mais baixa definida (só acontece
+  // para Erle/Hasel, que na fonte não têm classe "fraco" — aqui ficam
+  // "fraco" na mesma em vez de "sem nível", por consistência com os outros.
+  return 'fraco';
+}
+// Autoteste de polClassificarNivel — só corre em modo admin (window.__cs_admin,
+// ver src/10-shell.js), uma vez no arranque da app. Cobre os casos que
+// motivaram o BUG A (decimais da Open-Meteo entre faixas e abaixo de 1),
+// para nunca mais cair em "muito forte" por defeito.
+// Nota sobre "5.5 beifuss": as faixas de beifuss são fraco[1,5] e
+// moderado[6,14] — 5.5 fica ABAIXO do limite inferior de moderado (6), logo
+// classifica como 'fraco' com a regra "só pelo limite inferior" pedida. Só
+// passaria a 'moderado' se o limite inferior de moderado fosse <= 5.5.
+function polAutoteste() {
+  console.assert(polClassificarNivel('graeser', 0.4) === 'vestigios', '[pollen autoteste] 0.4 graeser devia ser vestigios');
+  console.assert(polClassificarNivel('beifuss', 5.5) === 'fraco', '[pollen autoteste] 5.5 beifuss devia ser fraco (moderado só a partir de 6)');
+  console.assert(polClassificarNivel('graeser', 19.6) === 'fraco', '[pollen autoteste] 19.6 graeser devia ser fraco');
+  console.assert(polClassificarNivel('graeser', 20) === 'moderado', '[pollen autoteste] 20 graeser devia ser moderado');
+  console.assert(polClassificarNivel('graeser', 150) === 'muito_forte', '[pollen autoteste] 150 graeser devia ser muito_forte');
+  console.assert(polClassificarNivel('graeser', 0) === null, '[pollen autoteste] 0 devia ser fora de época (null)');
 }
 
 // ── Kantone + cidades principais (com Selzach, Solothurn e Grenchen)
@@ -207,6 +237,39 @@ function polFmtDataCurta(dateStr) {
   var p = dateStr.split('-');
   return p[2] + '.' + p[1] + '.';
 }
+// "YYYY-MM-DDTHH:00" na hora local de Zurique — mesmo formato do
+// hourly.time devolvido pela Open-Meteo (pedido com timezone=Europe/Zurich),
+// para encontrar o índice da hora atual nesse array.
+function polHoraAtualZurich() {
+  var partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Zurich', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  var obj = {};
+  partes.forEach(function (p) { obj[p.type] = p.value; });
+  var hora = obj.hour === '24' ? '00' : obj.hour;
+  return obj.year + '-' + obj.month + '-' + obj.day + 'T' + hora + ':00';
+}
+// Valor da Open-Meteo para a hora atual (fallback do ecrã Hoje quando não
+// há medição real da estação) — null se não houver previsão carregada ou
+// se este tipo de pólen não tiver variável na Open-Meteo (omVar null).
+function polValorHoraAtual(previsao, omVar) {
+  if (!previsao || !previsao.hourly || !previsao.hourly.time || !omVar) return null;
+  var arr = previsao.hourly[omVar];
+  if (!arr) return null;
+  var idx = previsao.hourly.time.indexOf(polHoraAtualZurich());
+  if (idx === -1) return null;
+  var v = arr[idx];
+  return v == null ? null : v;
+}
+// Medição da estação ainda válida para mostrar como "medido" no ecrã Hoje
+// — só se tiver menos de 6h (senão é dada como não-medida e cai-se para a
+// previsão da Open-Meteo).
+var POL_MEDICAO_VALIDA_MS = 6 * 60 * 60 * 1000;
+function polMedicaoRecente(m) {
+  if (!m) return false;
+  var idade = Date.now() - new Date(m.ts).getTime();
+  return idade >= 0 && idade <= POL_MEDICAO_VALIDA_MS;
+}
 
 // ── Voz (ler o termo alemão) ─────────────────────────────────────
 function polFalarAlemao(texto) {
@@ -246,10 +309,20 @@ var POL_CSS = '' +
 
 // ── Pequenas peças ──────────────────────────────────────────────
 function PolCard(p) { return React.createElement('div', { className: 'pol-card', style: p.style }, p.children); }
+// 3 estados, decididos pelo valor em si (não só pelo nível já calculado):
+// valor null/undefined -> sem qualquer medição/previsão disponível (não
+// confundir com valor 0, que É um dado real: fora de época). valor > 0
+// mostra o nível com cor; com mostrarValor:true acrescenta o número
+// arredondado a 1 casa (ex.: "Fraco · 4.2").
 function PolNivelPill(p) {
+  var cinzento = { background: 'var(--pol-borda)', color: 'var(--pol-texto2)' };
+  if (p.valor == null) return React.createElement('span', { className: 'pol-nivel-pill', style: cinzento }, '⚠︎ Sem dados');
+  if (p.valor <= 0) return React.createElement('span', { className: 'pol-nivel-pill', style: cinzento }, 'Fora de época');
   var info = p.nivel ? POL_NIVEL_INFO[p.nivel] : null;
-  if (!info) return React.createElement('span', { className: 'pol-nivel-pill', style: { background: 'var(--pol-borda)', color: 'var(--pol-texto2)' } }, 'Sem pólen');
-  return React.createElement('span', { className: 'pol-nivel-pill', style: { background: info.cor, color: (p.nivel === 'moderado') ? '#231a00' : '#fff' } }, info.label);
+  if (!info) return React.createElement('span', { className: 'pol-nivel-pill', style: cinzento }, '—');
+  var texto = info.label + (p.mostrarValor ? ' · ' + (Math.round(p.valor * 10) / 10) : '');
+  var corTexto = (p.nivel === 'moderado' || p.nivel === 'vestigios') ? '#231a00' : '#fff';
+  return React.createElement('span', { className: 'pol-nivel-pill', style: { background: info.cor, color: corTexto } }, texto);
 }
 function PolTipoNome(p) {
   return React.createElement('span', null, p.tipo.de, ' · ', p.tipo.pt);
@@ -333,6 +406,7 @@ function PollenApp(props) {
   }
   React.useEffect(function () { carregar(); }, []);
   React.useEffect(function () { return window.csAoVoltarRede(function () { carregar(); }); }, []);
+  React.useEffect(function () { if (window.__cs_admin) polAutoteste(); }, []);
 
   var perfilAtivo = perfis.filter(function (p) { return p.id === perfilAtivoId; })[0] || null;
   var estacaoInfo = perfilAtivo ? polEstacaoMaisProxima(estacoes, perfilAtivo.lat, perfilAtivo.lon) : null;
@@ -598,13 +672,24 @@ function PollenApp(props) {
     var outrosTipos = POL_TIPOS.filter(function (t) { return alergiaIds.indexOf(t.id) === -1; });
     function linhaTipo(t) {
       var m = ultimoPorTipo[t.id];
-      var valor = m ? m.valor : null;
+      var medicaoValida = polMedicaoRecente(m);
+      var valor, fonteLabel;
+      if (medicaoValida) {
+        valor = m.valor;
+        fonteLabel = 'medido · ' + estacaoInfo.estacao.nome + ' ' + polFmtHora(m.ts);
+      } else {
+        valor = polValorHoraAtual(previsao, t.omVar);
+        fonteLabel = valor != null ? 'previsão' : null;
+      }
       var nivel = polClassificarNivel(t.id, valor);
       return React.createElement('div', { key: t.id, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--pol-borda)' } },
-        React.createElement(PolTipoNome, { tipo: t }),
+        React.createElement('div', null,
+          React.createElement(PolTipoNome, { tipo: t }),
+          fonteLabel && React.createElement('div', { style: { fontSize: 10, color: 'var(--pol-texto2)', marginTop: 1 } }, fonteLabel)
+        ),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
           valor != null && React.createElement('span', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, Math.round(valor) + ' /m³'),
-          React.createElement(PolNivelPill, { nivel: nivel })
+          React.createElement(PolNivelPill, { valor: valor, nivel: nivel })
         )
       );
     }
@@ -631,7 +716,6 @@ function PollenApp(props) {
 
   function renderPrevisao() {
     if (!perfilAtivo) return renderSemPerfil();
-    var tiposComOm = POL_TIPOS.filter(function (t) { return t.omVar; });
     return React.createElement('div', { style: { padding: 16 } },
       previsaoErro && React.createElement(PolCard, { style: { marginBottom: 12 } }, React.createElement('p', { style: { color: '#DC2626', fontSize: 13 } }, '⚠️ ' + previsaoErro)),
       React.createElement(PolCard, { style: { overflowX: 'auto', padding: 0 } },
@@ -643,21 +727,25 @@ function PollenApp(props) {
             )
           ),
           React.createElement('tbody', null,
-            tiposComOm.map(function (t) {
+            POL_TIPOS.map(function (t) {
               return React.createElement('tr', { key: t.id, style: { borderTop: '1px solid var(--pol-borda)' } },
                 React.createElement('td', { style: { padding: '8px 12px', fontWeight: 700 } }, React.createElement(PolTipoNome, { tipo: t })),
-                previsaoDias.map(function (d) {
-                  var v = d.valores[t.id];
-                  var nivel = polClassificarNivel(t.id, v);
-                  return React.createElement('td', { key: d.data, style: { padding: '6px', textAlign: 'center' } }, React.createElement(PolNivelPill, { nivel: nivel }));
-                })
+                t.omVar
+                  ? previsaoDias.map(function (d) {
+                      var v = d.valores[t.id];
+                      var nivel = polClassificarNivel(t.id, v);
+                      return React.createElement('td', { key: d.data, style: { padding: '6px', textAlign: 'center' } }, React.createElement(PolNivelPill, { valor: v, nivel: nivel, mostrarValor: true }));
+                    })
+                  : previsaoDias.map(function (d) {
+                      return React.createElement('td', { key: d.data, style: { padding: '6px', textAlign: 'center', color: 'var(--pol-texto2)' } }, '—');
+                    })
               );
             }),
             !previsaoDias.length && React.createElement('tr', null, React.createElement('td', { colSpan: 5, style: { padding: 16, color: 'var(--pol-texto2)', fontSize: 13 } }, 'A carregar previsão…'))
           )
         )
       ),
-      React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', marginTop: 10 } }, 'Pólens sem "—" não têm fonte de previsão (só medição real, na aba Hoje).')
+      React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', marginTop: 10 } }, 'Hasel, Esche, Buche e Eiche não têm previsão — só medição real na aba Hoje.')
     );
   }
 
