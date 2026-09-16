@@ -87,6 +87,36 @@ function getEligibleProfileIds(appId, onlyMemberId) {
   });
 }
 
+// ── Ícone SVG da app Pólen (ver entrada 'pollen' no APPS_DATA abaixo)
+// — id do clipPath gerado a cada invocação porque o ícone pode
+// aparecer várias vezes ao mesmo tempo na página (menu, hub, toggles,
+// cabeçalho) e o id tem de ser único em cada uma.
+var pollenIconIdSeq = 0;
+function pollenIconSvg(size) {
+  var clipId = 'pollenIconClip' + (pollenIconIdSeq++);
+  return React.createElement('svg', { width: size, height: size, viewBox: '0 0 64 64', xmlns: 'http://www.w3.org/2000/svg', 'aria-label': 'Pólen' },
+    React.createElement('defs', null,
+      React.createElement('clipPath', { id: clipId },
+        React.createElement('rect', { x: 4, y: 4, width: 56, height: 56, rx: 12 })
+      )
+    ),
+    React.createElement('g', { clipPath: 'url(#' + clipId + ')' },
+      React.createElement('rect', { x: 4, y: 4, width: 56, height: 56, fill: '#FFD21F' }),
+      React.createElement('polygon', { points: '4,4 60,4 4,60', fill: '#12A150' }),
+      React.createElement('g', { fill: '#FFD21F' },
+        React.createElement('circle', { cx: 16, cy: 16, r: 4 }),
+        React.createElement('circle', { cx: 30, cy: 13, r: 2.5 }),
+        React.createElement('circle', { cx: 13, cy: 30, r: 2.5 })
+      ),
+      React.createElement('g', { fill: '#12A150' },
+        React.createElement('circle', { cx: 48, cy: 48, r: 4 }),
+        React.createElement('circle', { cx: 34, cy: 51, r: 2.5 }),
+        React.createElement('circle', { cx: 51, cy: 34, r: 2.5 })
+      )
+    )
+  );
+}
+
 // ── DATA ────────────────────────────────────────────────────────────
 var APPS_DATA = [{
   id: 'horaspr',
@@ -185,4 +215,13 @@ var APPS_DATA = [{
   badge: null,
   color: '#2563EB',
   adminOnly: true
+}, {
+  id: 'pollen',
+  emoji: '🌼',
+  name: 'Pólen',
+  desc: 'Previsão e diário de alergias ao pólen',
+  badge: null,
+  color: '#12A150',
+  adminOnly: true,
+  iconSvg: pollenIconSvg
 }];

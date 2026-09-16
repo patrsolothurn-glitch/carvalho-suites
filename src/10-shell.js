@@ -1490,6 +1490,7 @@ function CarvalhoSuite() {
     if (activeApp === 'voz' && isAdmin) return /*#__PURE__*/React.createElement(VozApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'wochenplan' && isAdmin) return /*#__PURE__*/React.createElement(WochenplanApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'horasvoz' && isAdmin) return /*#__PURE__*/React.createElement(HorasVozApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'pollen' && isAdmin) return /*#__PURE__*/React.createElement(PollenApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
@@ -2157,7 +2158,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: true }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: true }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true }, { id: 'pollen', permApp: 'pollen', emoji: '🌼', name: 'Pólen', active: true, adminOnly: true, iconSvg: pollenIconSvg }].filter(function (app) {
       if (app.adminOnly) return isAdmin;
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
@@ -2184,7 +2185,7 @@ function CarvalhoSuite() {
           ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
               React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
               React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#2563EB' }))
-          : React.createElement("span", { style: { fontSize: 16 } }, app.emoji),
+          : (app.iconSvg ? app.iconSvg(20) : React.createElement("span", { style: { fontSize: 16 } }, app.emoji)),
         React.createElement("span", { style: { flex: 1, fontSize: 13, color: T.text } },
           app.name,
           !app.active && React.createElement("span", { style: { color: T.muted, fontSize: 11, fontWeight: 600, marginLeft: 6 } }, "(em breve)")
@@ -2277,7 +2278,7 @@ function CarvalhoSuite() {
       if (isAdmin) return true;
       return !profile || !profile.allowed_apps || profile.allowed_apps.indexOf(app.id) !== -1;
     }).map(function (app) {
-      return { id: app.id, emoji: app.emoji, name: app.name };
+      return { id: app.id, emoji: app.emoji, name: app.name, iconSvg: app.iconSvg };
     })).map(function (opt, oi) {
       var isSel = (profile && profile.default_app) === opt.id || (!(profile && profile.default_app) && opt.id === null);
       return React.createElement("div", {
@@ -2290,7 +2291,7 @@ function CarvalhoSuite() {
           borderRadius: 10, cursor: 'pointer'
         }
       },
-        React.createElement("span", { style: { fontSize: 16 } }, opt.emoji),
+        (opt.iconSvg ? opt.iconSvg(20) : React.createElement("span", { style: { fontSize: 16 } }, opt.emoji)),
         React.createElement("span", { style: { flex: 1, fontSize: 13, color: isSel ? T.gold : T.text, fontWeight: isSel ? 700 : 400 } }, opt.name),
         isSel && React.createElement("span", { style: { color: T.gold, fontSize: 14 } }, "✓")
       );
@@ -2719,7 +2720,7 @@ function CarvalhoSuite() {
         ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
             React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
             React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#2563EB' }))
-        : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
+        : (app.iconSvg ? app.iconSvg(20) : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji))
       , /*#__PURE__*/React.createElement("span", {
         style: {
           flex: 1,
@@ -2879,7 +2880,7 @@ function CarvalhoSuite() {
         ? React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
             React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
             React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#2563EB' }))
-        : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji)
+        : (app.iconSvg ? app.iconSvg(20) : /*#__PURE__*/React.createElement("span", { style: { fontSize: 16 } }, app.emoji))
       , /*#__PURE__*/React.createElement("span", {
         style: {
           flex: 1,
@@ -3473,7 +3474,7 @@ function CarvalhoSuite() {
       ? React.createElement('svg', { width: 28, height: 28, viewBox: '0 0 32 32', xmlns: 'http://www.w3.org/2000/svg' },
           React.createElement('rect', { width: 32, height: 32, fill: '#0E0F10' }),
           React.createElement('rect', { x: 4, y: 4, width: 14, height: 14, fill: '#2563EB' }))
-      : /*#__PURE__*/React.createElement("span", { style: { fontSize: 22 } }, app.emoji)
+      : (app.iconSvg ? app.iconSvg(28) : /*#__PURE__*/React.createElement("span", { style: { fontSize: 22 } }, app.emoji))
     ), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1,

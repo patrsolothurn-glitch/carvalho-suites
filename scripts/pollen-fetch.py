@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""
+scripts/pollen-fetch.py — atualiza pollen_estacoes e pollen_medicoes no
+Supabase a partir dos dados abertos da MeteoSwiss (coleção
+ch.meteoschweiz.ogd-pollen, https://data.geo.admin.ch). Corre via
+.github/workflows/pollen-fetch.yml (cron a cada 3h + workflow_dispatch).
+Só usa a biblioteca padrão (urllib) — sem dependências externas.
+
+NÃO faz commit ao repositório.
+
+IMPORTANTE — leitura antes de confiar cegamente neste script: foi
+escrito sem conseguir aceder a data.geo.admin.ch a partir do ambiente
+onde foi desenvolvido (proxy de rede bloqueia o domínio); os nomes
+exatos das colunas dos CSV horários da MeteoSwiss vêm só de
+documentação pesquisada (opendatadocs.meteoswiss.ch), não de um
+ficheiro real inspecionado ao vivo. Por isso:
+  - a lista de estações vem de ogd-pollen_meta_stations.csv (colunas
+    confirmadas: station_abbr, station_name,
+    station_coordinates_wgs84_lat/lon);
+  - o ficheiro horário de cada estação assume o padrão de nome
+    confirmado ogd-pollen_<abbr>_h_recent.csv;
+  - as colunas de cada tipo de pólen são reconhecidas por PALAVRA-CHAVE
+    no cabeçalho (nome alemão/inglês ou abreviatura latina do género),
+    não por um nome fixo — para aguentar variações que não pude
+    confirmar. Corre com workflow_dispatch e lê os avisos "coluna não
+    reconhecida" nos logs; ajusta TIPO_KEYWORDS abaixo se for preciso.
+"""
+import csv
+import io
+import json
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+
+SUPABASE_URL = os.environ['SUPABASE_URL']
+SUPABASE_KEY = os.environ['SUPABASE_SERVICE_KEY']
+
+META_STATIONS_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-pollen/ogd-pollen_meta_stations.csv'
+HOURLY_CSV_URL_TPL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-pollen/ogd-pollen_{abbr}_h_recent.csv'
+
+# tipos = mesmos ids de POL_TIPOS em src/19-app-pollen.js — o "tipo"
+# gravado em pollen_medicoes tem de bater certo com esses ids.
+TIPO_KEYWORDS = {
+    'erle': ['aln', 'erle', 'alder'],
+    'hasel': ['cory', 'hasel', 'hazel'],
+    'esche': ['frax', 'esche', 'ash'],
+    'birke': ['betu', 'birke', 'birch'],
+    'buche': ['fagu', 'buche', 'beech'],
+    'eiche': ['quer', 'eiche', 'oak'],
+    'graeser': ['poac', 'gram', 'graeser', 'gräser', 'graser', 'grass'],
+}
+TS_KEYWORDS = ['reference_timestamp', 'timestamp', 'datum', 'date', 'time']
+IGNORAR_COLUNAS = {'station_abbr', 'station/abbr'}
+
+
+def log(msg):
+    print(msg, flush=True)
+
+
+def http_get(url, timeout=30):
+    req = urllib.request.Request(url, headers={'User-Agent': 'carvalho-suite-pollen-fetch'})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+
+def supabase_upsert(table, rows, on_conflict):
+    if not rows:
+        return
+    url = '{}/rest/v1/{}?on_conflict={}'.format(SUPABASE_URL, table, on_conflict)
+    body = json.dumps(rows).encode('utf-8')
+    req = urllib.request.Request(url, data=body, method='POST', headers={
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        resp.read()
+
+
+def supabase_delete_old(table, ts_col, before_iso):
+    url = '{}/rest/v1/{}?{}=lt.{}'.format(SUPABASE_URL, table, ts_col, urllib.parse.quote(before_iso, safe=''))
+    req = urllib.request.Request(url, method='DELETE', headers={
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        resp.read()
+
+
+def parse_timestamp(raw):
+    raw = (raw or '').strip()
+    if not raw:
+        return None
+    formatos = ['%d.%m.%Y %H:%M', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M']
+    for fmt in formatos:
+        try:
+            dt = datetime.strptime(raw, fmt)
+            return dt.replace(tzinfo=timezone.utc).isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def identificar_coluna(nome_coluna):
+    baixo = (nome_coluna or '').strip().lower()
+    for tipo_id, palavras in TIPO_KEYWORDS.items():
+        for p in palavras:
+            if p in baixo:
+                return tipo_id
+    return None
+
+
+def main():
+    falhas = 0
+
+    log('A obter lista de estações de ' + META_STATIONS_URL + ' ...')
+    try:
+        raw = http_get(META_STATIONS_URL).decode('utf-8-sig')
+        leitor = csv.DictReader(io.StringIO(raw), delimiter=';')
+        estacoes = []
+        for linha in leitor:
+            abbr = (linha.get('station_abbr') or '').strip()
+            nome = (linha.get('station_name') or abbr).strip()
+            lat_raw = linha.get('station_coordinates_wgs84_lat')
+            lon_raw = linha.get('station_coordinates_wgs84_lon')
+            if not abbr or not lat_raw or not lon_raw:
+                continue
+            try:
+                lat = float(lat_raw)
+                lon = float(lon_raw)
+            except ValueError:
+                log('  aviso: coordenadas inválidas para ' + abbr + ', a ignorar')
+                continue
+            estacoes.append({'codigo': abbr, 'nome': nome, 'lat': lat, 'lon': lon})
+        log('  {} estações encontradas'.format(len(estacoes)))
+    except Exception as e:
+        log('✗ ERRO ao obter a lista de estações: {}'.format(e))
+        sys.exit(1)
+
+    if estacoes:
+        try:
+            supabase_upsert('pollen_estacoes', estacoes, on_conflict='codigo')
+            log('  ✓ pollen_estacoes atualizada ({} estações)'.format(len(estacoes)))
+        except Exception as e:
+            log('✗ ERRO ao gravar pollen_estacoes: {}'.format(e))
+            falhas += 1
+
+    total_medicoes = 0
+    for est in estacoes:
+        abbr = est['codigo']
+        url = HOURLY_CSV_URL_TPL.format(abbr=abbr.lower())
+        log('A obter medições de {} ({}) ...'.format(abbr, url))
+        try:
+            raw = http_get(url).decode('utf-8-sig')
+        except urllib.error.HTTPError as e:
+            log('  aviso: {} sem ficheiro horário "recent" (HTTP {}) — estação pode não medir pólen, a continuar'.format(abbr, e.code))
+            continue
+        except Exception as e:
+            log('  ✗ falha a obter {}: {} — a continuar com as outras estações'.format(abbr, e))
+            falhas += 1
+            continue
+
+        try:
+            leitor = csv.DictReader(io.StringIO(raw), delimiter=';')
+            colunas = leitor.fieldnames or []
+            ts_col = next((c for c in colunas if c.strip().lower() in TS_KEYWORDS or 'timestamp' in c.strip().lower()), None)
+            if not ts_col:
+                log('  ✗ {}: não encontrei a coluna de data/hora (colunas: {}) — a saltar ficheiro'.format(abbr, colunas))
+                falhas += 1
+                continue
+            colunas_tipo = {}
+            for c in colunas:
+                if c == ts_col or c.strip().lower() in IGNORAR_COLUNAS:
+                    continue
+                tipo_id = identificar_coluna(c)
+                if tipo_id:
+                    colunas_tipo[c] = tipo_id
+                else:
+                    log('  aviso: coluna "{}" de {} não reconhecida como tipo de pólen — ignorada'.format(c, abbr))
+
+            medicoes = []
+            for linha in leitor:
+                ts_iso = parse_timestamp(linha.get(ts_col, ''))
+                if not ts_iso:
+                    continue
+                for coluna, tipo_id in colunas_tipo.items():
+                    valor_raw = (linha.get(coluna) or '').strip()
+                    if not valor_raw:
+                        continue
+                    try:
+                        valor = float(valor_raw)
+                    except ValueError:
+                        continue
+                    medicoes.append({'estacao': abbr, 'ts': ts_iso, 'tipo': tipo_id, 'valor': valor})
+
+            if medicoes:
+                supabase_upsert('pollen_medicoes', medicoes, on_conflict='estacao,ts,tipo')
+                total_medicoes += len(medicoes)
+                log('  ✓ {}: {} medições gravadas'.format(abbr, len(medicoes)))
+            else:
+                log('  {}: sem medições novas neste ficheiro'.format(abbr))
+        except Exception as e:
+            log('  ✗ falha a processar {}: {} — a continuar com as outras estações'.format(abbr, e))
+            falhas += 1
+            continue
+
+    log('Total de medições gravadas: {}'.format(total_medicoes))
+
+    log('A apagar medições com mais de 14 dias...')
+    try:
+        limite = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+        supabase_delete_old('pollen_medicoes', 'ts', limite)
+        log('  ✓ limpeza concluída')
+    except Exception as e:
+        log('✗ ERRO na limpeza de medições antigas: {}'.format(e))
+        falhas += 1
+
+    if falhas:
+        log('✗ Terminado com {} falha(s) — ver logs acima.'.format(falhas))
+        sys.exit(1)
+    log('✓ Concluído sem falhas.')
+
+
+if __name__ == '__main__':
+    main()
