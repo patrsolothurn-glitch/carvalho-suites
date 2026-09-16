@@ -188,6 +188,58 @@ function hvValidar(payload) {
 
 // ── Parser de voz (português) ─────────────────────────────────────
 function hvNormalizar(s) { return (s || '').toLowerCase().trim().replace(/\s+/g, ' '); }
+// Limpeza do texto reconhecido por voz ANTES de chegar ao parser —
+// defesa contra bugs conhecidos do reconhecimento de voz no Android
+// (Chrome), como resultados intermédios repetidos colados ao
+// resultado final (ex.: "6:50 6:50 6:50 6:50 até 6:50 até às 6:50 até
+// às 12") e formatos de hora inconsistentes ("6.50"/"6h50"/"6 50"/
+// "6 e 50"). Só normaliza o TEXTO entregue ao parser — nunca mexe no
+// motor de cálculo nem na gravação.
+function hvLimparTextoVoz(textoOriginal) {
+  var t = hvNormalizar(textoOriginal);
+  if (!t) return '';
+  var tokens = t.split(' ').filter(Boolean);
+  // "6.50" / "6h50" (um único token) -> "6:50"
+  tokens = tokens.map(function (tok) {
+    var m = tok.match(/^(\d{1,2})[.h](\d{2})$/);
+    return m ? (m[1] + ':' + m[2]) : tok;
+  });
+  // "6 50" / "6 e 50" (tokens soltos) -> "6:50"
+  var juntos = [];
+  for (var i = 0; i < tokens.length; i++) {
+    var atual = tokens[i];
+    if (/^\d{1,2}$/.test(atual)) {
+      if (/^\d{2}$/.test(tokens[i + 1] || '') && +tokens[i + 1] < 60) {
+        juntos.push(atual + ':' + tokens[i + 1]); i += 1; continue;
+      }
+      if (tokens[i + 1] === 'e' && /^\d{2}$/.test(tokens[i + 2] || '') && +tokens[i + 2] < 60) {
+        juntos.push(atual + ':' + tokens[i + 2]); i += 2; continue;
+      }
+    }
+    juntos.push(atual);
+  }
+  // remove repetições consecutivas de grupos de 1 a 6 palavras (ex.:
+  // "6:50 6:50 6:50" -> "6:50"; "até 6:50 até às 6:50" -> "até às 6:50")
+  var out = [];
+  for (var j = 0; j < juntos.length; j++) {
+    out.push(juntos[j]);
+    var colapsou = true;
+    while (colapsou) {
+      colapsou = false;
+      var limite = Math.min(6, out.length >> 1);
+      for (var g = limite; g >= 1; g--) {
+        var a = out.slice(out.length - 2 * g, out.length - g);
+        var b = out.slice(out.length - g);
+        if (a.length === g && a.join(' ') === b.join(' ')) {
+          out.splice(out.length - 2 * g, g);
+          colapsou = true;
+          break;
+        }
+      }
+    }
+  }
+  return out.join(' ');
+}
 var HV_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 var HV_DIA_ALIASES = {
   'domingo': 0, 'segunda': 1, 'segunda-feira': 1, 'terça': 2, 'terca': 2, 'terça-feira': 2, 'terca-feira': 2,
@@ -310,6 +362,28 @@ function hvParsePeriodo(textoNorm, hojeStr) {
   }
   return null;
 }
+// Extração "livre" de horas — SEM exigir "das"/"de" como âncora — para
+// frases como "6:50 até às 12" ou só números "6:50 12 12:45 16:15".
+// Só entra em ação quando hvExtractBlocos(Voz) não encontrou nenhum
+// bloco (nunca substitui uma extração com "das"/"de" já bem-sucedida).
+// Cada token é testado sozinho (nunca uma janela de vários tokens),
+// para não confundir "12" solto com o início de um "12:45" vizinho.
+function hvExtrairHorasLivreGenerico(textoNorm, parseHoraFn) {
+  var tokens = textoNorm.split(' ').filter(Boolean);
+  var horas = [];
+  for (var i = 0; i < tokens.length; i++) {
+    if (tokens[i - 1] === 'dia') continue; // "dia 12" é uma data, não uma hora
+    var v = parseHoraFn(tokens[i]);
+    if (v != null) horas.push(v);
+  }
+  return horas;
+}
+function hvBlocosDeHorasLivre(horas) {
+  if (horas.length === 4) return [{ inicioMin: horas[0], fimMin: horas[1] }, { inicioMin: horas[2], fimMin: horas[3] }];
+  if (horas.length === 2) return [{ inicioMin: horas[0], fimMin: horas[1] }];
+  return [];
+}
+function hvExtractBlocosLivre(textoNorm) { return hvBlocosDeHorasLivre(hvExtrairHorasLivreGenerico(textoNorm, hvParseTimePhrase)); }
 function hvParseVoz(texto, hojeStr) {
   var textoNorm = hvNormalizar(texto);
   var periodo = hvParsePeriodo(textoNorm, hojeStr);
@@ -317,7 +391,9 @@ function hvParseVoz(texto, hojeStr) {
   var tipoInfo = hvParseTipo(textoNorm);
   var data = hvParseData(textoNorm, hojeStr);
   var blocos = hvExtractBlocos(textoNorm);
+  if (!blocos.length) blocos = hvExtractBlocosLivre(textoNorm);
   if (blocos.length > 2) return { ok: false, erro: 'Percebi mais de dois períodos de horas — diz só a manhã e a tarde.', textoOriginal: texto };
+  if (!blocos.length && tipoInfo.tipo === 'trabalho') return { ok: false, erro: 'Não percebi as horas — diz o período (ex.: "das 7 às 12").', textoOriginal: texto };
   var manha = null, tarde = null;
   if (blocos.length === 2) { manha = blocos[0]; tarde = blocos[1]; }
   else if (blocos.length === 1) { if (blocos[0].inicioMin < 12 * 60) manha = blocos[0]; else tarde = blocos[0]; }
@@ -441,12 +517,15 @@ function hvAjustarTardeDe(bloco) {
   if (fim < 12 * 60) fim += 12 * 60;
   return { inicioMin: ini, fimMin: fim };
 }
+function hvExtractBlocosLivreDe(textoNorm) { return hvBlocosDeHorasLivre(hvExtrairHorasLivreGenerico(textoNorm, hvParseHoraDe)); }
 function hvParseVozDe(texto, hojeStr) {
   var textoNorm = hvNormalizar(texto);
   var tipoInfo = hvParseTipoDe(textoNorm);
   var data = hvParseDataDe(textoNorm, hojeStr);
   var blocos = hvExtractBlocosDe(textoNorm);
+  if (!blocos.length) blocos = hvExtractBlocosLivreDe(textoNorm);
   if (blocos.length > 2) return { ok: false, erro: 'Zu viele Zeiten erkannt — nur Vormittag und Nachmittag angeben.', textoOriginal: texto };
+  if (!blocos.length && tipoInfo.tipo === 'trabalho') return { ok: false, erro: 'Zeiten nicht verstanden.', textoOriginal: texto };
   var manha = null, tarde = null;
   if (blocos.length === 2) { manha = blocos[0]; tarde = hvAjustarTardeDe(blocos[1]); }
   else if (blocos.length === 1) { if (blocos[0].inicioMin < 12 * 60) manha = blocos[0]; else tarde = blocos[0]; }
@@ -996,15 +1075,13 @@ function HorasVozApp(props) {
 
   // Voz
   var _s23 = React.useState(false); var listening = _s23[0], setListening = _s23[1];
-  var _s24 = React.useState(''); var vozInterim = _s24[0], setVozInterim = _s24[1];
   var _s25 = React.useState(false); var vozIndisponivel = _s25[0], setVozIndisponivel = _s25[1];
+  var _s25b = React.useState(false); var vozEscrever = _s25b[0], setVozEscrever = _s25b[1]; // "✏️ Escrever" depois de uma falha
   var _s26 = React.useState(''); var vozTextoManual = _s26[0], setVozTextoManual = _s26[1];
   var _s27 = React.useState(null); var vozErro = _s27[0], setVozErro = _s27[1];
   var _s27b = React.useState('pt'); var vozIdioma = _s27b[0], setVozIdioma = _s27b[1]; // 'pt'|'de' — idioma da última escuta
   var recognitionRef = React.useRef(null);
-  var manualStopRef = React.useRef(false);
-  var silenceTimerRef = React.useRef(null);
-  var accumRef = React.useRef('');
+  var ultimoResultadoRef = React.useRef(null); // último SpeechRecognitionResult final (nunca concatenado entre eventos)
   var deFallbackRef = React.useRef(false);
 
   // Marcar período
@@ -1405,50 +1482,54 @@ function HorasVozApp(props) {
     if (registos[r.data]) { pendingLoadRef.current = aplicar; setConfirmSubstituir({}); return; }
     aplicar();
   }
-  function clearSilenceTimer() { if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; } }
-  function resetSilenceTimer() {
-    clearSilenceTimer();
-    silenceTimerRef.current = setTimeout(function () { pararEscuta(); }, 2500);
+  // Processa o(s) resultado(s) de UMA gravação já terminada (onend):
+  // tenta o parser em cada uma das (até 3) alternativas reconhecidas,
+  // já limpas (hvLimparTextoVoz), e usa a primeira que der um
+  // resultado válido. Se nenhuma der, NÃO mexe em nenhum campo do
+  // formulário — só mostra o erro com a frase (limpa) que ouviu.
+  function processarResultadoVoz() {
+    var resultado = ultimoResultadoRef.current;
+    ultimoResultadoRef.current = null;
+    if (!resultado || !resultado.length) return; // nada reconhecido (silêncio) — sem erro
+    var parser = vozIdioma === 'de' ? hvParseVozDe : hvParseVoz;
+    var n = Math.min(resultado.length, 3);
+    for (var i = 0; i < n; i++) {
+      var textoLimpo = hvLimparTextoVoz(resultado[i].transcript);
+      if (!textoLimpo) continue;
+      var r = parser(textoLimpo, hvTodayIso());
+      if (r.ok) { aplicarResultadoVoz(Object.assign({}, r, { textoOriginal: textoLimpo })); return; }
+    }
+    setVozErro('Não percebi: «' + hvLimparTextoVoz(resultado[0].transcript) + '» — tenta de novo');
   }
   function pararEscuta() {
-    manualStopRef.current = true;
-    clearSilenceTimer();
     if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
-    setListening(false);
-    if (accumRef.current.trim()) {
-      var parser = vozIdioma === 'de' ? hvParseVozDe : hvParseVoz;
-      aplicarResultadoVoz(parser(accumRef.current.trim(), hvTodayIso()));
-    }
   }
   // idioma: 'pt' (padrão) ou 'de' — em alemão tenta primeiro de-CH
   // (suíço-alemão) e, se o browser não o reconhecer, cai para de-DE.
+  // continuous=false + interimResults=false: só se usa o resultado
+  // FINAL de UMA gravação, nunca se concatenam resultados de eventos
+  // diferentes (bug conhecido do Chrome Android com interim results).
   function iniciarEscuta(idioma) {
     idioma = idioma === 'de' ? 'de' : 'pt';
     setVozIdioma(idioma);
     setVozErro(null);
+    setVozEscrever(false);
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setVozIndisponivel(true); return; }
-    accumRef.current = ''; setVozInterim(''); manualStopRef.current = false;
+    ultimoResultadoRef.current = null;
     deFallbackRef.current = false;
     function criarReconhecimento(lang) {
       var rec = new SR();
-      rec.continuous = true; rec.interimResults = true; rec.lang = lang;
+      rec.continuous = false; rec.interimResults = false; rec.maxAlternatives = 3; rec.lang = lang;
       rec.onresult = function (e) {
-        resetSilenceTimer();
-        var interim = '';
-        for (var i = e.resultIndex; i < e.results.length; i++) {
-          var result = e.results[i];
-          if (result.isFinal) accumRef.current = (accumRef.current ? accumRef.current + ' ' : '') + result[0].transcript.trim();
-          else interim += result[0].transcript;
+        // usa só o ÚLTIMO resultado final deste evento — nunca concatena
+        for (var i = e.results.length - 1; i >= 0; i--) {
+          if (e.results[i].isFinal) { ultimoResultadoRef.current = e.results[i]; break; }
         }
-        setVozInterim(interim);
       };
       rec.onerror = function (e) {
         if (idioma === 'de' && lang === 'de-CH' && !deFallbackRef.current) {
           deFallbackRef.current = true;
-          manualStopRef.current = true;
-          try { rec.stop(); } catch (e2) {}
-          manualStopRef.current = false;
           var rec2 = criarReconhecimento('de-DE');
           recognitionRef.current = rec2;
           try { rec2.start(); } catch (e3) { setVozIndisponivel(true); setListening(false); }
@@ -1456,21 +1537,35 @@ function HorasVozApp(props) {
         }
         console.error('[horasvoz] reconhecimento de voz:', e && e.error);
         setVozErro('Falha no reconhecimento de voz: ' + (e && e.error ? e.error : 'desconhecida'));
-        setListening(false); clearSilenceTimer();
+        setListening(false);
       };
-      rec.onend = function () { if (!manualStopRef.current) { try { rec.start(); } catch (e) { setListening(false); } } };
+      rec.onend = function () {
+        if (recognitionRef.current !== rec) return; // instância substituída (fallback DE) — ignorar
+        setListening(false);
+        processarResultadoVoz();
+      };
       return rec;
     }
     var rec = criarReconhecimento(idioma === 'de' ? 'de-CH' : 'pt-PT');
     recognitionRef.current = rec;
     setListening(true);
-    resetSilenceTimer();
     try { rec.start(); } catch (e) { setVozIndisponivel(true); setListening(false); }
   }
   function enviarTextoManual() {
     if (!vozTextoManual.trim()) return;
     aplicarResultadoVoz(hvParseVoz(vozTextoManual.trim(), hvTodayIso()));
     setVozTextoManual('');
+    setVozEscrever(false);
+  }
+  function renderErroVoz() {
+    if (!vozErro) return null;
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
+      React.createElement('p', { style: Object.assign({}, HV_ESTILO.erroTexto, { fontSize: 12, margin: 0 }) }, '⚠️ ' + vozErro),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement(HvBtn, { onClick: function () { setVozErro(null); iniciarEscuta(vozIdioma); }, flex: true }, '🎤 Repetir'),
+        React.createElement(HvBtn, { onClick: function () { setVozErro(null); setVozEscrever(true); }, flex: true }, '✏️ Escrever')
+      )
+    );
   }
 
   // ── Marcar período ────────────────────────────────────────────
@@ -1755,7 +1850,7 @@ function HorasVozApp(props) {
         React.createElement('span', { style: { fontSize: 11, fontWeight: 600, opacity: .85 } },
           cfgHoje.manha_inicio.slice(0, 5) + '–' + cfgHoje.manha_fim.slice(0, 5) + ' · ' + cfgHoje.tarde_inicio.slice(0, 5) + '–' + cfgHoje.tarde_fim.slice(0, 5) + ' = ' + hvMinToHM(previewMin))
       ),
-      vozIndisponivel
+      (vozIndisponivel || vozEscrever)
         ? React.createElement('div', { style: { display: 'flex', gap: 8 } },
             React.createElement('input', { type: 'text', value: vozTextoManual, autoComplete: 'off', onChange: function (e) { setVozTextoManual(e.target.value); }, placeholder: 'ex.: trabalhei das 7 às 12 e das 12h45 às 16h15', style: { flex: 1, background: 'var(--hv-cartao)', border: '1px solid var(--hv-borda)', color: 'var(--hv-texto)', borderRadius: 10, padding: '10px 12px', fontSize: 14 } }),
             React.createElement(HvBtn, { onClick: enviarTextoManual, ativo: true, style: { flex: 'none', width: 56 } }, 'OK')
@@ -1764,13 +1859,13 @@ function HorasVozApp(props) {
             ? React.createElement('button', {
                 onClick: pararEscuta,
                 style: Object.assign({}, HV_ESTILO.microfoneOuvindo, { height: 56 })
-              }, vozInterim || 'A ouvir…')
+              }, 'A ouvir…')
             : React.createElement('div', { style: { display: 'flex', gap: 8 } },
                 React.createElement('button', { onClick: function () { iniciarEscuta('pt'); }, style: Object.assign({}, HV_ESTILO.microfone, { height: 56, flex: 1 }) }, '🎤 PT'),
                 React.createElement('button', { onClick: function () { iniciarEscuta('de'); }, style: Object.assign({}, HV_ESTILO.microfone, { height: 56, flex: 1 }) }, '🎤 DE')
               )
           ),
-      vozErro && React.createElement('p', { style: Object.assign({}, HV_ESTILO.erroTexto, { fontSize: 12 }) }, '⚠️ ' + vozErro),
+      renderErroVoz(),
       React.createElement(HvBtn, { grande: true, onClick: abrirEditorOutroHorario, flex: true }, '✏️ Outro horário'),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement(HvBtn, { grande: true, tipoCor: 'ferias', disabled: saving, onClick: function () { gravarAusenciaRapido('ferias'); }, flex: true }, '🏖 Férias'),
@@ -1821,14 +1916,22 @@ function HorasVozApp(props) {
       !vozIndisponivel && React.createElement('button', {
         onClick: function () { listening ? pararEscuta() : iniciarEscuta(); },
         style: { height: 44, borderRadius: 10, border: '1px solid var(--hv-borda)', background: listening ? 'var(--hv-negativo)' : 'var(--hv-cartao)', color: listening ? '#fff' : 'var(--hv-texto)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }
-      }, listening ? (vozInterim || 'A ouvir…') : '🎤 Corrigir por voz'),
-      vozErro && React.createElement('p', { style: Object.assign({}, HV_ESTILO.erroTexto, { fontSize: 12, textAlign: 'center' }) }, '⚠️ ' + vozErro)
+      }, listening ? 'A ouvir…' : '🎤 Corrigir por voz'),
+      renderErroVoz()
     );
   }
 
   function renderModoC() {
     return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
       fTextoOriginal && React.createElement('p', { style: { fontSize: 11, color: 'var(--hv-texto2)', fontStyle: 'italic', margin: 0 } }, '🎤 "' + fTextoOriginal + '"'),
+      !(vozIndisponivel || vozEscrever) && (listening
+        ? React.createElement('button', { onClick: pararEscuta, style: Object.assign({}, HV_ESTILO.microfoneOuvindo, { height: 44 }) }, 'A ouvir…')
+        : React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            React.createElement('button', { onClick: function () { iniciarEscuta('pt'); }, style: Object.assign({}, HV_ESTILO.microfone, { height: 44, flex: 1, fontSize: 13 }) }, '🎤 PT'),
+            React.createElement('button', { onClick: function () { iniciarEscuta('de'); }, style: Object.assign({}, HV_ESTILO.microfone, { height: 44, flex: 1, fontSize: 13 }) }, '🎤 DE')
+          )
+      ),
+      renderErroVoz(),
       React.createElement('div', { className: 'hv-tipos-scroll' },
         HV_TIPOS.map(function (t) {
           var ativo = fTipo === t.key;
