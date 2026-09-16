@@ -866,6 +866,97 @@ function EscolarApp(_ref31) {
       addEscolarToast('⚠️ Falha ao enviar notificação: ' + title);
     });
   };
+  // ── Sincronização Vida Escolar → Família (family_events) para TESTES ──
+  // Sentido único: esta app escreve em family_events, a Família nunca
+  // escreve de volta aqui. source='escolar', source_id = id do tpc.
+  var montarLinhaTesteFamilia = function montarLinhaTesteFamilia(t, nomeDisc) {
+    return {
+      title: '📚 Teste: ' + nomeDisc + (t.titulo ? ' — ' + t.titulo : ''),
+      emoji: '📚',
+      event_date: t.data,
+      event_time: null,
+      description: aluno.nome + ' tem teste',
+      color: '#A855F7',
+      categoria: 'escola',
+      participant_ids: [alunoKey],
+      member_id: null,
+      source: 'escolar',
+      source_id: t.id,
+      created_by: aluno.nome
+    };
+  };
+  // tpc → teste: cria a linha em family_events só se ainda não existir
+  // para este source_id (evita duplicar se o tipo for alternado várias vezes).
+  var criarEventoTesteSeNaoExistir = function criarEventoTesteSeNaoExistir(t) {
+    if (!window.supabaseClient) return;
+    var disc = aluno.disciplinas.find(function (d) { return d.id === t.discId; });
+    var nomeDisc = (disc && disc.nome) || 'Escola';
+    var pushTitle = '📚 Novo teste: ' + aluno.nome + ' — ' + nomeDisc + ' — ' + fmtDataEscolar(t.data);
+    window.supabaseClient.from('family_events').select('id').eq('source', 'escolar').eq('source_id', t.id).then(function (selRes) {
+      if (selRes && selRes.error) {
+        console.error('[escolar→familia] falha ao verificar teste existente:', selRes.error);
+        window.mostrarErro('Vida Escolar', selRes.error);
+        return;
+      }
+      if (selRes && selRes.data && selRes.data.length > 0) return; // já existe, não duplica
+      window.supabaseClient.from('family_events').insert(montarLinhaTesteFamilia(t, nomeDisc)).then(function (res) {
+        if (res && res.error) {
+          console.error('[escolar→familia] falha ao criar evento em family_events:', res.error);
+          addEscolarToast('⚠️ Falha ao avisar a Família sobre o teste: ' + t.titulo);
+          return;
+        }
+        sendEscolarPushToPatricio(pushTitle, t.titulo || 'Novo teste registado');
+      }).catch(function (err) {
+        console.error('[escolar→familia] falha ao criar evento em family_events:', err);
+        addEscolarToast('⚠️ Falha ao avisar a Família sobre o teste: ' + t.titulo);
+      });
+    }).catch(function (err) {
+      console.error('[escolar→familia] falha ao verificar teste existente:', err);
+      window.mostrarErro('Vida Escolar', err);
+    });
+  };
+  // Guardar edição de um teste: atualiza título/data pelo source_id; se a
+  // linha não existir (ex.: teste criado antes desta sincronização), cria-a.
+  var atualizarOuCriarEventoTeste = function atualizarOuCriarEventoTeste(t, nomeDisc) {
+    if (!window.supabaseClient) return;
+    var novaLinha = montarLinhaTesteFamilia(t, nomeDisc);
+    window.supabaseClient.from('family_events').update({
+      title: novaLinha.title,
+      event_date: novaLinha.event_date
+    }).eq('source', 'escolar').eq('source_id', t.id).select('id').then(function (updRes) {
+      if (updRes && updRes.error) {
+        console.error('[escolar→familia] falha ao atualizar evento do teste:', updRes.error);
+        window.mostrarErro('Vida Escolar', updRes.error);
+        return;
+      }
+      if (updRes && updRes.data && updRes.data.length > 0) return; // já existia e foi atualizada
+      window.supabaseClient.from('family_events').insert(novaLinha).then(function (insRes) {
+        if (insRes && insRes.error) {
+          console.error('[escolar→familia] falha ao criar evento em family_events:', insRes.error);
+          window.mostrarErro('Vida Escolar', insRes.error);
+        }
+      }).catch(function (err) {
+        console.error('[escolar→familia] falha ao criar evento em family_events:', err);
+        window.mostrarErro('Vida Escolar', err);
+      });
+    }).catch(function (err) {
+      console.error('[escolar→familia] falha ao atualizar evento do teste:', err);
+      window.mostrarErro('Vida Escolar', err);
+    });
+  };
+  // teste → tpc, ou apagar um teste: remove a linha de family_events.
+  var apagarEventoTeste = function apagarEventoTeste(tpcId) {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('family_events').delete().eq('source', 'escolar').eq('source_id', tpcId).then(function (res) {
+      if (res && res.error) {
+        console.error('[escolar→familia] falha ao apagar evento do teste:', res.error);
+        window.mostrarErro('Vida Escolar', res.error);
+      }
+    }).catch(function (err) {
+      console.error('[escolar→familia] falha ao apagar evento do teste:', err);
+      window.mostrarErro('Vida Escolar', err);
+    });
+  };
   // Check TPC on load
   (0, _react.useEffect)(function () {
     var today = '2026-06-15';
@@ -1234,6 +1325,78 @@ function EscolarApp(_ref31) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, targetKey, newData));
     });
   };
+  // ── Sincronização Vida Escolar → Família (family_events) para EVENTOS
+  // ESCOLARES (aba 📢). Sentido único, igual aos testes: esta app escreve
+  // em family_events, a Família nunca escreve de volta aqui.
+  // source='escolar_evento', source_id = id do evento (o mesmo Date.now()
+  // usado nos dois alunos quando o evento é para os dois).
+  // Apaga sempre as linhas antigas deste source_id primeiro — cobre tanto
+  // criar (nada a apagar) como editar (datas/alunos podem ter mudado) sem
+  // nunca duplicar — e só volta a inserir se sobrar pelo menos um aluno
+  // marcado. Um dia por linha, no mesmo formato do addEvent multi-dia do
+  // 07-app-familia.js (data_inicio..data_fim vira uma linha por dia, todas
+  // com o mesmo conteúdo). Nunca grava photo_url.
+  var sincronizarEventoFamilia = function sincronizarEventoFamilia(eventoId, form, targetKeys) {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('family_events').delete().eq('source', 'escolar_evento').eq('source_id', eventoId).then(function (delRes) {
+      if (delRes && delRes.error) {
+        console.error('[escolar→familia] falha ao limpar evento antigo:', delRes.error);
+        window.mostrarErro('Vida Escolar', delRes.error);
+        return;
+      }
+      if (!targetKeys.length) return; // nenhum aluno marcado: só apagar mesmo
+      var nome = (form.nome || '').trim();
+      var dataInicio = form.dataInicio;
+      var dataFim = form.dataFim && form.dataFim >= dataInicio ? form.dataFim : dataInicio;
+      var cur = new Date(dataInicio + 'T12:00:00');
+      var fim = new Date(dataFim + 'T12:00:00');
+      var datas = [];
+      while (cur <= fim) {
+        datas.push(cur.toISOString().slice(0, 10));
+        cur.setDate(cur.getDate() + 1);
+      }
+      var rows = datas.map(function (d) {
+        return {
+          title: nome,
+          emoji: '📢',
+          event_date: d,
+          event_time: null,
+          description: (form.nota || '').trim() || null,
+          color: '#A855F7',
+          categoria: 'escola',
+          participant_ids: targetKeys,
+          member_id: null,
+          source: 'escolar_evento',
+          source_id: eventoId,
+          created_by: 'Vida Escolar'
+        };
+      });
+      window.supabaseClient.from('family_events').insert(rows).then(function (insRes) {
+        if (insRes && insRes.error) {
+          console.error('[escolar→familia] falha ao criar evento em family_events:', insRes.error);
+          window.mostrarErro('Vida Escolar', insRes.error);
+        }
+      }).catch(function (err) {
+        console.error('[escolar→familia] falha ao criar evento em family_events:', err);
+        window.mostrarErro('Vida Escolar', err);
+      });
+    }).catch(function (err) {
+      console.error('[escolar→familia] falha ao limpar evento antigo:', err);
+      window.mostrarErro('Vida Escolar', err);
+    });
+  };
+  var apagarEventoFamilia = function apagarEventoFamilia(eventoId) {
+    if (!window.supabaseClient) return;
+    window.supabaseClient.from('family_events').delete().eq('source', 'escolar_evento').eq('source_id', eventoId).then(function (res) {
+      if (res && res.error) {
+        console.error('[escolar→familia] falha ao apagar evento em family_events:', res.error);
+        window.mostrarErro('Vida Escolar', res.error);
+      }
+    }).catch(function (err) {
+      console.error('[escolar→familia] falha ao apagar evento em family_events:', err);
+      window.mostrarErro('Vida Escolar', err);
+    });
+  };
   var saveEvento = function saveEvento(eventoId, form) {
     var payload = {
       id: eventoId,
@@ -1254,6 +1417,7 @@ function EscolarApp(_ref31) {
         });
       }, 'eventos');
     });
+    sincronizarEventoFamilia(eventoId, form, targetKeys);
   };
   var deleteEvento = function deleteEvento(eventoId) {
     ['lucas', 'liam'].forEach(function (k) {
@@ -1263,6 +1427,7 @@ function EscolarApp(_ref31) {
         });
       }, 'eventos');
     });
+    apagarEventoFamilia(eventoId);
   };
   var openEditEvento = function openEditEvento(ev) {
     setNovoEvento({
@@ -4392,6 +4557,7 @@ function EscolarApp(_ref31) {
             '🗑️ Teste apagado: ' + aluno.nome + ' — ' + nomeDiscDel + ' — ' + fmtDataEscolar(t.data),
             t.titulo || 'Teste removido'
           );
+          apagarEventoTeste(t.id);
         }
       },
       style: {
@@ -4412,6 +4578,7 @@ function EscolarApp(_ref31) {
       style: { display: 'flex', gap: 6, marginBottom: 10 }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        var eraTeste = t.tipo === 'teste';
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.map(function (x) {
@@ -4419,6 +4586,7 @@ function EscolarApp(_ref31) {
             })
           });
         }, 'tpc');
+        if (eraTeste) apagarEventoTeste(t.id);
       },
       style: {
         flex: 1,
@@ -4433,6 +4601,7 @@ function EscolarApp(_ref31) {
       }
     }, "\uD83D\uDCDD TPC"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        var eraTpc = t.tipo !== 'teste';
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.map(function (x) {
@@ -4440,6 +4609,7 @@ function EscolarApp(_ref31) {
             })
           });
         }, 'tpc');
+        if (eraTpc) criarEventoTesteSeNaoExistir(t);
       },
       style: {
         flex: 1,
@@ -4561,6 +4731,7 @@ function EscolarApp(_ref31) {
             '\u270f\ufe0f Teste editado: ' + aluno.nome + ' \u2014 ' + nomeDiscEd + ' \u2014 ' + fmtDataEscolar(data),
             titulo || 'Teste atualizado'
           );
+          atualizarOuCriarEventoTeste(_objectSpread(_objectSpread({}, t), {}, { discId: discId, titulo: titulo, data: data }), nomeDiscEd);
         }
       },
       style: {
