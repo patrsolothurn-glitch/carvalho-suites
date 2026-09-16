@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-16T04:07:52.855Z
+  Gerado em: 2026-09-16T04:31:04.750Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-304";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-305";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -31354,7 +31354,32 @@ var HV_CSS = '' +
   '.hv-editor-footer{position:sticky;bottom:0;display:flex;gap:8px;padding:12px 0 4px;margin-top:4px;background:linear-gradient(to top,var(--hv-fundo) 70%,transparent);z-index:30}' +
   '.hv-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--hv-principal);color:var(--hv-principal-texto);font-size:13px;font-weight:800;padding:10px 18px;border-radius:30px;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:300;pointer-events:none}' +
   '.hv-legenda{display:flex;justify-content:flex-end;gap:14px;padding:0 8px 4px;font-size:10px;color:var(--hv-texto2);text-transform:uppercase;font-weight:700;letter-spacing:.02em}' +
-  '.hv-mais-item{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 14px;background:var(--hv-cartao);border:1px solid var(--hv-borda);border-radius:12px;color:var(--hv-texto);font-size:14px;font-weight:700;cursor:pointer;text-align:left}';
+  '.hv-mais-item{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 14px;background:var(--hv-cartao);border:1px solid var(--hv-borda);border-radius:12px;color:var(--hv-texto);font-size:14px;font-weight:700;cursor:pointer;text-align:left}' +
+  '.hv-cal-toggle{display:flex;gap:8px}' +
+  '.hv-cal-toggle button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--hv-borda);background:var(--hv-cartao);color:var(--hv-texto);font-size:13px;font-weight:800;cursor:pointer}' +
+  '.hv-cal-toggle button.hv-cal-toggle-ativo{background:var(--hv-principal);border-color:var(--hv-principal);color:var(--hv-principal-texto)}' +
+  '.hv-cal-cabecalho{display:grid;grid-template-columns:28px repeat(7,1fr);gap:4px;padding:0 2px}' +
+  '.hv-cal-cabecalho span{font-size:12px;font-weight:800;color:var(--hv-texto2);text-align:center;text-transform:uppercase}' +
+  '.hv-cal-grid{display:grid;grid-template-columns:28px repeat(7,1fr);gap:4px;grid-auto-rows:minmax(96px,auto)}' +
+  '.hv-cal-kw{font-size:13px;color:var(--hv-texto2);text-align:center;padding-top:6px;cursor:pointer;align-self:start}' +
+  '.hv-cal-vazia{min-height:96px}' +
+  '.hv-cal-celula{min-height:96px;border-radius:10px;background:var(--hv-cartao);border:2px solid var(--hv-borda);padding:3px;display:flex;flex-direction:column;gap:3px;cursor:pointer;overflow:visible;position:relative;z-index:1}' +
+  '.hv-cal-celula:focus,.hv-cal-celula:hover{z-index:2}' +
+  '.hv-cal-celula.hv-cal-antes{opacity:.5}' +
+  '.hv-cal-celula.hv-cal-falta{border-color:var(--hv-aviso)}' +
+  '.hv-cal-celula.hv-cal-hoje{border-color:var(--hv-principal)}' +
+  '.hv-cal-celula.hv-cal-sel{border-width:3px;border-color:var(--hv-principal)}' +
+  '.hv-cal-numero{font-size:18px;font-weight:800;color:var(--hv-texto);line-height:1}' +
+  '.hv-cal-numero-dom{color:var(--hv-negativo)}' +
+  '.hv-cal-numero-hoje{width:26px;height:26px;border-radius:50%;background:var(--hv-principal);color:var(--hv-principal-texto);display:flex;align-items:center;justify-content:center;font-size:14px}' +
+  '.hv-cal-etiqueta{border-radius:6px;padding:2px 2px;color:#fff;text-align:center;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;font-weight:800}' +
+  '.hv-cal-etiqueta-extra{border-radius:6px;padding:2px 2px;text-align:center;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;font-weight:800}' +
+  '.hv-cal-livre-bloco{border-radius:8px;background:var(--hv-tipo-livre-bg);color:var(--hv-tipo-livre-fg);font-size:11px;text-align:center;padding:5px 2px;flex:1;display:flex;align-items:center;justify-content:center}' +
+  '.hv-cal-registar{border:1.5px dashed var(--hv-principal);border-radius:6px;color:var(--hv-principal);font-size:11px;text-align:center;padding:4px 2px}' +
+  '.hv-cal-meta-futuro{font-size:11px;color:var(--hv-texto2)}' +
+  '.hv-cal-fab{position:fixed;right:18px;bottom:22px;width:56px;height:56px;border-radius:28px;background:var(--hv-principal);color:var(--hv-principal-texto);border:none;font-size:26px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:60;display:flex;align-items:center;justify-content:center}' +
+  '.hv-cal-semana-linha{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-top:1px solid var(--hv-borda);cursor:pointer;font-size:13px;color:var(--hv-texto)}' +
+  '.hv-cal-semana-linha:first-child{border-top:none}';
 
 var HV_COR_TIPO = {
   trabalho: { bg: 'var(--hv-tipo-trabalho-bg)', fg: 'var(--hv-tipo-trabalho-fg)' },
@@ -31365,6 +31390,19 @@ var HV_COR_TIPO = {
   livre: { bg: 'var(--hv-tipo-livre-bg)', fg: 'var(--hv-tipo-livre-fg)' }
 };
 function hvCorTipo(tipo) { return HV_COR_TIPO[tipo] || HV_COR_TIPO.livre; }
+// Cores sólidas (mesmas em claro/escuro, como um chip de calendário) só
+// para as etiquetas fortes da vista Calendário do Mês — a paleta suave
+// de HV_COR_TIPO acima é para os outros sítios, não muda.
+var HV_COR_TIPO_FORTE = {
+  trabalho: '#2563EB', ferias: '#D97706', doente: '#DC2626', feriado: '#7C3AED', fecho: '#4338CA', falta: '#C2410C'
+};
+function hvCorTipoForte(tipo) { return HV_COR_TIPO_FORTE[tipo] || '#64748B'; }
+function hvFormatSinal(v) { return (v >= 0 ? '+' : '') + hvMinToHM(v * 60); }
+function hvEstiloExtra(v) {
+  if (v > 0) return { background: 'rgba(21,128,61,.16)', color: 'var(--hv-positivo)' };
+  if (v < 0) return { background: 'rgba(185,28,28,.16)', color: 'var(--hv-negativo)' };
+  return { background: 'var(--hv-borda)', color: 'var(--hv-texto2)' };
+}
 
 // Único objeto de estilos ao nível do módulo — as peças abaixo e a app
 // principal reaproveitam sempre os mesmos objetos, nunca criam a sua
@@ -31398,8 +31436,11 @@ var HV_LEGENDA_SEMANA_VISTA = false;
 // ── Apresentação por dia (SÓ VISUAL: que rótulo/cor mostrar e se mostra
 // meta/saldo. Os números em si — total, meta, saldo — vêm sempre de
 // hvTotalDia/weekCalc.metas, nunca são recalculados aqui.) ────────────
-// p: { dateStr, hojeStr, temRegisto, livre, fimDeSemana }
+// p: { dateStr, hojeStr, temRegisto, livre, fimDeSemana, desdeStr }
+// desdeStr é opcional: dias antes dele não são cobrados de "falta" (o
+// registo nunca existiu antes de se começar a usar a app a sério).
 function hvClassificarDia(p) {
+  if (p.desdeStr && p.dateStr < p.desdeStr && !p.temRegisto) return { estado: 'antes-de-contar', rotulo: '', compacta: true, mostrarMeta: false, mostrarSaldo: false };
   if (p.temRegisto) return { estado: 'gravado', compacta: false, mostrarMeta: true, mostrarSaldo: true };
   if (p.fimDeSemana) return { estado: 'fds', rotulo: 'Fim de semana', compacta: true, mostrarMeta: false, mostrarSaldo: false };
   if (p.livre) return { estado: 'livre', rotulo: 'Livre', compacta: true, mostrarMeta: false, mostrarSaldo: false };
@@ -31407,17 +31448,49 @@ function hvClassificarDia(p) {
   if (p.dateStr === p.hojeStr) return { estado: 'hoje-por-registar', rotulo: 'Por registar', compacta: false, mostrarMeta: true, mostrarSaldo: 'traco' };
   return { estado: 'falta', rotulo: '⚠ falta registar', compacta: false, mostrarMeta: true, mostrarSaldo: true };
 }
-// Soma (total − meta) só dos dias até hoje inclusive; hoje só entra se
-// estiver gravado. Usada apenas para os números "saldo até hoje" nos
-// resumos — nunca substitui os totais/metas por dia, só os agrega.
-function hvSomaSaldoAteHoje(dias, hojeStr) {
-  var soma = 0;
+// Primeiro dia com registo em toda a conta — "contar a partir de" para
+// não acusar de falta dias anteriores a começar a usar a app.
+function hvPrimeiraDataRegistada(registos, hojeStr) {
+  var datas = Object.keys(registos);
+  return datas.length ? datas.sort()[0] : hojeStr;
+}
+// Soma total/meta/extra só dos dias desde "desde" até hoje inclusive;
+// hoje só entra se estiver gravado. Função única reutilizada por Dia
+// (faixa), Semana, Mês e Ano — nunca substitui os totais/metas por dia
+// vindos do motor de cálculo, só os agrega para os resumos.
+function hvResumoAte(dias, hojeStr, desdeStr) {
+  var total = 0, meta = 0;
   dias.forEach(function (d) {
     if (d.dateStr > hojeStr) return;
+    if (desdeStr && d.dateStr < desdeStr) return;
     if (d.dateStr === hojeStr && !d.temRegisto) return;
-    soma += (d.total - d.meta);
+    total += d.total; meta += d.meta;
   });
-  return soma;
+  return { total: total, meta: meta, extra: total - meta };
+}
+// Semanas (Seg–Dom) da grelha de um mês em calendário: cada uma com o
+// número da KW, a segunda-feira dessa semana e os 7 números de dia (ou
+// null para células vazias de outro mês). Só matemática de datas — as
+// mesmas hvIsoDate/hvDi/hvMon/hvKw/hvAddD já usadas no motor, sem as
+// alterar nem duplicar a lógica delas.
+function hvConstruirGrelhaMes(y, m) {
+  var primeiroDia = hvIsoDate(y, m, 1);
+  var offset = hvDi(hvMk(primeiroDia)); // 0=Seg..6=Dom
+  var nDias = hvDaysInMonth(y, m);
+  var semanas = [];
+  var dataCursor = hvIso(hvMon(hvMk(primeiroDia)));
+  var diaAtual = 1 - offset;
+  while (diaAtual <= nDias) {
+    var celulas = [];
+    for (var i = 0; i < 7; i++) {
+      var dNum = diaAtual + i;
+      celulas.push(dNum < 1 || dNum > nDias ? null : dNum);
+    }
+    semanas.push({ kw: hvKw(hvMk(dataCursor)), segunda: dataCursor, celulas: celulas });
+    dataCursor = hvIso(hvAddD(hvMk(dataCursor), 7));
+    diaAtual += 7;
+  }
+  return semanas;
 }
 
 // ── Peças pequenas ao nível do módulo ─────────────────────────────
@@ -31507,7 +31580,8 @@ function HvConfirm(p) {
 // React.memo evitar re-render quando nada daquela linha específica mudou.
 function hvLinhaPropsIguais(a, b) {
   return a.dataStr === b.dataStr && a.total === b.total && a.meta === b.meta && a.tipo === b.tipo &&
-    a.livre === b.livre && a.hoje === b.hoje && a.fimDeSemana === b.fimDeSemana && a.rotulo === b.rotulo;
+    a.livre === b.livre && a.hoje === b.hoje && a.fimDeSemana === b.fimDeSemana && a.rotulo === b.rotulo &&
+    a.desde === b.desde;
 }
 function hvSaldoCelula(mostrarSaldo, total, meta, minWidth) {
   if (mostrarSaldo === 'traco') return React.createElement('span', { style: { color: 'var(--hv-texto2)', fontWeight: 800 } }, '—');
@@ -31516,17 +31590,17 @@ function hvSaldoCelula(mostrarSaldo, total, meta, minWidth) {
 }
 var HvLinhaSemana = React.memo(function HvLinhaSemana(p) {
   var hojeStr = hvTodayIso();
-  var est = hvClassificarDia({ dateStr: p.dataStr, hojeStr: hojeStr, temRegisto: !!p.tipo, livre: p.livre, fimDeSemana: p.fimDeSemana });
+  var est = hvClassificarDia({ dateStr: p.dataStr, hojeStr: hojeStr, temRegisto: !!p.tipo, livre: p.livre, fimDeSemana: p.fimDeSemana, desdeStr: p.desde });
   var cor = hvCorTipo(est.estado === 'gravado' ? p.tipo : 'livre');
   var info = p.tipo ? hvTipoInfo(p.tipo) : null;
   var corRotulo = est.estado === 'falta' || est.estado === 'hoje-por-registar' ? 'var(--hv-aviso)' : (p.hoje ? 'var(--hv-principal)' : (p.fimDeSemana ? 'var(--hv-texto2)' : 'var(--hv-texto)'));
   if (est.compacta) {
     return React.createElement('div', {
       className: 'hv-linha' + (p.hoje ? ' hv-hoje' : ''), onClick: p.onClick,
-      style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', opacity: .65 }
+      style: { display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', opacity: est.estado === 'antes-de-contar' ? .5 : .65 }
     },
-      React.createElement('span', { style: { fontSize: 15, width: 24, textAlign: 'center', flex: 'none' } }, '🕊️'),
-      React.createElement('div', { style: { flex: 1, fontSize: 12, color: 'var(--hv-texto2)' } }, p.rotulo + ' · ' + est.rotulo)
+      React.createElement('span', { style: { fontSize: 15, width: 24, textAlign: 'center', flex: 'none' } }, est.estado === 'antes-de-contar' ? '—' : '🕊️'),
+      React.createElement('div', { style: { flex: 1, fontSize: 12, color: 'var(--hv-texto2)' } }, est.rotulo ? p.rotulo + ' · ' + est.rotulo : p.rotulo)
     );
   }
   return React.createElement('div', {
@@ -31545,16 +31619,17 @@ var HvLinhaSemana = React.memo(function HvLinhaSemana(p) {
 }, hvLinhaPropsIguais);
 var HvLinhaMes = React.memo(function HvLinhaMes(p) {
   var hojeStr = hvTodayIso();
-  var est = hvClassificarDia({ dateStr: p.dataStr, hojeStr: hojeStr, temRegisto: !!p.tipo, livre: p.livre, fimDeSemana: p.fimDeSemana });
+  var est = hvClassificarDia({ dateStr: p.dataStr, hojeStr: hojeStr, temRegisto: !!p.tipo, livre: p.livre, fimDeSemana: p.fimDeSemana, desdeStr: p.desde });
   var cor = hvCorTipo(est.estado === 'gravado' ? p.tipo : 'livre');
   var info = p.tipo ? hvTipoInfo(p.tipo) : null;
   var corRotulo = est.estado === 'falta' || est.estado === 'hoje-por-registar' ? 'var(--hv-aviso)' : (p.hoje ? 'var(--hv-principal)' : 'var(--hv-texto)');
+  var iconeCompacto = est.estado === 'antes-de-contar' ? '—' : '🕊️';
   return React.createElement('div', {
     className: 'hv-linha' + (p.hoje ? ' hv-hoje' : ''), onClick: p.onClick,
-    style: { display: 'flex', alignItems: 'center', gap: 10, padding: est.compacta ? '6px 8px' : '8px', borderLeftColor: est.compacta ? 'transparent' : cor.fg, opacity: est.compacta ? .65 : 1 }
+    style: { display: 'flex', alignItems: 'center', gap: 10, padding: est.compacta ? '6px 8px' : '8px', borderLeftColor: est.compacta ? 'transparent' : cor.fg, opacity: est.compacta ? (est.estado === 'antes-de-contar' ? .5 : .65) : 1 }
   },
-    React.createElement('span', { style: { fontSize: 16, width: 20, textAlign: 'center', flex: 'none' } }, info ? info.emoji : (est.compacta ? '🕊️' : (est.estado === 'falta' || est.estado === 'hoje-por-registar' ? '⚠' : '—'))),
-    React.createElement('div', { style: { flex: 1, fontSize: 13, color: corRotulo, fontWeight: p.hoje ? 700 : 400 } }, p.rotulo + (est.compacta ? ' · ' + est.rotulo : '')),
+    React.createElement('span', { style: { fontSize: 16, width: 20, textAlign: 'center', flex: 'none' } }, info ? info.emoji : (est.compacta ? iconeCompacto : (est.estado === 'falta' || est.estado === 'hoje-por-registar' ? '⚠' : '—'))),
+    React.createElement('div', { style: { flex: 1, fontSize: 13, color: corRotulo, fontWeight: p.hoje ? 700 : 400 } }, p.rotulo + (est.compacta && est.rotulo ? ' · ' + est.rotulo : '')),
     !est.compacta && React.createElement('div', { style: { fontSize: 12, color: 'var(--hv-texto2)', minWidth: 48, textAlign: 'right' } }, hvMinToHM(p.total * 60)),
     !est.compacta && React.createElement('div', { style: { textAlign: 'right', minWidth: 58 } }, hvSaldoCelula(est.mostrarSaldo, p.total, p.meta))
   );
@@ -31570,6 +31645,62 @@ var HvLinhaAno = React.memo(function HvLinhaAno(p) {
     React.createElement('div', { style: { textAlign: 'right', minWidth: 60 } }, p.futuro ? React.createElement('span', { style: { color: 'var(--hv-texto2)', fontWeight: 800 } }, '—') : React.createElement(HvSaldoTexto, { valor: p.total - p.meta }))
   );
 }, function (a, b) { return a.rotulo === b.rotulo && a.total === b.total && a.meta === b.meta && a.futuro === b.futuro; });
+
+// Célula da vista Calendário do Mês — reaproveita hvClassificarDia (a
+// mesma função da Lista/Semana) para o estado, só muda a apresentação.
+// Memoizada: só props primitivas + a referência do registo (estável
+// entre renders enquanto esse dia não muda), para não recalcular a
+// grelha inteira a cada tecla.
+var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
+  var hojeStr = hvTodayIso();
+  var temRegisto = !!p.row;
+  var est = hvClassificarDia({ dateStr: p.dateStr, hojeStr: hojeStr, temRegisto: temRegisto, livre: p.livre, fimDeSemana: p.fimDeSemana, desdeStr: p.desde });
+  var isoDow = hvDi(hvMk(p.dateStr)); // 0=Seg..6=Dom
+  var numeroNode = p.hoje
+    ? React.createElement('span', { className: 'hv-cal-numero-hoje' }, p.dia)
+    : React.createElement('span', { className: 'hv-cal-numero' + (isoDow === 6 ? ' hv-cal-numero-dom' : '') }, p.dia);
+
+  var conteudo = null;
+  if (est.estado === 'gravado') {
+    var info = hvTipoInfo(p.row.tipo);
+    var meioDia = (p.row.tipo === 'ferias' || p.row.tipo === 'doente') && p.row.fracao === 0.5;
+    var textoTotal = (meioDia ? '½' : '') + hvMinToHM(p.total * 60);
+    var mostrarIcone = info && textoTotal.length <= 4;
+    var fsTotal = textoTotal.length <= 4 ? 12 : 11;
+    var extraVal = p.total - p.meta;
+    var textoExtra = hvFormatSinal(extraVal);
+    var fsExtra = textoExtra.length <= 4 ? 12 : 11;
+    conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 } },
+      React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte(p.row.tipo), fontSize: fsTotal } },
+        (mostrarIcone ? info.emoji + ' ' : '') + textoTotal),
+      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: fsExtra }, hvEstiloExtra(extraVal)) }, textoExtra)
+    );
+  } else if (est.estado === 'livre') {
+    conteudo = React.createElement('div', { className: 'hv-cal-livre-bloco' }, 'livre');
+  } else if (est.estado === 'futuro') {
+    conteudo = React.createElement('div', { className: 'hv-cal-meta-futuro' }, hvMinToHM(p.meta * 60));
+  } else if (est.estado === 'hoje-por-registar') {
+    conteudo = React.createElement('div', { className: 'hv-cal-registar' }, 'registar');
+  } else if (est.estado === 'falta') {
+    var extraFalta = 0 - p.meta;
+    var textoExtraFalta = hvFormatSinal(extraFalta);
+    conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 } },
+      React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte('falta'), fontSize: 11 } }, '⚠ falta'),
+      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: textoExtraFalta.length <= 4 ? 12 : 11 }, hvEstiloExtra(extraFalta)) }, textoExtraFalta)
+    );
+  }
+  // fds / antes-de-contar: só o número (conteudo fica null)
+
+  var classeCelula = 'hv-cal-celula' +
+    (est.estado === 'antes-de-contar' ? ' hv-cal-antes' : '') +
+    (est.estado === 'falta' ? ' hv-cal-falta' : '') +
+    (p.hoje ? ' hv-cal-hoje' : '') +
+    (p.selecionado ? ' hv-cal-sel' : '');
+  return React.createElement('div', { className: classeCelula, 'data-date': p.dateStr }, numeroNode, conteudo);
+}, function (a, b) {
+  return a.dateStr === b.dateStr && a.total === b.total && a.meta === b.meta && a.row === b.row &&
+    a.livre === b.livre && a.fimDeSemana === b.fimDeSemana && a.hoje === b.hoje && a.selecionado === b.selecionado && a.desde === b.desde;
+});
 
 // ── Componente principal ───────────────────────────────────────────
 function HorasVozApp(props) {
@@ -31636,6 +31767,15 @@ function HorasVozApp(props) {
   var _s41 = React.useState(false); var confirmDiaLivreAberto = _s41[0], setConfirmDiaLivreAberto = _s41[1];
   var _s42 = React.useState(null); var confirmDescartar = _s42[0], setConfirmDescartar = _s42[1]; // data pendente
   var _s43 = React.useState(100); var pctComparar = _s43[0], setPctComparar = _s43[1]; // percentagem extra a comparar (Dia/Semana/Mês)
+  var _s44 = React.useState(function () {
+    try { return localStorage.getItem('horasvoz_mes_vista') || 'calendario'; } catch (e) { return 'calendario'; }
+  });
+  var mesVista = _s44[0], setMesVistaState = _s44[1];
+  function setMesVista(v) {
+    setMesVistaState(v);
+    try { localStorage.setItem('horasvoz_mes_vista', v); } catch (e) {}
+  }
+  var _s45 = React.useState(null); var diaCalSelecionado = _s45[0], setDiaCalSelecionado = _s45[1]; // dateStr selecionado na grelha
   var editorSnapshotRef = React.useRef(null);
   var pendingDiaLivreRef = React.useRef(null);
   var vozPendenteRef = React.useRef(null);
@@ -31671,6 +31811,7 @@ function HorasVozApp(props) {
   var der = hvDerivados(cfgHoje);
   var mondayCur = hvIso(hvMon(hvMk(curDate)));
   var cfgSemana = hvConfigParaSemana(configs.length ? configs : [HV_CONFIG_DEFAULT], mondayCur);
+  var contarDesde = hvPrimeiraDataRegistada(registos, hvTodayIso());
 
   // useMemo nos cálculos pesados (semana / mês / ano) — só recalculam
   // quando os registos, a configuração ou a data/mês/ano em causa mudam,
@@ -31726,7 +31867,7 @@ function HorasVozApp(props) {
   var anoData = React.useMemo(function () {
     var hoje = hvTodayIso();
     var meses = [];
-    var saldoAcumulado = 0;
+    var diasAno = [];
     var feriasAno = 0, doenteAno = 0, feriadoAno = 0, fechoAno = 0;
     for (var m = 0; m < 12; m++) {
       var nDias = hvDaysInMonth(curYear, m);
@@ -31740,9 +31881,9 @@ function HorasVozApp(props) {
         var cfgS = hvConfigParaSemana(configs.length ? configs : [HV_CONFIG_DEFAULT], seg);
         var wk = hvComputeWeek(cfgS, hvWeekDays(seg).map(function (d) { return { date: d, row: registos[d] || null }; }));
         var total = hvTotalDia(row, cfgS, wk.der);
-        totalMes += total;
-        if (idx <= 6) metaMes += wk.metas[idx];
-        if (ds < hoje || (ds === hoje && row)) saldoAcumulado += (total - (idx <= 6 ? wk.metas[idx] : 0));
+        var meta = idx <= 6 ? wk.metas[idx] : 0;
+        totalMes += total; metaMes += meta;
+        diasAno.push({ dateStr: ds, total: total, meta: meta, temRegisto: !!row });
         if (row && row.tipo === 'ferias') feriasAno += row.fracao;
         if (row && row.tipo === 'doente') doenteAno += row.fracao;
         if (row && row.tipo === 'feriado') feriadoAno += row.fracao;
@@ -31750,8 +31891,11 @@ function HorasVozApp(props) {
       }
       meses.push({ m: m, total: totalMes, meta: metaMes });
     }
+    // Mesma função hvResumoAte usada em Dia/Semana/Mês, agora com o ano
+    // inteiro já reunido num só array de dias — nada de acumulação à parte.
+    var saldoAcumulado = hvResumoAte(diasAno, hoje, contarDesde).extra;
     return { meses: meses, saldoAcumulado: saldoAcumulado, feriasAno: feriasAno, doenteAno: doenteAno, feriadoAno: feriadoAno, fechoAno: fechoAno };
-  }, [curYear, registos, configs]);
+  }, [curYear, registos, configs, contarDesde]);
 
   var curIsoDow = hvDi(hvMk(curDate)); // 0..6 seg..dom
   var metaHoje = curIsoDow <= 6 ? weekCalc.metas[curIsoDow] : 0;
@@ -32151,7 +32295,7 @@ function HorasVozApp(props) {
     var dias = hvDiasSemanaCompleta();
     var hoje = hvTodayIso();
     var bolinhas = dias.map(function (d) {
-      var est = hvClassificarDia({ dateStr: d.dateStr, hojeStr: hoje, temRegisto: d.temRegisto, livre: d.livre, fimDeSemana: d.fimDeSemana });
+      var est = hvClassificarDia({ dateStr: d.dateStr, hojeStr: hoje, temRegisto: d.temRegisto, livre: d.livre, fimDeSemana: d.fimDeSemana, desdeStr: contarDesde });
       var estadoBolinha = est.estado === 'gravado' ? 'gravado' : ((est.estado === 'falta' || est.estado === 'hoje-por-registar') ? 'aviso' : 'neutro');
       var corTipoFg = d.row ? hvCorTipo(d.row.tipo).fg : 'var(--hv-principal)';
       return React.createElement(HvBolinhaDia, {
@@ -32160,7 +32304,7 @@ function HorasVozApp(props) {
       });
     });
     var totalSemana = dias.reduce(function (s, d) { return s + d.total; }, 0);
-    var saldoAteHoje = hvSomaSaldoAteHoje(dias, hoje);
+    var saldoAteHoje = hvResumoAte(dias, hoje, contarDesde).extra;
     return React.createElement('div', null,
       React.createElement('div', { className: 'hv-faixa' }, bolinhas),
       React.createElement('div', { style: { fontSize: 12, color: 'var(--hv-texto2)', textAlign: 'center', marginTop: 6 } },
@@ -32379,13 +32523,13 @@ function HorasVozApp(props) {
       return React.createElement(HvLinhaSemana, {
         key: d.dateStr, dataStr: d.dateStr, total: d.total, meta: d.meta,
         tipo: d.row ? d.row.tipo : null, livre: d.livre,
-        hoje: d.hoje, fimDeSemana: d.fimDeSemana,
+        hoje: d.hoje, fimDeSemana: d.fimDeSemana, desde: contarDesde,
         rotulo: HV_DIA_CURTO[i] + ' ' + hvFmt(hvMk(d.dateStr)),
         onClick: function () { setView('dia'); mudarDia(d.dateStr); }
       });
     });
     var totalSemana = dias.reduce(function (s, d) { return s + d.total; }, 0);
-    var saldoAteHoje = hvSomaSaldoAteHoje(dias, hoje);
+    var saldoAteHoje = hvResumoAte(dias, hoje, contarDesde).extra;
     var falta = Math.max(0, weekCalc.meta_semana - totalSemana);
     var diasFaltamTrabalho = dias.filter(function (d) { return d.dateStr >= hoje && !d.fimDeSemana && !d.livre && !d.temRegisto; });
     var metaMediaFalta = diasFaltamTrabalho.length ? (falta / diasFaltamTrabalho.length) : 0;
@@ -32419,33 +32563,35 @@ function HorasVozApp(props) {
     );
   }
 
-  function renderMes() {
-    var y = curMonthObj.y, m = curMonthObj.m;
+  function renderMesNav(y, m) {
+    return React.createElement('div', { style: HV_ESTILO.linhaTopo },
+      React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { var d = new Date(Date.UTC(y, m - 1, 1)); setCurMonthObj({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); } }, '‹'),
+      React.createElement('div', { style: { flex: 1, textAlign: 'center', fontWeight: 800, color: 'var(--hv-texto)' } }, HV_MESES_LABEL[m] + ' ' + y),
+      React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { var d = new Date(Date.UTC(y, m + 1, 1)); setCurMonthObj({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); } }, '›')
+    );
+  }
+
+  function renderMesLista(y, m) {
     var hoje = hvTodayIso();
     var diasUteis = mesData.dias.filter(function (d) { return !d.fimDeSemana; });
     var linhas = diasUteis.map(function (d) {
       return React.createElement(HvLinhaMes, {
         key: d.dateStr, dataStr: d.dateStr, total: d.total, meta: d.meta, tipo: d.tipo, livre: d.livre,
-        hoje: d.dateStr === hoje, fimDeSemana: false,
+        hoje: d.dateStr === hoje, fimDeSemana: false, desde: contarDesde,
         rotulo: HV_DIA_CURTO[d.idx] + ' ' + String(d.dia).padStart(2, '0') + '.' + String(m + 1).padStart(2, '0') + '.',
         onClick: function (ds) { return function () { setView('dia'); mudarDia(ds); }; }(d.dateStr)
       });
     });
-    // Saldo até hoje: só soma dias <= hoje (hoje só se gravado) — mesmo
-    // agregado usado na Semana, sem tocar nos totais/metas por dia.
-    var saldoAteHoje = hvSomaSaldoAteHoje(diasUteis.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje);
+    // Saldo até hoje: mesma função hvResumoAte usada em Semana/Ano, sem
+    // tocar nos totais/metas por dia.
+    var saldoAteHoje = hvResumoAte(diasUteis.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje, contarDesde).extra;
     var mes100 = hvTotalMetaMesAPercentagem(y, m, 100);
     var paresPctMes = [{ label: '100%', total: mes100.totalMes, meta: mes100.metaMes }];
     if (pctComparar !== 100) {
       var mesPct = hvTotalMetaMesAPercentagem(y, m, pctComparar);
       paresPctMes.push({ label: pctComparar + '%', total: mesPct.totalMes, meta: mesPct.metaMes });
     }
-    return React.createElement('div', { style: HV_ESTILO.pagina },
-      React.createElement('div', { style: HV_ESTILO.linhaTopo },
-        React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { var d = new Date(Date.UTC(y, m - 1, 1)); setCurMonthObj({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); } }, '‹'),
-        React.createElement('div', { style: { flex: 1, textAlign: 'center', fontWeight: 800, color: 'var(--hv-texto)' } }, HV_MESES_LABEL[m] + ' ' + y),
-        React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { var d = new Date(Date.UTC(y, m + 1, 1)); setCurMonthObj({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); } }, '›')
-      ),
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
       React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--hv-texto)', fontWeight: 700, marginBottom: 4 } },
           React.createElement('span', null, 'Total ' + hvMinToHM(mesData.totalMes * 60)),
@@ -32456,6 +32602,182 @@ function HorasVozApp(props) {
       ),
       renderComparacaoPct(paresPctMes),
       React.createElement(HvCard, { style: { padding: 0 } }, React.createElement('div', { style: { padding: '0 8px' } }, linhas))
+    );
+  }
+
+  // ── Ações do cartão do dia selecionado (Calendário) — mesmas funções
+  // de gravação já usadas no ecrã Dia; abrir editor navega para lá
+  // ("mesmo comportamento do ecrã Dia"), gravar rápido fica na grelha.
+  function aoClicarOutroHorarioCal() { abrirEditorOutroHorario(); setView('dia'); }
+  function aoClicarEditarCal() { abrirEditorParaEditar(); setView('dia'); }
+
+  function renderCartaoDiaGravadoCal(row) {
+    var info = hvTipoInfo(row.tipo);
+    var horarioTexto;
+    if (row.tipo === 'trabalho') {
+      var partes = [];
+      if (row.manha_inicio && row.manha_fim) partes.push(row.manha_inicio.slice(0, 5) + '–' + row.manha_fim.slice(0, 5));
+      if (row.tarde_inicio && row.tarde_fim) partes.push(row.tarde_inicio.slice(0, 5) + '–' + row.tarde_fim.slice(0, 5));
+      horarioTexto = partes.length ? partes.join(' · ') : '—';
+    } else {
+      horarioTexto = row.fracao === 0.5 ? 'Meio dia' : 'Dia inteiro';
+    }
+    return React.createElement('div', null,
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 } },
+        React.createElement('span', { style: { fontSize: 22 } }, info.emoji),
+        React.createElement('div', null,
+          React.createElement('div', { style: { fontWeight: 800, fontSize: 14, color: 'var(--hv-texto)' } }, info.label),
+          React.createElement('div', { style: { fontSize: 12, color: 'var(--hv-texto2)' } }, horarioTexto)
+        )
+      ),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px 14px', fontSize: 13, color: 'var(--hv-texto2)', paddingTop: 10, borderTop: '1px solid var(--hv-borda)' } },
+        React.createElement('span', null, 'Trabalhado ', React.createElement('b', { style: { color: 'var(--hv-texto)' } }, hvMinToHM(trabalhadoMinAtual))),
+        pausaAplicada > 0 && React.createElement('span', null, 'Pausa ', React.createElement('b', { style: { color: 'var(--hv-texto)' } }, hvMinToHM(-pausaAplicada))),
+        creditoAtual > 0 && React.createElement('span', null, 'Crédito ', React.createElement('b', { style: { color: 'var(--hv-texto)' } }, hvMinToHM(creditoAtual * 60)))
+      ),
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--hv-borda)' } },
+        React.createElement('div', null, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Total'), React.createElement('div', { style: HV_ESTILO.totalNumero }, hvMinToHM(totalAtual * 60))),
+        React.createElement('div', { style: { textAlign: 'center' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Meta'), React.createElement('div', { style: HV_ESTILO.metaNumero }, hvMinToHM(metaHoje * 60))),
+        React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Extra'), React.createElement('div', { style: HV_ESTILO.saldoNumero }, React.createElement(HvSaldoTexto, { valor: saldoAtual })))
+      ),
+      React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
+        React.createElement(HvBtn, { grande: true, onClick: aoClicarEditarCal, flex: true }, '✏️ Editar'),
+        React.createElement('button', { onClick: function () { setConfirmApagar(true); }, style: HV_ESTILO.botaoPerigo }, '🗑')
+      )
+    );
+  }
+  function renderCartaoDiaSemRegistoCal() {
+    return React.createElement('div', null,
+      React.createElement('div', { style: { fontSize: 13, color: 'var(--hv-texto2)', marginBottom: 10 } }, 'Por registar · meta ' + hvMinToHM(metaHoje * 60)),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
+        React.createElement(HvBtn, { grande: true, ativo: true, disabled: saving, onClick: gravarDiaNormalRapido, flex: true }, '✓ Dia normal'),
+        React.createElement(HvBtn, { grande: true, tipoCor: 'ferias', disabled: saving, onClick: function () { gravarAusenciaRapido('ferias'); }, flex: true }, '🏖 Férias'),
+        React.createElement(HvBtn, { grande: true, tipoCor: 'doente', disabled: saving, onClick: function () { gravarAusenciaRapido('doente'); }, flex: true }, '🤒 Doente'),
+        React.createElement(HvBtn, { grande: true, onClick: aoClicarOutroHorarioCal, flex: true }, '✏️ Outro horário')
+      )
+    );
+  }
+  function renderCartaoDiaCal() {
+    var row = registos[curDate];
+    return React.createElement(HvCard, null,
+      React.createElement('div', { style: { fontWeight: 800, fontSize: 14, color: 'var(--hv-texto)', marginBottom: 8 } },
+        HV_DIA_LONGO[curIsoDow > 6 ? 0 : curIsoDow] + ' ' + hvFmt(hvMk(curDate))
+      ),
+      row ? renderCartaoDiaGravadoCal(row) : renderCartaoDiaSemRegistoCal()
+    );
+  }
+
+  function renderSubtotaisSemanaMes(y, m) {
+    var grupos = {}, ordem = [];
+    mesData.dias.forEach(function (d) {
+      var seg = hvIso(hvMon(hvMk(d.dateStr)));
+      if (!grupos[seg]) { grupos[seg] = []; ordem.push(seg); }
+      grupos[seg].push(d);
+    });
+    var hoje = hvTodayIso();
+    return React.createElement(HvCard, { style: { padding: 0 } },
+      ordem.map(function (seg) {
+        var diasGrupo = grupos[seg];
+        var completa = diasGrupo.length === 7;
+        var totalBruto = diasGrupo.reduce(function (s, d) { return s + d.total; }, 0);
+        var extra = hvResumoAte(diasGrupo.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje, contarDesde).extra;
+        return React.createElement('div', {
+          key: seg, className: 'hv-cal-semana-linha',
+          onClick: function () { setCurDate(seg); setView('semana'); }
+        },
+          React.createElement('span', null,
+            'KW ' + hvKw(hvMk(seg)) + ' · Total ' + hvMinToHM(totalBruto * 60) + ' · Extra ' + hvFormatSinal(extra) +
+            (completa ? '' : ' (parte de ' + HV_MESES_LABEL[m].slice(0, 3).toLowerCase() + '.)')
+          )
+        );
+      })
+    );
+  }
+
+  function aoClicarGrelhaCalendario(e) {
+    var kwEl = e.target.closest('[data-kw-monday]');
+    if (kwEl) { setCurDate(kwEl.getAttribute('data-kw-monday')); setView('semana'); return; }
+    var el = e.target.closest('[data-date]');
+    if (!el) return;
+    mudarDia(el.getAttribute('data-date'));
+  }
+  function aoDuploCliqueGrelhaCalendario(e) {
+    var el = e.target.closest('[data-date]');
+    if (!el) return;
+    mudarDia(el.getAttribute('data-date'));
+    setView('dia');
+  }
+  function aoClicarFabCalendario() {
+    var hoje = hvTodayIso();
+    mudarDia(registos[hoje] ? curDate : hoje);
+    setView('dia');
+  }
+
+  function renderMesCalendario(y, m) {
+    var hoje = hvTodayIso();
+    var diasUteis = mesData.dias.filter(function (d) { return !d.fimDeSemana; });
+    var resumo = hvResumoAte(diasUteis.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje, contarDesde);
+    var trabalhoN = 0, feriadoN = 0, fechoN = 0;
+    mesData.dias.forEach(function (d) { if (d.tipo === 'trabalho') trabalhoN++; if (d.tipo === 'feriado') feriadoN++; if (d.tipo === 'fecho') fechoN++; });
+
+    var mesDiaPorData = {};
+    mesData.dias.forEach(function (d) { mesDiaPorData[d.dateStr] = d; });
+    var grelha = hvConstruirGrelhaMes(y, m);
+    var celulasGrid = [];
+    grelha.forEach(function (semana) {
+      celulasGrid.push(React.createElement('span', { key: 'kw' + semana.segunda, className: 'hv-cal-kw', 'data-kw-monday': semana.segunda }, 'KW ' + semana.kw));
+      semana.celulas.forEach(function (dNum, i) {
+        if (dNum == null) { celulasGrid.push(React.createElement('div', { key: semana.segunda + '-v' + i, className: 'hv-cal-vazia' })); return; }
+        var dateStr = hvIsoDate(y, m, dNum);
+        var dm = mesDiaPorData[dateStr];
+        celulasGrid.push(React.createElement(HvCelulaCalendario, {
+          key: dateStr, dateStr: dateStr, dia: dNum, total: dm.total, meta: dm.meta,
+          row: registos[dateStr] || null, livre: dm.livre, fimDeSemana: dm.fimDeSemana,
+          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde
+        }));
+      });
+    });
+
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, position: 'relative' } },
+      React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' } },
+          React.createElement('div', null,
+            React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Total até agora'),
+            React.createElement('div', { style: { fontSize: 19, fontWeight: 800, color: 'var(--hv-texto)' } }, hvMinToHM(resumo.total * 60))
+          ),
+          React.createElement('div', { style: { textAlign: 'center' } },
+            React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Meta até agora'),
+            React.createElement('div', { style: HV_ESTILO.metaNumero }, hvMinToHM(resumo.meta * 60))
+          ),
+          React.createElement('div', { style: { textAlign: 'right' } },
+            React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Horas extra'),
+            React.createElement('div', { style: { fontSize: 22, fontWeight: 800 } }, React.createElement(HvSaldoTexto, { valor: resumo.extra }))
+          )
+        ),
+        React.createElement('div', { style: Object.assign({}, HV_ESTILO.textoMuted, { marginTop: 8, fontSize: 12 }) },
+          'Dias: trabalho ' + trabalhoN + ' · férias ' + hvDez(mesData.feriasN) + ' · doente ' + hvDez(mesData.doenteN) + ' · feriado ' + feriadoN + ' · fecho ' + fechoN
+        )
+      ),
+      React.createElement('div', { className: 'hv-cal-cabecalho' },
+        React.createElement('span', null, ''),
+        HV_DIA_CURTO.map(function (n, i) { return React.createElement('span', { key: i }, n.toUpperCase()); })
+      ),
+      React.createElement('div', { className: 'hv-cal-grid', onClick: aoClicarGrelhaCalendario, onDoubleClick: aoDuploCliqueGrelhaCalendario }, celulasGrid),
+      renderCartaoDiaCal(),
+      renderSubtotaisSemanaMes(y, m),
+      React.createElement('button', { className: 'hv-cal-fab', onClick: aoClicarFabCalendario }, '+')
+    );
+  }
+
+  function renderMes() {
+    var y = curMonthObj.y, m = curMonthObj.m;
+    return React.createElement('div', { style: HV_ESTILO.pagina },
+      React.createElement('div', { className: 'hv-cal-toggle' },
+        React.createElement('button', { className: mesVista === 'calendario' ? 'hv-cal-toggle-ativo' : '', onClick: function () { setMesVista('calendario'); } }, '📅 Calendário'),
+        React.createElement('button', { className: mesVista === 'lista' ? 'hv-cal-toggle-ativo' : '', onClick: function () { setMesVista('lista'); } }, '☰ Lista')
+      ),
+      renderMesNav(y, m),
+      mesVista === 'calendario' ? renderMesCalendario(y, m) : renderMesLista(y, m)
     );
   }
 
