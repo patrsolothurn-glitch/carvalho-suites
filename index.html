@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-16T04:39:44.250Z
+  Gerado em: 2026-09-16T04:55:30.891Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-306";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-307";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -31358,25 +31358,24 @@ var HV_CSS = '' +
   '.hv-cal-toggle{display:flex;gap:8px}' +
   '.hv-cal-toggle button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--hv-borda);background:var(--hv-cartao);color:var(--hv-texto);font-size:13px;font-weight:800;cursor:pointer}' +
   '.hv-cal-toggle button.hv-cal-toggle-ativo{background:var(--hv-principal);border-color:var(--hv-principal);color:var(--hv-principal-texto)}' +
-  '.hv-cal-cabecalho{display:grid;grid-template-columns:28px repeat(7,1fr);gap:4px;padding:0 2px}' +
-  '.hv-cal-cabecalho span{font-size:12px;font-weight:800;color:var(--hv-texto2);text-align:center;text-transform:uppercase}' +
-  '.hv-cal-grid{display:grid;grid-template-columns:28px repeat(7,1fr);gap:4px;grid-auto-rows:minmax(96px,auto)}' +
-  '.hv-cal-kw{font-size:13px;color:var(--hv-texto2);text-align:center;padding-top:6px;cursor:pointer;align-self:start}' +
-  '.hv-cal-vazia{min-height:96px}' +
-  '.hv-cal-celula{min-height:96px;border-radius:10px;background:var(--hv-cartao);border:2px solid var(--hv-borda);padding:3px;display:flex;flex-direction:column;gap:3px;cursor:pointer;overflow:visible;position:relative;z-index:1}' +
-  '.hv-cal-celula:focus,.hv-cal-celula:hover{z-index:2}' +
+  '.hv-cal-cabecalho{display:grid;grid-template-columns:36px repeat(7,minmax(0,1fr));column-gap:4px;width:100%;box-sizing:border-box}' +
+  '.hv-cal-cabecalho span{font-size:11px;font-weight:800;color:var(--hv-texto2);text-align:center;text-transform:uppercase}' +
+  '.hv-cal-grid{display:grid;grid-template-columns:36px repeat(7,minmax(0,1fr));column-gap:4px;row-gap:4px;grid-auto-rows:minmax(88px,auto);width:100%;box-sizing:border-box}' +
+  '.hv-cal-kw{display:flex;flex-direction:column;align-items:center;min-width:0;font-size:11px;color:var(--hv-texto2);cursor:pointer;padding-top:4px;align-self:start}' +
+  '.hv-cal-vazia{min-height:88px;min-width:0}' +
+  '.hv-cal-celula{min-height:88px;min-width:0;box-sizing:border-box;border-radius:10px;background:var(--hv-cartao);border:1px solid var(--hv-borda);padding:1px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;cursor:pointer;overflow:hidden}' +
   '.hv-cal-celula.hv-cal-antes{opacity:.5}' +
   '.hv-cal-celula.hv-cal-falta{border-color:var(--hv-aviso)}' +
   '.hv-cal-celula.hv-cal-hoje{border-color:var(--hv-principal)}' +
-  '.hv-cal-celula.hv-cal-sel{border-width:3px;border-color:var(--hv-principal)}' +
-  '.hv-cal-numero{font-size:18px;font-weight:800;color:var(--hv-texto);line-height:1}' +
+  '.hv-cal-celula.hv-cal-sel{border-width:2px;border-color:var(--hv-principal)}' +
+  '.hv-cal-numero{font-size:clamp(14px,4.2vw,18px);font-weight:800;color:var(--hv-texto);line-height:1}' +
   '.hv-cal-numero-dom{color:var(--hv-negativo)}' +
-  '.hv-cal-numero-hoje{width:26px;height:26px;border-radius:50%;background:var(--hv-principal);color:var(--hv-principal-texto);display:flex;align-items:center;justify-content:center;font-size:14px}' +
-  '.hv-cal-etiqueta{border-radius:6px;padding:2px 2px;color:#fff;text-align:center;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;font-weight:800}' +
-  '.hv-cal-etiqueta-extra{border-radius:6px;padding:2px 2px;text-align:center;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;font-weight:800}' +
-  '.hv-cal-livre-bloco{border-radius:8px;background:var(--hv-tipo-livre-bg);color:var(--hv-tipo-livre-fg);font-size:11px;text-align:center;padding:5px 2px;flex:1;display:flex;align-items:center;justify-content:center}' +
-  '.hv-cal-registar{border:1.5px dashed var(--hv-principal);border-radius:6px;color:var(--hv-principal);font-size:11px;text-align:center;padding:4px 2px}' +
-  '.hv-cal-meta-futuro{font-size:11px;color:var(--hv-texto2)}' +
+  '.hv-cal-numero-hoje{width:26px;height:26px;border-radius:50%;background:var(--hv-principal);color:var(--hv-principal-texto);display:flex;align-items:center;justify-content:center;font-size:clamp(12px,3.5vw,14px)}' +
+  '.hv-cal-etiqueta{width:100%;box-sizing:border-box;border-radius:6px;padding:0px 1px;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(10px,calc(var(--hv-cel-w,44px) * 0.23),13px);letter-spacing:-0.2px}' +
+  '.hv-cal-etiqueta-extra{width:100%;box-sizing:border-box;border-radius:6px;padding:0px 1px;text-align:center;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(10px,calc(var(--hv-cel-w,44px) * 0.23),13px);letter-spacing:-0.2px}' +
+  '.hv-cal-livre-bloco{width:100%;box-sizing:border-box;border-radius:8px;background:var(--hv-tipo-livre-bg);color:var(--hv-tipo-livre-fg);font-size:11px;text-align:center;padding:5px 2px;flex:1;display:flex;align-items:center;justify-content:center}' +
+  '.hv-cal-registar{width:100%;box-sizing:border-box;border:1.5px dashed var(--hv-principal);border-radius:6px;color:var(--hv-principal);font-size:clamp(9px,calc(var(--hv-cel-w,44px) * 0.24),11px);text-align:center;padding:3px 1px;overflow-wrap:anywhere;line-height:1.15}' +
+  '.hv-cal-meta-futuro{font-size:11px;color:var(--hv-texto2);text-align:center}' +
   '.hv-cal-fab{position:fixed;right:18px;bottom:22px;width:56px;height:56px;border-radius:28px;background:var(--hv-principal);color:var(--hv-principal-texto);border:none;font-size:26px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:60;display:flex;align-items:center;justify-content:center}' +
   '.hv-cal-semana-linha{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-top:1px solid var(--hv-borda);cursor:pointer;font-size:13px;color:var(--hv-texto)}' +
   '.hv-cal-semana-linha:first-child{border-top:none}';
@@ -31401,6 +31400,13 @@ function hvEstiloExtra(v) {
   if (v > 0) return { background: 'rgba(21,128,61,.16)', color: 'var(--hv-positivo)' };
   if (v < 0) return { background: 'rgba(185,28,28,.16)', color: 'var(--hv-negativo)' };
   return { background: 'var(--hv-borda)', color: 'var(--hv-texto2)' };
+}
+// Texto do extra numa célula do calendário. Negativo mostra sempre o
+// "-" (hvMinToHM já o inclui); o "+" do positivo só se esconde quando a
+// célula é demasiado estreita para caber — a cor verde/vermelha já diz
+// o sinal, não é cortar o número, só a marca de mais.
+function hvTextoExtraCel(v, muitoCompacta) {
+  return v >= 0 ? (muitoCompacta ? '' : '+') + hvMinToHM(v) : hvMinToHM(v);
 }
 
 // Único objeto de estilos ao nível do módulo — as peças abaixo e a app
@@ -31714,15 +31720,13 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
     var info = hvTipoInfo(p.row.tipo);
     var meioDia = (p.row.tipo === 'ferias' || p.row.tipo === 'doente') && p.row.fracao === 0.5;
     var textoTotal = (meioDia ? '½' : '') + hvMinToHM(p.total * 60);
-    var mostrarIcone = info && textoTotal.length <= 4;
-    var fsTotal = textoTotal.length <= 4 ? 12 : 11;
+    var mostrarIcone = info && !p.compacta;
     var extraMinGravado = p.extraMin != null ? p.extraMin : Math.round((p.total - p.meta) * 60);
-    var textoExtra = (extraMinGravado >= 0 ? '+' : '') + hvMinToHM(extraMinGravado);
-    var fsExtra = textoExtra.length <= 4 ? 12 : 11;
-    conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 } },
-      React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte(p.row.tipo), fontSize: fsTotal } },
+    var textoExtra = hvTextoExtraCel(extraMinGravado, p.muitoCompacta);
+    conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, width: '100%' } },
+      React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte(p.row.tipo) } },
         (mostrarIcone ? info.emoji + ' ' : '') + textoTotal),
-      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: fsExtra }, hvEstiloExtra(extraMinGravado)) }, textoExtra)
+      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: hvEstiloExtra(extraMinGravado) }, textoExtra)
     );
   } else if (est.estado === 'livre') {
     conteudo = React.createElement('div', { className: 'hv-cal-livre-bloco' }, 'livre');
@@ -31732,10 +31736,10 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
     conteudo = React.createElement('div', { className: 'hv-cal-registar' }, 'registar');
   } else if (est.estado === 'falta') {
     var extraMinFalta = p.extraMin != null ? p.extraMin : Math.round((0 - p.meta) * 60);
-    var textoExtraFalta = (extraMinFalta >= 0 ? '+' : '') + hvMinToHM(extraMinFalta);
-    conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 } },
-      React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte('falta'), fontSize: 11 } }, '⚠ falta'),
-      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: textoExtraFalta.length <= 4 ? 12 : 11 }, hvEstiloExtra(extraMinFalta)) }, textoExtraFalta)
+    var textoExtraFalta = hvTextoExtraCel(extraMinFalta, p.muitoCompacta);
+    conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, width: '100%' } },
+      React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte('falta') } }, p.compacta ? '⚠' : '⚠ falta'),
+      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: hvEstiloExtra(extraMinFalta) }, textoExtraFalta)
     );
   }
   // fds / antes-de-contar: só o número (conteudo fica null)
@@ -31749,7 +31753,7 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
 }, function (a, b) {
   return a.dateStr === b.dateStr && a.total === b.total && a.meta === b.meta && a.row === b.row &&
     a.livre === b.livre && a.fimDeSemana === b.fimDeSemana && a.hoje === b.hoje && a.selecionado === b.selecionado &&
-    a.desde === b.desde && a.extraMin === b.extraMin;
+    a.desde === b.desde && a.extraMin === b.extraMin && a.compacta === b.compacta && a.muitoCompacta === b.muitoCompacta;
 });
 
 // ── Componente principal ───────────────────────────────────────────
@@ -31825,7 +31829,25 @@ function HorasVozApp(props) {
     setMesVistaState(v);
     try { localStorage.setItem('horasvoz_mes_vista', v); } catch (e) {}
   }
-  var _s45 = React.useState(null); var diaCalSelecionado = _s45[0], setDiaCalSelecionado = _s45[1]; // dateStr selecionado na grelha
+  // Largura de cada coluna de dia da grelha do Mês (calculada a partir da
+  // largura do contentor, medida por ResizeObserver) — decide quando
+  // esconder o ícone do tipo e o "+" dos extras, para nunca cortar
+  // números. compacta/muitoCompacta ficam false se o browser não tiver
+  // ResizeObserver (célula continua legível, só não encolhe o conteúdo).
+  var _s45 = React.useState(0); var celColWidth = _s45[0], setCelColWidth = _s45[1];
+  var celGridRoRef = React.useRef(null);
+  var celGridRefCb = React.useRef(function (node) {
+    if (celGridRoRef.current) { celGridRoRef.current.disconnect(); celGridRoRef.current = null; }
+    if (node && typeof ResizeObserver !== 'undefined') {
+      celGridRoRef.current = new ResizeObserver(function (entries) {
+        var w = entries[0].contentRect.width;
+        setCelColWidth((w - 36 - 4 * 7) / 7);
+      });
+      celGridRoRef.current.observe(node);
+    }
+  }).current;
+  var celulaCompacta = celColWidth > 0 && celColWidth < 52;
+  var celulaMuitoCompacta = celColWidth > 0 && celColWidth < 32;
   var editorSnapshotRef = React.useRef(null);
   var pendingDiaLivreRef = React.useRef(null);
   var vozPendenteRef = React.useRef(null);
@@ -32779,7 +32801,10 @@ function HorasVozApp(props) {
     var grelha = hvConstruirGrelhaMes(y, m);
     var celulasGrid = [];
     grelha.forEach(function (semana) {
-      celulasGrid.push(React.createElement('span', { key: 'kw' + semana.segunda, className: 'hv-cal-kw', 'data-kw-monday': semana.segunda }, 'KW ' + semana.kw));
+      celulasGrid.push(React.createElement('div', { key: 'kw' + semana.segunda, className: 'hv-cal-kw', 'data-kw-monday': semana.segunda },
+        React.createElement('div', null, 'KW'),
+        React.createElement('div', null, semana.kw)
+      ));
       semana.celulas.forEach(function (dNum, i) {
         if (dNum == null) { celulasGrid.push(React.createElement('div', { key: semana.segunda + '-v' + i, className: 'hv-cal-vazia' })); return; }
         var dateStr = hvIsoDate(y, m, dNum);
@@ -32787,12 +32812,13 @@ function HorasVozApp(props) {
         celulasGrid.push(React.createElement(HvCelulaCalendario, {
           key: dateStr, dateStr: dateStr, dia: dNum, total: dm.total, meta: dm.meta,
           row: registos[dateStr] || null, livre: dm.livre, fimDeSemana: dm.fimDeSemana,
-          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde, extraMin: extrasCompMesCal[dateStr]
+          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde, extraMin: extrasCompMesCal[dateStr],
+          compacta: celulaCompacta, muitoCompacta: celulaMuitoCompacta
         }));
       });
     });
 
-    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, position: 'relative' } },
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', paddingBottom: 88 } },
       React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' } },
           React.createElement('div', null,
@@ -32816,7 +32842,11 @@ function HorasVozApp(props) {
         React.createElement('span', null, ''),
         HV_DIA_CURTO.map(function (n, i) { return React.createElement('span', { key: i }, n.toUpperCase()); })
       ),
-      React.createElement('div', { className: 'hv-cal-grid', onClick: aoClicarGrelhaCalendario, onDoubleClick: aoDuploCliqueGrelhaCalendario }, celulasGrid),
+      React.createElement('div', {
+        className: 'hv-cal-grid', ref: celGridRefCb,
+        style: celColWidth > 0 ? { '--hv-cel-w': celColWidth + 'px' } : undefined,
+        onClick: aoClicarGrelhaCalendario, onDoubleClick: aoDuploCliqueGrelhaCalendario
+      }, celulasGrid),
       renderCartaoDiaCal(),
       renderSubtotaisSemanaMes(y, m, extrasCompMesCal),
       React.createElement('button', { className: 'hv-cal-fab', onClick: aoClicarFabCalendario }, '+')
