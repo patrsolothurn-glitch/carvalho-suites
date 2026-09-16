@@ -49,14 +49,21 @@ const LIMITES: Record<string, [number, number, string][]> = {
   ambrosia: [[1, 5, 'fraco'], [6, 14, 'moderado'], [15, 49, 'forte'], [50, Infinity, 'muito forte']],
   olive: [[1, 10, 'fraco'], [11, 99, 'moderado'], [100, 349, 'forte'], [350, Infinity, 'muito forte']],
 };
+// Mesma correção do BUG A em src/19-app-pollen.js (polClassificarNivel):
+// as faixas só têm limites inteiros, a Open-Meteo devolve decimais, por
+// isso classifica-se SÓ pelo limite inferior de cada faixa, do nível mais
+// alto para o mais baixo — nunca por defeito em "muito forte". Valores
+// entre 0 e 1 ficam "vestigios" (nunca disparam alerta, já que só
+// 'forte'/'muito forte' contam abaixo).
 function classificar(tipo: string, valor: number): string | null {
   if (valor == null || valor <= 0) return null;
+  if (valor < 1) return 'vestigios';
   const faixas = LIMITES[tipo];
   if (!faixas) return null;
-  for (const [min, max, nivel] of faixas) {
-    if (valor >= min && valor <= max) return nivel;
+  for (let i = faixas.length - 1; i >= 0; i--) {
+    if (valor >= faixas[i][0]) return faixas[i][2];
   }
-  return 'muito forte';
+  return 'fraco';
 }
 
 Deno.serve(async (req) => {
