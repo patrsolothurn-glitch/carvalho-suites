@@ -350,6 +350,115 @@ function hvDiasUteisPeriodo(inicio, fim) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// PARSER DE VOZ EM ALEMÃO — espelha hvParseVoz/hvExtractBlocos/
+// hvParseData/hvParseTipo em vocabulário e forma (mesmas formas de
+// retorno), sem tocar em nenhuma função do parser PT. Só a variante
+// não-período (sem "de X a Y") é suportada, como no PT sem período.
+// ══════════════════════════════════════════════════════════════════
+var HV_MESES_DE = ['januar', 'februar', 'märz', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'dezember'];
+var HV_MES_ALIASES_DE = { 'marz': 2 };
+var HV_DIA_ALIASES_DE = {
+  'sonntag': 0, 'montag': 1, 'dienstag': 2, 'mittwoch': 3, 'donnerstag': 4, 'freitag': 5, 'samstag': 6, 'sonnabend': 6
+};
+var HV_NUM_DE = {
+  'ein': 1, 'eins': 1, 'zwei': 2, 'drei': 3, 'vier': 4, 'fünf': 5, 'funf': 5, 'sechs': 6, 'sieben': 7,
+  'acht': 8, 'neun': 9, 'zehn': 10, 'elf': 11, 'zwölf': 12, 'zwolf': 12
+};
+function hvParseDataDe(textoNorm, hojeStr) {
+  if (/\bheute\b/.test(textoNorm)) return hojeStr;
+  if (/\bvorgestern\b/.test(textoNorm)) return hvAddDias(hojeStr, -2);
+  if (/\bgestern\b/.test(textoNorm)) return hvAddDias(hojeStr, -1);
+  for (var nome in HV_DIA_ALIASES_DE) {
+    if (new RegExp('\\b' + nome + '\\b').test(textoNorm)) return hvUltimoDiaSemana(hojeStr, HV_DIA_ALIASES_DE[nome]);
+  }
+  var mNomeada = textoNorm.match(/\b(\d{1,2})\.?\s+([a-zäöü]+)(?:\s+(\d{4}))?\b/);
+  if (mNomeada) {
+    var mesIdx = HV_MESES_DE.indexOf(mNomeada[2]);
+    if (mesIdx === -1 && HV_MES_ALIASES_DE[mNomeada[2]] != null) mesIdx = HV_MES_ALIASES_DE[mNomeada[2]];
+    if (mesIdx !== -1) return hvIsoDate(mNomeada[3] ? +mNomeada[3] : +hojeStr.slice(0, 4), mesIdx, +mNomeada[1]);
+  }
+  return hojeStr;
+}
+function hvNumeroDe(tok) { return HV_NUM_DE[tok] != null ? HV_NUM_DE[tok] : (/^\d{1,2}$/.test(tok) ? +tok : null); }
+function hvParseHoraDe(s) {
+  s = hvNormalizar(s);
+  var ehTarde = /nachmittag|abend/.test(s);
+  var m;
+  m = s.match(/^halb\s+([a-zäöü]+|\d{1,2})/);
+  if (m) { var h1 = hvNumeroDe(m[1]); if (h1 != null) { var hh1 = h1 - 1; if (ehTarde && hh1 < 12) hh1 += 12; return hh1 * 60 + 30; } }
+  m = s.match(/^viertel\s+nach\s+([a-zäöü]+|\d{1,2})/);
+  if (m) { var h2 = hvNumeroDe(m[1]); if (h2 != null) { var hh2 = h2; if (ehTarde && hh2 < 12) hh2 += 12; return hh2 * 60 + 15; } }
+  m = s.match(/^viertel\s+vor\s+([a-zäöü]+|\d{1,2})/);
+  if (m) { var h3 = hvNumeroDe(m[1]); if (h3 != null) { var hh3 = h3 - 1; if (ehTarde && hh3 < 12) hh3 += 12; return hh3 * 60 + 45; } }
+  m = s.match(/^(\d{1,2})\s*uhr\s*(\d{1,2})?/);
+  if (m) { var h4 = +m[1], mm4 = m[2] ? +m[2] : 0; if (ehTarde && h4 < 12) h4 += 12; return h4 * 60 + mm4; }
+  m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (m) { var h5 = +m[1], mm5 = +m[2]; if (ehTarde && h5 < 12) h5 += 12; return h5 * 60 + mm5; }
+  m = s.match(/^(\d{1,2})$/);
+  if (m) { var h6 = +m[1]; if (ehTarde && h6 < 12) h6 += 12; return h6 * 60; }
+  m = s.match(/^([a-zäöü]+)$/);
+  if (m) { var h7 = hvNumeroDe(m[1]); if (h7 != null) { if (ehTarde && h7 < 12) h7 += 12; return h7 * 60; } }
+  return null;
+}
+function hvExtractBlocosDe(textoNorm) {
+  var blocos = [];
+  var re = /\bvon\b/gi;
+  var m;
+  while ((m = re.exec(textoNorm))) {
+    var start = m.index + m[0].length;
+    var rest = textoNorm.slice(start, start + 60);
+    var connRe = /(?:^|\s)(bis)(?=\s|$)/i;
+    var cm = connRe.exec(rest);
+    if (!cm) continue;
+    var time1Str = rest.slice(0, cm.index).trim();
+    var afterConn = rest.slice(cm.index + cm[0].length);
+    var stopRe = /\b(und\s+von)\b|[,.]|$/i;
+    var sm = stopRe.exec(afterConn);
+    var time2End = sm ? sm.index : afterConn.length;
+    var time2Str = afterConn.slice(0, time2End).trim();
+    var t1 = hvParseHoraDe(time1Str);
+    var t2 = hvParseHoraDe(time2Str);
+    if (t1 != null && t2 != null) {
+      blocos.push({ inicioMin: t1, fimMin: t2 });
+      re.lastIndex = start + cm.index + cm[0].length + time2End;
+    }
+  }
+  return blocos;
+}
+function hvParseTipoDe(textoNorm) {
+  var meioDia = /\bhalbtag\b/.test(textoNorm);
+  if (/\bferien\b|\burlaub\b/.test(textoNorm)) return { tipo: 'ferias', fracao: meioDia ? 0.5 : 1 };
+  if (/\bkrank\b/.test(textoNorm)) return { tipo: 'doente', fracao: meioDia ? 0.5 : 1 };
+  if (/\bbetriebsferien\b/.test(textoNorm)) return { tipo: 'fecho', fracao: 1 };
+  if (/\bfeiertag\b/.test(textoNorm)) return { tipo: 'feriado', fracao: 1 };
+  return { tipo: 'trabalho', fracao: 1 };
+}
+// Bloco da tarde: se a hora reconhecida ficou < 12h (ex.: "vier" = 4),
+// assume-se tarde por ser o segundo bloco ("von...bis...und von...bis...").
+function hvAjustarTardeDe(bloco) {
+  var ini = bloco.inicioMin, fim = bloco.fimMin;
+  if (ini < 12 * 60) ini += 12 * 60;
+  if (fim < 12 * 60) fim += 12 * 60;
+  return { inicioMin: ini, fimMin: fim };
+}
+function hvParseVozDe(texto, hojeStr) {
+  var textoNorm = hvNormalizar(texto);
+  var tipoInfo = hvParseTipoDe(textoNorm);
+  var data = hvParseDataDe(textoNorm, hojeStr);
+  var blocos = hvExtractBlocosDe(textoNorm);
+  if (blocos.length > 2) return { ok: false, erro: 'Zu viele Zeiten erkannt — nur Vormittag und Nachmittag angeben.', textoOriginal: texto };
+  var manha = null, tarde = null;
+  if (blocos.length === 2) { manha = blocos[0]; tarde = hvAjustarTardeDe(blocos[1]); }
+  else if (blocos.length === 1) { if (blocos[0].inicioMin < 12 * 60) manha = blocos[0]; else tarde = blocos[0]; }
+  return {
+    ok: true, ePeriodo: false, data: data, tipo: tipoInfo.tipo, fracao: tipoInfo.fracao,
+    manha_inicio: manha ? hvClockStr(manha.inicioMin) : null, manha_fim: manha ? hvClockStr(manha.fimMin) : null,
+    tarde_inicio: tarde ? hvClockStr(tarde.inicioMin) : null, tarde_fim: tarde ? hvClockStr(tarde.fimMin) : null,
+    textoOriginal: texto
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
 // DESIGN — leve, um único sítio com cores/estilos (HV_COR_TIPO / HV_ESTILO),
 // reaproveitados em toda a app. As cores claro/escuro em si vivem em CSS
 // (custom properties --hv-*, só dentro de .hv-app) para que trocar de tema
@@ -427,7 +536,7 @@ var HV_CSS = '' +
   '.hv-cal-etiqueta{width:100%;box-sizing:border-box;border-radius:6px;padding:0px 1px;color:#fff;text-align:center;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(10px,calc(var(--hv-cel-w,44px) * 0.23),13px);letter-spacing:-0.2px}' +
   '.hv-cal-etiqueta-extra{width:100%;box-sizing:border-box;border-radius:6px;padding:0px 1px;text-align:center;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;font-weight:800;font-size:clamp(10px,calc(var(--hv-cel-w,44px) * 0.23),13px);letter-spacing:-0.2px}' +
   '.hv-cal-livre-bloco{width:100%;box-sizing:border-box;border-radius:8px;background:var(--hv-tipo-livre-bg);color:var(--hv-tipo-livre-fg);font-size:11px;text-align:center;padding:5px 2px;flex:1;display:flex;align-items:center;justify-content:center}' +
-  '.hv-cal-registar{width:100%;box-sizing:border-box;border:1.5px dashed var(--hv-principal);border-radius:6px;color:var(--hv-principal);font-size:clamp(9px,calc(var(--hv-cel-w,44px) * 0.24),11px);text-align:center;padding:3px 1px;overflow-wrap:anywhere;line-height:1.15}' +
+  '.hv-cal-registar{width:100%;flex:1;box-sizing:border-box;border:1.5px dashed var(--hv-principal);border-radius:6px;color:var(--hv-principal);font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center}' +
   '.hv-cal-meta-futuro{font-size:11px;color:var(--hv-texto2);text-align:center}' +
   '.hv-cal-fab{position:fixed;right:18px;bottom:22px;width:56px;height:56px;border-radius:28px;background:var(--hv-principal);color:var(--hv-principal-texto);border:none;font-size:26px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:60;display:flex;align-items:center;justify-content:center}' +
   '.hv-cal-semana-linha{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-top:1px solid var(--hv-borda);cursor:pointer;font-size:13px;color:var(--hv-texto)}' +
@@ -591,6 +700,49 @@ function hvConstruirGrelhaMes(y, m) {
     diaAtual += 7;
   }
   return semanas;
+}
+
+// ── Comparação "E se fosse outra percentagem?" ────────────────────
+// Fórmula própria e independente da distribuição real da semana (a de
+// hvComputeWeek, que redistribui a compensação de dias livres pelos
+// dias com registo) — nunca mexe nela nem em hvDerivados. A 100%
+// assume SEMPRE uma semana de 5 dias úteis (seg-sex), nunca o
+// dias_trabalho do cfg (que pode ter só 4 dias); abaixo dos 100%, a
+// meta semanal reparte-se pelos dias de trabalho configurados.
+function hvMetaSemanaMinPct(cfg, pct) {
+  return Math.round(cfg.horas_dia_100 * 5 * pct / 100 * 60 + 1e-9);
+}
+function hvMetaDiaMinPct(cfg, pct) {
+  var numDias = pct >= 100 ? 5 : ((cfg.dias_trabalho && cfg.dias_trabalho.length) || 5);
+  return Math.round(hvMetaSemanaMinPct(cfg, pct) / numDias);
+}
+// Meta acumulada de segunda até "hojeStr" (inclusive), à percentagem
+// pct — só conta dias de trabalho (seg-sex a 100%, dias_trabalho do
+// cfg abaixo disso) até hoje.
+function hvMetaAteHojeMinPct(cfg, pct, segundaStr, hojeStr) {
+  var diasTrab = pct >= 100 ? [1, 2, 3, 4, 5] : (cfg.dias_trabalho || [1, 2, 3, 4, 5]);
+  var metaDiaMin = hvMetaDiaMinPct(cfg, pct);
+  var n = 0;
+  for (var i = 0; i < 5; i++) {
+    var ds = hvIso(hvAddD(hvMk(segundaStr), i));
+    if (ds > hojeStr) break;
+    if (diasTrab.indexOf(i + 1) !== -1) n++;
+  }
+  return metaDiaMin * n;
+}
+// Feito até hoje (inclusive) à percentagem pct — só o crédito de
+// ausência (férias/doente/feriado/fecho) depende de pct; trabalho
+// nunca. dias: formato de hvDiasSemanaCompleta()/hvDiasDeSemana().
+function hvFeitoAteHojeMinPct(cfg, dias, pct, hojeStr) {
+  var der = hvDerivados(Object.assign({}, cfg, { percentagem: pct }));
+  var totalMin = 0;
+  dias.forEach(function (d) {
+    if (d.fimDeSemana) return;
+    if (d.dateStr > hojeStr) return;
+    if (d.dateStr === hojeStr && !d.temRegisto) return;
+    totalMin += hvTotalDia(d.row, cfg, der) * 60;
+  });
+  return Math.round(totalMin + 1e-9);
 }
 
 // ── Peças pequenas ao nível do módulo ─────────────────────────────
@@ -786,7 +938,7 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
   } else if (est.estado === 'futuro') {
     conteudo = React.createElement('div', { className: 'hv-cal-meta-futuro' }, hvMinToHM(p.meta * 60));
   } else if (est.estado === 'hoje-por-registar') {
-    conteudo = React.createElement('div', { className: 'hv-cal-registar' }, 'registar');
+    conteudo = React.createElement('div', { className: 'hv-cal-registar', 'aria-label': 'Registar hoje' }, '＋');
   } else if (est.estado === 'falta') {
     var extraMinFalta = p.extraMin != null ? p.extraMin : Math.round((0 - p.meta) * 60);
     var textoExtraFalta = hvTextoExtraCel(extraMinFalta, p.muitoCompacta);
@@ -848,10 +1000,12 @@ function HorasVozApp(props) {
   var _s25 = React.useState(false); var vozIndisponivel = _s25[0], setVozIndisponivel = _s25[1];
   var _s26 = React.useState(''); var vozTextoManual = _s26[0], setVozTextoManual = _s26[1];
   var _s27 = React.useState(null); var vozErro = _s27[0], setVozErro = _s27[1];
+  var _s27b = React.useState('pt'); var vozIdioma = _s27b[0], setVozIdioma = _s27b[1]; // 'pt'|'de' — idioma da última escuta
   var recognitionRef = React.useRef(null);
   var manualStopRef = React.useRef(false);
   var silenceTimerRef = React.useRef(null);
   var accumRef = React.useRef('');
+  var deFallbackRef = React.useRef(false);
 
   // Marcar período
   var _s28 = React.useState(false); var periodoAberto = _s28[0], setPeriodoAberto = _s28[1];
@@ -874,6 +1028,14 @@ function HorasVozApp(props) {
   var _s41 = React.useState(false); var confirmDiaLivreAberto = _s41[0], setConfirmDiaLivreAberto = _s41[1];
   var _s42 = React.useState(null); var confirmDescartar = _s42[0], setConfirmDescartar = _s42[1]; // data pendente
   var _s43 = React.useState(100); var pctComparar = _s43[0], setPctComparar = _s43[1]; // percentagem extra a comparar (Dia/Semana/Mês)
+  var _s43b = React.useState(function () {
+    try { return localStorage.getItem('horasvoz_comparar_aberto') === '1'; } catch (e) { return false; }
+  });
+  var compararAberto = _s43b[0], setCompararAbertoState = _s43b[1];
+  function setCompararAberto(v) {
+    setCompararAbertoState(v);
+    try { localStorage.setItem('horasvoz_comparar_aberto', v ? '1' : '0'); } catch (e) {}
+  }
   var _s44 = React.useState(function () {
     try { return localStorage.getItem('horasvoz_mes_vista') || 'calendario'; } catch (e) { return 'calendario'; }
   });
@@ -1253,31 +1415,53 @@ function HorasVozApp(props) {
     clearSilenceTimer();
     if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) {} }
     setListening(false);
-    if (accumRef.current.trim()) aplicarResultadoVoz(hvParseVoz(accumRef.current.trim(), hvTodayIso()));
+    if (accumRef.current.trim()) {
+      var parser = vozIdioma === 'de' ? hvParseVozDe : hvParseVoz;
+      aplicarResultadoVoz(parser(accumRef.current.trim(), hvTodayIso()));
+    }
   }
-  function iniciarEscuta() {
+  // idioma: 'pt' (padrão) ou 'de' — em alemão tenta primeiro de-CH
+  // (suíço-alemão) e, se o browser não o reconhecer, cai para de-DE.
+  function iniciarEscuta(idioma) {
+    idioma = idioma === 'de' ? 'de' : 'pt';
+    setVozIdioma(idioma);
     setVozErro(null);
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setVozIndisponivel(true); return; }
     accumRef.current = ''; setVozInterim(''); manualStopRef.current = false;
-    var rec = new SR();
-    rec.continuous = true; rec.interimResults = true; rec.lang = 'pt-PT';
-    rec.onresult = function (e) {
-      resetSilenceTimer();
-      var interim = '';
-      for (var i = e.resultIndex; i < e.results.length; i++) {
-        var result = e.results[i];
-        if (result.isFinal) accumRef.current = (accumRef.current ? accumRef.current + ' ' : '') + result[0].transcript.trim();
-        else interim += result[0].transcript;
-      }
-      setVozInterim(interim);
-    };
-    rec.onerror = function (e) {
-      console.error('[horasvoz] reconhecimento de voz:', e && e.error);
-      setVozErro('Falha no reconhecimento de voz: ' + (e && e.error ? e.error : 'desconhecida'));
-      setListening(false); clearSilenceTimer();
-    };
-    rec.onend = function () { if (!manualStopRef.current) { try { rec.start(); } catch (e) { setListening(false); } } };
+    deFallbackRef.current = false;
+    function criarReconhecimento(lang) {
+      var rec = new SR();
+      rec.continuous = true; rec.interimResults = true; rec.lang = lang;
+      rec.onresult = function (e) {
+        resetSilenceTimer();
+        var interim = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+          var result = e.results[i];
+          if (result.isFinal) accumRef.current = (accumRef.current ? accumRef.current + ' ' : '') + result[0].transcript.trim();
+          else interim += result[0].transcript;
+        }
+        setVozInterim(interim);
+      };
+      rec.onerror = function (e) {
+        if (idioma === 'de' && lang === 'de-CH' && !deFallbackRef.current) {
+          deFallbackRef.current = true;
+          manualStopRef.current = true;
+          try { rec.stop(); } catch (e2) {}
+          manualStopRef.current = false;
+          var rec2 = criarReconhecimento('de-DE');
+          recognitionRef.current = rec2;
+          try { rec2.start(); } catch (e3) { setVozIndisponivel(true); setListening(false); }
+          return;
+        }
+        console.error('[horasvoz] reconhecimento de voz:', e && e.error);
+        setVozErro('Falha no reconhecimento de voz: ' + (e && e.error ? e.error : 'desconhecida'));
+        setListening(false); clearSilenceTimer();
+      };
+      rec.onend = function () { if (!manualStopRef.current) { try { rec.start(); } catch (e) { setListening(false); } } };
+      return rec;
+    }
+    var rec = criarReconhecimento(idioma === 'de' ? 'de-CH' : 'pt-PT');
     recognitionRef.current = rec;
     setListening(true);
     resetSilenceTimer();
@@ -1383,37 +1567,133 @@ function HorasVozApp(props) {
   // 7 dias da semana atual com total/meta/estado já prontos para
   // apresentação (faixa do Dia e vista Semana partilham esta base — os
   // totais continuam a vir de weekCalc.totais/hvTotalDia, nunca daqui).
-  function hvDiasSemanaCompleta() {
+  function hvDiasDeSemana(segundaStr) {
+    var cfgS = segundaStr === mondayCur ? cfgSemana : hvConfigParaSemana(configs.length ? configs : [HV_CONFIG_DEFAULT], segundaStr);
+    var wk = segundaStr === mondayCur ? weekCalc : hvComputeWeek(cfgS, hvWeekDays(segundaStr).map(function (d) { return { date: d, row: registos[d] || null }; }));
     var hoje = hvTodayIso();
-    return hvWeekDays(mondayCur).map(function (dateStr, i) {
+    return hvWeekDays(segundaStr).map(function (dateStr, i) {
       var row = registos[dateStr] || null;
-      var util = i < 5 ? weekCalc.dias[i] : null;
+      var util = i < 5 ? wk.dias[i] : null;
       var livre = util ? util.livre : false;
-      var meta = weekCalc.metas[i];
-      var total = i < 5 ? weekCalc.totais[i] : hvTotalDia(row, cfgSemana, weekCalc.der);
+      var meta = wk.metas[i];
+      var total = i < 5 ? wk.totais[i] : hvTotalDia(row, cfgS, wk.der);
       return { dateStr: dateStr, row: row, isoDow: i + 1, livre: livre, meta: meta, total: total, temRegisto: !!row, fimDeSemana: i >= 5, hoje: dateStr === hoje };
     });
   }
+  function hvDiasSemanaCompleta() { return hvDiasDeSemana(mondayCur); }
+  // Extra de um dia — SEMPRE a partir da compensação da sua semana ISO
+  // completa (Seg-Dom), nunca do estado bruto local; único sítio usado
+  // por Dia, Mês (cartão + calendário + lista) e Semana, para o mesmo
+  // dia mostrar sempre o mesmo valor em qualquer ecrã.
+  function extraDiaMostrado(dataStr) {
+    var segunda = hvIso(hvMon(hvMk(dataStr)));
+    var dias = hvDiasDeSemana(segunda);
+    var comp = hvCompensarExtrasGrupo(dias, hvTodayIso(), contarDesde);
+    return comp[dataStr] != null ? comp[dataStr] : null;
+  }
 
-  // Comparação a 100% / a uma percentagem à escolha — só chama de novo as
-  // mesmas funções puras do motor (hvComputeWeek/hvDerivados/hvCredito/
-  // hvTotalDia) com percentagem substituída no cfg; nunca as altera.
-  function renderComparacaoPct(pares) {
+  // Comparação "E se fosse outra percentagem?" — painel recolhível
+  // (estado persistido em localStorage), sempre com as mesmas funções
+  // puras hvMetaSemanaMinPct/hvMetaDiaMinPct/hvMetaAteHojeMinPct/
+  // hvFeitoAteHojeMinPct acima; nunca mexe em hvComputeWeek/hvDerivados
+  // nem nos totais/metas reais mostrados no resto do ecrã.
+  var HV_TABELA_TH = { textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--hv-texto2)', padding: '0 6px 6px 0', borderBottom: '1px solid var(--hv-borda)' };
+  var HV_TABELA_TD = { textAlign: 'left', fontSize: 13, color: 'var(--hv-texto)', padding: '6px 6px 6px 0' };
+  function renderStepperPct() {
+    return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 } },
+      React.createElement('span', { style: { fontSize: 12, color: 'var(--hv-texto2)' } }, 'Comparar a:'),
+      React.createElement('button', { className: 'hv-time-btn', style: { width: 32, height: 32, fontSize: 15 }, onClick: function () { setPctComparar(Math.max(10, pctComparar - 10)); } }, '−'),
+      React.createElement('span', { style: { fontSize: 14, fontWeight: 800, color: 'var(--hv-texto)', minWidth: 42, textAlign: 'center' } }, pctComparar + '%'),
+      React.createElement('button', { className: 'hv-time-btn', style: { width: 32, height: 32, fontSize: 15 }, onClick: function () { setPctComparar(Math.min(100, pctComparar + 10)); } }, '+')
+    );
+  }
+  function renderComparacaoWrapper(conteudo) {
     return React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
-      React.createElement('div', { style: Object.assign({}, HV_ESTILO.etiquetaSm, { marginBottom: 6 }) }, 'Comparar percentagem'),
+      React.createElement('button', {
+        onClick: function () { setCompararAberto(!compararAberto); },
+        style: { display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--hv-texto)', fontSize: 13, fontWeight: 700 }
+      },
+        React.createElement('span', null, '📊 E se fosse outra percentagem?'),
+        React.createElement('span', null, compararAberto ? '▾' : '▸')
+      ),
+      compararAberto && React.createElement('div', { style: { marginTop: 10 } }, conteudo)
+    );
+  }
+  function renderComparacaoDia() {
+    var semMeta = isLivreHoje || curIsoDow >= 5;
+    if (semMeta) return renderComparacaoWrapper(React.createElement('p', { style: { fontSize: 13, color: 'var(--hv-texto2)', margin: 0 } }, 'Dia sem meta.'));
+    var naoGravado = !registos[curDate];
+    var linhas = [{ pct: cfgHoje.percentagem, atual: true }, { pct: pctComparar, atual: false }];
+    var metaSemana100 = hvMetaSemanaMinPct(cfgHoje, 100);
+    var metaDia100 = hvMetaDiaMinPct(cfgHoje, 100);
+    var conteudo = React.createElement('div', null,
+      React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: 'var(--hv-texto)', marginBottom: 8 } },
+        'Hoje: ' + hvMinToHM(totalAtual * 60) + (naoGravado ? ' (dia normal, por gravar)' : '')
+      ),
+      React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse' } },
+        React.createElement('thead', null, React.createElement('tr', null,
+          React.createElement('th', { style: HV_TABELA_TH }, 'Percentagem'),
+          React.createElement('th', { style: HV_TABELA_TH }, 'Meta do dia'),
+          React.createElement('th', { style: HV_TABELA_TH }, 'Extra')
+        )),
+        React.createElement('tbody', null, linhas.map(function (l, i) {
+          var derL = hvDerivados(Object.assign({}, cfgHoje, { percentagem: l.pct }));
+          var totalMin = Math.round((trabalhadoMinAtual / 60 + hvCredito(payloadAtual, cfgHoje, derL)) * 60 + 1e-9);
+          var metaDiaMin = hvMetaDiaMinPct(cfgHoje, l.pct);
+          return React.createElement('tr', { key: i },
+            React.createElement('td', { style: HV_TABELA_TD }, l.pct + '%' + (l.atual ? ' (atual)' : '')),
+            React.createElement('td', { style: HV_TABELA_TD }, hvMinToHM(metaDiaMin)),
+            React.createElement('td', { style: HV_TABELA_TD }, React.createElement(HvSaldoTextoMin, { valorMin: totalMin - metaDiaMin }))
+          );
+        }))
+      ),
+      renderStepperPct(),
+      React.createElement('p', { style: { fontSize: 12, color: 'var(--hv-texto2)', marginTop: 8, marginBottom: 0 } },
+        'A 100% trabalharias seg–sex: ' + hvMinToHM(metaSemana100) + ' por semana = ' + hvMinToHM(metaDia100) + ' por dia.'
+      )
+    );
+    return renderComparacaoWrapper(conteudo);
+  }
+  function renderComparacaoSemana() {
+    var hoje = hvTodayIso();
+    var dias = hvDiasSemanaCompleta();
+    var linhas = [{ pct: cfgSemana.percentagem, atual: true }, { pct: pctComparar, atual: false }];
+    var conteudo = React.createElement('table', { style: { width: '100%', borderCollapse: 'collapse' } },
+      React.createElement('thead', null, React.createElement('tr', null,
+        React.createElement('th', { style: HV_TABELA_TH }, 'Percentagem'),
+        React.createElement('th', { style: HV_TABELA_TH }, 'Meta da semana'),
+        React.createElement('th', { style: HV_TABELA_TH }, 'Feito'),
+        React.createElement('th', { style: HV_TABELA_TH }, 'Extra até hoje')
+      )),
+      React.createElement('tbody', null, linhas.map(function (l, i) {
+        var metaSemanaMin = hvMetaSemanaMinPct(cfgSemana, l.pct);
+        var feitoMin = hvFeitoAteHojeMinPct(cfgSemana, dias, l.pct, hoje);
+        var metaAteHojeMin = hvMetaAteHojeMinPct(cfgSemana, l.pct, mondayCur, hoje);
+        return React.createElement('tr', { key: i },
+          React.createElement('td', { style: HV_TABELA_TD }, l.pct + '%' + (l.atual ? ' (atual)' : '')),
+          React.createElement('td', { style: HV_TABELA_TD }, hvMinToHM(metaSemanaMin)),
+          React.createElement('td', { style: HV_TABELA_TD }, hvMinToHM(feitoMin)),
+          React.createElement('td', { style: HV_TABELA_TD }, React.createElement(HvSaldoTextoMin, { valorMin: feitoMin - metaAteHojeMin }))
+        );
+      }))
+    );
+    return renderComparacaoWrapper(conteudo);
+  }
+  function renderComparacaoMes(y, m) {
+    var mesAtualPct = hvTotalMetaMesAPercentagem(y, m, cfgHoje.percentagem);
+    var pares = [{ label: cfgHoje.percentagem + '% (atual)', total: mesAtualPct.totalMes, meta: mesAtualPct.metaMes }];
+    var mesPct = hvTotalMetaMesAPercentagem(y, m, pctComparar);
+    pares.push({ label: pctComparar + '%', total: mesPct.totalMes, meta: mesPct.metaMes });
+    var conteudo = React.createElement('div', null,
       pares.map(function (p, i) {
         return React.createElement('div', { key: i, style: { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--hv-texto)', marginBottom: i < pares.length - 1 ? 4 : 0 } },
           React.createElement('span', null, p.label),
           React.createElement('span', null, hvMinToHM(p.total * 60) + ' de ' + hvMinToHM(p.meta * 60))
         );
       }),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--hv-borda)' } },
-        React.createElement('span', { style: { fontSize: 12, color: 'var(--hv-texto2)' } }, 'Comparar a:'),
-        React.createElement('button', { className: 'hv-time-btn', style: { width: 32, height: 32, fontSize: 15 }, onClick: function () { setPctComparar(Math.max(5, pctComparar - 5)); } }, '−'),
-        React.createElement('span', { style: { fontSize: 14, fontWeight: 800, color: 'var(--hv-texto)', minWidth: 42, textAlign: 'center' } }, pctComparar + '%'),
-        React.createElement('button', { className: 'hv-time-btn', style: { width: 32, height: 32, fontSize: 15 }, onClick: function () { setPctComparar(Math.min(150, pctComparar + 5)); } }, '+')
-      )
+      renderStepperPct()
     );
+    return renderComparacaoWrapper(conteudo);
   }
 
   function renderFaixaSemana() {
@@ -1433,7 +1713,7 @@ function HorasVozApp(props) {
     return React.createElement('div', null,
       React.createElement('div', { className: 'hv-faixa' }, bolinhas),
       React.createElement('div', { style: { fontSize: 12, color: 'var(--hv-texto2)', textAlign: 'center', marginTop: 6 } },
-        'Semana: ' + hvMinToHM(totalSemana * 60) + ' de ' + hvMinToHM(weekCalc.meta_semana * 60) + ' · saldo até hoje ',
+        'Semana: ' + hvMinToHM(totalSemana * 60) + ' de ' + hvMinToHM(weekCalc.meta_semana * 60) + ' · extra até hoje ',
         React.createElement(HvSaldoTexto, { valor: saldoAteHoje })
       )
     );
@@ -1480,10 +1760,16 @@ function HorasVozApp(props) {
             React.createElement('input', { type: 'text', value: vozTextoManual, autoComplete: 'off', onChange: function (e) { setVozTextoManual(e.target.value); }, placeholder: 'ex.: trabalhei das 7 às 12 e das 12h45 às 16h15', style: { flex: 1, background: 'var(--hv-cartao)', border: '1px solid var(--hv-borda)', color: 'var(--hv-texto)', borderRadius: 10, padding: '10px 12px', fontSize: 14 } }),
             React.createElement(HvBtn, { onClick: enviarTextoManual, ativo: true, style: { flex: 'none', width: 56 } }, 'OK')
           )
-        : React.createElement('button', {
-            onClick: function () { listening ? pararEscuta() : iniciarEscuta(); },
-            style: Object.assign({}, listening ? HV_ESTILO.microfoneOuvindo : HV_ESTILO.microfone, { height: 56 })
-          }, listening ? (vozInterim || 'A ouvir…') : '🎤 PT — Falar'),
+        : (listening
+            ? React.createElement('button', {
+                onClick: pararEscuta,
+                style: Object.assign({}, HV_ESTILO.microfoneOuvindo, { height: 56 })
+              }, vozInterim || 'A ouvir…')
+            : React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                React.createElement('button', { onClick: function () { iniciarEscuta('pt'); }, style: Object.assign({}, HV_ESTILO.microfone, { height: 56, flex: 1 }) }, '🎤 PT'),
+                React.createElement('button', { onClick: function () { iniciarEscuta('de'); }, style: Object.assign({}, HV_ESTILO.microfone, { height: 56, flex: 1 }) }, '🎤 DE')
+              )
+          ),
       vozErro && React.createElement('p', { style: Object.assign({}, HV_ESTILO.erroTexto, { fontSize: 12 }) }, '⚠️ ' + vozErro),
       React.createElement(HvBtn, { grande: true, onClick: abrirEditorOutroHorario, flex: true }, '✏️ Outro horário'),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
@@ -1524,7 +1810,7 @@ function HorasVozApp(props) {
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--hv-borda)' } },
           React.createElement('div', null, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Total'), React.createElement('div', { style: HV_ESTILO.totalNumero }, hvMinToHM(totalAtual * 60))),
           React.createElement('div', { style: { textAlign: 'center' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Meta'), React.createElement('div', { style: HV_ESTILO.metaNumero }, hvMinToHM(metaHoje * 60))),
-          React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Saldo'), React.createElement('div', { style: HV_ESTILO.saldoNumero }, React.createElement(HvSaldoTexto, { valor: saldoAtual })))
+          React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Extra'), React.createElement('div', { style: HV_ESTILO.saldoNumero }, React.createElement(HvSaldoTextoMin, { valorMin: extraDiaMostrado(curDate) != null ? extraDiaMostrado(curDate) : Math.round(saldoAtual * 60) })))
         )
       ),
       weekCalc.aviso && React.createElement(HvCard, { style: HV_ESTILO.avisoCartao }, React.createElement('p', { style: HV_ESTILO.avisoTexto }, '⚠️ ' + weekCalc.aviso)),
@@ -1576,25 +1862,12 @@ function HorasVozApp(props) {
 
   function renderDia() {
     var temRegisto = !!registos[curDate];
-    var weekDaysArrHoje = hvWeekDays(mondayCur).map(function (d) { return { date: d, row: registos[d] || null }; });
-    var der100 = hvDerivados(Object.assign({}, cfgHoje, { percentagem: 100 }));
-    var weekCalc100 = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: 100 }), weekDaysArrHoje);
-    var meta100 = curIsoDow <= 6 ? weekCalc100.metas[curIsoDow] : 0;
-    var total100 = trabalhadoMinAtual / 60 + hvCredito(payloadAtual, cfgHoje, der100);
-    var paresPct = [{ label: '100%', total: total100, meta: meta100 }];
-    if (pctComparar !== 100) {
-      var derPct = hvDerivados(Object.assign({}, cfgHoje, { percentagem: pctComparar }));
-      var weekCalcPct = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: pctComparar }), weekDaysArrHoje);
-      var metaPct = curIsoDow <= 6 ? weekCalcPct.metas[curIsoDow] : 0;
-      var totalPct = trabalhadoMinAtual / 60 + hvCredito(payloadAtual, cfgHoje, derPct);
-      paresPct.push({ label: pctComparar + '%', total: totalPct, meta: metaPct });
-    }
     return React.createElement('div', { style: HV_ESTILO.pagina },
       erro && React.createElement(HvCard, null, React.createElement('p', { style: HV_ESTILO.erroTexto }, '⚠️ ' + erro)),
       renderFaixaSemana(),
       renderBarraData(),
       editorAberto ? renderModoC() : (temRegisto ? renderModoB() : renderModoA()),
-      renderComparacaoPct(paresPct)
+      renderComparacaoDia()
     );
   }
 
@@ -1644,12 +1917,11 @@ function HorasVozApp(props) {
   function renderSemana() {
     var hoje = hvTodayIso();
     var dias = hvDiasSemanaCompleta();
-    var extrasCompSemana = hvCompensarExtrasGrupo(dias, hoje, contarDesde);
     var linhas = dias.map(function (d, i) {
       return React.createElement(HvLinhaSemana, {
         key: d.dateStr, dataStr: d.dateStr, total: d.total, meta: d.meta,
         tipo: d.row ? d.row.tipo : null, livre: d.livre,
-        hoje: d.hoje, fimDeSemana: d.fimDeSemana, desde: contarDesde, extraMin: extrasCompSemana[d.dateStr],
+        hoje: d.hoje, fimDeSemana: d.fimDeSemana, desde: contarDesde, extraMin: extraDiaMostrado(d.dateStr),
         rotulo: HV_DIA_CURTO[i] + ' ' + hvFmt(hvMk(d.dateStr)),
         onClick: function () { setView('dia'); mudarDia(d.dateStr); }
       });
@@ -1661,15 +1933,6 @@ function HorasVozApp(props) {
     var metaMediaFalta = diasFaltamTrabalho.length ? (falta / diasFaltamTrabalho.length) : 0;
     var mostrarLegenda = !HV_LEGENDA_SEMANA_VISTA;
     if (!HV_LEGENDA_SEMANA_VISTA) HV_LEGENDA_SEMANA_VISTA = true;
-    var weekDaysArrSemana = hvWeekDays(mondayCur).map(function (d) { return { date: d, row: registos[d] || null }; });
-    var weekCalc100 = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: 100 }), weekDaysArrSemana);
-    var totalSemana100 = dias.reduce(function (s, d) { return s + hvTotalDia(d.row, cfgSemana, weekCalc100.der); }, 0);
-    var paresPctSemana = [{ label: '100%', total: totalSemana100, meta: weekCalc100.meta_semana }];
-    if (pctComparar !== 100) {
-      var weekCalcPctSemana = hvComputeWeek(Object.assign({}, cfgSemana, { percentagem: pctComparar }), weekDaysArrSemana);
-      var totalSemanaPct = dias.reduce(function (s, d) { return s + hvTotalDia(d.row, cfgSemana, weekCalcPctSemana.der); }, 0);
-      paresPctSemana.push({ label: pctComparar + '%', total: totalSemanaPct, meta: weekCalcPctSemana.meta_semana });
-    }
     return React.createElement('div', { style: HV_ESTILO.pagina },
       React.createElement('div', { style: HV_ESTILO.linhaTopo },
         React.createElement('button', { style: HV_ESTILO.navBtn, onClick: function () { setCurDate(hvIso(hvAddD(hvMk(mondayCur), -7))); } }, '‹'),
@@ -1678,13 +1941,13 @@ function HorasVozApp(props) {
       ),
       React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
         React.createElement('div', { style: { fontSize: 15, fontWeight: 800, color: 'var(--hv-texto)' } }, 'Feito ' + hvMinToHM(totalSemana * 60) + ' de ' + hvMinToHM(weekCalc.meta_semana * 60)),
-        React.createElement('div', { style: { fontSize: 13, marginTop: 4, color: 'var(--hv-texto2)' } }, 'Saldo até hoje ', React.createElement(HvSaldoTexto, { valor: saldoAteHoje })),
+        React.createElement('div', { style: { fontSize: 13, marginTop: 4, color: 'var(--hv-texto2)' } }, 'Extra até hoje ', React.createElement(HvSaldoTexto, { valor: saldoAteHoje })),
         falta > 0 && diasFaltamTrabalho.length > 0 && React.createElement('div', { style: { fontSize: 12, marginTop: 4, color: 'var(--hv-texto2)' } },
           'Falta ' + hvMinToHM(falta * 60) + ' → ' + diasFaltamTrabalho.map(function (d) { return HV_DIA_CURTO[d.isoDow - 1]; }).join('–') + ' ' + hvMinToHM(metaMediaFalta * 60) + ' por dia'
         )
       ),
-      renderComparacaoPct(paresPctSemana),
-      mostrarLegenda && React.createElement('div', { className: 'hv-legenda' }, React.createElement('span', null, 'Feito · Meta · Saldo')),
+      renderComparacaoSemana(),
+      mostrarLegenda && React.createElement('div', { className: 'hv-legenda' }, React.createElement('span', null, 'Feito · Meta · Extra')),
       React.createElement(HvCard, { style: { padding: 0 } }, React.createElement('div', { style: { padding: '0 16px' } }, linhas))
     );
   }
@@ -1700,11 +1963,10 @@ function HorasVozApp(props) {
   function renderMesLista(y, m) {
     var hoje = hvTodayIso();
     var diasUteis = mesData.dias.filter(function (d) { return !d.fimDeSemana; });
-    var extrasCompMesLista = hvCompensarExtrasGrupo(diasUteis, hoje, contarDesde);
     var linhas = diasUteis.map(function (d) {
       return React.createElement(HvLinhaMes, {
         key: d.dateStr, dataStr: d.dateStr, total: d.total, meta: d.meta, tipo: d.tipo, livre: d.livre,
-        hoje: d.dateStr === hoje, fimDeSemana: false, desde: contarDesde, extraMin: extrasCompMesLista[d.dateStr],
+        hoje: d.dateStr === hoje, fimDeSemana: false, desde: contarDesde, extraMin: extraDiaMostrado(d.dateStr),
         rotulo: HV_DIA_CURTO[d.idx] + ' ' + String(d.dia).padStart(2, '0') + '.' + String(m + 1).padStart(2, '0') + '.',
         onClick: function (ds) { return function () { setView('dia'); mudarDia(ds); }; }(d.dateStr)
       });
@@ -1712,22 +1974,16 @@ function HorasVozApp(props) {
     // Saldo até hoje: mesma função hvResumoAte usada em Semana/Ano, sem
     // tocar nos totais/metas por dia.
     var saldoAteHoje = hvResumoAte(diasUteis.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje, contarDesde).extra;
-    var mes100 = hvTotalMetaMesAPercentagem(y, m, 100);
-    var paresPctMes = [{ label: '100%', total: mes100.totalMes, meta: mes100.metaMes }];
-    if (pctComparar !== 100) {
-      var mesPct = hvTotalMetaMesAPercentagem(y, m, pctComparar);
-      paresPctMes.push({ label: pctComparar + '%', total: mesPct.totalMes, meta: mesPct.metaMes });
-    }
     return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
       React.createElement(HvCard, { style: { background: 'var(--hv-fundo)' } },
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--hv-texto)', fontWeight: 700, marginBottom: 4 } },
           React.createElement('span', null, 'Total ' + hvMinToHM(mesData.totalMes * 60)),
-          React.createElement('span', { style: { fontWeight: 400, color: 'var(--hv-texto2)' } }, 'saldo até hoje '),
+          React.createElement('span', { style: { fontWeight: 400, color: 'var(--hv-texto2)' } }, 'extra até hoje '),
           React.createElement(HvSaldoTexto, { valor: saldoAteHoje })
         ),
         React.createElement('div', { style: HV_ESTILO.textoMuted }, '🏖 ' + hvDez(mesData.feriasN) + ' dias de férias · 🤒 ' + hvDez(mesData.doenteN) + ' dias doente')
       ),
-      renderComparacaoPct(paresPctMes),
+      renderComparacaoMes(y, m),
       React.createElement(HvCard, { style: { padding: 0 } }, React.createElement('div', { style: { padding: '0 8px' } }, linhas))
     );
   }
@@ -1765,7 +2021,7 @@ function HorasVozApp(props) {
       React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--hv-borda)' } },
         React.createElement('div', null, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Total'), React.createElement('div', { style: HV_ESTILO.totalNumero }, hvMinToHM(totalAtual * 60))),
         React.createElement('div', { style: { textAlign: 'center' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Meta'), React.createElement('div', { style: HV_ESTILO.metaNumero }, hvMinToHM(metaHoje * 60))),
-        React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Extra'), React.createElement('div', { style: HV_ESTILO.saldoNumero }, React.createElement(HvSaldoTexto, { valor: saldoAtual })))
+        React.createElement('div', { style: { textAlign: 'right' } }, React.createElement('div', { style: HV_ESTILO.etiquetaSm }, 'Extra'), React.createElement('div', { style: HV_ESTILO.saldoNumero }, React.createElement(HvSaldoTextoMin, { valorMin: extraDiaMostrado(curDate) != null ? extraDiaMostrado(curDate) : Math.round(saldoAtual * 60) })))
       ),
       React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
         React.createElement(HvBtn, { grande: true, onClick: aoClicarEditarCal, flex: true }, '✏️ Editar'),
@@ -1794,21 +2050,39 @@ function HorasVozApp(props) {
     );
   }
 
-  function renderSubtotaisSemanaMes(y, m, extrasComp) {
+  function renderSubtotaisSemanaMes(y, m) {
     var grupos = {}, ordem = [];
     mesData.dias.forEach(function (d) {
       var seg = hvIso(hvMon(hvMk(d.dateStr)));
       if (!grupos[seg]) { grupos[seg] = []; ordem.push(seg); }
       grupos[seg].push(d);
     });
+    var hoje = hvTodayIso();
     return React.createElement(HvCard, { style: { padding: 0 } },
       ordem.map(function (seg) {
         var diasGrupo = grupos[seg];
         var completa = diasGrupo.length === 7;
+        var domingo = hvIso(hvAddD(hvMk(seg), 6));
+        // Semana inteiramente antes de "contar a partir de" (sem dados
+        // relevantes) ou inteiramente no futuro (ainda por chegar) não
+        // mostram Total/Extra — só semanas parciais/atuais/passadas com
+        // dados mantêm a linha completa, como antes.
+        if (contarDesde && domingo < contarDesde) {
+          return React.createElement('div', {
+            key: seg, className: 'hv-cal-semana-linha', style: { color: 'var(--hv-texto2)' },
+            onClick: function () { setCurDate(seg); setView('semana'); }
+          }, React.createElement('span', null, 'KW ' + hvKw(hvMk(seg)) + ' · —'));
+        }
+        if (seg > hoje) {
+          return React.createElement('div', {
+            key: seg, className: 'hv-cal-semana-linha', style: { color: 'var(--hv-texto2)' },
+            onClick: function () { setCurDate(seg); setView('semana'); }
+          }, React.createElement('span', null, 'KW ' + hvKw(hvMk(seg)) + ' · por vir'));
+        }
         var totalBruto = diasGrupo.reduce(function (s, d) { return s + d.total; }, 0);
         // Soma os mesmos minutos já compensados das células desta semana
         // (não re-arredonda), para "Extra" bater sempre com a grelha.
-        var extraMinSemana = diasGrupo.reduce(function (s, d) { return s + (extrasComp[d.dateStr] || 0); }, 0);
+        var extraMinSemana = diasGrupo.reduce(function (s, d) { return s + (extraDiaMostrado(d.dateStr) || 0); }, 0);
         return React.createElement('div', {
           key: seg, className: 'hv-cal-semana-linha',
           onClick: function () { setCurDate(seg); setView('semana'); }
@@ -1848,7 +2122,6 @@ function HorasVozApp(props) {
     var trabalhoN = 0, feriadoN = 0, fechoN = 0;
     mesData.dias.forEach(function (d) { if (d.tipo === 'trabalho') trabalhoN++; if (d.tipo === 'feriado') feriadoN++; if (d.tipo === 'fecho') fechoN++; });
 
-    var extrasCompMesCal = hvCompensarExtrasGrupo(diasUteis, hoje, contarDesde);
     var mesDiaPorData = {};
     mesData.dias.forEach(function (d) { mesDiaPorData[d.dateStr] = d; });
     var grelha = hvConstruirGrelhaMes(y, m);
@@ -1865,7 +2138,7 @@ function HorasVozApp(props) {
         celulasGrid.push(React.createElement(HvCelulaCalendario, {
           key: dateStr, dateStr: dateStr, dia: dNum, total: dm.total, meta: dm.meta,
           row: registos[dateStr] || null, livre: dm.livre, fimDeSemana: dm.fimDeSemana,
-          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde, extraMin: extrasCompMesCal[dateStr],
+          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde, extraMin: extraDiaMostrado(dateStr),
           compacta: celulaCompacta, muitoCompacta: celulaMuitoCompacta
         }));
       });
@@ -1901,7 +2174,7 @@ function HorasVozApp(props) {
         onClick: aoClicarGrelhaCalendario, onDoubleClick: aoDuploCliqueGrelhaCalendario
       }, celulasGrid),
       renderCartaoDiaCal(),
-      renderSubtotaisSemanaMes(y, m, extrasCompMesCal),
+      renderSubtotaisSemanaMes(y, m),
       React.createElement('button', { className: 'hv-cal-fab', onClick: aoClicarFabCalendario }, '+')
     );
   }
