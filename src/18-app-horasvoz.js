@@ -537,6 +537,53 @@ function hvParseVozDe(texto, hojeStr) {
   };
 }
 
+// ── Juntar manhã/tarde ao corrigir por voz ─────────────────────────
+// Quando a frase reconhecida só tem UM bloco de horas e o dia já tem
+// o outro registado, esse bloco substitui só essa parte — a outra
+// mantém-se como estava gravada. Nunca mexe em hvParseVoz/hvParseVozDe
+// em si (continuam a decidir manhã/tarde da mesma forma de sempre para
+// o bloco único); isto só ajusta o RESULTADO antes de ir para o editor.
+function hvPalavraChaveAlvo(textoOriginal) {
+  var t = hvNormalizar(textoOriginal || '');
+  if (/\b(tarde|nachmittag)\b/.test(t)) return 'tarde';
+  if (/\b(manha|manhã|morgen|vormittag)\b/.test(t)) return 'manha';
+  return null;
+}
+function hvBlocoAlvoPorHorario(inicioMin, fimMin) {
+  if (inicioMin >= 12 * 60) return 'tarde';
+  if (fimMin < 12 * 60 + 30) return 'manha';
+  return inicioMin < 12 * 60 ? 'manha' : 'tarde';
+}
+function hvAplicarJuncaoVoz(r, textoOriginal, curDate, registos) {
+  if (!r || r.ePeriodo || r.tipo !== 'trabalho') return r;
+  var temManha = !!(r.manha_inicio && r.manha_fim);
+  var temTarde = !!(r.tarde_inicio && r.tarde_fim);
+  if (temManha && temTarde) return r; // dois blocos: substitui os dois
+  if (!temManha && !temTarde) return r;
+  var rowAtual = (r.data === curDate) ? registos[curDate] : null;
+  if (!rowAtual || rowAtual.tipo !== 'trabalho') return r; // nada gravado para juntar
+  var blocoInicio = temManha ? r.manha_inicio : r.tarde_inicio;
+  var blocoFim = temManha ? r.manha_fim : r.tarde_fim;
+  var alvo = hvPalavraChaveAlvo(textoOriginal) || hvBlocoAlvoPorHorario(hvTimeToMin(blocoInicio), hvTimeToMin(blocoFim));
+  var out = Object.assign({}, r);
+  if (alvo === 'tarde') {
+    out.tarde_inicio = blocoInicio; out.tarde_fim = blocoFim;
+    out.manha_inicio = rowAtual.manha_inicio ? rowAtual.manha_inicio.slice(0, 5) : null;
+    out.manha_fim = rowAtual.manha_fim ? rowAtual.manha_fim.slice(0, 5) : null;
+  } else {
+    out.manha_inicio = blocoInicio; out.manha_fim = blocoFim;
+    out.tarde_inicio = rowAtual.tarde_inicio ? rowAtual.tarde_inicio.slice(0, 5) : null;
+    out.tarde_fim = rowAtual.tarde_fim ? rowAtual.tarde_fim.slice(0, 5) : null;
+  }
+  return out;
+}
+// Que metade falta num dia de trabalho já gravado — decide quando
+// mostrar "➕ Juntar tarde" / "➕ Juntar manhã" no cartão do dia.
+function hvFaltaMetadeDia(row) {
+  if (!row || row.tipo !== 'trabalho') return { faltaManha: false, faltaTarde: false };
+  return { faltaManha: !row.manha_inicio, faltaTarde: !row.tarde_inicio };
+}
+
 // ══════════════════════════════════════════════════════════════════
 // DESIGN — leve, um único sítio com cores/estilos (HV_COR_TIPO / HV_ESTILO),
 // reaproveitados em toda a app. As cores claro/escuro em si vivem em CSS
@@ -1083,6 +1130,7 @@ function HorasVozApp(props) {
   var recognitionRef = React.useRef(null);
   var ultimoResultadoRef = React.useRef(null); // último SpeechRecognitionResult final (nunca concatenado entre eventos)
   var deFallbackRef = React.useRef(false);
+  var vozAlvoCampoRef = React.useRef(null); // 'manha'|'tarde' quando a captura é só para um campo do editor ("🎤 Falar a manhã/tarde")
 
   // Marcar período
   var _s28 = React.useState(false); var periodoAberto = _s28[0], setPeriodoAberto = _s28[1];
@@ -1404,6 +1452,21 @@ function HorasVozApp(props) {
     }) : null;
     setEditorAberto(true);
   }
+  // "➕ Juntar tarde/manhã" no cartão do dia gravado — abre o editor
+  // como abrirEditorParaEditar (a metade já gravada mantém-se) e liga
+  // + pré-preenche só a metade em falta com o horário habitual.
+  function abrirEditorJuntar(metade) {
+    abrirEditorParaEditar();
+    if (metade === 'tarde') {
+      setFSemTarde(false);
+      setFTardeI(cfgHoje.tarde_inicio.slice(0, 5));
+      setFTardeF(cfgHoje.tarde_fim.slice(0, 5));
+    } else {
+      setFSemManha(false);
+      setFManhaI(cfgHoje.manha_inicio.slice(0, 5));
+      setFManhaF(cfgHoje.manha_fim.slice(0, 5));
+    }
+  }
   function cancelarEditor() {
     sincronizarFormComRegisto(curDate);
     editorSnapshotRef.current = null;
@@ -1469,6 +1532,7 @@ function HorasVozApp(props) {
       setPeriodoAberto(true);
       return;
     }
+    r = hvAplicarJuncaoVoz(r, r.textoOriginal, curDate, registos);
     var vals = { data: r.data, tipo: r.tipo, fracao: r.fracao, manha_inicio: r.manha_inicio, manha_fim: r.manha_fim, tarde_inicio: r.tarde_inicio, tarde_fim: r.tarde_fim, textoOriginal: r.textoOriginal };
     var aplicar = function () {
       vozPendenteRef.current = vals;
@@ -1490,7 +1554,10 @@ function HorasVozApp(props) {
   function processarResultadoVoz() {
     var resultado = ultimoResultadoRef.current;
     ultimoResultadoRef.current = null;
+    var campoAlvo = vozAlvoCampoRef.current;
+    vozAlvoCampoRef.current = null;
     if (!resultado || !resultado.length) return; // nada reconhecido (silêncio) — sem erro
+    if (campoAlvo) { processarCampoVoz(campoAlvo, resultado); return; }
     var parser = vozIdioma === 'de' ? hvParseVozDe : hvParseVoz;
     var n = Math.min(resultado.length, 3);
     for (var i = 0; i < n; i++) {
@@ -1498,6 +1565,30 @@ function HorasVozApp(props) {
       if (!textoLimpo) continue;
       var r = parser(textoLimpo, hvTodayIso());
       if (r.ok) { aplicarResultadoVoz(Object.assign({}, r, { textoOriginal: textoLimpo })); return; }
+    }
+    setVozErro('Não percebi: «' + hvLimparTextoVoz(resultado[0].transcript) + '» — tenta de novo');
+  }
+  // "🎤 Falar a manhã/tarde" no editor — capta SÓ um período de horas
+  // (sem tipo/data/outra metade), sempre em português. Não passa por
+  // aplicarResultadoVoz (não navega dia nem pede confirmação).
+  function iniciarEscutaCampo(campo) {
+    vozAlvoCampoRef.current = campo;
+    iniciarEscuta('pt');
+  }
+  function processarCampoVoz(campo, resultado) {
+    var n = Math.min(resultado.length, 3);
+    for (var i = 0; i < n; i++) {
+      var textoLimpo = hvLimparTextoVoz(resultado[i].transcript);
+      if (!textoLimpo) continue;
+      var blocos = hvExtractBlocos(textoLimpo);
+      if (!blocos.length) blocos = hvExtractBlocosLivre(textoLimpo);
+      if (blocos.length >= 1) {
+        var b = blocos[0];
+        setVozErro(null);
+        if (campo === 'manha') { setFSemManha(false); setFManhaI(hvClockStr(b.inicioMin)); setFManhaF(hvClockStr(b.fimMin)); }
+        else { setFSemTarde(false); setFTardeI(hvClockStr(b.inicioMin)); setFTardeF(hvClockStr(b.fimMin)); }
+        return;
+      }
     }
     setVozErro('Não percebi: «' + hvLimparTextoVoz(resultado[0].transcript) + '» — tenta de novo');
   }
@@ -1909,6 +2000,12 @@ function HorasVozApp(props) {
         )
       ),
       weekCalc.aviso && React.createElement(HvCard, { style: HV_ESTILO.avisoCartao }, React.createElement('p', { style: HV_ESTILO.avisoTexto }, '⚠️ ' + weekCalc.aviso)),
+      (function () {
+        var falta = hvFaltaMetadeDia(row);
+        if (falta.faltaTarde) return React.createElement(HvBtn, { grande: true, ativo: true, onClick: function () { abrirEditorJuntar('tarde'); }, style: { width: '100%' } }, '➕ Juntar tarde');
+        if (falta.faltaManha) return React.createElement(HvBtn, { grande: true, ativo: true, onClick: function () { abrirEditorJuntar('manha'); }, style: { width: '100%' } }, '➕ Juntar manhã');
+        return null;
+      })(),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement(HvBtn, { grande: true, onClick: abrirEditorParaEditar, flex: true }, '✏️ Editar'),
         React.createElement('button', { onClick: function () { setConfirmApagar(true); }, style: HV_ESTILO.botaoPerigo }, '🗑')
@@ -1974,12 +2071,24 @@ function HorasVozApp(props) {
     );
   }
 
+  function renderBotaoFalarMetade(campo) {
+    if (vozIndisponivel) return null;
+    var aOuvirEsteCampo = listening && vozAlvoCampoRef.current === campo;
+    return React.createElement('button', {
+      onClick: function () { listening ? pararEscuta() : iniciarEscutaCampo(campo); },
+      disabled: listening && !aOuvirEsteCampo,
+      style: { background: aOuvirEsteCampo ? 'var(--hv-negativo)' : 'none', border: '1px solid var(--hv-borda)', borderRadius: 8, color: aOuvirEsteCampo ? '#fff' : 'var(--hv-texto2)', fontSize: 11, fontWeight: 700, padding: '4px 8px', cursor: 'pointer' }
+    }, aOuvirEsteCampo ? 'A ouvir…' : ('🎤 Falar a ' + (campo === 'manha' ? 'manhã' : 'tarde')));
+  }
   function renderCamposHoras() {
     return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } },
       React.createElement('div', null,
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 } },
           React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: 'var(--hv-texto)', textTransform: 'uppercase' } }, 'Manhã'),
-          React.createElement(HvInterruptor, { checked: !fSemManha, onChange: function (v) { setFSemManha(!v); } })
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            renderBotaoFalarMetade('manha'),
+            React.createElement(HvInterruptor, { checked: !fSemManha, onChange: function (v) { setFSemManha(!v); } })
+          )
         ),
         !fSemManha && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           React.createElement(HvCampoHora, { label: 'Início', value: fManhaI, onChange: setFManhaI }),
@@ -1989,7 +2098,10 @@ function HorasVozApp(props) {
       React.createElement('div', null,
         React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 } },
           React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: 'var(--hv-texto)', textTransform: 'uppercase' } }, 'Tarde'),
-          React.createElement(HvInterruptor, { checked: !fSemTarde, onChange: function (v) { setFSemTarde(!v); } })
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+            renderBotaoFalarMetade('tarde'),
+            React.createElement(HvInterruptor, { checked: !fSemTarde, onChange: function (v) { setFSemTarde(!v); } })
+          )
         ),
         !fSemTarde && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           React.createElement(HvCampoHora, { label: 'Início', value: fTardeI, onChange: setFTardeI }),
