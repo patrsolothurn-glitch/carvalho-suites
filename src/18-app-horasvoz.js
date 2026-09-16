@@ -450,7 +450,6 @@ var HV_COR_TIPO_FORTE = {
   trabalho: '#2563EB', ferias: '#D97706', doente: '#DC2626', feriado: '#7C3AED', fecho: '#4338CA', falta: '#C2410C'
 };
 function hvCorTipoForte(tipo) { return HV_COR_TIPO_FORTE[tipo] || '#64748B'; }
-function hvFormatSinal(v) { return (v >= 0 ? '+' : '') + hvMinToHM(v * 60); }
 function hvEstiloExtra(v) {
   if (v > 0) return { background: 'rgba(21,128,61,.16)', color: 'var(--hv-positivo)' };
   if (v < 0) return { background: 'rgba(185,28,28,.16)', color: 'var(--hv-negativo)' };
@@ -520,6 +519,48 @@ function hvResumoAte(dias, hojeStr, desdeStr) {
     total += d.total; meta += d.meta;
   });
   return { total: total, meta: meta, extra: total - meta };
+}
+// Arredondamento com compensação (método do maior resto): garante que a
+// soma dos extras arredondados de vários dias bate sempre com o total
+// arredondado do grupo. Cada item perde a parte decimal (para baixo);
+// o(s) minuto(s) que falta(m) até ao alvo vão para quem tem maior resto
+// — em empate, para a data mais antiga. Só arredonda para APRESENTAR
+// vários dias juntos; o alvo em si continua a vir de hvResumoAte, nunca
+// é recalculado aqui, e os totais/metas por dia não mudam.
+// itens: [{ dateStr, valor }] com valor em minutos exatos (pode ser
+// fracionário e negativo). Devolve { dateStr: minutosInteiros }.
+function hvCompensarExtras(itens) {
+  var somaExata = itens.reduce(function (s, it) { return s + it.valor; }, 0);
+  var alvo = Math.round(somaExata + (somaExata >= 0 ? 1e-9 : -1e-9));
+  var partes = itens.map(function (it) {
+    var f = Math.floor(it.valor);
+    return { dateStr: it.dateStr, floor: f, resto: it.valor - f };
+  });
+  var somaFloors = partes.reduce(function (s, it) { return s + it.floor; }, 0);
+  var falta = alvo - somaFloors;
+  var ordem = partes.slice().sort(function (a, b) {
+    if (b.resto !== a.resto) return b.resto - a.resto;
+    return a.dateStr < b.dateStr ? -1 : 1;
+  });
+  var resultado = {};
+  partes.forEach(function (it) { resultado[it.dateStr] = it.floor; });
+  for (var i = 0; i < falta; i++) { resultado[ordem[i].dateStr] += 1; }
+  return resultado;
+}
+// Monta os itens a compensar (só dias gravados ou em falta — os únicos
+// que mostram um extra) a partir de um grupo de dias (semana ou mês) e
+// devolve o mapa dateStr->minutos já compensado por hvCompensarExtras.
+// Aceita tanto o formato de hvDiasSemanaCompleta (.temRegisto) como o
+// de mesData.dias (.tipo).
+function hvCompensarExtrasGrupo(diasArr, hojeStr, desdeStr) {
+  var itens = [];
+  diasArr.forEach(function (d) {
+    var temRegisto = !!(d.tipo || d.temRegisto);
+    var est = hvClassificarDia({ dateStr: d.dateStr, hojeStr: hojeStr, temRegisto: temRegisto, livre: d.livre, fimDeSemana: d.fimDeSemana, desdeStr: desdeStr });
+    if (est.estado === 'gravado') itens.push({ dateStr: d.dateStr, valor: (d.total - d.meta) * 60 });
+    else if (est.estado === 'falta') itens.push({ dateStr: d.dateStr, valor: (0 - d.meta) * 60 });
+  });
+  return hvCompensarExtras(itens);
 }
 // Semanas (Seg–Dom) da grelha de um mês em calendário: cada uma com o
 // número da KW, a segunda-feira dessa semana e os 7 números de dia (ou
@@ -634,11 +675,19 @@ function HvConfirm(p) {
 function hvLinhaPropsIguais(a, b) {
   return a.dataStr === b.dataStr && a.total === b.total && a.meta === b.meta && a.tipo === b.tipo &&
     a.livre === b.livre && a.hoje === b.hoje && a.fimDeSemana === b.fimDeSemana && a.rotulo === b.rotulo &&
-    a.desde === b.desde;
+    a.desde === b.desde && a.extraMin === b.extraMin;
 }
-function hvSaldoCelula(mostrarSaldo, total, meta, minWidth) {
+// Mesmo estilo do HvSaldoTexto, mas a partir de minutos inteiros já
+// arredondados com compensação (hvCompensarExtras) — para vários dias
+// mostrados juntos somarem sempre certo, sem re-arredondar aqui.
+function HvSaldoTextoMin(p) {
+  var v = p.valorMin;
+  return React.createElement('span', { style: { color: v >= 0 ? 'var(--hv-positivo)' : 'var(--hv-negativo)', fontWeight: 800 } }, (v >= 0 ? '+' : '') + hvMinToHM(v));
+}
+function hvSaldoCelula(mostrarSaldo, total, meta, extraMin) {
   if (mostrarSaldo === 'traco') return React.createElement('span', { style: { color: 'var(--hv-texto2)', fontWeight: 800 } }, '—');
   if (!mostrarSaldo) return null;
+  if (extraMin != null) return React.createElement(HvSaldoTextoMin, { valorMin: extraMin });
   return React.createElement(HvSaldoTexto, { valor: total - meta });
 }
 var HvLinhaSemana = React.memo(function HvLinhaSemana(p) {
@@ -667,7 +716,7 @@ var HvLinhaSemana = React.memo(function HvLinhaSemana(p) {
     ),
     React.createElement('div', { style: { textAlign: 'right', fontSize: 12, color: 'var(--hv-texto2)', minWidth: 52 } }, hvMinToHM(p.total * 60)),
     est.mostrarMeta && React.createElement('div', { style: { textAlign: 'right', fontSize: 12, color: 'var(--hv-texto2)', minWidth: 52 } }, hvMinToHM(p.meta * 60)),
-    React.createElement('div', { style: { textAlign: 'right', minWidth: 60 } }, hvSaldoCelula(est.mostrarSaldo, p.total, p.meta))
+    React.createElement('div', { style: { textAlign: 'right', minWidth: 60 } }, hvSaldoCelula(est.mostrarSaldo, p.total, p.meta, p.extraMin))
   );
 }, hvLinhaPropsIguais);
 var HvLinhaMes = React.memo(function HvLinhaMes(p) {
@@ -684,7 +733,7 @@ var HvLinhaMes = React.memo(function HvLinhaMes(p) {
     React.createElement('span', { style: { fontSize: 16, width: 20, textAlign: 'center', flex: 'none' } }, info ? info.emoji : (est.compacta ? iconeCompacto : (est.estado === 'falta' || est.estado === 'hoje-por-registar' ? '⚠' : '—'))),
     React.createElement('div', { style: { flex: 1, fontSize: 13, color: corRotulo, fontWeight: p.hoje ? 700 : 400 } }, p.rotulo + (est.compacta && est.rotulo ? ' · ' + est.rotulo : '')),
     !est.compacta && React.createElement('div', { style: { fontSize: 12, color: 'var(--hv-texto2)', minWidth: 48, textAlign: 'right' } }, hvMinToHM(p.total * 60)),
-    !est.compacta && React.createElement('div', { style: { textAlign: 'right', minWidth: 58 } }, hvSaldoCelula(est.mostrarSaldo, p.total, p.meta))
+    !est.compacta && React.createElement('div', { style: { textAlign: 'right', minWidth: 58 } }, hvSaldoCelula(est.mostrarSaldo, p.total, p.meta, p.extraMin))
   );
 }, hvLinhaPropsIguais);
 var HvLinhaAno = React.memo(function HvLinhaAno(p) {
@@ -720,13 +769,13 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
     var textoTotal = (meioDia ? '½' : '') + hvMinToHM(p.total * 60);
     var mostrarIcone = info && textoTotal.length <= 4;
     var fsTotal = textoTotal.length <= 4 ? 12 : 11;
-    var extraVal = p.total - p.meta;
-    var textoExtra = hvFormatSinal(extraVal);
+    var extraMinGravado = p.extraMin != null ? p.extraMin : Math.round((p.total - p.meta) * 60);
+    var textoExtra = (extraMinGravado >= 0 ? '+' : '') + hvMinToHM(extraMinGravado);
     var fsExtra = textoExtra.length <= 4 ? 12 : 11;
     conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 } },
       React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte(p.row.tipo), fontSize: fsTotal } },
         (mostrarIcone ? info.emoji + ' ' : '') + textoTotal),
-      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: fsExtra }, hvEstiloExtra(extraVal)) }, textoExtra)
+      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: fsExtra }, hvEstiloExtra(extraMinGravado)) }, textoExtra)
     );
   } else if (est.estado === 'livre') {
     conteudo = React.createElement('div', { className: 'hv-cal-livre-bloco' }, 'livre');
@@ -735,11 +784,11 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
   } else if (est.estado === 'hoje-por-registar') {
     conteudo = React.createElement('div', { className: 'hv-cal-registar' }, 'registar');
   } else if (est.estado === 'falta') {
-    var extraFalta = 0 - p.meta;
-    var textoExtraFalta = hvFormatSinal(extraFalta);
+    var extraMinFalta = p.extraMin != null ? p.extraMin : Math.round((0 - p.meta) * 60);
+    var textoExtraFalta = (extraMinFalta >= 0 ? '+' : '') + hvMinToHM(extraMinFalta);
     conteudo = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1 } },
       React.createElement('div', { className: 'hv-cal-etiqueta', style: { background: hvCorTipoForte('falta'), fontSize: 11 } }, '⚠ falta'),
-      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: textoExtraFalta.length <= 4 ? 12 : 11 }, hvEstiloExtra(extraFalta)) }, textoExtraFalta)
+      React.createElement('div', { className: 'hv-cal-etiqueta-extra', style: Object.assign({ fontSize: textoExtraFalta.length <= 4 ? 12 : 11 }, hvEstiloExtra(extraMinFalta)) }, textoExtraFalta)
     );
   }
   // fds / antes-de-contar: só o número (conteudo fica null)
@@ -752,7 +801,8 @@ var HvCelulaCalendario = React.memo(function HvCelulaCalendario(p) {
   return React.createElement('div', { className: classeCelula, 'data-date': p.dateStr }, numeroNode, conteudo);
 }, function (a, b) {
   return a.dateStr === b.dateStr && a.total === b.total && a.meta === b.meta && a.row === b.row &&
-    a.livre === b.livre && a.fimDeSemana === b.fimDeSemana && a.hoje === b.hoje && a.selecionado === b.selecionado && a.desde === b.desde;
+    a.livre === b.livre && a.fimDeSemana === b.fimDeSemana && a.hoje === b.hoje && a.selecionado === b.selecionado &&
+    a.desde === b.desde && a.extraMin === b.extraMin;
 });
 
 // ── Componente principal ───────────────────────────────────────────
@@ -1572,11 +1622,12 @@ function HorasVozApp(props) {
   function renderSemana() {
     var hoje = hvTodayIso();
     var dias = hvDiasSemanaCompleta();
+    var extrasCompSemana = hvCompensarExtrasGrupo(dias, hoje, contarDesde);
     var linhas = dias.map(function (d, i) {
       return React.createElement(HvLinhaSemana, {
         key: d.dateStr, dataStr: d.dateStr, total: d.total, meta: d.meta,
         tipo: d.row ? d.row.tipo : null, livre: d.livre,
-        hoje: d.hoje, fimDeSemana: d.fimDeSemana, desde: contarDesde,
+        hoje: d.hoje, fimDeSemana: d.fimDeSemana, desde: contarDesde, extraMin: extrasCompSemana[d.dateStr],
         rotulo: HV_DIA_CURTO[i] + ' ' + hvFmt(hvMk(d.dateStr)),
         onClick: function () { setView('dia'); mudarDia(d.dateStr); }
       });
@@ -1627,10 +1678,11 @@ function HorasVozApp(props) {
   function renderMesLista(y, m) {
     var hoje = hvTodayIso();
     var diasUteis = mesData.dias.filter(function (d) { return !d.fimDeSemana; });
+    var extrasCompMesLista = hvCompensarExtrasGrupo(diasUteis, hoje, contarDesde);
     var linhas = diasUteis.map(function (d) {
       return React.createElement(HvLinhaMes, {
         key: d.dateStr, dataStr: d.dateStr, total: d.total, meta: d.meta, tipo: d.tipo, livre: d.livre,
-        hoje: d.dateStr === hoje, fimDeSemana: false, desde: contarDesde,
+        hoje: d.dateStr === hoje, fimDeSemana: false, desde: contarDesde, extraMin: extrasCompMesLista[d.dateStr],
         rotulo: HV_DIA_CURTO[d.idx] + ' ' + String(d.dia).padStart(2, '0') + '.' + String(m + 1).padStart(2, '0') + '.',
         onClick: function (ds) { return function () { setView('dia'); mudarDia(ds); }; }(d.dateStr)
       });
@@ -1720,26 +1772,27 @@ function HorasVozApp(props) {
     );
   }
 
-  function renderSubtotaisSemanaMes(y, m) {
+  function renderSubtotaisSemanaMes(y, m, extrasComp) {
     var grupos = {}, ordem = [];
     mesData.dias.forEach(function (d) {
       var seg = hvIso(hvMon(hvMk(d.dateStr)));
       if (!grupos[seg]) { grupos[seg] = []; ordem.push(seg); }
       grupos[seg].push(d);
     });
-    var hoje = hvTodayIso();
     return React.createElement(HvCard, { style: { padding: 0 } },
       ordem.map(function (seg) {
         var diasGrupo = grupos[seg];
         var completa = diasGrupo.length === 7;
         var totalBruto = diasGrupo.reduce(function (s, d) { return s + d.total; }, 0);
-        var extra = hvResumoAte(diasGrupo.map(function (d) { return { dateStr: d.dateStr, total: d.total, meta: d.meta, temRegisto: !!d.tipo }; }), hoje, contarDesde).extra;
+        // Soma os mesmos minutos já compensados das células desta semana
+        // (não re-arredonda), para "Extra" bater sempre com a grelha.
+        var extraMinSemana = diasGrupo.reduce(function (s, d) { return s + (extrasComp[d.dateStr] || 0); }, 0);
         return React.createElement('div', {
           key: seg, className: 'hv-cal-semana-linha',
           onClick: function () { setCurDate(seg); setView('semana'); }
         },
           React.createElement('span', null,
-            'KW ' + hvKw(hvMk(seg)) + ' · Total ' + hvMinToHM(totalBruto * 60) + ' · Extra ' + hvFormatSinal(extra) +
+            'KW ' + hvKw(hvMk(seg)) + ' · Total ' + hvMinToHM(totalBruto * 60) + ' · Extra ' + (extraMinSemana >= 0 ? '+' : '') + hvMinToHM(extraMinSemana) +
             (completa ? '' : ' (parte de ' + HV_MESES_LABEL[m].slice(0, 3).toLowerCase() + '.)')
           )
         );
@@ -1773,6 +1826,7 @@ function HorasVozApp(props) {
     var trabalhoN = 0, feriadoN = 0, fechoN = 0;
     mesData.dias.forEach(function (d) { if (d.tipo === 'trabalho') trabalhoN++; if (d.tipo === 'feriado') feriadoN++; if (d.tipo === 'fecho') fechoN++; });
 
+    var extrasCompMesCal = hvCompensarExtrasGrupo(diasUteis, hoje, contarDesde);
     var mesDiaPorData = {};
     mesData.dias.forEach(function (d) { mesDiaPorData[d.dateStr] = d; });
     var grelha = hvConstruirGrelhaMes(y, m);
@@ -1786,7 +1840,7 @@ function HorasVozApp(props) {
         celulasGrid.push(React.createElement(HvCelulaCalendario, {
           key: dateStr, dateStr: dateStr, dia: dNum, total: dm.total, meta: dm.meta,
           row: registos[dateStr] || null, livre: dm.livre, fimDeSemana: dm.fimDeSemana,
-          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde
+          hoje: dateStr === hoje, selecionado: dateStr === curDate, desde: contarDesde, extraMin: extrasCompMesCal[dateStr]
         }));
       });
     });
@@ -1817,7 +1871,7 @@ function HorasVozApp(props) {
       ),
       React.createElement('div', { className: 'hv-cal-grid', onClick: aoClicarGrelhaCalendario, onDoubleClick: aoDuploCliqueGrelhaCalendario }, celulasGrid),
       renderCartaoDiaCal(),
-      renderSubtotaisSemanaMes(y, m),
+      renderSubtotaisSemanaMes(y, m, extrasCompMesCal),
       React.createElement('button', { className: 'hv-cal-fab', onClick: aoClicarFabCalendario }, '+')
     );
   }
