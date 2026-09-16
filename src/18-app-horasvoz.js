@@ -1328,7 +1328,7 @@ function HorasVozApp(props) {
           React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: 'var(--hv-texto)', textTransform: 'uppercase' } }, 'Manhã'),
           React.createElement(HvInterruptor, { checked: !fSemManha, onChange: function (v) { setFSemManha(!v); } })
         ),
-        !fSemManha && React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        !fSemManha && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           React.createElement(HvCampoHora, { label: 'Início', value: fManhaI, onChange: setFManhaI }),
           React.createElement(HvCampoHora, { label: 'Fim', value: fManhaF, onChange: setFManhaF })
         )
@@ -1338,7 +1338,7 @@ function HorasVozApp(props) {
           React.createElement('span', { style: { fontSize: 12, fontWeight: 800, color: 'var(--hv-texto)', textTransform: 'uppercase' } }, 'Tarde'),
           React.createElement(HvInterruptor, { checked: !fSemTarde, onChange: function (v) { setFSemTarde(!v); } })
         ),
-        !fSemTarde && React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        !fSemTarde && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           React.createElement(HvCampoHora, { label: 'Início', value: fTardeI, onChange: setFTardeI }),
           React.createElement(HvCampoHora, { label: 'Fim', value: fTardeF, onChange: setFTardeF })
         )
@@ -1599,11 +1599,11 @@ function HorasVozApp(props) {
           )),
         React.createElement('label', { style: HV_ESTILO.label }, 'Pausa (min)',
           React.createElement('input', { type: 'number', value: c.pausa_min, autoComplete: 'off', onChange: function (e) { set({ pausa_min: +e.target.value }); }, style: { width: '100%', marginTop: 3, background: 'var(--hv-cartao)', border: '1px solid var(--hv-borda)', color: 'var(--hv-texto)', borderRadius: 8, padding: '8px 10px' } })),
-        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           React.createElement(HvCampoHora, { label: 'Manhã início', value: c.manha_inicio, onChange: function (v) { set({ manha_inicio: v }); } }),
           React.createElement(HvCampoHora, { label: 'Manhã fim', value: c.manha_fim, onChange: function (v) { set({ manha_fim: v }); } })
         ),
-        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
           React.createElement(HvCampoHora, { label: 'Tarde início', value: c.tarde_inicio, onChange: function (v) { set({ tarde_inicio: v }); } }),
           React.createElement(HvCampoHora, { label: 'Tarde fim', value: c.tarde_fim, onChange: function (v) { set({ tarde_fim: v }); } })
         )
