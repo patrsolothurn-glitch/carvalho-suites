@@ -94,6 +94,7 @@ const SRC_FILES = [
   'src/16-app-voz.js',
   'src/17-app-wochenplan.js',
   'src/18-app-horasvoz.js',
+  'src/19-app-pollen.js',
   'src/10-shell.js', 'src/tail.html',
   'build.js', 'deploy.js',
 ];
