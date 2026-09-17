@@ -1,8 +1,13 @@
+# PARADO (P1a, ver REVISAO-PROGRESSO.md): o repo carvalho-suites é público
+# e este workflow comitava backups/ para o próprio repo, tornando 38
+# tabelas do Supabase acessíveis a qualquer pessoa. O agendamento fica
+# desativado até o backup passar para um repositório privado (P1b).
+# Só corre manualmente (workflow_dispatch) até lá.
 name: Backup Supabase Data
 
 on:
-  schedule:
-    - cron: '0 3 * * *'   # Todos os dias às 03:00 UTC (04:00/05:00 na Suíça)
+  # schedule:
+  #   - cron: '0 3 * * *'   # Todos os dias às 03:00 UTC (04:00/05:00 na Suíça)
   workflow_dispatch: {}    # Permite correr manualmente em qualquer altura
 
 jobs:
