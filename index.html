@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-17T15:42:44.668Z
+  Gerado em: 2026-09-17T15:52:45.757Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-314";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-315";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -34719,9 +34719,12 @@ function PollenApp(props) {
           } }, r.name + (r.admin1 ? ' · ' + r.admin1 : '') + (r.country ? ' (' + r.country + ')' : ''));
         })
       ),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 } },
-        React.createElement('input', { type: 'checkbox', checked: pfNotificar, onChange: function (e) { setPfNotificar(e.target.checked); } }),
-        React.createElement('span', { style: { fontSize: 13 } }, 'Receber avisos de pólen alto')
+      React.createElement('div', { style: { marginBottom: 14 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement('input', { type: 'checkbox', checked: pfNotificar, onChange: function (e) { setPfNotificar(e.target.checked); } }),
+          React.createElement('span', { style: { fontSize: 13 } }, 'Receber avisos de pólen alto')
+        ),
+        React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', margin: '4px 0 0 26px' } }, 'O alerta usa a cidade do perfil.')
       ),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'pol-btn', style: { flex: 1 }, onClick: function () { setPerfilEditorAberto(false); } }, 'Cancelar'),
