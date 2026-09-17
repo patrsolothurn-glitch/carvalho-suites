@@ -114,13 +114,30 @@ def identificar_coluna(nome_coluna):
     return None
 
 
+def decode_csv_bytes(raw_bytes):
+    """Decodifica os bytes de um CSV da geo.admin.ch. Tenta UTF-8 (com BOM
+    opcional) primeiro; os exports desta fonte por vezes vêm em
+    Windows-1252/Latin-1 (nomes de estação com acentos — foi isto que
+    causou as falhas de 16/09: 'é' em Windows-1252 é o byte 0xE9, que não
+    é uma sequência UTF-8 válida). cp1252 tem ~5 posições de byte por
+    definir (0x81, 0x8D, 0x8F, 0x90, 0x9D) que também levantam
+    UnicodeDecodeError — por isso usa errors='replace' aqui, para este
+    último recurso nunca poder falhar e abortar o script inteiro."""
+    try:
+        return raw_bytes.decode('utf-8-sig')
+    except UnicodeDecodeError as e:
+        log('  aviso: CSV não é UTF-8 válido ({}), a tentar Windows-1252...'.format(e))
+        return raw_bytes.decode('cp1252', errors='replace')
+
+
 def main():
     falhas = 0
 
     log('A obter lista de estações de ' + META_STATIONS_URL + ' ...')
     try:
-        raw = http_get(META_STATIONS_URL).decode('utf-8-sig')
+        raw = decode_csv_bytes(http_get(META_STATIONS_URL))
         leitor = csv.DictReader(io.StringIO(raw), delimiter=';')
+        log('  colunas do CSV de estações: {}'.format(leitor.fieldnames))
         estacoes = []
         for linha in leitor:
             abbr = (linha.get('station_abbr') or '').strip()
@@ -136,7 +153,7 @@ def main():
                 log('  aviso: coordenadas inválidas para ' + abbr + ', a ignorar')
                 continue
             estacoes.append({'codigo': abbr, 'nome': nome, 'lat': lat, 'lon': lon})
-        log('  {} estações encontradas'.format(len(estacoes)))
+        log('  {} estações encontradas: {}'.format(len(estacoes), ', '.join(e['codigo'] for e in estacoes)))
     except Exception as e:
         log('✗ ERRO ao obter a lista de estações: {}'.format(e))
         sys.exit(1)
@@ -155,7 +172,7 @@ def main():
         url = HOURLY_CSV_URL_TPL.format(abbr=abbr.lower())
         log('A obter medições de {} ({}) ...'.format(abbr, url))
         try:
-            raw = http_get(url).decode('utf-8-sig')
+            raw = decode_csv_bytes(http_get(url))
         except urllib.error.HTTPError as e:
             log('  aviso: {} sem ficheiro horário "recent" (HTTP {}) — estação pode não medir pólen, a continuar'.format(abbr, e.code))
             continue
@@ -181,6 +198,7 @@ def main():
                     colunas_tipo[c] = tipo_id
                 else:
                     log('  aviso: coluna "{}" de {} não reconhecida como tipo de pólen — ignorada'.format(c, abbr))
+            log('  {}: coluna de data/hora "{}", colunas de pólen reconhecidas: {}'.format(abbr, ts_col, colunas_tipo))
 
             medicoes = []
             for linha in leitor:
