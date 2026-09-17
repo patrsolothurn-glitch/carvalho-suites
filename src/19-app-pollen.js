@@ -875,9 +875,12 @@ function PollenApp(props) {
           } }, r.name + (r.admin1 ? ' · ' + r.admin1 : '') + (r.country ? ' (' + r.country + ')' : ''));
         })
       ),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 } },
-        React.createElement('input', { type: 'checkbox', checked: pfNotificar, onChange: function (e) { setPfNotificar(e.target.checked); } }),
-        React.createElement('span', { style: { fontSize: 13 } }, 'Receber avisos de pólen alto')
+      React.createElement('div', { style: { marginBottom: 14 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          React.createElement('input', { type: 'checkbox', checked: pfNotificar, onChange: function (e) { setPfNotificar(e.target.checked); } }),
+          React.createElement('span', { style: { fontSize: 13 } }, 'Receber avisos de pólen alto')
+        ),
+        React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', margin: '4px 0 0 26px' } }, 'O alerta usa a cidade do perfil.')
       ),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'pol-btn', style: { flex: 1 }, onClick: function () { setPerfilEditorAberto(false); } }, 'Cancelar'),
