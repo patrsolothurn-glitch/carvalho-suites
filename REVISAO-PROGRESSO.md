@@ -39,3 +39,36 @@ Só infraestrutura, nenhuma app tocada.
   publicamente legíveis via `backups/` (a service key nunca esteve
   commitada — só como secret do GitHub Actions — mas os dados em si
   estiveram expostos enquanto `backups/` existiu no repo público).
+
+## P2 — Vida Escolar: disciplinas órfãs — Concluído — 2026-09-18 — [PR #6](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/6)
+
+**Contexto**: dois incidentes de perda de ligações, repostos à mão por SQL —
+Lucas 11/09 (`disc_id` a `NULL`) e Liam 17/09 (as disciplinas do aluno
+desapareceram e as 31 aulas do horário ficaram a apontar para ids que já
+não existiam, o horário inteiro apareceu "Livre"). A Guarda A existente
+(`isBadDiscId`) só apanhava `null`/`undefined`/`NaN`, nunca verificava se o
+id ainda existia na lista de disciplinas.
+
+Só `src/09-app-escolar.js` tocado.
+
+- Guarda A reforçada (`doSaveAlunoSnapshot`, domínios `horario` e `tpc`):
+  também rejeita `disc_id` que já não existe nas disciplinas em memória.
+  Aborta sem apagar nem inserir nada, com `console.error('[escolar] ...')`
+  e cartão vermelho.
+- Guarda nova no domínio `disciplinas`: antes do delete, verifica se a nova
+  lista deixa de fora alguma disciplina ainda usada no horário, tpc ou
+  notas. Se sim, aborta e mostra cartão vermelho com o(s) nome(s).
+- Apagar disciplina: conta aulas/tpc/notas que a usam, pede confirmação com
+  os números se houver uso, e (se confirmado) marca as aulas como `livre`,
+  remove tpc e notas ligados, e grava tudo na mesma operação.
+- `_escolarSaveInFlight` e afins passaram a viver em `window` (como
+  `_saveTimers` já fazia) — eram reinicializados a cada render, o que
+  tornava invisível para o `useEffect` do reload em segundo plano.
+- Reload em segundo plano (`visibilitychange`, `csAoVoltarRede`) já não
+  recarrega por cima de uma gravação em curso — tenta outra vez até ficar
+  livre.
+- Confirmado: adicionar/editar disciplina nunca muda ids existentes.
+
+5 casos simulados e relatados na descrição do PR #6 (adicionar disciplina,
+apagar sem uso, apagar com 24 aulas em uso, voltar à app durante uma
+gravação, disc_id órfão).

@@ -976,9 +976,14 @@ function EscolarApp(_ref31) {
     alunosData = _useState176[0],
     setAlunosData = _useState176[1];
   var aluno = alunosData[alunoKey];
-  var _escolarSaveInFlight = {};
-  var _escolarSavePending = {};
-  var _escolarSavePendingDomains = {};
+  // Persistido em window (tal como _saveTimers/_saveLatest/_saveDomains
+  // abaixo) — um simples "var = {}" era reinicializado a cada render, o
+  // que tornava a marca "gravação em curso" invisível para closures de
+  // useEffect (com deps []) criadas num render anterior, como o guard do
+  // reload em segundo plano precisa de ler de forma fiável (ver tarefa 4).
+  var _escolarSaveInFlight = window._escolarSaveInFlight || (window._escolarSaveInFlight = {});
+  var _escolarSavePending = window._escolarSavePending || (window._escolarSavePending = {});
+  var _escolarSavePendingDomains = window._escolarSavePendingDomains || (window._escolarSavePendingDomains = {});
   // domains: lista de quais secoes gravar ('disciplinas','horario','notas','tpc','perfil').
   // Se omitido, grava tudo (usado apenas na semeadura inicial a partir de ALUNOS_DEF).
   // Isto evita que uma edicao pequena (ex: marcar um TPC) reescreva o horario
@@ -1013,6 +1018,32 @@ function EscolarApp(_ref31) {
           cor: d.cor || ''
         };
       });
+      // Guarda nova: se a nova lista deixar de fora uma disciplina ainda
+      // usada no horário (aulas não livres), no TPC ou nas notas em memória,
+      // abortar sem apagar nada — evita repetir o incidente do Liam 17/09
+      // (disciplinas apagadas com aulas ainda a apontar para elas).
+      var idsNovos = {};
+      rows.forEach(function (r) { idsNovos[r.id] = true; });
+      var idsUsados = {};
+      Object.keys(data.horario || {}).forEach(function (dia) {
+        (data.horario[dia] || []).forEach(function (slot) {
+          if (!slot.livre && !isBadDiscId(slot.discId)) idsUsados[slot.discId] = true;
+        });
+      });
+      (data.tpc || []).forEach(function (t) { if (!isBadDiscId(t.discId)) idsUsados[t.discId] = true; });
+      Object.keys(data.notas || {}).forEach(function (discId) { idsUsados[Number(discId)] = true; });
+      var idsEmFalta = Object.keys(idsUsados).map(Number).filter(function (id) { return !idsNovos[id]; });
+      if (idsEmFalta.length > 0) {
+        return sb.from('escolar_disciplinas').select('id,nome').eq('aluno', key).in('id', idsEmFalta).then(function (nomesRes) {
+          var nomes = ((nomesRes && nomesRes.data) || []).map(function (d) { return d.nome || ('#' + d.id); });
+          if (!nomes.length) nomes = idsEmFalta.map(function (id) { return '#' + id; });
+          console.error('[escolar] disciplinas: gravação cancelada, ainda em uso no horário/TPC/notas: ' + nomes.join(', '));
+          window.mostrarErro('Vida Escolar', { message: 'Não é possível remover ' + nomes.join(', ') + ' — ainda está a ser usada no horário, TPC ou notas. Os dados no servidor ficaram intactos.' });
+        }).catch(function (e) {
+          console.error('[escolar] disciplinas: erro ao verificar uso antes de apagar:', e);
+          window.mostrarErro('Vida Escolar', e);
+        });
+      }
       var apagarEInserir = function apagarEInserir() {
         return sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
           if (delRes && delRes.error) {
@@ -1050,10 +1081,17 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      var semDisciplina = rows.filter(function (r) { return !r.livre && isBadDiscId(r.disc_id); });
+      // Guarda A reforçada: além de null/undefined/NaN, um disc_id que já não
+      // existe na lista de disciplinas em memória também é inválido — foi
+      // isto que causou os incidentes Lucas 11/09 (disc_id a NULL) e Liam
+      // 17/09 (31 aulas a apontar para ids de disciplinas apagadas, o
+      // horário inteiro apareceu "Livre"). Aulas livre=true não contam.
+      var idsDisciplinasAtuais = {};
+      (data.disciplinas || []).forEach(function (d) { idsDisciplinasAtuais[d.id] = true; });
+      var semDisciplina = rows.filter(function (r) { return !r.livre && (isBadDiscId(r.disc_id) || !idsDisciplinasAtuais[r.disc_id]); });
       if (semDisciplina.length > 0) {
-        console.warn('[escolar] horario: gravacao cancelada, ' + semDisciplina.length + ' aulas sem disciplina');
-        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        console.error('[escolar] horario: gravação cancelada, ' + semDisciplina.length + ' aula(s) com disc_id inválido ou que já não existe nas disciplinas atuais');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' aula(s) apontam para uma disciplina inválida ou já apagada. Os dados no servidor ficaram intactos.' });
         return Promise.resolve();
       }
       var apagarEInserir = function apagarEInserir() {
@@ -1132,10 +1170,14 @@ function EscolarApp(_ref31) {
           tipo: t.tipo || 'tpc'
         };
       });
-      var semDisciplina = rows.filter(function (r) { return isBadDiscId(r.disc_id); });
+      // Guarda A reforçada (ver nota igual no bloco 'horario' acima): também
+      // rejeita disc_id que já não existe nas disciplinas em memória.
+      var idsDisciplinasAtuaisTpc = {};
+      (data.disciplinas || []).forEach(function (d) { idsDisciplinasAtuaisTpc[d.id] = true; });
+      var semDisciplina = rows.filter(function (r) { return isBadDiscId(r.disc_id) || !idsDisciplinasAtuaisTpc[r.disc_id]; });
       if (semDisciplina.length > 0) {
-        console.warn('[escolar] tpc: gravacao cancelada, ' + semDisciplina.length + ' registos sem disciplina');
-        window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        console.error('[escolar] tpc: gravação cancelada, ' + semDisciplina.length + ' registo(s) com disc_id inválido ou que já não existe nas disciplinas atuais');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + semDisciplina.length + ' registo(s) apontam para uma disciplina inválida ou já apagada. Os dados no servidor ficaram intactos.' });
         return Promise.resolve();
       }
       var apagarEInserir = function apagarEInserir() {
@@ -1233,8 +1275,18 @@ function EscolarApp(_ref31) {
       console.warn('[escolar] erro perfil:', e);
     });
   };
-  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains) {
-    if (!window.supabaseClient) return;
+  // onDone(err) opcional: chamado quando ESTA gravação específica ficou
+  // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
+  // tenha sido absorvida por uma gravação seguinte por já haver uma em
+  // curso para a mesma chave (ver _escolarSavePending acima). Usado pelo
+  // apagar disciplina para só limpar os testes em family_events depois de
+  // o snapshot (disciplinas/horario/tpc/notas) ter sido gravado com sucesso.
+  var _escolarSaveCallbacks = window._escolarSaveCallbacks || (window._escolarSaveCallbacks = {});
+  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains, onDone) {
+    if (!window.supabaseClient) {
+      if (onDone) onDone(new Error('Sem ligação à base de dados.'));
+      return;
+    }
     if (_escolarSaveInFlight[key]) {
       _escolarSavePending[key] = data;
       var pendDoms = _escolarSavePendingDomains[key] || [];
@@ -1242,11 +1294,19 @@ function EscolarApp(_ref31) {
         if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
       });
       _escolarSavePendingDomains[key] = pendDoms;
+      if (onDone) {
+        var pendCbs = _escolarSaveCallbacks[key] || [];
+        pendCbs.push(onDone);
+        _escolarSaveCallbacks[key] = pendCbs;
+      }
       return;
     }
     _escolarSaveInFlight[key] = true;
+    var callbacksDesteEnvio = (_escolarSaveCallbacks[key] || []).concat(onDone ? [onDone] : []);
+    _escolarSaveCallbacks[key] = [];
     doSaveAlunoSnapshot(key, data, domains).then(function () {
       _escolarSaveInFlight[key] = false;
+      callbacksDesteEnvio.forEach(function (cb) { cb(null); });
       var next = _escolarSavePending[key];
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
@@ -1254,8 +1314,9 @@ function EscolarApp(_ref31) {
         _escolarSavePendingDomains[key] = null;
         saveAlunoSnapshot(key, next, nextDoms);
       }
-    }).catch(function () {
+    }).catch(function (e) {
       _escolarSaveInFlight[key] = false;
+      callbacksDesteEnvio.forEach(function (cb) { cb(e || new Error('Falha ao gravar.')); });
     });
   };
   // Debounce do save ao Supabase: cada keystroke num input (sala, professor, etc.)
@@ -1281,15 +1342,20 @@ function EscolarApp(_ref31) {
     }
   };
   // domain identifica qual tabela esta edicao realmente afeta ('horario',
-  // 'disciplinas', 'notas' ou 'tpc'). So essa tabela e regravada — assim uma
-  // edicao num TPC, por exemplo, nunca pode reescrever o horario com uma
-  // copia local desatualizada.
+  // 'disciplinas', 'notas' ou 'tpc'), ou uma lista dessas quando uma única
+  // ação tem de gravar mais que uma tabela na mesma operação (ex: apagar
+  // uma disciplina ainda em uso, que também limpa horário/tpc/notas). So
+  // essas tabelas sao regravadas — assim uma edicao num TPC, por exemplo,
+  // nunca pode reescrever o horario com uma copia local desatualizada.
   var setAluno = function setAluno(fn, domain) {
     return setAlunosData(function (p) {
       var newData = fn(p[alunoKey]);
       _saveLatest[alunoKey] = newData;
       var doms = _saveDomains[alunoKey] || [];
-      if (domain && doms.indexOf(domain) === -1) doms = doms.concat([domain]);
+      var domainList = Array.isArray(domain) ? domain : (domain ? [domain] : []);
+      domainList.forEach(function (dm) {
+        if (doms.indexOf(dm) === -1) doms = doms.concat([dm]);
+      });
       _saveDomains[alunoKey] = doms;
       if (_saveTimers[alunoKey]) clearTimeout(_saveTimers[alunoKey]);
       _saveTimers[alunoKey] = setTimeout(function () {
@@ -1591,11 +1657,41 @@ function EscolarApp(_ref31) {
       console.warn('[escolar] loadEscolarData falhou:', err && err.message || err);
     });
   };
+  // Recarrega em segundo plano só quando não há nada a gravar em curso —
+  // nem um timer de debounce pendente (_saveTimers, 800ms após a última
+  // edição) nem um pedido já enviado ao Supabase (_escolarSaveInFlight).
+  // Recarregar por cima disso já causou o incidente do Liam 17/09: os dados
+  // frescos do servidor (ainda sem a gravação em curso) substituíam a cópia
+  // local, e a gravação pendente acabava por gravar por cima com dados
+  // desatualizados. Em vez de desistir, volta a tentar até ficar livre.
+  // Guarda o id do próprio setTimeout em window para poder cancelar uma
+  // tentativa anterior antes de agendar outra — sem isto, cada chamada a
+  // visibilitychange/csAoVoltarRede enquanto a app está em segundo plano
+  // (ex: o telemóvel acorda o ecrã várias vezes) empilhava um novo ciclo de
+  // retries por cima dos que já estavam a correr.
+  var recarregarQuandoLivre = function recarregarQuandoLivre(tentativa) {
+    tentativa = tentativa || 0;
+    if (window._escolarRecarregarTimer) {
+      clearTimeout(window._escolarRecarregarTimer);
+      window._escolarRecarregarTimer = null;
+    }
+    var hasPendingTimer = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
+    var hasSaveInFlight = Object.keys(_escolarSaveInFlight).some(function (k) { return _escolarSaveInFlight[k]; });
+    if (hasPendingTimer || hasSaveInFlight) {
+      if (tentativa >= 30) {
+        console.warn('[escolar] recarregarQuandoLivre: desisti ao fim de 30 tentativas, ainda há uma gravação em curso');
+        return;
+      }
+      window._escolarRecarregarTimer = setTimeout(function () { recarregarQuandoLivre(tentativa + 1); }, 1000);
+      return;
+    }
+    loadEscolarData();
+  };
   (0, _react.useEffect)(function () {
     loadEscolarData();
   }, []);
   (0, _react.useEffect)(function () {
-    return window.csAoVoltarRede(function () { loadEscolarData(); });
+    return window.csAoVoltarRede(function () { recarregarQuandoLivre(); });
   }, []);
   // Refetch quando a app volta a ficar visivel apos background.
   // Em mobile a aba pode ficar suspensa horas — sem isto, dados editados
@@ -1603,13 +1699,12 @@ function EscolarApp(_ref31) {
   (0, _react.useEffect)(function () {
     var onVisible = function onVisible() {
       if (document.visibilityState !== 'visible') return;
-      // Não recarregar por cima de edições ainda não guardadas (o save é
-      // feito 800ms depois de parar de escrever) nem enquanto o formulário
-      // de novo TPC está aberto — evita perder o que a pessoa escreveu e
-      // evita que o número de TPCs pareça 'travado' num valor antigo.
-      var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
-      if (hasPending || algumFormularioAbertoRef.current) return;
-      loadEscolarData();
+      // Não recarregar enquanto o formulário de novo TPC (ou qualquer outro
+      // formulário desta app) está aberto — evita perder o que a pessoa
+      // está a escrever. A gravação em curso (_saveTimers/_escolarSaveInFlight)
+      // é tratada por recarregarQuandoLivre, que tenta outra vez até ficar livre.
+      if (algumFormularioAbertoRef.current) return;
+      recarregarQuandoLivre();
     };
     document.addEventListener('visibilitychange', onVisible);
     return function () { document.removeEventListener('visibilitychange', onVisible); };
@@ -3518,13 +3613,68 @@ function EscolarApp(_ref31) {
       }
     }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        setAluno(function (al) {
+        var discId = d.id;
+        var aulasUsando = [];
+        Object.keys(aluno.horario || {}).forEach(function (dia) {
+          (aluno.horario[dia] || []).forEach(function (slot) {
+            if (!slot.livre && slot.discId === discId) aulasUsando.push(slot);
+          });
+        });
+        var tpcUsando = (aluno.tpc || []).filter(function (t) { return t.discId === discId; });
+        var notasDaDisc = (aluno.notas && aluno.notas[discId]) || null;
+        var numNotas = notasDaDisc ? Object.keys(notasDaDisc).reduce(function (acc, sem) { return acc + (notasDaDisc[sem] || []).length; }, 0) : 0;
+        if (aulasUsando.length || tpcUsando.length || numNotas) {
+          var partes = [];
+          if (aulasUsando.length) partes.push(aulasUsando.length + (aulasUsando.length === 1 ? ' aula' : ' aulas'));
+          if (tpcUsando.length) partes.push(tpcUsando.length + ' TPC');
+          if (numNotas) partes.push(numNotas + (numNotas === 1 ? ' nota' : ' notas'));
+          var frase = partes.length > 1 ? partes.slice(0, -1).join(', ') + ' e ' + partes[partes.length - 1] : partes[0];
+          if (!window.confirm(frase + ' usam esta disciplina \u2014 apagar?')) return;
+        }
+        var domainsParaGravar = ['disciplinas'];
+        if (aulasUsando.length) domainsParaGravar.push('horario');
+        if (tpcUsando.length) domainsParaGravar.push('tpc');
+        if (numNotas) domainsParaGravar.push('notas');
+        // Testes (tipo==='teste') desta disciplina têm uma linha em
+        // family_events (ver criarEventoTesteSeNaoExistir/apagarEventoTeste
+        // acima) — se não forem limpos pelo mesmo caminho do 🗑 do TPC
+        // (apagarEventoTeste), ficam órfãos no calendário da Família.
+        var testesParaApagar = tpcUsando.filter(function (t) { return t.tipo === 'teste'; }).map(function (t) { return t.id; });
+        var novoAluno = (function () {
+          var al = aluno;
+          var novoHorario = {};
+          Object.keys(al.horario || {}).forEach(function (dia) {
+            novoHorario[dia] = (al.horario[dia] || []).map(function (slot) {
+              return (!slot.livre && slot.discId === discId) ? _objectSpread(_objectSpread({}, slot), {}, { livre: true, discId: null }) : slot;
+            });
+          });
+          var novasNotas = _objectSpread({}, al.notas || {});
+          delete novasNotas[discId];
           return _objectSpread(_objectSpread({}, al), {}, {
             disciplinas: al.disciplinas.filter(function (x) {
-              return x.id !== d.id;
-            })
+              return x.id !== discId;
+            }),
+            horario: novoHorario,
+            tpc: (al.tpc || []).filter(function (t) { return t.discId !== discId; }),
+            notas: novasNotas
           });
-        }, 'disciplinas');
+        })();
+        // Flush de uma edição pendente (debounce de 800ms) primeiro, para
+        // não gravar por cima dela nem correr em paralelo com esta — depois
+        // atualiza o state já com a disciplina removida e grava de imediato
+        // (sem debounce, ação deliberada) só depois de o flush já ter
+        // pedido a sua própria gravação.
+        flushSaveAluno(alunoKey);
+        setAlunosData(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoAluno));
+        });
+        saveAlunoSnapshot(alunoKey, novoAluno, domainsParaGravar, function (err) {
+          if (err) {
+            console.error('[escolar] apagar disciplina: gravação falhou, testes NÃO removidos do calendário da Família:', err);
+            return; // gravação falhou — não apagar nada no calendário
+          }
+          testesParaApagar.forEach(function (tpcId) { apagarEventoTeste(tpcId); });
+        });
         setEditDiscId(null);
       },
       style: {
