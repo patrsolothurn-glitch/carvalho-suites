@@ -1275,8 +1275,18 @@ function EscolarApp(_ref31) {
       console.warn('[escolar] erro perfil:', e);
     });
   };
-  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains) {
-    if (!window.supabaseClient) return;
+  // onDone(err) opcional: chamado quando ESTA gravação específica ficou
+  // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
+  // tenha sido absorvida por uma gravação seguinte por já haver uma em
+  // curso para a mesma chave (ver _escolarSavePending acima). Usado pelo
+  // apagar disciplina para só limpar os testes em family_events depois de
+  // o snapshot (disciplinas/horario/tpc/notas) ter sido gravado com sucesso.
+  var _escolarSaveCallbacks = window._escolarSaveCallbacks || (window._escolarSaveCallbacks = {});
+  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains, onDone) {
+    if (!window.supabaseClient) {
+      if (onDone) onDone(new Error('Sem ligação à base de dados.'));
+      return;
+    }
     if (_escolarSaveInFlight[key]) {
       _escolarSavePending[key] = data;
       var pendDoms = _escolarSavePendingDomains[key] || [];
@@ -1284,11 +1294,19 @@ function EscolarApp(_ref31) {
         if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
       });
       _escolarSavePendingDomains[key] = pendDoms;
+      if (onDone) {
+        var pendCbs = _escolarSaveCallbacks[key] || [];
+        pendCbs.push(onDone);
+        _escolarSaveCallbacks[key] = pendCbs;
+      }
       return;
     }
     _escolarSaveInFlight[key] = true;
+    var callbacksDesteEnvio = (_escolarSaveCallbacks[key] || []).concat(onDone ? [onDone] : []);
+    _escolarSaveCallbacks[key] = [];
     doSaveAlunoSnapshot(key, data, domains).then(function () {
       _escolarSaveInFlight[key] = false;
+      callbacksDesteEnvio.forEach(function (cb) { cb(null); });
       var next = _escolarSavePending[key];
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
@@ -1296,8 +1314,9 @@ function EscolarApp(_ref31) {
         _escolarSavePendingDomains[key] = null;
         saveAlunoSnapshot(key, next, nextDoms);
       }
-    }).catch(function () {
+    }).catch(function (e) {
       _escolarSaveInFlight[key] = false;
+      callbacksDesteEnvio.forEach(function (cb) { cb(e || new Error('Falha ao gravar.')); });
     });
   };
   // Debounce do save ao Supabase: cada keystroke num input (sala, professor, etc.)
@@ -1645,11 +1664,25 @@ function EscolarApp(_ref31) {
   // frescos do servidor (ainda sem a gravação em curso) substituíam a cópia
   // local, e a gravação pendente acabava por gravar por cima com dados
   // desatualizados. Em vez de desistir, volta a tentar até ficar livre.
-  var recarregarQuandoLivre = function recarregarQuandoLivre() {
+  // Guarda o id do próprio setTimeout em window para poder cancelar uma
+  // tentativa anterior antes de agendar outra — sem isto, cada chamada a
+  // visibilitychange/csAoVoltarRede enquanto a app está em segundo plano
+  // (ex: o telemóvel acorda o ecrã várias vezes) empilhava um novo ciclo de
+  // retries por cima dos que já estavam a correr.
+  var recarregarQuandoLivre = function recarregarQuandoLivre(tentativa) {
+    tentativa = tentativa || 0;
+    if (window._escolarRecarregarTimer) {
+      clearTimeout(window._escolarRecarregarTimer);
+      window._escolarRecarregarTimer = null;
+    }
     var hasPendingTimer = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
     var hasSaveInFlight = Object.keys(_escolarSaveInFlight).some(function (k) { return _escolarSaveInFlight[k]; });
     if (hasPendingTimer || hasSaveInFlight) {
-      setTimeout(recarregarQuandoLivre, 1000);
+      if (tentativa >= 30) {
+        console.warn('[escolar] recarregarQuandoLivre: desisti ao fim de 30 tentativas, ainda há uma gravação em curso');
+        return;
+      }
+      window._escolarRecarregarTimer = setTimeout(function () { recarregarQuandoLivre(tentativa + 1); }, 1000);
       return;
     }
     loadEscolarData();
@@ -3602,7 +3635,13 @@ function EscolarApp(_ref31) {
         if (aulasUsando.length) domainsParaGravar.push('horario');
         if (tpcUsando.length) domainsParaGravar.push('tpc');
         if (numNotas) domainsParaGravar.push('notas');
-        setAluno(function (al) {
+        // Testes (tipo==='teste') desta disciplina têm uma linha em
+        // family_events (ver criarEventoTesteSeNaoExistir/apagarEventoTeste
+        // acima) — se não forem limpos pelo mesmo caminho do 🗑 do TPC
+        // (apagarEventoTeste), ficam órfãos no calendário da Família.
+        var testesParaApagar = tpcUsando.filter(function (t) { return t.tipo === 'teste'; }).map(function (t) { return t.id; });
+        var novoAluno = (function () {
+          var al = aluno;
           var novoHorario = {};
           Object.keys(al.horario || {}).forEach(function (dia) {
             novoHorario[dia] = (al.horario[dia] || []).map(function (slot) {
@@ -3619,7 +3658,23 @@ function EscolarApp(_ref31) {
             tpc: (al.tpc || []).filter(function (t) { return t.discId !== discId; }),
             notas: novasNotas
           });
-        }, domainsParaGravar);
+        })();
+        // Flush de uma edição pendente (debounce de 800ms) primeiro, para
+        // não gravar por cima dela nem correr em paralelo com esta — depois
+        // atualiza o state já com a disciplina removida e grava de imediato
+        // (sem debounce, ação deliberada) só depois de o flush já ter
+        // pedido a sua própria gravação.
+        flushSaveAluno(alunoKey);
+        setAlunosData(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoAluno));
+        });
+        saveAlunoSnapshot(alunoKey, novoAluno, domainsParaGravar, function (err) {
+          if (err) {
+            console.error('[escolar] apagar disciplina: gravação falhou, testes NÃO removidos do calendário da Família:', err);
+            return; // gravação falhou — não apagar nada no calendário
+          }
+          testesParaApagar.forEach(function (tpcId) { apagarEventoTeste(tpcId); });
+        });
         setEditDiscId(null);
       },
       style: {
