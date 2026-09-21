@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-21T17:01:45.116Z
+  Gerado em: 2026-09-21T17:39:39.188Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-318";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-319";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -34069,9 +34069,14 @@ function HorasVozApp(props) {
 // is_admin/allowed_apps, ver supabase/pollen.sql) — não filtrados por
 // profile_id no carregar(); profile_id em pollen_perfis/pollen_termos
 // continua a guardar quem criou. pollen_diario é por perfil escolhido,
-// também partilhado. pollen_estacoes/pollen_medicoes são só de leitura
-// aqui (alimentadas pelo workflow .github/workflows/pollen-fetch.yml).
-// Nunca mistura com tabelas de outra app.
+// também partilhado. pollen_perfis.medicamentos (jsonb, lista de
+// {id, nome, toma}) e pollen_diario.medicamentos_tomados (jsonb, lista
+// de {id, nome}) — a coluna antiga pollen_diario.medicamento (texto)
+// fica só para leitura de dias antigos, nunca mais escrita por dias
+// novos (ver renderDiario/guardarDiario). pollen_estacoes/pollen_medicoes
+// são só de leitura aqui (alimentadas pelo workflow
+// .github/workflows/pollen-fetch.yml). Nunca mistura com tabelas de
+// outra app.
 // ══════════════════════════════════════════════════════════════════
 
 // ── Tipos de pólen: nome DE/PT, variável Open-Meteo (null se essa
@@ -34339,6 +34344,12 @@ function polMedicaoRecente(m) {
   return idade >= 0 && idade <= POL_MEDICAO_VALIDA_MS;
 }
 
+// ── Id local para elementos de listas jsonb (medicamentos do perfil,
+// "outros" medicamentos do dia) — nunca vão à base de dados como linha
+// própria, por isso precisam de um id gerado no cliente (mesmo padrão
+// de hwUid em src/13-app-hauswart.js) ──────────────────────────────
+function polUid() { return 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
 // ── Voz (ler o termo alemão) ─────────────────────────────────────
 function polFalarAlemao(texto) {
   if (!window.speechSynthesis) return;
@@ -34373,7 +34384,10 @@ var POL_CSS = '' +
   '.pol-btn{background:var(--pol-cartao);color:var(--pol-texto);border:1px solid var(--pol-borda);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer}' +
   '.pol-btn-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde)}' +
   '.pol-sintoma-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid var(--pol-borda);background:var(--pol-cartao);color:var(--pol-texto);cursor:pointer;font-weight:700;font-size:12px}' +
-  '.pol-sintoma-btn.pol-sintoma-ativo{background:var(--pol-amarelo);color:#231a00;border-color:var(--pol-amarelo)}';
+  '.pol-sintoma-btn.pol-sintoma-ativo{background:var(--pol-amarelo);color:#231a00;border-color:var(--pol-amarelo)}' +
+  '.pol-med-row{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:12px;border:1px solid var(--pol-borda);background:var(--pol-cartao);cursor:pointer}' +
+  '.pol-med-check{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--pol-borda);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--pol-verde-texto)}' +
+  '.pol-med-check.pol-med-check-ativo{background:var(--pol-verde);border-color:var(--pol-verde)}';
 
 // ── Pequenas peças ──────────────────────────────────────────────
 function PolCard(p) { return React.createElement('div', { className: 'pol-card', style: p.style }, p.children); }
@@ -34418,7 +34432,6 @@ function PollenApp(props) {
   var _s12 = React.useState(null); var diarioEditandoId = _s12[0], setDiarioEditandoId = _s12[1];
   var _s13 = React.useState(polHojeIso()); var fData = _s13[0], setFData = _s13[1];
   var _s14 = React.useState(0); var fSintomas = _s14[0], setFSintomas = _s14[1];
-  var _s15 = React.useState(''); var fMedicamento = _s15[0], setFMedicamento = _s15[1];
   var _s16 = React.useState(''); var fNota = _s16[0], setFNota = _s16[1];
   var _s17 = React.useState(false); var diarioSaving = _s17[0], setDiarioSaving = _s17[1];
   var _s18 = React.useState([]); var medicoesHistorico = _s18[0], setMedicoesHistorico = _s18[1];
@@ -34444,6 +34457,14 @@ function PollenApp(props) {
   var _s36 = React.useState(null); var confirmApagarDiario = _s36[0], setConfirmApagarDiario = _s36[1];
   var _s37 = React.useState([]); var pessoasPollen = _s37[0], setPessoasPollen = _s37[1];
   var _s38 = React.useState([]); var pfAvisarIds = _s38[0], setPfAvisarIds = _s38[1];
+  var _s39 = React.useState([]); var pfMedicamentos = _s39[0], setPfMedicamentos = _s39[1];
+  var _s40 = React.useState(false); var pfMedFormAberto = _s40[0], setPfMedFormAberto = _s40[1];
+  var _s41 = React.useState(''); var pfMedNome = _s41[0], setPfMedNome = _s41[1];
+  var _s42 = React.useState(''); var pfMedToma = _s42[0], setPfMedToma = _s42[1];
+  var _s43 = React.useState(null); var pfMedEditandoId = _s43[0], setPfMedEditandoId = _s43[1];
+  var _s44 = React.useState(null); var confirmApagarMedPerfil = _s44[0], setConfirmApagarMedPerfil = _s44[1];
+  var _s45 = React.useState([]); var fMedsChecked = _s45[0], setFMedsChecked = _s45[1];
+  var _s46 = React.useState([]); var fMedsOutros = _s46[0], setFMedsOutros = _s46[1];
 
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
@@ -34574,6 +34595,7 @@ function PollenApp(props) {
   function abrirNovoPerfil() {
     setPerfilEditandoId(null); setPfNome(''); setPfAlergias([]); setPfLocal(null); setPfNotificar(true);
     setPfAvisarIds(profile && profile.id ? [profile.id] : []);
+    setPfMedicamentos([]); setPfMedFormAberto(false); setPfMedEditandoId(null); setPfMedNome(''); setPfMedToma('');
     setPfPesquisaCidade(''); setPfResultadosPesquisa([]);
     setPerfilEditorAberto(true);
   }
@@ -34582,6 +34604,7 @@ function PollenApp(props) {
     setPfLocal({ kanton: p.kanton, cidade: p.cidade, lat: p.lat, lon: p.lon });
     setPfNotificar(p.notificar !== false);
     setPfAvisarIds((p.avisar_ids && p.avisar_ids.length) ? p.avisar_ids : (p.profile_id ? [p.profile_id] : []));
+    setPfMedicamentos(p.medicamentos || []); setPfMedFormAberto(false); setPfMedEditandoId(null); setPfMedNome(''); setPfMedToma('');
     setPfPesquisaCidade(''); setPfResultadosPesquisa([]);
     setPerfilEditorAberto(true);
   }
@@ -34594,6 +34617,22 @@ function PollenApp(props) {
     setPfAvisarIds(function (atual) {
       return atual.indexOf(profileId) !== -1 ? atual.filter(function (id) { return id !== profileId; }) : atual.concat([profileId]);
     });
+  }
+  function iniciarNovoMedPerfil() { setPfMedEditandoId(null); setPfMedNome(''); setPfMedToma(''); setPfMedFormAberto(true); }
+  function iniciarEditarMedPerfil(m) { setPfMedEditandoId(m.id); setPfMedNome(m.nome); setPfMedToma(m.toma || ''); setPfMedFormAberto(true); }
+  function guardarMedPerfil() {
+    if (!pfMedNome.trim()) return;
+    setPfMedicamentos(function (atual) {
+      if (pfMedEditandoId) {
+        return atual.map(function (m) { return m.id === pfMedEditandoId ? { id: m.id, nome: pfMedNome.trim(), toma: pfMedToma.trim() || null } : m; });
+      }
+      return atual.concat([{ id: polUid(), nome: pfMedNome.trim(), toma: pfMedToma.trim() || null }]);
+    });
+    setPfMedFormAberto(false);
+  }
+  function apagarMedPerfil(id) {
+    setPfMedicamentos(function (atual) { return atual.filter(function (m) { return m.id !== id; }); });
+    setConfirmApagarMedPerfil(null);
   }
   function pesquisarCidade() {
     if (!pfPesquisaCidade.trim()) { setPfResultadosPesquisa([]); return; }
@@ -34608,7 +34647,7 @@ function PollenApp(props) {
   function guardarPerfil() {
     if (!pfNome.trim() || !pfLocal) { setErro('Indica o nome e a localização do perfil.'); return; }
     setPerfilSaving(true);
-    var payload = { nome: pfNome.trim(), alergias: pfAlergias, kanton: pfLocal.kanton || null, cidade: pfLocal.cidade, lat: pfLocal.lat, lon: pfLocal.lon, notificar: pfNotificar, avisar_ids: pfAvisarIds };
+    var payload = { nome: pfNome.trim(), alergias: pfAlergias, kanton: pfLocal.kanton || null, cidade: pfLocal.cidade, lat: pfLocal.lat, lon: pfLocal.lon, notificar: pfNotificar, avisar_ids: pfAvisarIds, medicamentos: pfMedicamentos };
     var query = perfilEditandoId
       ? db.from('pollen_perfis').update(payload).eq('id', perfilEditandoId).select()
       : db.from('pollen_perfis').insert(Object.assign({ profile_id: profile.id }, payload)).select();
@@ -34638,15 +34677,40 @@ function PollenApp(props) {
 
   // ── Ações: Diário ──────────────────────────────────────────────
   function iniciarNovoRegisto() {
-    setDiarioEditandoId(null); setFData(polHojeIso()); setFSintomas(0); setFMedicamento(''); setFNota('');
+    setDiarioEditandoId(null); setFData(polHojeIso()); setFSintomas(0); setFNota('');
+    setFMedsChecked([]); setFMedsOutros([]);
   }
   function editarRegisto(r) {
-    setDiarioEditandoId(r.id); setFData(r.data); setFSintomas(r.sintomas); setFMedicamento(r.medicamento || ''); setFNota(r.nota || '');
+    setDiarioEditandoId(r.id); setFData(r.data); setFSintomas(r.sintomas); setFNota(r.nota || '');
+    var tomados = r.medicamentos_tomados || [];
+    var idsPerfil = (perfilAtivo && perfilAtivo.medicamentos || []).map(function (m) { return m.id; });
+    setFMedsChecked(tomados.map(function (t) { return t.id; }));
+    setFMedsOutros(tomados.filter(function (t) { return idsPerfil.indexOf(t.id) === -1; }));
+  }
+  function toggleMedForm(id) {
+    setFMedsChecked(function (atual) {
+      return atual.indexOf(id) !== -1 ? atual.filter(function (i) { return i !== id; }) : atual.concat([id]);
+    });
+  }
+  function adicionarMedOutro() {
+    var novoId = polUid();
+    setFMedsOutros(function (atual) { return atual.concat([{ id: novoId, nome: '' }]); });
+    setFMedsChecked(function (atual) { return atual.concat([novoId]); });
+  }
+  function editarNomeMedOutro(id, nome) {
+    setFMedsOutros(function (atual) { return atual.map(function (o) { return o.id === id ? { id: o.id, nome: nome } : o; }); });
+  }
+  function removerMedOutro(id) {
+    setFMedsOutros(function (atual) { return atual.filter(function (o) { return o.id !== id; }); });
+    setFMedsChecked(function (atual) { return atual.filter(function (i) { return i !== id; }); });
   }
   function guardarDiario() {
     if (!perfilAtivo) return;
     setDiarioSaving(true);
-    db.from('pollen_diario').upsert({ perfil_id: perfilAtivo.id, data: fData, sintomas: fSintomas, medicamento: fMedicamento || null, nota: fNota || null }, { onConflict: 'perfil_id,data' }).select().then(function (res) {
+    var medsDoPerfil = (perfilAtivo.medicamentos || []).filter(function (m) { return fMedsChecked.indexOf(m.id) !== -1; }).map(function (m) { return { id: m.id, nome: m.nome }; });
+    var medsOutros = fMedsOutros.filter(function (o) { return fMedsChecked.indexOf(o.id) !== -1 && o.nome && o.nome.trim(); }).map(function (o) { return { id: o.id, nome: o.nome.trim() }; });
+    var medicamentosTomados = medsDoPerfil.concat(medsOutros);
+    db.from('pollen_diario').upsert({ perfil_id: perfilAtivo.id, data: fData, sintomas: fSintomas, medicamentos_tomados: medicamentosTomados, nota: fNota || null }, { onConflict: 'perfil_id,data' }).select().then(function (res) {
       setDiarioSaving(false);
       if (res.error) { setErro('Falha ao guardar registo: ' + res.error.message); window.mostrarErro('Pólen', res.error); return; }
       iniciarNovoRegisto();
@@ -34870,7 +34934,32 @@ function PollenApp(props) {
               React.createElement('span', { style: { fontSize: 16 } }, s[0]), React.createElement('span', null, s[1]));
           })
         ),
-        React.createElement('input', { type: 'text', className: 'pol-input', autoComplete: 'off', placeholder: 'Medicamento (opcional)', value: fMedicamento, onChange: function (e) { setFMedicamento(e.target.value); }, style: { marginBottom: 10 } }),
+        React.createElement('p', { style: { fontSize: 11, fontWeight: 700, color: 'var(--pol-texto2)', textTransform: 'uppercase', margin: '2px 0 6px' } }, 'Medicamentos'),
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 } },
+          (perfilAtivo.medicamentos || []).map(function (m) {
+            var checked = fMedsChecked.indexOf(m.id) !== -1;
+            return React.createElement('div', { key: m.id, className: 'pol-med-row', onClick: function () { toggleMedForm(m.id); } },
+              React.createElement('div', { className: 'pol-med-check' + (checked ? ' pol-med-check-ativo' : '') }, checked ? '✓' : ''),
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { fontWeight: 700, fontSize: 14 } }, m.nome),
+                m.toma && React.createElement('div', { style: { fontSize: 11, color: 'var(--pol-texto2)', marginTop: 2 } }, m.toma)
+              )
+            );
+          }),
+          fMedsOutros.map(function (o) {
+            var checked = fMedsChecked.indexOf(o.id) !== -1;
+            return React.createElement('div', { key: o.id, className: 'pol-med-row', onClick: function () { toggleMedForm(o.id); } },
+              React.createElement('div', { className: 'pol-med-check' + (checked ? ' pol-med-check-ativo' : '') }, checked ? '✓' : ''),
+              React.createElement('input', { type: 'text', className: 'pol-input', autoComplete: 'off', placeholder: 'Nome do medicamento', value: o.nome, onClick: function (e) { e.stopPropagation(); }, onChange: function (e) { editarNomeMedOutro(o.id, e.target.value); }, style: { flex: 1, padding: '6px 8px', fontSize: 13 } }),
+              React.createElement('button', { onClick: function (e) { e.stopPropagation(); removerMedOutro(o.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer', flex: 'none' } }, '✕')
+            );
+          }),
+          !(perfilAtivo.medicamentos || []).length && !fMedsOutros.length && React.createElement('div', { style: { padding: '4px 0 8px' } },
+            React.createElement('p', { style: { fontSize: 12.5, color: 'var(--pol-texto2)', marginBottom: 8 } }, 'Sem medicamentos — acrescenta no perfil'),
+            React.createElement('button', { className: 'pol-btn', onClick: function () { abrirEditarPerfil(perfilAtivo); setTab('definicoes'); } }, 'Abrir perfil')
+          ),
+          React.createElement('button', { className: 'pol-btn', onClick: adicionarMedOutro }, '+ Outro')
+        ),
         React.createElement('textarea', { className: 'pol-input', autoComplete: 'off', placeholder: 'Nota (opcional)', value: fNota, onChange: function (e) { setFNota(e.target.value); }, style: { marginBottom: 10, minHeight: 60, resize: 'vertical' } }),
         React.createElement('div', { style: { display: 'flex', gap: 8 } },
           diarioEditandoId && React.createElement('button', { className: 'pol-btn', style: { flex: 1 }, onClick: iniciarNovoRegisto }, 'Cancelar'),
@@ -34880,10 +34969,14 @@ function PollenApp(props) {
       React.createElement(PolCard, { style: { padding: 0 } },
         diario.length
           ? diario.map(function (r) {
+              var medsTomados = r.medicamentos_tomados || [];
+              var medsTexto = medsTomados.length
+                ? medsTomados.map(function (m) { return '✓ ' + m.nome; }).join(', ')
+                : (r.medicamento || null);
               return React.createElement('div', { key: r.id, style: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: '1px solid var(--pol-borda)' } },
                 React.createElement('div', { style: { flex: 1 } },
                   React.createElement('div', { style: { fontWeight: 700, fontSize: 13 } }, polFmtDataCurta(r.data) + ' · sintomas ' + r.sintomas + '/3'),
-                  (r.medicamento || r.nota) && React.createElement('div', { style: { fontSize: 11, color: 'var(--pol-texto2)' } }, [r.medicamento, r.nota].filter(Boolean).join(' · '))
+                  (medsTexto || r.nota) && React.createElement('div', { style: { fontSize: 11, color: 'var(--pol-texto2)' } }, [medsTexto, r.nota].filter(Boolean).join(' · '))
                 ),
                 React.createElement('button', { onClick: function () { editarRegisto(r); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️'),
                 React.createElement('button', { onClick: function () { setConfirmApagarDiario(r.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '🗑️')
@@ -34938,6 +35031,30 @@ function PollenApp(props) {
           return React.createElement('button', { key: t.id, className: 'pol-chip' + (on ? ' pol-chip-ativo' : ''), onClick: function () { toggleAlergiaPerfil(t.id); } }, t.de + ' · ' + t.pt);
         })
       ),
+      React.createElement('p', { style: { fontSize: 11, fontWeight: 700, color: 'var(--pol-texto2)', textTransform: 'uppercase', marginBottom: 6 } }, 'Medicamentos'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 } },
+        pfMedicamentos.map(function (m) {
+          return React.createElement('div', { key: m.id, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--pol-fundo)', borderRadius: 10 } },
+            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { fontWeight: 700, fontSize: 13 } }, m.nome),
+              m.toma && React.createElement('div', { style: { fontSize: 11, color: 'var(--pol-texto2)' } }, m.toma)
+            ),
+            React.createElement('button', { onClick: function () { iniciarEditarMedPerfil(m); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '✏️'),
+            React.createElement('button', { onClick: function () { setConfirmApagarMedPerfil(m.id); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
+          );
+        }),
+        !pfMedicamentos.length && React.createElement('p', { style: { fontSize: 12.5, color: 'var(--pol-texto2)' } }, 'Ainda sem medicamentos.')
+      ),
+      pfMedFormAberto
+        ? React.createElement(PolCard, { style: { marginBottom: 12 } },
+            React.createElement('input', { type: 'text', className: 'pol-input', autoComplete: 'off', placeholder: 'Nome do medicamento', value: pfMedNome, onChange: function (e) { setPfMedNome(e.target.value); }, style: { marginBottom: 8 } }),
+            React.createElement('input', { type: 'text', className: 'pol-input', autoComplete: 'off', placeholder: 'Toma (opcional, ex.: 1x por dia · em urgência 2x)', value: pfMedToma, onChange: function (e) { setPfMedToma(e.target.value); }, style: { marginBottom: 8 } }),
+            React.createElement('div', { style: { display: 'flex', gap: 8 } },
+              React.createElement('button', { className: 'pol-btn', style: { flex: 1 }, onClick: function () { setPfMedFormAberto(false); } }, 'Cancelar'),
+              React.createElement('button', { className: 'pol-btn pol-btn-ativo', style: { flex: 1 }, onClick: guardarMedPerfil }, pfMedEditandoId ? 'Guardar alterações' : '✓ Adicionar')
+            )
+          )
+        : React.createElement('button', { className: 'pol-btn', style: { marginBottom: 12 }, onClick: iniciarNovoMedPerfil }, '+ Novo medicamento'),
       React.createElement('p', { style: { fontSize: 11, fontWeight: 700, color: 'var(--pol-texto2)', textTransform: 'uppercase', marginBottom: 6 } }, 'Localização'),
       pfLocal && React.createElement('div', { style: { fontSize: 13, marginBottom: 8, color: 'var(--pol-texto)' } }, '📍 ' + pfLocal.cidade + (pfLocal.kanton ? ' · ' + pfLocal.kanton : '')),
       React.createElement('select', { className: 'pol-input', style: { marginBottom: 8 }, value: '', onChange: function (e) {
@@ -35034,6 +35151,18 @@ function PollenApp(props) {
       )
     )
   );
+  var modalConfirmApagarMedPerfil = confirmApagarMedPerfil && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarMedPerfil(null); }
+  },
+    React.createElement(PolCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Apagar este medicamento?'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { className: 'pol-btn', style: { flex: 1 }, onClick: function () { setConfirmApagarMedPerfil(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'pol-btn', style: { flex: 1, background: '#DC2626', color: '#fff', borderColor: '#DC2626' }, onClick: function () { apagarMedPerfil(confirmApagarMedPerfil); } }, 'Apagar')
+      )
+    )
+  );
 
   return React.createElement('div', { className: appClass },
     React.createElement('style', null, POL_CSS),
@@ -35044,7 +35173,8 @@ function PollenApp(props) {
     corpo,
     React.createElement('p', { style: { textAlign: 'center', fontSize: 11, color: 'var(--pol-texto2)', padding: '8px 16px 24px' } }, 'Informação indicativa — não substitui o médico.'),
     modalConfirmApagarPerfil,
-    modalConfirmApagarDiario
+    modalConfirmApagarDiario,
+    modalConfirmApagarMedPerfil
   );
 }
 
