@@ -588,6 +588,21 @@ function WpWocheListe(p) {
   }
   return React.createElement('div', null, dias);
 }
+// Bloco de notas da semana (wplan_notizen), por baixo do plano da semana.
+// Gravação automática 800ms depois de parar de escrever — ver
+// mudarNotizSemana em WochenplanApp.
+function WpNotizenSemana(p) {
+  return React.createElement('div', { className: 'wp-abs', style: { marginTop: 13 } },
+    React.createElement('h3', null, 'Notizen'),
+    React.createElement('textarea', {
+      autoComplete: 'off',
+      placeholder: 'Notizen zur Woche…',
+      value: p.texto,
+      onChange: function(e) { p.onTexto(e.target.value); },
+      style: { minHeight: 90 }
+    })
+  );
+}
 
 // ── Vista Team (Plantafel) ─────────────────────────────────────
 // Abaixo de 600px a tabela de 7 colunas não cabe (e não deve obrigar a
@@ -870,7 +885,7 @@ function WpPrintPlan(p) {
     dr.map(function(a) {
       return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
-    wpPrintNotizen(),
+    wpPrintNotizen(p.notizSemana),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Erstellt / Datum'), React.createElement('div', null, 'Bauleiter'), React.createElement('div', null, 'Kenntnisnahme Monteur'))
   );
 }
@@ -910,7 +925,7 @@ function WpPrintUebersicht(p) {
         })
       );
     }),
-    wpPrintNotizen(),
+    wpPrintNotizen(p.notizSemana),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'), React.createElement('div', null, 'Bauleiter'))
   );
 }
@@ -943,7 +958,7 @@ function WpPrintListe(p) {
     dr.map(function(a) {
       return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
-    wpPrintNotizen(),
+    wpPrintNotizen(p.notizSemana),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'))
   );
 }
@@ -955,14 +970,14 @@ function WpPrintArea(p) {
     React.createElement('style', null, pageCss),
     React.createElement('div', { id: 'wp-printArea', ref: p.areaRef },
       React.createElement('div', { id: 'wp-printInner', ref: p.innerRef },
-        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient }),
+        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient, notizSemana: p.notizSemana }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
-          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient }),
+          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient, notizSemana: p.notizSemana }),
           React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
           React.createElement('div', { className: 'wp-pbreak' }),
-          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient })
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient, notizSemana: p.notizSemana })
         )
       )
     )
@@ -995,14 +1010,14 @@ function WpVorschau(p) {
         className: 'wp-vorschau-inner', ref: p.innerRef,
         style: { width: ((orient === 'landscape' ? 297 : 210) - 20) + 'mm' }
       },
-        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient }),
+        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient, notizSemana: p.notizSemana }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
-          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient }),
+          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient, notizSemana: p.notizSemana }),
           React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
           React.createElement('div', { className: 'wp-pbreak' }),
-          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient })
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient, notizSemana: p.notizSemana })
         )
       )
     )
@@ -1087,6 +1102,9 @@ function WochenplanApp(props) {
 
   var _s27 = React.useState(0); var agoraTick = _s27[0], setAgoraTick = _s27[1];
 
+  var _s29 = React.useState(''); var notizSemana = _s29[0], setNotizSemana = _s29[1];
+  var notizSemanaTimerRef = React.useRef(null);
+
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
@@ -1112,6 +1130,47 @@ function WochenplanApp(props) {
   React.useEffect(function () {
     return window.csAoVoltarRede(function () { carregar(); });
   }, []);
+
+  // ── Notizen da semana (wplan_notizen) ──────────────────────────
+  // Uma linha por (datum_montag, wer) — wer='alle' quando o filtro "who"
+  // está em "Alle". Carregada pela segunda-feira da semana em curso e
+  // pelo filtro who em uso; muda sempre que um dos dois muda.
+  function carregarNotizSemana() {
+    if (!db) return;
+    var mondayIso = wpIso(wpMon(wpMk(cur)));
+    var wer = who === 'alle' ? 'alle' : who;
+    db.from('wplan_notizen').select('texto').eq('datum_montag', mondayIso).eq('wer', wer).then(function(res) {
+      if (res.error) {
+        console.error('[wochenplan] falha ao carregar Notizen:', res.error);
+        window.mostrarErro('Wochenplan', res.error);
+        return;
+      }
+      setNotizSemana((res.data && res.data[0] && res.data[0].texto) || '');
+    }).catch(function(e) {
+      console.error('[wochenplan] falha ao carregar Notizen:', e);
+      window.mostrarErro('Wochenplan', e);
+    });
+  }
+  React.useEffect(function() { carregarNotizSemana(); }, [cur, who]);
+  function mudarNotizSemana(texto) {
+    setNotizSemana(texto);
+    var mondayIso = wpIso(wpMon(wpMk(cur)));
+    var wer = who === 'alle' ? 'alle' : who;
+    if (notizSemanaTimerRef.current) clearTimeout(notizSemanaTimerRef.current);
+    notizSemanaTimerRef.current = setTimeout(function() {
+      notizSemanaTimerRef.current = null;
+      if (!db) return;
+      db.from('wplan_notizen').upsert({ datum_montag: mondayIso, wer: wer, texto: texto || null, updated_at: new Date().toISOString() }, { onConflict: 'datum_montag,wer' }).select().then(function(res) {
+        if (res.error) {
+          console.error('[wochenplan] falha ao gravar Notizen:', res.error);
+          window.mostrarErro('Wochenplan', res.error);
+        }
+      }).catch(function(e) {
+        console.error('[wochenplan] falha ao gravar Notizen:', e);
+        window.mostrarErro('Wochenplan', e);
+      });
+    }, 800);
+  }
 
   // Perfil "Monteur" arranca já com o próprio nome escolhido
   React.useEffect(function() {
@@ -1462,19 +1521,23 @@ function WochenplanApp(props) {
           onOpen: abrirTarefa, onNovo: abrirNovaTarefa,
           notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); }
         })),
-        mode === 'woche' && (wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } }))),
+        mode === 'woche' && React.createElement(React.Fragment, null,
+          wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })),
+          React.createElement(WpNotizenSemana, { texto: notizSemana, onTexto: mudarNotizSemana })
+        ),
         mode === 'team' && rolle === 'bauleiter' && React.createElement(WpTeamView, Object.assign({}, diaAtualObj, { onOpen: abrirTarefa, onDia: function(k) { setCur(k); setMode('tag'); } }))
       ),
       React.createElement(WpLegend, null)
     ),
-    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef }),
+    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef, notizSemana: notizSemana }),
 
     previewJob && React.createElement(WpVorschau, {
       tipo: previewJob, rolle: rolle, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who,
       wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef,
       onZurueck: function() { setPreviewJob(null); },
       onAba: setPreviewJob,
-      onDrucken: function() { acionarImpressao(previewJob); }
+      onDrucken: function() { acionarImpressao(previewJob); },
+      notizSemana: notizSemana
     }),
 
     editTaskDraft && React.createElement(WpTaskModal, {
