@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-17T15:52:45.757Z
+  Gerado em: 2026-09-21T13:29:19.432Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-315";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-316";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -16102,9 +16102,14 @@ function EscolarApp(_ref31) {
     alunosData = _useState176[0],
     setAlunosData = _useState176[1];
   var aluno = alunosData[alunoKey];
-  var _escolarSaveInFlight = {};
-  var _escolarSavePending = {};
-  var _escolarSavePendingDomains = {};
+  // Persistido em window (tal como _saveTimers/_saveLatest/_saveDomains
+  // abaixo) — um simples "var = {}" era reinicializado a cada render, o
+  // que tornava a marca "gravação em curso" invisível para closures de
+  // useEffect (com deps []) criadas num render anterior, como o guard do
+  // reload em segundo plano precisa de ler de forma fiável (ver tarefa 4).
+  var _escolarSaveInFlight = window._escolarSaveInFlight || (window._escolarSaveInFlight = {});
+  var _escolarSavePending = window._escolarSavePending || (window._escolarSavePending = {});
+  var _escolarSavePendingDomains = window._escolarSavePendingDomains || (window._escolarSavePendingDomains = {});
   // domains: lista de quais secoes gravar ('disciplinas','horario','notas','tpc','perfil').
   // Se omitido, grava tudo (usado apenas na semeadura inicial a partir de ALUNOS_DEF).
   // Isto evita que uma edicao pequena (ex: marcar um TPC) reescreva o horario
@@ -16139,6 +16144,32 @@ function EscolarApp(_ref31) {
           cor: d.cor || ''
         };
       });
+      // Guarda nova: se a nova lista deixar de fora uma disciplina ainda
+      // usada no horário (aulas não livres), no TPC ou nas notas em memória,
+      // abortar sem apagar nada — evita repetir o incidente do Liam 17/09
+      // (disciplinas apagadas com aulas ainda a apontar para elas).
+      var idsNovos = {};
+      rows.forEach(function (r) { idsNovos[r.id] = true; });
+      var idsUsados = {};
+      Object.keys(data.horario || {}).forEach(function (dia) {
+        (data.horario[dia] || []).forEach(function (slot) {
+          if (!slot.livre && !isBadDiscId(slot.discId)) idsUsados[slot.discId] = true;
+        });
+      });
+      (data.tpc || []).forEach(function (t) { if (!isBadDiscId(t.discId)) idsUsados[t.discId] = true; });
+      Object.keys(data.notas || {}).forEach(function (discId) { idsUsados[Number(discId)] = true; });
+      var idsEmFalta = Object.keys(idsUsados).map(Number).filter(function (id) { return !idsNovos[id]; });
+      if (idsEmFalta.length > 0) {
+        return sb.from('escolar_disciplinas').select('id,nome').eq('aluno', key).in('id', idsEmFalta).then(function (nomesRes) {
+          var nomes = ((nomesRes && nomesRes.data) || []).map(function (d) { return d.nome || ('#' + d.id); });
+          if (!nomes.length) nomes = idsEmFalta.map(function (id) { return '#' + id; });
+          console.error('[escolar] disciplinas: gravação cancelada, ainda em uso no horário/TPC/notas: ' + nomes.join(', '));
+          window.mostrarErro('Vida Escolar', { message: 'Não é possível remover ' + nomes.join(', ') + ' — ainda está a ser usada no horário, TPC ou notas. Os dados no servidor ficaram intactos.' });
+        }).catch(function (e) {
+          console.error('[escolar] disciplinas: erro ao verificar uso antes de apagar:', e);
+          window.mostrarErro('Vida Escolar', e);
+        });
+      }
       var apagarEInserir = function apagarEInserir() {
         return sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
           if (delRes && delRes.error) {
@@ -16176,10 +16207,17 @@ function EscolarApp(_ref31) {
           });
         });
       });
-      var semDisciplina = rows.filter(function (r) { return !r.livre && isBadDiscId(r.disc_id); });
+      // Guarda A reforçada: além de null/undefined/NaN, um disc_id que já não
+      // existe na lista de disciplinas em memória também é inválido — foi
+      // isto que causou os incidentes Lucas 11/09 (disc_id a NULL) e Liam
+      // 17/09 (31 aulas a apontar para ids de disciplinas apagadas, o
+      // horário inteiro apareceu "Livre"). Aulas livre=true não contam.
+      var idsDisciplinasAtuais = {};
+      (data.disciplinas || []).forEach(function (d) { idsDisciplinasAtuais[d.id] = true; });
+      var semDisciplina = rows.filter(function (r) { return !r.livre && (isBadDiscId(r.disc_id) || !idsDisciplinasAtuais[r.disc_id]); });
       if (semDisciplina.length > 0) {
-        console.warn('[escolar] horario: gravacao cancelada, ' + semDisciplina.length + ' aulas sem disciplina');
-        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        console.error('[escolar] horario: gravação cancelada, ' + semDisciplina.length + ' aula(s) com disc_id inválido ou que já não existe nas disciplinas atuais');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' aula(s) apontam para uma disciplina inválida ou já apagada. Os dados no servidor ficaram intactos.' });
         return Promise.resolve();
       }
       var apagarEInserir = function apagarEInserir() {
@@ -16258,10 +16296,14 @@ function EscolarApp(_ref31) {
           tipo: t.tipo || 'tpc'
         };
       });
-      var semDisciplina = rows.filter(function (r) { return isBadDiscId(r.disc_id); });
+      // Guarda A reforçada (ver nota igual no bloco 'horario' acima): também
+      // rejeita disc_id que já não existe nas disciplinas em memória.
+      var idsDisciplinasAtuaisTpc = {};
+      (data.disciplinas || []).forEach(function (d) { idsDisciplinasAtuaisTpc[d.id] = true; });
+      var semDisciplina = rows.filter(function (r) { return isBadDiscId(r.disc_id) || !idsDisciplinasAtuaisTpc[r.disc_id]; });
       if (semDisciplina.length > 0) {
-        console.warn('[escolar] tpc: gravacao cancelada, ' + semDisciplina.length + ' registos sem disciplina');
-        window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + semDisciplina.length + ' registos sem disciplina. Os dados no servidor ficaram intactos.' });
+        console.error('[escolar] tpc: gravação cancelada, ' + semDisciplina.length + ' registo(s) com disc_id inválido ou que já não existe nas disciplinas atuais');
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + semDisciplina.length + ' registo(s) apontam para uma disciplina inválida ou já apagada. Os dados no servidor ficaram intactos.' });
         return Promise.resolve();
       }
       var apagarEInserir = function apagarEInserir() {
@@ -16359,8 +16401,18 @@ function EscolarApp(_ref31) {
       console.warn('[escolar] erro perfil:', e);
     });
   };
-  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains) {
-    if (!window.supabaseClient) return;
+  // onDone(err) opcional: chamado quando ESTA gravação específica ficou
+  // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
+  // tenha sido absorvida por uma gravação seguinte por já haver uma em
+  // curso para a mesma chave (ver _escolarSavePending acima). Usado pelo
+  // apagar disciplina para só limpar os testes em family_events depois de
+  // o snapshot (disciplinas/horario/tpc/notas) ter sido gravado com sucesso.
+  var _escolarSaveCallbacks = window._escolarSaveCallbacks || (window._escolarSaveCallbacks = {});
+  var saveAlunoSnapshot = function saveAlunoSnapshot(key, data, domains, onDone) {
+    if (!window.supabaseClient) {
+      if (onDone) onDone(new Error('Sem ligação à base de dados.'));
+      return;
+    }
     if (_escolarSaveInFlight[key]) {
       _escolarSavePending[key] = data;
       var pendDoms = _escolarSavePendingDomains[key] || [];
@@ -16368,11 +16420,19 @@ function EscolarApp(_ref31) {
         if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
       });
       _escolarSavePendingDomains[key] = pendDoms;
+      if (onDone) {
+        var pendCbs = _escolarSaveCallbacks[key] || [];
+        pendCbs.push(onDone);
+        _escolarSaveCallbacks[key] = pendCbs;
+      }
       return;
     }
     _escolarSaveInFlight[key] = true;
+    var callbacksDesteEnvio = (_escolarSaveCallbacks[key] || []).concat(onDone ? [onDone] : []);
+    _escolarSaveCallbacks[key] = [];
     doSaveAlunoSnapshot(key, data, domains).then(function () {
       _escolarSaveInFlight[key] = false;
+      callbacksDesteEnvio.forEach(function (cb) { cb(null); });
       var next = _escolarSavePending[key];
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
@@ -16380,8 +16440,9 @@ function EscolarApp(_ref31) {
         _escolarSavePendingDomains[key] = null;
         saveAlunoSnapshot(key, next, nextDoms);
       }
-    }).catch(function () {
+    }).catch(function (e) {
       _escolarSaveInFlight[key] = false;
+      callbacksDesteEnvio.forEach(function (cb) { cb(e || new Error('Falha ao gravar.')); });
     });
   };
   // Debounce do save ao Supabase: cada keystroke num input (sala, professor, etc.)
@@ -16407,15 +16468,20 @@ function EscolarApp(_ref31) {
     }
   };
   // domain identifica qual tabela esta edicao realmente afeta ('horario',
-  // 'disciplinas', 'notas' ou 'tpc'). So essa tabela e regravada — assim uma
-  // edicao num TPC, por exemplo, nunca pode reescrever o horario com uma
-  // copia local desatualizada.
+  // 'disciplinas', 'notas' ou 'tpc'), ou uma lista dessas quando uma única
+  // ação tem de gravar mais que uma tabela na mesma operação (ex: apagar
+  // uma disciplina ainda em uso, que também limpa horário/tpc/notas). So
+  // essas tabelas sao regravadas — assim uma edicao num TPC, por exemplo,
+  // nunca pode reescrever o horario com uma copia local desatualizada.
   var setAluno = function setAluno(fn, domain) {
     return setAlunosData(function (p) {
       var newData = fn(p[alunoKey]);
       _saveLatest[alunoKey] = newData;
       var doms = _saveDomains[alunoKey] || [];
-      if (domain && doms.indexOf(domain) === -1) doms = doms.concat([domain]);
+      var domainList = Array.isArray(domain) ? domain : (domain ? [domain] : []);
+      domainList.forEach(function (dm) {
+        if (doms.indexOf(dm) === -1) doms = doms.concat([dm]);
+      });
       _saveDomains[alunoKey] = doms;
       if (_saveTimers[alunoKey]) clearTimeout(_saveTimers[alunoKey]);
       _saveTimers[alunoKey] = setTimeout(function () {
@@ -16717,11 +16783,41 @@ function EscolarApp(_ref31) {
       console.warn('[escolar] loadEscolarData falhou:', err && err.message || err);
     });
   };
+  // Recarrega em segundo plano só quando não há nada a gravar em curso —
+  // nem um timer de debounce pendente (_saveTimers, 800ms após a última
+  // edição) nem um pedido já enviado ao Supabase (_escolarSaveInFlight).
+  // Recarregar por cima disso já causou o incidente do Liam 17/09: os dados
+  // frescos do servidor (ainda sem a gravação em curso) substituíam a cópia
+  // local, e a gravação pendente acabava por gravar por cima com dados
+  // desatualizados. Em vez de desistir, volta a tentar até ficar livre.
+  // Guarda o id do próprio setTimeout em window para poder cancelar uma
+  // tentativa anterior antes de agendar outra — sem isto, cada chamada a
+  // visibilitychange/csAoVoltarRede enquanto a app está em segundo plano
+  // (ex: o telemóvel acorda o ecrã várias vezes) empilhava um novo ciclo de
+  // retries por cima dos que já estavam a correr.
+  var recarregarQuandoLivre = function recarregarQuandoLivre(tentativa) {
+    tentativa = tentativa || 0;
+    if (window._escolarRecarregarTimer) {
+      clearTimeout(window._escolarRecarregarTimer);
+      window._escolarRecarregarTimer = null;
+    }
+    var hasPendingTimer = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
+    var hasSaveInFlight = Object.keys(_escolarSaveInFlight).some(function (k) { return _escolarSaveInFlight[k]; });
+    if (hasPendingTimer || hasSaveInFlight) {
+      if (tentativa >= 30) {
+        console.warn('[escolar] recarregarQuandoLivre: desisti ao fim de 30 tentativas, ainda há uma gravação em curso');
+        return;
+      }
+      window._escolarRecarregarTimer = setTimeout(function () { recarregarQuandoLivre(tentativa + 1); }, 1000);
+      return;
+    }
+    loadEscolarData();
+  };
   (0, _react.useEffect)(function () {
     loadEscolarData();
   }, []);
   (0, _react.useEffect)(function () {
-    return window.csAoVoltarRede(function () { loadEscolarData(); });
+    return window.csAoVoltarRede(function () { recarregarQuandoLivre(); });
   }, []);
   // Refetch quando a app volta a ficar visivel apos background.
   // Em mobile a aba pode ficar suspensa horas — sem isto, dados editados
@@ -16729,13 +16825,12 @@ function EscolarApp(_ref31) {
   (0, _react.useEffect)(function () {
     var onVisible = function onVisible() {
       if (document.visibilityState !== 'visible') return;
-      // Não recarregar por cima de edições ainda não guardadas (o save é
-      // feito 800ms depois de parar de escrever) nem enquanto o formulário
-      // de novo TPC está aberto — evita perder o que a pessoa escreveu e
-      // evita que o número de TPCs pareça 'travado' num valor antigo.
-      var hasPending = Object.keys(_saveTimers).some(function (k) { return _saveTimers[k]; });
-      if (hasPending || algumFormularioAbertoRef.current) return;
-      loadEscolarData();
+      // Não recarregar enquanto o formulário de novo TPC (ou qualquer outro
+      // formulário desta app) está aberto — evita perder o que a pessoa
+      // está a escrever. A gravação em curso (_saveTimers/_escolarSaveInFlight)
+      // é tratada por recarregarQuandoLivre, que tenta outra vez até ficar livre.
+      if (algumFormularioAbertoRef.current) return;
+      recarregarQuandoLivre();
     };
     document.addEventListener('visibilitychange', onVisible);
     return function () { document.removeEventListener('visibilitychange', onVisible); };
@@ -18644,13 +18739,68 @@ function EscolarApp(_ref31) {
       }
     }, "\u2713 Guardar"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        setAluno(function (al) {
+        var discId = d.id;
+        var aulasUsando = [];
+        Object.keys(aluno.horario || {}).forEach(function (dia) {
+          (aluno.horario[dia] || []).forEach(function (slot) {
+            if (!slot.livre && slot.discId === discId) aulasUsando.push(slot);
+          });
+        });
+        var tpcUsando = (aluno.tpc || []).filter(function (t) { return t.discId === discId; });
+        var notasDaDisc = (aluno.notas && aluno.notas[discId]) || null;
+        var numNotas = notasDaDisc ? Object.keys(notasDaDisc).reduce(function (acc, sem) { return acc + (notasDaDisc[sem] || []).length; }, 0) : 0;
+        if (aulasUsando.length || tpcUsando.length || numNotas) {
+          var partes = [];
+          if (aulasUsando.length) partes.push(aulasUsando.length + (aulasUsando.length === 1 ? ' aula' : ' aulas'));
+          if (tpcUsando.length) partes.push(tpcUsando.length + ' TPC');
+          if (numNotas) partes.push(numNotas + (numNotas === 1 ? ' nota' : ' notas'));
+          var frase = partes.length > 1 ? partes.slice(0, -1).join(', ') + ' e ' + partes[partes.length - 1] : partes[0];
+          if (!window.confirm(frase + ' usam esta disciplina \u2014 apagar?')) return;
+        }
+        var domainsParaGravar = ['disciplinas'];
+        if (aulasUsando.length) domainsParaGravar.push('horario');
+        if (tpcUsando.length) domainsParaGravar.push('tpc');
+        if (numNotas) domainsParaGravar.push('notas');
+        // Testes (tipo==='teste') desta disciplina têm uma linha em
+        // family_events (ver criarEventoTesteSeNaoExistir/apagarEventoTeste
+        // acima) — se não forem limpos pelo mesmo caminho do 🗑 do TPC
+        // (apagarEventoTeste), ficam órfãos no calendário da Família.
+        var testesParaApagar = tpcUsando.filter(function (t) { return t.tipo === 'teste'; }).map(function (t) { return t.id; });
+        var novoAluno = (function () {
+          var al = aluno;
+          var novoHorario = {};
+          Object.keys(al.horario || {}).forEach(function (dia) {
+            novoHorario[dia] = (al.horario[dia] || []).map(function (slot) {
+              return (!slot.livre && slot.discId === discId) ? _objectSpread(_objectSpread({}, slot), {}, { livre: true, discId: null }) : slot;
+            });
+          });
+          var novasNotas = _objectSpread({}, al.notas || {});
+          delete novasNotas[discId];
           return _objectSpread(_objectSpread({}, al), {}, {
             disciplinas: al.disciplinas.filter(function (x) {
-              return x.id !== d.id;
-            })
+              return x.id !== discId;
+            }),
+            horario: novoHorario,
+            tpc: (al.tpc || []).filter(function (t) { return t.discId !== discId; }),
+            notas: novasNotas
           });
-        }, 'disciplinas');
+        })();
+        // Flush de uma edição pendente (debounce de 800ms) primeiro, para
+        // não gravar por cima dela nem correr em paralelo com esta — depois
+        // atualiza o state já com a disciplina removida e grava de imediato
+        // (sem debounce, ação deliberada) só depois de o flush já ter
+        // pedido a sua própria gravação.
+        flushSaveAluno(alunoKey);
+        setAlunosData(function (p) {
+          return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoAluno));
+        });
+        saveAlunoSnapshot(alunoKey, novoAluno, domainsParaGravar, function (err) {
+          if (err) {
+            console.error('[escolar] apagar disciplina: gravação falhou, testes NÃO removidos do calendário da Família:', err);
+            return; // gravação falhou — não apagar nada no calendário
+          }
+          testesParaApagar.forEach(function (tpcId) { apagarEventoTeste(tpcId); });
+        });
         setEditDiscId(null);
       },
       style: {
@@ -29952,6 +30102,7 @@ var WP_CSS = '\
 .wp-sig{display:flex;gap:26px;font-size:8pt;break-inside:avoid;background:#fff;margin-top:6px;flex:none}\
 .wp-sig div{flex:1;border-top:.8pt solid #000;padding-top:3px}\
 .wp-notiz{margin-top:10px;flex:1 1 auto;min-height:14mm;display:flex;flex-direction:column}\
+.wp-notiz-texto{font-size:8.5pt;white-space:pre-wrap;word-wrap:break-word;margin-bottom:4px;flex:none}\
 .wp-notlines{flex:1 1 auto;min-height:0;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 9.7mm,#ccc 9.7mm,#ccc 10mm);background-position:top}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
 .wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
@@ -30252,6 +30403,21 @@ function WpWocheListe(p) {
   }
   return React.createElement('div', null, dias);
 }
+// Bloco de notas da semana (wplan_notizen), por baixo do plano da semana.
+// Gravação automática 800ms depois de parar de escrever — ver
+// mudarNotizSemana em WochenplanApp.
+function WpNotizenSemana(p) {
+  return React.createElement('div', { className: 'wp-abs', style: { marginTop: 13 } },
+    React.createElement('h3', null, 'Notizen'),
+    React.createElement('textarea', {
+      autoComplete: 'off',
+      placeholder: 'Notizen zur Woche…',
+      value: p.texto,
+      onChange: function(e) { p.onTexto(e.target.value); },
+      style: { minHeight: 90 }
+    })
+  );
+}
 
 // ── Vista Team (Plantafel) ─────────────────────────────────────
 // Abaixo de 600px a tabela de 7 colunas não cabe (e não deve obrigar a
@@ -30369,7 +30535,7 @@ function WpTaskModal(p) {
           React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFB' }, 'Bis'), React.createElement('input', { id: 'wpFB', type: 'time', value: d.bis || '12:00', onChange: function(e) { p.onChange('bis', e.target.value); } }))
         )
       ),
-      React.createElement('label', { htmlFor: 'wpFBem' }, 'Bemerkungen'),
+      React.createElement('label', { htmlFor: 'wpFBem' }, 'Bemerkungen / Notiz'),
       React.createElement('textarea', { id: 'wpFBem', autoComplete: 'off', rows: 3, style: { width: '100%' }, value: d.bemerkungen || '', onChange: function(e) { p.onChange('bemerkungen', e.target.value); } }),
       p.id && React.createElement('div', null,
         React.createElement('label', null, 'Status'),
@@ -30484,9 +30650,15 @@ function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
     )
   );
 }
-function wpPrintNotizen() {
+// texto (opcional): nota semanal escrita na app (wplan_notizen). Sem texto,
+// fica exatamente como antes (só as linhas para escrever à mão). Com texto,
+// mostra-o (a preservar quebras de linha) e as linhas em branco que
+// sobrarem por baixo — .wp-notlines já tem min-height:0, por isso encolhe
+// sozinha conforme o texto ocupar mais ou menos espaço.
+function wpPrintNotizen(texto) {
   return React.createElement('div', { className: 'wp-notiz' },
     React.createElement('div', { className: 'wp-pd' }, 'Notizen'),
+    texto && React.createElement('div', { className: 'wp-notiz-texto' }, texto),
     React.createElement('div', { className: 'wp-notlines' })
   );
 }
@@ -30513,7 +30685,7 @@ function WpPrintPlan(p) {
           return React.createElement('td', { key: k },
             st && React.createElement('b', null, WP_DST[st][0]),
             L.map(function(a) {
-              return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), (a.status === 'erledigt' ? '☒ ' : a.status === 'laeuft' ? '◐ ' : a.status === 'gebaut_nio' ? '⚠ ' : '☐ ') + a.titel + (a.auftrag_nr ? ' ' : ''), a.auftrag_nr && React.createElement('b', null, a.auftrag_nr));
+              return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), (a.status === 'erledigt' ? '☒ ' : a.status === 'laeuft' ? '◐ ' : a.status === 'gebaut_nio' ? '⚠ ' : '☐ ') + a.titel + (a.auftrag_nr ? ' ' : ''), a.auftrag_nr && React.createElement('b', null, a.auftrag_nr), a.bemerkungen && (' · ' + a.bemerkungen));
             })
           );
         });
@@ -30522,13 +30694,13 @@ function WpPrintPlan(p) {
     ),
     sp.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Nicht erledigt — Übertrag'),
     sp.map(function(a) {
-      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
     dr.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Dringend · kein Datum'),
     dr.map(function(a) {
-      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
-    wpPrintNotizen(),
+    wpPrintNotizen(p.notizSemana),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Erstellt / Datum'), React.createElement('div', null, 'Bauleiter'), React.createElement('div', null, 'Kenntnisnahme Monteur'))
   );
 }
@@ -30568,7 +30740,7 @@ function WpPrintUebersicht(p) {
         })
       );
     }),
-    wpPrintNotizen(),
+    wpPrintNotizen(p.notizSemana),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'), React.createElement('div', null, 'Bauleiter'))
   );
 }
@@ -30586,7 +30758,7 @@ function WpPrintListe(p) {
       return React.createElement('div', { key: k },
         React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + WP_DST[st][0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
         L.map(function(a) {
-          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
         notas.map(function(r) {
           return React.createElement('div', { key: 'n' + r.wer, style: { fontSize: '8pt', padding: '3px 0 0 20px' } }, (p.who === 'alle' ? r.wer + ': ' : '') + r.notiz);
@@ -30595,13 +30767,13 @@ function WpPrintListe(p) {
     }),
     sp.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Nicht erledigt'),
     sp.map(function(a) {
-      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
     dr.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Dringend · kein Datum'),
     dr.map(function(a) {
-      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
-    wpPrintNotizen(),
+    wpPrintNotizen(p.notizSemana),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'))
   );
 }
@@ -30613,14 +30785,14 @@ function WpPrintArea(p) {
     React.createElement('style', null, pageCss),
     React.createElement('div', { id: 'wp-printArea', ref: p.areaRef },
       React.createElement('div', { id: 'wp-printInner', ref: p.innerRef },
-        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient }),
+        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient, notizSemana: p.notizSemana }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
-          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient }),
+          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient, notizSemana: p.notizSemana }),
           React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
           React.createElement('div', { className: 'wp-pbreak' }),
-          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient })
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient, notizSemana: p.notizSemana })
         )
       )
     )
@@ -30653,14 +30825,14 @@ function WpVorschau(p) {
         className: 'wp-vorschau-inner', ref: p.innerRef,
         style: { width: ((orient === 'landscape' ? 297 : 210) - 20) + 'mm' }
       },
-        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient }),
-        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient }),
+        tipo === 'plan' && React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        tipo === 'bericht' && React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana }),
+        (tipo === 'tag' || tipo === 'woche') && React.createElement(WpPrintListe, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, mode: tipo, orient: orient, notizSemana: p.notizSemana }),
         tipo === 'beide' && React.createElement(React.Fragment, null,
-          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient }),
+          React.createElement(WpPrintPlan, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '1 von 2', orient: orient, notizSemana: p.notizSemana }),
           React.createElement('div', { className: 'wp-pfoot' }, 'Rückseite: Wochenübersicht'),
           React.createElement('div', { className: 'wp-pbreak' }),
-          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient })
+          React.createElement(WpPrintUebersicht, { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, seite: '2 von 2', orient: orient, notizSemana: p.notizSemana })
         )
       )
     )
@@ -30745,6 +30917,9 @@ function WochenplanApp(props) {
 
   var _s27 = React.useState(0); var agoraTick = _s27[0], setAgoraTick = _s27[1];
 
+  var _s29 = React.useState(''); var notizSemana = _s29[0], setNotizSemana = _s29[1];
+  var notizSemanaTimerRef = React.useRef(null);
+
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
@@ -30770,6 +30945,47 @@ function WochenplanApp(props) {
   React.useEffect(function () {
     return window.csAoVoltarRede(function () { carregar(); });
   }, []);
+
+  // ── Notizen da semana (wplan_notizen) ──────────────────────────
+  // Uma linha por (datum_montag, wer) — wer='alle' quando o filtro "who"
+  // está em "Alle". Carregada pela segunda-feira da semana em curso e
+  // pelo filtro who em uso; muda sempre que um dos dois muda.
+  function carregarNotizSemana() {
+    if (!db) return;
+    var mondayIso = wpIso(wpMon(wpMk(cur)));
+    var wer = who === 'alle' ? 'alle' : who;
+    db.from('wplan_notizen').select('texto').eq('datum_montag', mondayIso).eq('wer', wer).then(function(res) {
+      if (res.error) {
+        console.error('[wochenplan] falha ao carregar Notizen:', res.error);
+        window.mostrarErro('Wochenplan', res.error);
+        return;
+      }
+      setNotizSemana((res.data && res.data[0] && res.data[0].texto) || '');
+    }).catch(function(e) {
+      console.error('[wochenplan] falha ao carregar Notizen:', e);
+      window.mostrarErro('Wochenplan', e);
+    });
+  }
+  React.useEffect(function() { carregarNotizSemana(); }, [cur, who]);
+  function mudarNotizSemana(texto) {
+    setNotizSemana(texto);
+    var mondayIso = wpIso(wpMon(wpMk(cur)));
+    var wer = who === 'alle' ? 'alle' : who;
+    if (notizSemanaTimerRef.current) clearTimeout(notizSemanaTimerRef.current);
+    notizSemanaTimerRef.current = setTimeout(function() {
+      notizSemanaTimerRef.current = null;
+      if (!db) return;
+      db.from('wplan_notizen').upsert({ datum_montag: mondayIso, wer: wer, texto: texto || null, updated_at: new Date().toISOString() }, { onConflict: 'datum_montag,wer' }).select().then(function(res) {
+        if (res.error) {
+          console.error('[wochenplan] falha ao gravar Notizen:', res.error);
+          window.mostrarErro('Wochenplan', res.error);
+        }
+      }).catch(function(e) {
+        console.error('[wochenplan] falha ao gravar Notizen:', e);
+        window.mostrarErro('Wochenplan', e);
+      });
+    }, 800);
+  }
 
   // Perfil "Monteur" arranca já com o próprio nome escolhido
   React.useEffect(function() {
@@ -31120,19 +31336,23 @@ function WochenplanApp(props) {
           onOpen: abrirTarefa, onNovo: abrirNovaTarefa,
           notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); }
         })),
-        mode === 'woche' && (wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } }))),
+        mode === 'woche' && React.createElement(React.Fragment, null,
+          wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })),
+          React.createElement(WpNotizenSemana, { texto: notizSemana, onTexto: mudarNotizSemana })
+        ),
         mode === 'team' && rolle === 'bauleiter' && React.createElement(WpTeamView, Object.assign({}, diaAtualObj, { onOpen: abrirTarefa, onDia: function(k) { setCur(k); setMode('tag'); } }))
       ),
       React.createElement(WpLegend, null)
     ),
-    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef }),
+    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef, notizSemana: notizSemana }),
 
     previewJob && React.createElement(WpVorschau, {
       tipo: previewJob, rolle: rolle, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who,
       wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef,
       onZurueck: function() { setPreviewJob(null); },
       onAba: setPreviewJob,
-      onDrucken: function() { acionarImpressao(previewJob); }
+      onDrucken: function() { acionarImpressao(previewJob); },
+      notizSemana: notizSemana
     }),
 
     editTaskDraft && React.createElement(WpTaskModal, {
