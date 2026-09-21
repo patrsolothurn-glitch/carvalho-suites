@@ -3,12 +3,17 @@
 // Para cada pollen_perfis com notificar=true, vai buscar a previsão de
 // HOJE à Open-Meteo Air Quality API para a lat/lon do perfil; se algum
 // pólen das alergias do perfil chegar a "forte" ou "muito forte" hoje,
-// envia um push ao profile_id dono do perfil (reaproveita a função
-// send-push já existente). Um push por perfil por dia no máximo (a
-// função só corre 1x/dia via cron). Respeita
-// profile.notification_prefs.disabledApps ('pollen').
+// envia um push a quem estiver em avisar_ids do perfil (ou ao
+// profile_id de quem criou, se avisar_ids vier vazio — perfis
+// antigos, criados antes desta coluna existir) — reaproveita a função
+// send-push já existente, que aceita profileIds em array. Lista de
+// destinatários sempre deduplicada (Set) e filtrada por quem ainda tem
+// o Pólen ativo (respeita profile.disabled e
+// notification_prefs.disabledApps 'pollen') antes do envio, por isso
+// nunca há duplo envio à mesma pessoa para o mesmo perfil na mesma
+// corrida — e a função só corre 1x/dia via cron.
 //
-// Deploy manual (Patricio):
+// Deploy manual (Patricio), sempre que este ficheiro mudar:
 //   supabase functions deploy pollen-alerta
 // Agendar: ver o bloco pg_cron em supabase/pollen.sql.
 
@@ -96,8 +101,8 @@ Deno.serve(async (req) => {
     }
 
     let enviados = 0;
+    let pessoasAvisadas = 0;
     for (const perfil of perfis) {
-      if (!elegivel.get(perfil.profile_id)) continue;
       const alergias: string[] = perfil.alergias || [];
       if (!alergias.length) continue;
       const vars = [...new Set(alergias.map((a) => OM_VARS[a]).filter(Boolean))];
@@ -132,21 +137,28 @@ Deno.serve(async (req) => {
       }
       if (!linhas.length) continue;
 
+      const candidatos: string[] = (Array.isArray(perfil.avisar_ids) && perfil.avisar_ids.length)
+        ? perfil.avisar_ids
+        : [perfil.profile_id];
+      const destinatarios = [...new Set(candidatos)].filter((id) => elegivel.get(id) === true);
+      if (!destinatarios.length) continue;
+
       const title = `🌼 Pólen alto hoje — ${perfil.cidade}`;
       const body = linhas.join('\n');
       try {
         await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
           method: 'POST',
           headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, body, profileIds: [perfil.profile_id] }),
+          body: JSON.stringify({ title, body, profileIds: destinatarios }),
         });
         enviados++;
+        pessoasAvisadas += destinatarios.length;
       } catch (e) {
         console.error('[pollen-alerta] send-push falhou para perfil', perfil.id, e);
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, avisos: enviados }), {
+    return new Response(JSON.stringify({ ok: true, avisos: enviados, pessoas: pessoasAvisadas }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
