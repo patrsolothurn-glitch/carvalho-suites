@@ -65,25 +65,68 @@ Só `.github/workflows/backup.yml` tocado.
   `carvalho-backups` (commit raiz `46f72d0`, 39 ficheiros, branch `main`
   nova).
 
-### P1c — Pronta para avançar (falta ainda ser pedida/confirmada)
+### P1c — Concluída — 2026-09-21 — histórico reescrito, sem PR (força-push autorizado explicitamente só para este passo)
 
-PR #7 já está mergeado e o workflow já correu com sucesso pelo menos uma
-vez — as duas condições do passo 1 da P1c (sem PRs de infraestrutura
-abertos que a bloqueiem, backup de hoje a existir no `carvalho-backups`)
-estão cumpridas. Nota: o PR #8 (P17) continua aberto nesta data — se o
-passo 1 da P1c exigir *zero* PRs abertos em qualquer parte do repo (não só
-de infraestrutura), confirmar isso antes de avançar.
+**Antes de mexer**: confirmado zero PRs abertos e o backup de hoje
+(`backups/2026-09-21/`, 39 ficheiros) a existir no `carvalho-backups`.
 
-- Limpar `backups/` de todo o histórico do repo público com `git filter-repo`
-  (comandos já documentados no PR #5). Força-push autorizado explicitamente
-  só para este passo.
-- Apagar as branches remotas antigas já integradas (lista dada pelo
-  Patricio), confirmando primeiro que nenhuma tem commits que faltem no
-  main.
-- Depois do `push --force`: qualquer clone existente (incluindo sessões
-  futuras) fica desatualizado e precisa de ser re-clonado.
-- Pedir ao GitHub Support para limpar os commits antigos em cache (ficam
-  acessíveis por SHA direto até lá).
+**Branches remotas**: das 8 branches além de `main`
+(`infra-p1a-backup-publico`, `p2-escolar-guardas`,
+`claude/graphify-file-test-analysis-42ho91`,
+`claude/graphify-file-test-analysis-42ho91-quadro-semana`,
+`p1b-backup-privado`, `p17-wochenplan-notizen`, `pollen-fetch-caminho`),
+7 estavam totalmente integradas em `main` (verificado com
+`git merge-base --is-ancestor`). A oitava, `pollen-fetch-caminho`, tinha 2
+commits que a ancestralidade não reconhecia — mas `scripts/pollen-fetch.py`
+era byte-a-byte idêntico ao de `main` (o conteúdo já lá estava, só chegara
+por um commit diferente, via `git checkout -- ficheiro` numa sessão
+anterior); confirmado com o Patricio, incluída na lista a apagar.
+
+`git push origin --delete` falhou com **HTTP 403 vindo do próprio
+`git-receive-pack` do GitHub** (não do proxy da sessão — confirmado com
+`GIT_CURL_VERBOSE`), e não há nenhuma ferramenta MCP para apagar uma
+ref/branch. O Patricio apagou as 8 branches manualmente no GitHub;
+confirmado com `git ls-remote --heads` que só `main` restava antes de
+continuar.
+
+**Reescrita do histórico**:
+- `git clone --mirror` de `carvalho-suites` (trouxe também as refs
+  `refs/pull/N/head` do GitHub, geradas automaticamente para cada PR —
+  ver aviso abaixo).
+- `git filter-repo --path backups --invert-paths` (instalado via `pip
+  install git-filter-repo`, não vinha no ambiente).
+- **`main` tinha 6977 commits antes → 6785 depois.** 192 commits ficaram
+  completamente vazios (só tocavam em `backups/`, ex.: os commits diários
+  "🗄️ Backup automático") e foram removidos por completo; os 6785
+  restantes foram todos reescritos (SHA novo — 100% dos commits
+  processados, 0 inalterados, confirmado pelo `commit-map` do
+  `filter-repo`).
+- Confirmado (duas formas — `git rev-list --all --objects` e `git log
+  --all -- backups`) que **zero commits, em nenhuma ref, contêm
+  `backups/`**.
+- Sem tags no repositório (`git ls-remote --tags` vazio) — nada a
+  reenviar além de `main`.
+
+**Push e publicação**:
+- `git push --force` de `main`: **`8949f91` → `36a87397`**.
+- Deploy disparou automaticamente (evento `push`, força-push inclui) —
+  run **#6593**, `conclusion: success`.
+- Clone de trabalho local (`/home/user/carvalho-suites`) reposto com
+  `git fetch` + `git reset --hard origin/main` para corresponder ao
+  histórico novo.
+
+**⚠️ Exposição residual — duas notas importantes**:
+1. **`refs/pull/N/head`**: o GitHub mantém automaticamente uma ref por
+   cada PR alguma vez aberto (`pull/1/head` .. `pull/8/head`), mesmo depois
+   de fechado/mergeado, e estas **não são apagáveis por `git push`** (só o
+   GitHub Support as remove). Continuam a apontar para os commits
+   *antigos*, com `backups/` completo — mais fáceis de encontrar do que
+   um SHA direto, porque são enumeráveis (`pull/1/head`, `pull/2/head`, …).
+2. **Pedir ao GitHub Support** para limpar os commits antigos em cache
+   (incluindo as `refs/pull/N/head`) — continuam acessíveis por SHA
+   direto e por essas refs até lá.
+
+**Ainda por fazer** (fora do âmbito deste passo):
 - Rever as políticas RLS do Supabase para as 38 tabelas que estiveram
   publicamente legíveis via `backups/` (a service key nunca esteve
   commitada — só como secret do GitHub Actions — mas os dados em si
@@ -122,7 +165,7 @@ Só `src/09-app-escolar.js` tocado.
 apagar sem uso, apagar com 24 aulas em uso, voltar à app durante uma
 gravação, disc_id órfão).
 
-## P17 — Wochenplan: Bemerkungen impressas + Notizen escrito na app — PR aberto, sem merge — 2026-09-21 — [PR #8](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/8)
+## P17 — Wochenplan: Bemerkungen impressas + Notizen escrito na app — Concluído e publicado — 2026-09-21 — [PR #8](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/8) (mergeado, `627c1e6`; build 316, deploy #6592 com sucesso)
 
 **Objetivo**: poder escrever na app o que hoje se escreve à mão na folha
 impressa — a nota ao lado da morada (`bemerkungen`) e o bloco "Notizen" no
