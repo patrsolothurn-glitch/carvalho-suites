@@ -25,7 +25,7 @@ Só infraestrutura, nenhuma app tocada.
   continuam acessíveis a quem clonar o repo. Isso é o P1b.
 - Instruções de `git filter-repo` para o P1b escritas na descrição do PR #5.
 
-### P1b — Concluído (PR aberto, sem merge) — 2026-09-21 — [PR #7](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/7)
+### P1b — Concluído e verificado — 2026-09-21 — [PR #7](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/7) (mergeado, `62e8af9`)
 
 Só `.github/workflows/backup.yml` tocado.
 
@@ -56,14 +56,23 @@ Só `.github/workflows/backup.yml` tocado.
     com menos de 1000 — testado localmente com tabelas simuladas de
     2500 (3 páginas), 2000 (múltiplo exato), 0 e 37 linhas, todos com o
     total exato. O resumo já mostra o total real, não só a 1ª página.
-- Ainda por confirmar: correr o workflow manualmente depois do merge para
-  validar o clone/push no repositório privado.
+- **Verificado a correr de verdade** (run #51, id `35591804817`, depois
+  de duas falhas por `BACKUP_REPO_TOKEN` vazio — corrigido recriando o
+  secret como Repository secret, token fine-grained só para
+  `carvalho-backups`): **39 tabelas** exportadas com sucesso.
+  `family_events` 268, `escolar_tpc` 15, `wplan_tasks` 31,
+  `horas_entries` 141 linhas. `backups/2026-09-21/` confirmada criada no
+  `carvalho-backups` (commit raiz `46f72d0`, 39 ficheiros, branch `main`
+  nova).
 
-**Pendente antes de avançar para a P1c**: PR #7 tem de ser mergeado (e
-idealmente corrido uma vez com sucesso) primeiro — a P1c começa por
-confirmar que não há PRs abertos, e ainda há este aberto.
+### P1c — Pronta para avançar (falta ainda ser pedida/confirmada)
 
-### P1c — Pendente (limpar backups/ do histórico do carvalho-suites)
+PR #7 já está mergeado e o workflow já correu com sucesso pelo menos uma
+vez — as duas condições do passo 1 da P1c (sem PRs de infraestrutura
+abertos que a bloqueiem, backup de hoje a existir no `carvalho-backups`)
+estão cumpridas. Nota: o PR #8 (P17) continua aberto nesta data — se o
+passo 1 da P1c exigir *zero* PRs abertos em qualquer parte do repo (não só
+de infraestrutura), confirmar isso antes de avançar.
 
 - Limpar `backups/` de todo o histórico do repo público com `git filter-repo`
   (comandos já documentados no PR #5). Força-push autorizado explicitamente
@@ -112,3 +121,29 @@ Só `src/09-app-escolar.js` tocado.
 5 casos simulados e relatados na descrição do PR #6 (adicionar disciplina,
 apagar sem uso, apagar com 24 aulas em uso, voltar à app durante uma
 gravação, disc_id órfão).
+
+## P17 — Wochenplan: Bemerkungen impressas + Notizen escrito na app — PR aberto, sem merge — 2026-09-21 — [PR #8](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/8)
+
+**Objetivo**: poder escrever na app o que hoje se escreve à mão na folha
+impressa — a nota ao lado da morada (`bemerkungen`) e o bloco "Notizen" no
+fundo. Quem não escrever nada continua a ter a folha igual à de hoje.
+
+Só `src/17-app-wochenplan.js` tocado.
+
+- `bemerkungen` (já existia, já era gravado, nunca era impresso) passa a
+  aparecer nas linhas impressas do Wochenplan e do Tagesplan/Wochenliste
+  (dias, Übertrag/Nicht erledigt, Dringend), só quando preenchido, com
+  quebra de linha em vez de cortar/espremer a coluna do nome. A
+  Wochenübersicht não foi pedida explicitamente e não foi tocada.
+- Rótulo do formulário: "Bemerkungen" → "Bemerkungen / Notiz".
+- Tabela `wplan_notizen(datum_montag, wer, texto)` (já criada) — campo de
+  texto "Notizen" por baixo do plano da semana, gravação automática 800ms
+  depois de parar de escrever, erro com `console.error('[wochenplan] ...')`
+  + cartão vermelho sem fechar o campo. Muda de semana/pessoa → carrega a
+  nota respetiva.
+- Impressão: sem texto fica igual a hoje; com texto, mostra-o (quebras de
+  linha preservadas) e as linhas em branco que sobrarem por baixo — nas
+  três folhas que já chamavam `wpPrintNotizen`.
+
+4 casos (sem nada, só bemerkungen, só Notizen, Notizen mais longo do que
+o espaço) descritos na descrição do PR #8.
