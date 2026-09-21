@@ -25,16 +25,56 @@ Só infraestrutura, nenhuma app tocada.
   continuam acessíveis a quem clonar o repo. Isso é o P1b.
 - Instruções de `git filter-repo` para o P1b escritas na descrição do PR #5.
 
-### P1b — Pendente (à espera do Patricio ao PC)
+### P1b — Concluído (PR aberto, sem merge) — 2026-09-21 — [PR #7](https://github.com/patrsolothurn-glitch/carvalho-suites/pull/7)
 
-- Mover o backup do Supabase para um repositório privado novo.
+Só `.github/workflows/backup.yml` tocado.
+
+- Repositório privado `patrsolothurn-glitch/carvalho-backups` e secret
+  `BACKUP_REPO_TOKEN` já existiam (criados fora desta sessão).
+- Agendamento 03:00 UTC reativado + `workflow_dispatch` mantido.
+- `set -euo pipefail`; cada tabela com `curl -sf` — se uma falhar, o
+  workflow falha de imediato ("tabela X falhou"), nunca grava `"[]"`.
+- Cada ficheiro validado com `jq -e` (tem de ser array JSON) antes de
+  contar como sucesso.
+- Mesma lista de tabelas. `family_trips_list` **não entrou** — só é lida
+  no código (`.select`), nunca escrita como `family_trips` (que já está
+  na lista); tudo indica view sobre essa tabela, não tabela própria (sem
+  acesso direto à BD nesta sessão para confirmar com certeza absoluta).
+- Clona `carvalho-backups` com o token, escreve em `backups/AAAA-MM-DD/`,
+  comita e envia (push) **lá** — o workflow já nem faz checkout do
+  `carvalho-suites`.
+- Limpeza de pastas com mais de 90 dias pela **data no nome** da pasta
+  (string `YYYY-MM-DD`, não `mtime`).
+- Resumo (nº de tabelas + linhas por tabela) no `$GITHUB_STEP_SUMMARY`.
+- **Correções feitas depois da primeira verificação do PR #7**:
+  - `carvalho-backups` está mesmo vazio (sem branch) — depois do clone,
+    se `HEAD` não tiver commit nenhum, cria a branch `main`; o push final
+    passa a ser explícito (`git push origin HEAD:main`).
+  - `wplan_notizen` (tabela nova do P17) acrescentada à lista.
+  - Paginação: cada tabela exportada em páginas de 1000 linhas
+    (`Range: OFFSET-OFFSET+999`), juntas com `jq -s`, até uma página vir
+    com menos de 1000 — testado localmente com tabelas simuladas de
+    2500 (3 páginas), 2000 (múltiplo exato), 0 e 37 linhas, todos com o
+    total exato. O resumo já mostra o total real, não só a 1ª página.
+- Ainda por confirmar: correr o workflow manualmente depois do merge para
+  validar o clone/push no repositório privado.
+
+**Pendente antes de avançar para a P1c**: PR #7 tem de ser mergeado (e
+idealmente corrido uma vez com sucesso) primeiro — a P1c começa por
+confirmar que não há PRs abertos, e ainda há este aberto.
+
+### P1c — Pendente (limpar backups/ do histórico do carvalho-suites)
+
 - Limpar `backups/` de todo o histórico do repo público com `git filter-repo`
-  (comandos já documentados no PR #5).
-- Decidir o que fazer às branches antigas que ainda têm o histórico completo
-  (apagar as que não interessa preservar antes de reescrever).
-- Depois do `push --force` no filter-repo: qualquer clone existente
-  (incluindo sessões futuras) fica desatualizado e precisa de ser re-clonado
-  a partir do repositório privado novo.
+  (comandos já documentados no PR #5). Força-push autorizado explicitamente
+  só para este passo.
+- Apagar as branches remotas antigas já integradas (lista dada pelo
+  Patricio), confirmando primeiro que nenhuma tem commits que faltem no
+  main.
+- Depois do `push --force`: qualquer clone existente (incluindo sessões
+  futuras) fica desatualizado e precisa de ser re-clonado.
+- Pedir ao GitHub Support para limpar os commits antigos em cache (ficam
+  acessíveis por SHA direto até lá).
 - Rever as políticas RLS do Supabase para as 38 tabelas que estiveram
   publicamente legíveis via `backups/` (a service key nunca esteve
   commitada — só como secret do GitHub Actions — mas os dados em si
