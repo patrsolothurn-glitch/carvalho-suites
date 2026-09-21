@@ -46,6 +46,16 @@ Só `.github/workflows/backup.yml` tocado.
 - Limpeza de pastas com mais de 90 dias pela **data no nome** da pasta
   (string `YYYY-MM-DD`, não `mtime`).
 - Resumo (nº de tabelas + linhas por tabela) no `$GITHUB_STEP_SUMMARY`.
+- **Correções feitas depois da primeira verificação do PR #7**:
+  - `carvalho-backups` está mesmo vazio (sem branch) — depois do clone,
+    se `HEAD` não tiver commit nenhum, cria a branch `main`; o push final
+    passa a ser explícito (`git push origin HEAD:main`).
+  - `wplan_notizen` (tabela nova do P17) acrescentada à lista.
+  - Paginação: cada tabela exportada em páginas de 1000 linhas
+    (`Range: OFFSET-OFFSET+999`), juntas com `jq -s`, até uma página vir
+    com menos de 1000 — testado localmente com tabelas simuladas de
+    2500 (3 páginas), 2000 (múltiplo exato), 0 e 37 linhas, todos com o
+    total exato. O resumo já mostra o total real, não só a 1ª página.
 - Ainda por confirmar: correr o workflow manualmente depois do merge para
   validar o clone/push no repositório privado.
 
