@@ -222,6 +222,5 @@ var APPS_DATA = [{
   desc: 'Previsão e diário de alergias ao pólen',
   badge: null,
   color: '#12A150',
-  adminOnly: true,
   iconSvg: pollenIconSvg
 }];
