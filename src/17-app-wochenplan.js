@@ -287,6 +287,7 @@ var WP_CSS = '\
 .wp-sig{display:flex;gap:26px;font-size:8pt;break-inside:avoid;background:#fff;margin-top:6px;flex:none}\
 .wp-sig div{flex:1;border-top:.8pt solid #000;padding-top:3px}\
 .wp-notiz{margin-top:10px;flex:1 1 auto;min-height:14mm;display:flex;flex-direction:column}\
+.wp-notiz-texto{font-size:8.5pt;white-space:pre-wrap;word-wrap:break-word;margin-bottom:4px;flex:none}\
 .wp-notlines{flex:1 1 auto;min-height:0;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 9.7mm,#ccc 9.7mm,#ccc 10mm);background-position:top}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
 .wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
@@ -704,7 +705,7 @@ function WpTaskModal(p) {
           React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFB' }, 'Bis'), React.createElement('input', { id: 'wpFB', type: 'time', value: d.bis || '12:00', onChange: function(e) { p.onChange('bis', e.target.value); } }))
         )
       ),
-      React.createElement('label', { htmlFor: 'wpFBem' }, 'Bemerkungen'),
+      React.createElement('label', { htmlFor: 'wpFBem' }, 'Bemerkungen / Notiz'),
       React.createElement('textarea', { id: 'wpFBem', autoComplete: 'off', rows: 3, style: { width: '100%' }, value: d.bemerkungen || '', onChange: function(e) { p.onChange('bemerkungen', e.target.value); } }),
       p.id && React.createElement('div', null,
         React.createElement('label', null, 'Status'),
@@ -819,9 +820,15 @@ function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
     )
   );
 }
-function wpPrintNotizen() {
+// texto (opcional): nota semanal escrita na app (wplan_notizen). Sem texto,
+// fica exatamente como antes (só as linhas para escrever à mão). Com texto,
+// mostra-o (a preservar quebras de linha) e as linhas em branco que
+// sobrarem por baixo — .wp-notlines já tem min-height:0, por isso encolhe
+// sozinha conforme o texto ocupar mais ou menos espaço.
+function wpPrintNotizen(texto) {
   return React.createElement('div', { className: 'wp-notiz' },
     React.createElement('div', { className: 'wp-pd' }, 'Notizen'),
+    texto && React.createElement('div', { className: 'wp-notiz-texto' }, texto),
     React.createElement('div', { className: 'wp-notlines' })
   );
 }
@@ -848,7 +855,7 @@ function WpPrintPlan(p) {
           return React.createElement('td', { key: k },
             st && React.createElement('b', null, WP_DST[st][0]),
             L.map(function(a) {
-              return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), (a.status === 'erledigt' ? '☒ ' : a.status === 'laeuft' ? '◐ ' : a.status === 'gebaut_nio' ? '⚠ ' : '☐ ') + a.titel + (a.auftrag_nr ? ' ' : ''), a.auftrag_nr && React.createElement('b', null, a.auftrag_nr));
+              return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), (a.status === 'erledigt' ? '☒ ' : a.status === 'laeuft' ? '◐ ' : a.status === 'gebaut_nio' ? '⚠ ' : '☐ ') + a.titel + (a.auftrag_nr ? ' ' : ''), a.auftrag_nr && React.createElement('b', null, a.auftrag_nr), a.bemerkungen && (' · ' + a.bemerkungen));
             })
           );
         });
@@ -857,11 +864,11 @@ function WpPrintPlan(p) {
     ),
     sp.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Nicht erledigt — Übertrag'),
     sp.map(function(a) {
-      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
     dr.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Dringend · kein Datum'),
     dr.map(function(a) {
-      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
     wpPrintNotizen(),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Erstellt / Datum'), React.createElement('div', null, 'Bauleiter'), React.createElement('div', null, 'Kenntnisnahme Monteur'))
@@ -921,7 +928,7 @@ function WpPrintListe(p) {
       return React.createElement('div', { key: k },
         React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + WP_DST[st][0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
         L.map(function(a) {
-          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+          return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
         notas.map(function(r) {
           return React.createElement('div', { key: 'n' + r.wer, style: { fontSize: '8pt', padding: '3px 0 0 20px' } }, (p.who === 'alle' ? r.wer + ': ' : '') + r.notiz);
@@ -930,11 +937,11 @@ function WpPrintListe(p) {
     }),
     sp.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Nicht erledigt'),
     sp.map(function(a) {
-      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'sp' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }, WP_DAY[wpDi(wpMk(a.datum))] + ' ' + wpFmt(wpMk(a.datum))), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
     dr.length > 0 && React.createElement('div', { className: 'wp-pd' }, 'Dringend · kein Datum'),
     dr.map(function(a) {
-      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
+      return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
     wpPrintNotizen(),
     React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'))
