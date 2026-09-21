@@ -1,45 +1,92 @@
-# PARADO (P1a, ver REVISAO-PROGRESSO.md): o repo carvalho-suites é público
-# e este workflow comitava backups/ para o próprio repo, tornando 38
-# tabelas do Supabase acessíveis a qualquer pessoa. O agendamento fica
-# desativado até o backup passar para um repositório privado (P1b).
-# Só corre manualmente (workflow_dispatch) até lá.
+# Backup diário do Supabase para o repositório PRIVADO
+# patrsolothurn-glitch/carvalho-backups (P1b, ver REVISAO-PROGRESSO.md).
+# Nunca escreve nem comita nada no carvalho-suites (que é público) — só
+# clona e grava no repositório privado, usando o secret BACKUP_REPO_TOKEN.
 name: Backup Supabase Data
 
+permissions:
+  contents: read
+
 on:
-  # schedule:
-  #   - cron: '0 3 * * *'   # Todos os dias às 03:00 UTC (04:00/05:00 na Suíça)
+  schedule:
+    - cron: '0 3 * * *'   # Todos os dias às 03:00 UTC (04:00/05:00 na Suíça)
   workflow_dispatch: {}    # Permite correr manualmente em qualquer altura
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Clonar carvalho-backups (repositório privado)
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${BACKUP_REPO_TOKEN}@github.com/patrsolothurn-glitch/carvalho-backups.git" carvalho-backups
+          git -C carvalho-backups config user.name "Carvalho Backup Bot"
+          git -C carvalho-backups config user.email "backup@carvalho-suite.local"
 
-      - name: Exportar tabelas do Supabase
+      - name: Exportar e validar tabelas do Supabase
         env:
           SUPABASE_URL: https://qtynznppkxjmihxiquze.supabase.co
           SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          DATE=$(date +%Y-%m-%d)
-          mkdir -p "backups/$DATE"
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d)
+          DIR="carvalho-backups/backups/$DATE"
+          mkdir -p "$DIR"
+          # Mesma lista de tabelas de sempre. family_trips_list NÃO entra:
+          # só é usada no código com .select() (leitura), nunca com insert/
+          # update/delete como a tabela family_trips — tudo indica que é
+          # uma view sobre family_trips, e as views não têm backup próprio
+          # aqui (o backup da tabela de base já as cobre).
           TABLES="profiles members horas_entries agenda_pro_jobs family_events nutri_products escolar_disciplinas escolar_horario escolar_notas escolar_tpc push_subscriptions subscriptions lucas_condutores lucas_visitantes lucas_semana lucas_config horaspro_settings horaspro_projects horas_projects agenda_monteurs escolar_eventos escolar_perfil hauswart_data rapport_planung rapport_tages rapport_wochen family_trips voz_pastas voz_gravacoes wplan_leute wplan_tasks wplan_tag pending_invites horas_voz horas_voz_config pollen_perfis pollen_diario pollen_termos"
+
+          echo "## 🗄️ Backup Supabase — $DATE" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tabela | Linhas |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          N=0
           for T in $TABLES; do
             echo "A exportar $T..."
-            curl -sf "$SUPABASE_URL/rest/v1/$T?select=*" \
-              -H "apikey: $SUPABASE_KEY" \
-              -H "Authorization: Bearer $SUPABASE_KEY" \
-              -o "backups/$DATE/$T.json" || echo "[]" > "backups/$DATE/$T.json"
+            if ! curl -sf "$SUPABASE_URL/rest/v1/$T?select=*" \
+                -H "apikey: $SUPABASE_KEY" \
+                -H "Authorization: Bearer $SUPABASE_KEY" \
+                -o "$DIR/$T.json"; then
+              echo "✗ tabela $T falhou (pedido ao Supabase sem sucesso)"
+              exit 1
+            fi
+            if ! jq -e 'type == "array"' "$DIR/$T.json" > /dev/null 2>&1; then
+              echo "✗ tabela $T falhou (resposta não é um array JSON válido)"
+              exit 1
+            fi
+            LINHAS=$(jq 'length' "$DIR/$T.json")
+            echo "  ✓ $T: $LINHAS linhas"
+            echo "| $T | $LINHAS |" >> "$GITHUB_STEP_SUMMARY"
+            N=$((N + 1))
           done
 
-      - name: Limpar backups com mais de 90 dias
-        run: |
-          find backups -maxdepth 1 -type d -mtime +90 -exec rm -rf {} \; || true
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Total: $N tabelas exportadas com sucesso.**" >> "$GITHUB_STEP_SUMMARY"
+          echo "Total: $N tabelas exportadas com sucesso."
 
-      - name: Comitar backup
+      - name: Apagar backups com mais de 90 dias (pela data no nome da pasta)
         run: |
-          git config user.name "Carvalho Backup Bot"
-          git config user.email "backup@carvalho-suite.local"
+          set -euo pipefail
+          CUTOFF=$(date -u -d '90 days ago' +%Y-%m-%d)
+          cd carvalho-backups/backups
+          for d in */; do
+            NAME="${d%/}"
+            if [[ "$NAME" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$NAME" < "$CUTOFF" ]]; then
+              echo "A apagar $NAME (mais de 90 dias, pela data no nome)"
+              rm -rf "$NAME"
+            fi
+          done
+
+      - name: Comitar e enviar para carvalho-backups
+        run: |
+          set -euo pipefail
+          cd carvalho-backups
           git add backups/
-          git diff --staged --quiet && echo "Nada novo para comitar" || git commit -m "🗄️ Backup automático $(date +%Y-%m-%d)"
+          git diff --staged --quiet && echo "Nada novo para comitar" || git commit -m "🗄️ Backup automático $(date -u +%Y-%m-%d)"
           git push
