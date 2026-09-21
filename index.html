@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-21T16:41:09.995Z
+  Gerado em: 2026-09-21T17:01:45.116Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-317";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-318";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -34062,9 +34062,14 @@ function HorasVozApp(props) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// APP PÓLEN — Previsão e diário de alergias ao pólen (admin only, só
-// Patricio). Só lê/escreve em pollen_perfis, pollen_diario e
-// pollen_termos. pollen_estacoes/pollen_medicoes são só de leitura
+// APP PÓLEN — Previsão e diário de alergias ao pólen. Disponível a
+// quem for admin ou tiver 'pollen' em profiles.allowed_apps (ver
+// src/02-theme.js e src/10-shell.js). pollen_perfis e pollen_termos
+// são partilhados por toda a família com acesso ao Pólen (RLS por
+// is_admin/allowed_apps, ver supabase/pollen.sql) — não filtrados por
+// profile_id no carregar(); profile_id em pollen_perfis/pollen_termos
+// continua a guardar quem criou. pollen_diario é por perfil escolhido,
+// também partilhado. pollen_estacoes/pollen_medicoes são só de leitura
 // aqui (alimentadas pelo workflow .github/workflows/pollen-fetch.yml).
 // Nunca mistura com tabelas de outra app.
 // ══════════════════════════════════════════════════════════════════
@@ -34437,23 +34442,32 @@ function PollenApp(props) {
   var _s34 = React.useState(false); var perfilSaving = _s34[0], setPerfilSaving = _s34[1];
   var _s35 = React.useState(null); var confirmApagarPerfil = _s35[0], setConfirmApagarPerfil = _s35[1];
   var _s36 = React.useState(null); var confirmApagarDiario = _s36[0], setConfirmApagarDiario = _s36[1];
+  var _s37 = React.useState([]); var pessoasPollen = _s37[0], setPessoasPollen = _s37[1];
+  var _s38 = React.useState([]); var pfAvisarIds = _s38[0], setPfAvisarIds = _s38[1];
 
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
     Promise.all([
-      db.from('pollen_perfis').select('*').eq('profile_id', profile.id).order('created_at', { ascending: true }),
-      db.from('pollen_termos').select('*').eq('profile_id', profile.id).order('created_at', { ascending: true }),
-      db.from('pollen_estacoes').select('*')
+      db.from('pollen_perfis').select('*').order('created_at', { ascending: true }),
+      db.from('pollen_termos').select('*').order('created_at', { ascending: true }),
+      db.from('pollen_estacoes').select('*'),
+      db.from('profiles').select('id, display_name, email, is_admin, allowed_apps, disabled')
     ]).then(function (res) {
-      var perfisRes = res[0], termosRes = res[1], estacoesRes = res[2];
+      var perfisRes = res[0], termosRes = res[1], estacoesRes = res[2], profilesRes = res[3];
       if (perfisRes.error) { setErro('Falha ao carregar perfis: ' + perfisRes.error.message); setLoading(false); window.mostrarErro('Pólen', perfisRes.error); return; }
       if (termosRes.error) { console.error('[pollen] carregar termos:', termosRes.error); window.mostrarErro('Pólen', termosRes.error); }
       if (estacoesRes.error) { console.error('[pollen] carregar estações:', estacoesRes.error); window.mostrarErro('Pólen', estacoesRes.error); }
+      if (profilesRes.error) { console.error('[pollen] carregar pessoas:', profilesRes.error); window.mostrarErro('Pólen', profilesRes.error); }
       var novosPerfis = perfisRes.data || [];
       setPerfis(novosPerfis);
       setTermosPessoais(termosRes.data || []);
       setEstacoes(estacoesRes.data || []);
+      setPessoasPollen((profilesRes.data || []).filter(function (p) {
+        return !p.disabled && (p.is_admin || (p.allowed_apps || []).indexOf('pollen') !== -1);
+      }).map(function (p) {
+        return { id: p.id, nome: p.display_name || p.email || 'Utilizador' };
+      }));
       setPerfilAtivoId(function (atual) {
         if (atual && novosPerfis.some(function (p) { return p.id === atual; })) return atual;
         return novosPerfis.length ? novosPerfis[0].id : null;
@@ -34559,6 +34573,7 @@ function PollenApp(props) {
   // ── Ações: Perfis ──────────────────────────────────────────────
   function abrirNovoPerfil() {
     setPerfilEditandoId(null); setPfNome(''); setPfAlergias([]); setPfLocal(null); setPfNotificar(true);
+    setPfAvisarIds(profile && profile.id ? [profile.id] : []);
     setPfPesquisaCidade(''); setPfResultadosPesquisa([]);
     setPerfilEditorAberto(true);
   }
@@ -34566,12 +34581,18 @@ function PollenApp(props) {
     setPerfilEditandoId(p.id); setPfNome(p.nome); setPfAlergias(p.alergias || []);
     setPfLocal({ kanton: p.kanton, cidade: p.cidade, lat: p.lat, lon: p.lon });
     setPfNotificar(p.notificar !== false);
+    setPfAvisarIds((p.avisar_ids && p.avisar_ids.length) ? p.avisar_ids : (p.profile_id ? [p.profile_id] : []));
     setPfPesquisaCidade(''); setPfResultadosPesquisa([]);
     setPerfilEditorAberto(true);
   }
   function toggleAlergiaPerfil(tipoId) {
     setPfAlergias(function (atual) {
       return atual.indexOf(tipoId) !== -1 ? atual.filter(function (t) { return t !== tipoId; }) : atual.concat([tipoId]);
+    });
+  }
+  function toggleAvisarPerfil(profileId) {
+    setPfAvisarIds(function (atual) {
+      return atual.indexOf(profileId) !== -1 ? atual.filter(function (id) { return id !== profileId; }) : atual.concat([profileId]);
     });
   }
   function pesquisarCidade() {
@@ -34587,7 +34608,7 @@ function PollenApp(props) {
   function guardarPerfil() {
     if (!pfNome.trim() || !pfLocal) { setErro('Indica o nome e a localização do perfil.'); return; }
     setPerfilSaving(true);
-    var payload = { nome: pfNome.trim(), alergias: pfAlergias, kanton: pfLocal.kanton || null, cidade: pfLocal.cidade, lat: pfLocal.lat, lon: pfLocal.lon, notificar: pfNotificar };
+    var payload = { nome: pfNome.trim(), alergias: pfAlergias, kanton: pfLocal.kanton || null, cidade: pfLocal.cidade, lat: pfLocal.lat, lon: pfLocal.lon, notificar: pfNotificar, avisar_ids: pfAvisarIds };
     var query = perfilEditandoId
       ? db.from('pollen_perfis').update(payload).eq('id', perfilEditandoId).select()
       : db.from('pollen_perfis').insert(Object.assign({ profile_id: profile.id }, payload)).select();
@@ -34664,7 +34685,7 @@ function PollenApp(props) {
     query.then(function (res) {
       if (res.error) { setErro('Falha ao guardar termo: ' + res.error.message); window.mostrarErro('Pólen', res.error); return; }
       setNovoTermoAberto(false);
-      db.from('pollen_termos').select('*').eq('profile_id', profile.id).order('created_at', { ascending: true }).then(function (res2) {
+      db.from('pollen_termos').select('*').order('created_at', { ascending: true }).then(function (res2) {
         if (res2.error) { console.error('[pollen] recarregar termos:', res2.error); window.mostrarErro('Pólen', res2.error); return; }
         setTermosPessoais(res2.data || []);
       }).catch(function (e) { console.error('[pollen] recarregar termos:', e); window.mostrarErro('Pólen', e); });
@@ -34943,7 +34964,15 @@ function PollenApp(props) {
           React.createElement('input', { type: 'checkbox', checked: pfNotificar, onChange: function (e) { setPfNotificar(e.target.checked); } }),
           React.createElement('span', { style: { fontSize: 13 } }, 'Receber avisos de pólen alto')
         ),
-        React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', margin: '4px 0 0 26px' } }, 'O alerta usa a cidade do perfil.')
+        React.createElement('p', { style: { fontSize: 11, fontWeight: 700, color: 'var(--pol-texto2)', textTransform: 'uppercase', margin: '10px 0 6px' } }, 'Quem recebe o aviso'),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+          pessoasPollen.map(function (u) {
+            var on = pfAvisarIds.indexOf(u.id) !== -1;
+            return React.createElement('button', { key: u.id, className: 'pol-chip' + (on ? ' pol-chip-ativo' : ''), onClick: function () { toggleAvisarPerfil(u.id); } }, u.nome);
+          })
+        ),
+        !pessoasPollen.length && React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', margin: '4px 0 0' } }, 'Ainda ninguém tem o Pólen ativo.'),
+        React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', margin: '6px 0 0' } }, 'O alerta usa a cidade do perfil.')
       ),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'pol-btn', style: { flex: 1 }, onClick: function () { setPerfilEditorAberto(false); } }, 'Cancelar'),
