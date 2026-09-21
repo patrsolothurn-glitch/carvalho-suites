@@ -1490,7 +1490,7 @@ function CarvalhoSuite() {
     if (activeApp === 'voz' && isAdmin) return /*#__PURE__*/React.createElement(VozApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'wochenplan' && isAdmin) return /*#__PURE__*/React.createElement(WochenplanApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'horasvoz' && isAdmin) return /*#__PURE__*/React.createElement(HorasVozApp, { profile: profile, onBack: function() { setApp(null); } });
-    if (activeApp === 'pollen' && isAdmin) return /*#__PURE__*/React.createElement(PollenApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'pollen' && (isAdmin || myAllowedApps.includes('pollen'))) return /*#__PURE__*/React.createElement(PollenApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'
@@ -2158,7 +2158,7 @@ function CarvalhoSuite() {
     }, "Receber avisos de"),
     React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }
-    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: true }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true }, { id: 'pollen', permApp: 'pollen', emoji: '🌼', name: 'Pólen', active: true, adminOnly: true, iconSvg: pollenIconSvg }].filter(function (app) {
+    }, [{ id: 'agendapr', permApp: 'agenda', emoji: '📅', name: 'Patricio Work', active: true }, { id: 'familia', permApp: 'familia', emoji: '👨\u200d👩\u200d👧', name: 'Família', active: true }, { id: 'horaspr', permApp: 'horaspr', emoji: '⏱️', name: 'Patricio Time', active: false }, { id: 'nutri', permApp: 'nutri', emoji: '💊', name: 'Nutriguima', active: false }, { id: 'escolar', permApp: 'escolar', emoji: '📚', name: 'Vida Escolar', active: true }, { id: 'escola_lucas', permApp: 'escola_lucas', emoji: '🏫', name: 'Escola Grenchen', active: true }, { id: 'pollen', permApp: 'pollen', emoji: '🌼', name: 'Pólen', active: true, iconSvg: pollenIconSvg }].filter(function (app) {
       if (app.adminOnly) return isAdmin;
       var allowed = (profile && profile.allowed_apps) || [];
       return allowed.indexOf(app.permApp) !== -1;
