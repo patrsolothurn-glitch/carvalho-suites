@@ -1148,13 +1148,15 @@ function FitnessApp(props) {
         nome: receita.nome || nome,
         preparo: receita.preparo || '',
         ingredientes: (receita.ingredientes || []).map(function (ing, i) {
-          return {
-            _key: 'ia-' + i, _valoresAbertos: false,
+          var obj = {
+            _key: 'ia-' + i,
             nome: ing.nome || '', gramas: ing.gramas != null ? ing.gramas : '', ajustavel: ing.ajustavel !== false,
             nota: ing.nota || '', kcal_100: ing.kcal_100 != null ? ing.kcal_100 : '', prot_100: ing.prot_100 != null ? ing.prot_100 : '',
             hc_100: ing.hc_100 != null ? ing.hc_100 : '', gord_100: ing.gord_100 != null ? ing.gord_100 : '',
             medida: ing.medida === 'ml' ? 'ml' : 'g', unidade_nome: ing.unidade_nome || '', g_unidade: ing.g_unidade != null ? ing.g_unidade : ''
           };
+          obj._valoresAbertos = Object.keys(fiIngredienteValoresInvalidos(obj)).length > 0;
+          return obj;
         }),
         avisos: receita.avisos || []
       });
