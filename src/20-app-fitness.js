@@ -120,13 +120,16 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
     var kcalItem = (al.kcal_100 / 100) * it.gramas_base;
     if (it.ajustavel === false) F += kcalItem; else S += kcalItem;
   });
+  var temItens = itens.some(function (it) { return !!alimentosPorId[it.alimento_id]; });
   var fatorBruto = S > 0 ? (kcalAlvoRefeicao - F) / S : 1;
   var fator = Math.max(0.5, Math.min(2.0, fatorBruto));
+  // Opção sem itens (ou sem nenhum item com alimento válido) não tem nada
+  // para avisar — o aviso só existe quando há de facto itens a comparar.
   // Sem itens ajustáveis (S=0) não há fator para desviar — o aviso passa a
   // olhar se os itens fixos (F) já se afastam de mais de 15% da kcal alvo T.
-  var avisoFora = S > 0
+  var avisoFora = !temItens ? false : (S > 0
     ? (fatorBruto < 0.5 || fatorBruto > 2.0)
-    : (kcalAlvoRefeicao > 0 ? (Math.abs(F - kcalAlvoRefeicao) / kcalAlvoRefeicao > 0.15) : F > 0);
+    : (kcalAlvoRefeicao > 0 ? (Math.abs(F - kcalAlvoRefeicao) / kcalAlvoRefeicao > 0.15) : F > 0));
   var itensCalc = itens.map(function (it) {
     var al = alimentosPorId[it.alimento_id];
     if (!al) return null;
@@ -147,6 +150,20 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
 }
 function fiFmtKcal(n) { return n == null ? '—' : Math.round(n) + ' kcal'; }
 function fiFmtG(n) { return n == null ? '—' : Math.round(n) + ' g'; }
+// Valida/normaliza a altura escrita no assistente e no editor de perfil.
+// Só aceita 100–250 cm; um valor < 3 é lido como metros (ex.: 1.73) e
+// convertido para cm (×100). Devolve { cm, convertido, erro } — cm fica
+// null quando há erro ou o campo está vazio (erro só quando o campo TEM
+// texto mas fica fora do intervalo depois de convertido).
+function fiValidarAltura(valorStr) {
+  if (valorStr === '' || valorStr == null) return { cm: null, convertido: false, erro: null };
+  var n = parseFloat(valorStr);
+  if (isNaN(n)) return { cm: null, convertido: false, erro: null };
+  var convertido = n > 0 && n < 3;
+  var cm = convertido ? Math.round(n * 100) : n;
+  if (cm < 100 || cm > 250) return { cm: null, convertido: false, erro: 'A altura tem de estar entre 100 e 250 cm.' };
+  return { cm: cm, convertido: convertido, erro: null };
+}
 // dataISO "YYYY-MM-DD" + dias -> nova data ISO "YYYY-MM-DD" (usada
 // para prox_avaliacao = data da avaliação + intervalo_avaliacao_dias).
 function fiSomarDias(dataISO, dias) {
@@ -319,7 +336,7 @@ function FitnessApp(props) {
     var intervaloNum = parseInt(assistForm.intervalo_avaliacao_dias, 10) || 14;
     var payload = {
       sexo: assistForm.sexo, data_nasc: assistForm.data_nasc || null,
-      altura_cm: assistForm.altura_cm ? parseFloat(assistForm.altura_cm) : null,
+      altura_cm: fiValidarAltura(assistForm.altura_cm).cm,
       atividade: assistForm.atividade, objetivo: assistForm.objetivo,
       ritmo: assistForm.objetivo === 'perder' ? assistForm.ritmo : null,
       n_refeicoes: assistForm.n_refeicoes, prot_g_kg: parseFloat(assistForm.prot_g_kg) || 1.8,
@@ -367,6 +384,7 @@ function FitnessApp(props) {
     function assistVoltar() { setAssistStep(assistStep - 1); }
     var body;
     if (assistStep === 0) {
+      var alturaInfoAssist = fiValidarAltura(assistForm.altura_cm);
       body = React.createElement(React.Fragment, null,
         React.createElement(FiLabel, null, 'Sexo'),
         React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 14 } },
@@ -377,10 +395,12 @@ function FitnessApp(props) {
         React.createElement(FiLabel, null, 'Data de nascimento'),
         React.createElement('input', { type: 'date', className: 'fi-input', autoComplete: 'off', value: assistForm.data_nasc, onChange: function (e) { assistCampo('data_nasc', e.target.value); }, style: { marginBottom: 14 } }),
         React.createElement(FiLabel, null, 'Altura (cm)'),
-        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: assistForm.altura_cm, onChange: function (e) { assistCampo('altura_cm', e.target.value); }, style: { marginBottom: 14 } }),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: assistForm.altura_cm, onChange: function (e) { assistCampo('altura_cm', e.target.value); }, style: { marginBottom: alturaInfoAssist.erro || alturaInfoAssist.convertido ? 4 : 14 } }),
+        alturaInfoAssist.erro && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-vermelho)', margin: '0 0 10px', fontWeight: 700 } }, '⚠️ ' + alturaInfoAssist.erro),
+        alturaInfoAssist.convertido && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)', margin: '0 0 10px' } }, 'Convertido para ' + alturaInfoAssist.cm + ' cm'),
         React.createElement(FiLabel, null, 'Peso atual (kg)'),
         React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', value: assistForm.peso, onChange: function (e) { assistCampo('peso', e.target.value); } }),
-        React.createElement(FiAssistNav, { mostrarVoltar: assistStep > 0, onVoltar: assistVoltar, onNext: function () { setAssistStep(1); }, disabled: !assistForm.data_nasc || !assistForm.altura_cm || !assistForm.peso })
+        React.createElement(FiAssistNav, { mostrarVoltar: assistStep > 0, onVoltar: assistVoltar, onNext: function () { setAssistStep(1); }, disabled: !assistForm.data_nasc || !assistForm.altura_cm || !assistForm.peso || !!alturaInfoAssist.erro })
       );
     } else if (assistStep === 1) {
       body = React.createElement(React.Fragment, null,
@@ -468,6 +488,7 @@ function FitnessApp(props) {
   function perfCampo(nome, valor) { setPerfForm(function (f) { var n = {}; n[nome] = valor; return Object.assign({}, f, n); }); }
 
   function tentarGuardarPerfil() {
+    if (fiValidarAltura(perfForm.altura_cm).erro) return;
     var newN = perfForm.n_refeicoes;
     var ordenadas = refeicoes.slice().sort(function (a, b) { return a.ordem - b.ordem; });
     var excedentes = ordenadas.slice(newN);
@@ -487,7 +508,7 @@ function FitnessApp(props) {
     setPerfSaving(true);
     var payload = {
       sexo: perfForm.sexo, data_nasc: perfForm.data_nasc || null,
-      altura_cm: perfForm.altura_cm ? parseFloat(perfForm.altura_cm) : null,
+      altura_cm: fiValidarAltura(perfForm.altura_cm).cm,
       atividade: perfForm.atividade, objetivo: perfForm.objetivo,
       ritmo: perfForm.objetivo === 'perder' ? perfForm.ritmo : null,
       n_refeicoes: perfForm.n_refeicoes, prot_g_kg: parseFloat(perfForm.prot_g_kg) || 1.8,
@@ -542,12 +563,15 @@ function FitnessApp(props) {
         )
       ),
       meta.calculado && meta.calculado.avisoMinimo && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-vermelho)', marginTop: 8, fontWeight: 700 } }, '⚠️ A meta calculada ficaria abaixo do mínimo de segurança — foi ajustada para o mínimo.'),
-      !pesoAtual && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Sem peso registado ainda — o cálculo só fica completo depois de uma avaliação (Progresso, fase seguinte).'),
-      macrosRef && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Referência: ' + fiFmtG(macrosRef.prot_g) + ' proteína · ' + fiFmtG(macrosRef.hc_g) + ' HC · ' + fiFmtG(macrosRef.gord_g) + ' gordura')
+      !pesoAtual && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Sem peso registado ainda — o cálculo fica completo depois de uma avaliação.'),
+      !pesoAtual
+        ? React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Regista uma avaliação para veres as macros.')
+        : macrosRef && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Referência: ' + fiFmtG(macrosRef.prot_g) + ' proteína · ' + fiFmtG(macrosRef.hc_g) + ' HC · ' + fiFmtG(macrosRef.gord_g) + ' gordura')
     );
   }
 
   function renderPerfilEditor() {
+    var alturaInfoPerf = fiValidarAltura(perfForm.altura_cm);
     return React.createElement('div', { style: { padding: 16, maxWidth: 460, margin: '0 auto' } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 } },
         React.createElement('button', { className: 'fi-btn', onClick: function () { setPerfEditAberto(false); setRefeicoesParaConfirmar([]); } }, '← Voltar'),
@@ -574,7 +598,9 @@ function FitnessApp(props) {
         React.createElement(FiLabel, null, 'Data de nascimento'),
         React.createElement('input', { type: 'date', className: 'fi-input', autoComplete: 'off', value: perfForm.data_nasc, onChange: function (e) { perfCampo('data_nasc', e.target.value); }, style: { marginBottom: 14 } }),
         React.createElement(FiLabel, null, 'Altura (cm)'),
-        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: perfForm.altura_cm, onChange: function (e) { perfCampo('altura_cm', e.target.value); }, style: { marginBottom: 14 } }),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: perfForm.altura_cm, onChange: function (e) { perfCampo('altura_cm', e.target.value); }, style: { marginBottom: alturaInfoPerf.erro || alturaInfoPerf.convertido ? 4 : 14 } }),
+        alturaInfoPerf.erro && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-vermelho)', margin: '0 0 10px', fontWeight: 700 } }, '⚠️ ' + alturaInfoPerf.erro),
+        alturaInfoPerf.convertido && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)', margin: '0 0 10px' } }, 'Convertido para ' + alturaInfoPerf.cm + ' cm'),
         React.createElement(FiLabel, null, 'Atividade'),
         React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 } },
           FI_ATIVIDADE_OPTS.map(function (o) {
@@ -618,7 +644,7 @@ function FitnessApp(props) {
         React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)', margin: '0 0 14px' } }, 'Atualiza-se sozinha ao gravar uma avaliação nova (data + intervalo abaixo) — mas podes mudar ou apagar à mão aqui.'),
         React.createElement(FiLabel, null, 'Intervalo entre avaliações (dias)'),
         React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: perfForm.intervalo_avaliacao_dias, onChange: function (e) { perfCampo('intervalo_avaliacao_dias', e.target.value); }, style: { marginBottom: 14 } }),
-        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 10 }, disabled: perfSaving || refeicoesParaConfirmar.length > 0, onClick: tentarGuardarPerfil }, perfSaving ? 'A guardar…' : '✓ Guardar')
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 10 }, disabled: perfSaving || refeicoesParaConfirmar.length > 0 || !!alturaInfoPerf.erro, onClick: tentarGuardarPerfil }, perfSaving ? 'A guardar…' : '✓ Guardar')
       )
     );
   }
