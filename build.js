@@ -42,6 +42,7 @@ const JS_SECTIONS = [
   '17-app-wochenplan.js', // app Wochenplan — planeamento semanal de trabalho
   '18-app-horasvoz.js', // app Horas por Voz — registo de horas por voz (admin only)
   '19-app-pollen.js', // app Pólen — previsão e diário de alergias ao pólen (admin only)
+  '20-app-fitness.js', // app Carvalho Fitness — plano alimentar, progresso e treino (só Patricio)
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
