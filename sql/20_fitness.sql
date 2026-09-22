@@ -108,7 +108,7 @@ create policy "fitness_alimentos: dono edita" on fitness_alimentos for update to
 drop policy if exists "fitness_alimentos: dono apaga" on fitness_alimentos;
 create policy "fitness_alimentos: dono apaga" on fitness_alimentos for delete to authenticated using (user_id = auth.uid());
 
--- ── fitness_opcoes (máximo 5 por refeição — validado na app E aqui) ────
+-- ── fitness_opcoes (máximo 6 por refeição — validado na app E aqui) ────
 create table if not exists fitness_opcoes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references profiles(id) on delete cascade,
@@ -135,8 +135,8 @@ returns trigger
 language plpgsql
 as $$
 begin
-  if (select count(*) from fitness_opcoes where refeicao_id = new.refeicao_id and id <> new.id) >= 5 then
-    raise exception 'Máximo de 5 opções por refeição.';
+  if (select count(*) from fitness_opcoes where refeicao_id = new.refeicao_id and id <> new.id) >= 6 then
+    raise exception 'Máximo de 6 opções por refeição.';
   end if;
   return new;
 end;
