@@ -14,6 +14,7 @@
 // ══════════════════════════════════════════════════════════════════
 
 var FI_COR = '#1E8E3E';
+var FI_BUCKET = 'fitness-fotos';
 var FI_CSS = '' +
   '.fi-app{--fi-fundo:#F7FAF7;--fi-cartao:#FFFFFF;--fi-borda:#DCE8DC;--fi-texto:#132116;--fi-texto2:#4B5D4E;--fi-verde:#1E8E3E;--fi-verde-texto:#FFFFFF;--fi-vermelho:#DC2626;--fi-amarelo:#B45309;' +
   'background:var(--fi-fundo);color:var(--fi-texto);min-height:100vh;padding-bottom:86px;' +
@@ -171,7 +172,9 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
       kcal: (al.kcal_100 / 100) * gramas, prot: (al.prot_100 / 100) * gramas,
       hc: (al.hc_100 / 100) * gramas, gord: (al.gord_100 / 100) * gramas,
       unidades: al.g_unidade ? Math.round((gramas / al.g_unidade) * 10) / 10 : null,
-      unidade_nome: al.unidade_nome
+      unidade_nome: al.unidade_nome,
+      medida: al.medida === 'ml' ? 'ml' : 'g',
+      nota: it.nota || null
     };
   }).filter(Boolean);
   var totais = itensCalc.reduce(function (acc, it) {
@@ -235,6 +238,34 @@ function fiBuscarOFF(query) {
   });
 }
 
+// Comprime uma foto (do telemóvel) para no máximo maxLado px no lado
+// maior, JPEG qualidade 0.7 — devolve um Blob pronto a enviar para o
+// Storage. Nunca guardamos base64 na base de dados, só o caminho.
+function fiComprimirFoto(file, maxLado) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var w = img.width, h = img.height;
+        if (w > h) { if (w > maxLado) { h = Math.round(h * maxLado / w); w = maxLado; } }
+        else if (h > maxLado) { w = Math.round(w * maxLado / h); h = maxLado; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function (blob) {
+          if (!blob) { reject(new Error('Falha ao comprimir a foto.')); return; }
+          resolve(blob);
+        }, 'image/jpeg', 0.7);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── Pequenas peças ──────────────────────────────────────────────
 function FiCard(p) { return React.createElement('div', { className: 'fi-card', style: p.style }, p.children); }
 function FiLabel(p) { return React.createElement('p', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-texto2)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 6px' } }, p.children); }
@@ -248,7 +279,7 @@ function FiAssistNav(p) {
     React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 2 }, disabled: p.disabled, onClick: p.onNext }, p.label || 'Seguinte →')
   );
 }
-function fiAlimentoVazio() { return { nome: '', categoria: '', kcal_100: '', prot_100: '', hc_100: '', gord_100: '', unidade_nome: '', g_unidade: '' }; }
+function fiAlimentoVazio() { return { nome: '', categoria: '', medida: 'g', kcal_100: '', prot_100: '', hc_100: '', gord_100: '', unidade_nome: '', g_unidade: '' }; }
 
 // ── App principal (todo o estado aqui) ───────────────────────────
 function FitnessApp(props) {
@@ -302,9 +333,14 @@ function FitnessApp(props) {
   var _s34 = React.useState(null); var confirmApagarOpcao = _s34[0], setConfirmApagarOpcao = _s34[1];
   // Plano — itens de uma opção
   var _s35 = React.useState(null); var itemOpcaoAberta = _s35[0], setItemOpcaoAberta = _s35[1]; // id da opção com form de novo item aberto
-  var _s36 = React.useState({ alimento_id: '', gramas_base: '', ajustavel: true }); var itemForm = _s36[0], setItemForm = _s36[1];
+  var _s36 = React.useState({ alimento_id: '', gramas_base: '', ajustavel: true, nota: '' }); var itemForm = _s36[0], setItemForm = _s36[1];
   var _s37 = React.useState(null); var itemEditandoId = _s37[0], setItemEditandoId = _s37[1];
   var _s38 = React.useState(null); var confirmApagarItem = _s38[0], setConfirmApagarItem = _s38[1];
+  // Plano — vista "Receita" de uma opção
+  var _s39 = React.useState(null); var receitaOpcaoId = _s39[0], setReceitaOpcaoId = _s39[1];
+  var _s40 = React.useState('porcoes'); var receitaModo = _s40[0], setReceitaModo = _s40[1]; // porcoes|gramas, só em memória
+  var _s41 = React.useState(null); var receitaFotoUrl = _s41[0], setReceitaFotoUrl = _s41[1];
+  var _s42 = React.useState(false); var receitaFotoBusy = _s42[0], setReceitaFotoBusy = _s42[1];
 
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
@@ -740,7 +776,7 @@ function FitnessApp(props) {
   function abrirNovoAlimento() { setAlimEditandoId(null); setAlimForm(fiAlimentoVazio()); setAlimFormAberto(true); }
   function abrirEditarAlimento(a) {
     setAlimEditandoId(a.id);
-    setAlimForm({ nome: a.nome, categoria: a.categoria || '', kcal_100: a.kcal_100, prot_100: a.prot_100, hc_100: a.hc_100, gord_100: a.gord_100, unidade_nome: a.unidade_nome || '', g_unidade: a.g_unidade || '' });
+    setAlimForm({ nome: a.nome, categoria: a.categoria || '', medida: a.medida === 'ml' ? 'ml' : 'g', kcal_100: a.kcal_100, prot_100: a.prot_100, hc_100: a.hc_100, gord_100: a.gord_100, unidade_nome: a.unidade_nome || '', g_unidade: a.g_unidade || '' });
     setAlimFormAberto(true);
   }
   function alimCampo(nome, valor) { setAlimForm(function (f) { var n = {}; n[nome] = valor; return Object.assign({}, f, n); }); }
@@ -748,7 +784,7 @@ function FitnessApp(props) {
     if (!alimForm.nome.trim() || alimForm.kcal_100 === '' || alimForm.prot_100 === '' || alimForm.hc_100 === '' || alimForm.gord_100 === '') return;
     setAlimSaving(true);
     var payload = {
-      nome: alimForm.nome.trim(), categoria: alimForm.categoria.trim() || null,
+      nome: alimForm.nome.trim(), categoria: alimForm.categoria.trim() || null, medida: alimForm.medida === 'ml' ? 'ml' : 'g',
       kcal_100: parseFloat(alimForm.kcal_100), prot_100: parseFloat(alimForm.prot_100),
       hc_100: parseFloat(alimForm.hc_100), gord_100: parseFloat(alimForm.gord_100),
       unidade_nome: alimForm.unidade_nome.trim() || null, g_unidade: alimForm.g_unidade ? parseFloat(alimForm.g_unidade) : null
@@ -783,7 +819,7 @@ function FitnessApp(props) {
   }
   function aplicarResultadoOFF(r) {
     setAlimEditandoId(null);
-    setAlimForm({ nome: r.nome, categoria: '', kcal_100: r.kcal_100, prot_100: r.prot_100 || 0, hc_100: r.hc_100 || 0, gord_100: r.gord_100 || 0, unidade_nome: '', g_unidade: '' });
+    setAlimForm({ nome: r.nome, categoria: '', medida: 'g', kcal_100: r.kcal_100, prot_100: r.prot_100 || 0, hc_100: r.hc_100 || 0, gord_100: r.gord_100 || 0, unidade_nome: '', g_unidade: '' });
     setOffResultados([]); setOffQuery('');
     setAlimFormAberto(true);
   }
@@ -820,16 +856,23 @@ function FitnessApp(props) {
         React.createElement(FiLabel, null, alimEditandoId ? 'Editar alimento' : 'Novo alimento — confirma antes de guardar'),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome', value: alimForm.nome, onChange: function (e) { alimCampo('nome', e.target.value); }, style: { marginBottom: 8 } }),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Categoria (opcional)', value: alimForm.categoria, onChange: function (e) { alimCampo('categoria', e.target.value); }, style: { marginBottom: 8 } }),
+        React.createElement(FiLabel, null, 'Medida'),
+        React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 10 } },
+          ['g', 'ml'].map(function (m) {
+            var sel = alimForm.medida === m;
+            return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { alimCampo('medida', m); } }, m === 'g' ? 'Gramas (g)' : 'Mililitros (ml)');
+          })
+        ),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 } },
-          React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal/100g', value: alimForm.kcal_100, onChange: function (e) { alimCampo('kcal_100', e.target.value); } }),
-          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'proteína g/100g', value: alimForm.prot_100, onChange: function (e) { alimCampo('prot_100', e.target.value); } }),
-          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'HC g/100g', value: alimForm.hc_100, onChange: function (e) { alimCampo('hc_100', e.target.value); } }),
-          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'gordura g/100g', value: alimForm.gord_100, onChange: function (e) { alimCampo('gord_100', e.target.value); } })
+          React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal/100' + alimForm.medida, value: alimForm.kcal_100, onChange: function (e) { alimCampo('kcal_100', e.target.value); } }),
+          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'proteína g/100' + alimForm.medida, value: alimForm.prot_100, onChange: function (e) { alimCampo('prot_100', e.target.value); } }),
+          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'HC g/100' + alimForm.medida, value: alimForm.hc_100, onChange: function (e) { alimCampo('hc_100', e.target.value); } }),
+          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'gordura g/100' + alimForm.medida, value: alimForm.gord_100, onChange: function (e) { alimCampo('gord_100', e.target.value); } })
         ),
-        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 } },
-          React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'nome da unidade (ex: ovo)', value: alimForm.unidade_nome, onChange: function (e) { alimCampo('unidade_nome', e.target.value); } }),
-          React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'g por unidade', value: alimForm.g_unidade, onChange: function (e) { alimCampo('g_unidade', e.target.value); } })
-        ),
+        React.createElement(FiLabel, null, 'Porção (ex. fatia, colher de sobremesa, peça)'),
+        React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'ex: fatia', value: alimForm.unidade_nome, onChange: function (e) { alimCampo('unidade_nome', e.target.value); }, style: { marginBottom: 10 } }),
+        React.createElement(FiLabel, null, 'Gramas/ml por porção'),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: alimForm.medida + ' por porção', value: alimForm.g_unidade, onChange: function (e) { alimCampo('g_unidade', e.target.value); }, style: { marginBottom: 10 } }),
         React.createElement('div', { style: { display: 'flex', gap: 8 } },
           React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setAlimFormAberto(false); } }, 'Cancelar'),
           React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: alimSaving, onClick: guardarAlimento }, alimSaving ? 'A guardar…' : '✓ Guardar')
@@ -841,7 +884,7 @@ function FitnessApp(props) {
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
               React.createElement('div', null,
                 React.createElement('div', { style: { fontWeight: 800, fontSize: 14 } }, a.nome),
-                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, fiFmtKcal(a.kcal_100) + '/100g · P ' + fiFmtG(a.prot_100) + ' · HC ' + fiFmtG(a.hc_100) + ' · G ' + fiFmtG(a.gord_100) + (a.g_unidade ? ' · ' + a.g_unidade + 'g/' + (a.unidade_nome || 'unid.') : ''))
+                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, fiFmtKcal(a.kcal_100) + '/100' + (a.medida === 'ml' ? 'ml' : 'g') + ' · P ' + fiFmtG(a.prot_100) + ' · HC ' + fiFmtG(a.hc_100) + ' · G ' + fiFmtG(a.gord_100) + (a.g_unidade ? ' · ' + a.g_unidade + (a.medida === 'ml' ? 'ml' : 'g') + '/' + (a.unidade_nome || 'unid.') : ''))
               ),
               React.createElement('div', { style: { display: 'flex', gap: 6 } },
                 React.createElement('button', { onClick: function () { abrirEditarAlimento(a); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️'),
@@ -896,9 +939,14 @@ function FitnessApp(props) {
     }).catch(function (e) { console.error('[fitness] favorito opção:', e); window.mostrarErro('Fitness', e); });
   }
   function apagarOpcao(id) {
-    db.from('fitness_opcoes').delete().eq('id', id).then(function (res) {
+    var o = opcoes.filter(function (x) { return x.id === id; })[0];
+    var removerFoto = (o && o.foto_path) ? db.storage.from(FI_BUCKET).remove([o.foto_path]) : Promise.resolve();
+    removerFoto.then(function () {
+      return db.from('fitness_opcoes').delete().eq('id', id);
+    }).then(function (res) {
       if (res.error) { console.error('[fitness] apagar opção:', res.error); window.mostrarErro('Fitness', res.error); return; }
       setConfirmApagarOpcao(null);
+      if (receitaOpcaoId === id) setReceitaOpcaoId(null);
       carregar();
     }).catch(function (e) { console.error('[fitness] apagar opção:', e); window.mostrarErro('Fitness', e); });
   }
@@ -914,12 +962,66 @@ function FitnessApp(props) {
     }).catch(function (e) { console.error('[fitness] reordenar (' + tabela + '):', e); window.mostrarErro('Fitness', e); });
   }
 
-  function abrirNovoItem(opcaoId) { setItemOpcaoAberta(opcaoId); setItemEditandoId(null); setItemForm({ alimento_id: alimentos[0] ? alimentos[0].id : '', gramas_base: '', ajustavel: true }); }
-  function abrirEditarItem(it) { setItemOpcaoAberta(it.opcao_id); setItemEditandoId(it.id); setItemForm({ alimento_id: it.alimento_id, gramas_base: String(it.gramas_base), ajustavel: it.ajustavel !== false }); }
+  // ── Vista "Receita" de uma opção (foto + quantidades já calculadas) ──
+  function abrirReceita(o) {
+    setReceitaOpcaoId(o.id);
+    setReceitaModo('porcoes');
+    setReceitaFotoUrl(null);
+    if (o.foto_path && db) {
+      db.storage.from(FI_BUCKET).createSignedUrl(o.foto_path, 3600).then(function (res) {
+        if (res.error) throw res.error;
+        setReceitaFotoUrl(res.data.signedUrl);
+      }).catch(function (e) { console.error('[fitness] link da foto da opção:', e); window.mostrarErro('Fitness', e); });
+    }
+  }
+  function fecharReceita() { setReceitaOpcaoId(null); }
+  function trocarFotoOpcao(o, file) {
+    if (!file || !db) return;
+    setReceitaFotoBusy(true);
+    var path = userProfile.id + '/opcoes/' + o.id + '.jpg';
+    fiComprimirFoto(file, 1080).then(function (blob) {
+      return db.storage.from(FI_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      return db.from('fitness_opcoes').update({ foto_path: path }).eq('id', o.id);
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      return db.storage.from(FI_BUCKET).createSignedUrl(path, 3600);
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      setReceitaFotoBusy(false);
+      setReceitaFotoUrl(res.data.signedUrl);
+      carregar();
+    }).catch(function (e) {
+      setReceitaFotoBusy(false);
+      console.error('[fitness] trocar foto da opção:', e);
+      window.mostrarErro('Fitness', e);
+    });
+  }
+  function apagarFotoOpcao(o) {
+    if (!o.foto_path || !db) return;
+    setReceitaFotoBusy(true);
+    db.storage.from(FI_BUCKET).remove([o.foto_path]).then(function (res) {
+      if (res.error) throw res.error;
+      return db.from('fitness_opcoes').update({ foto_path: null }).eq('id', o.id);
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      setReceitaFotoBusy(false);
+      setReceitaFotoUrl(null);
+      carregar();
+    }).catch(function (e) {
+      setReceitaFotoBusy(false);
+      console.error('[fitness] apagar foto da opção:', e);
+      window.mostrarErro('Fitness', e);
+    });
+  }
+
+  function abrirNovoItem(opcaoId) { setItemOpcaoAberta(opcaoId); setItemEditandoId(null); setItemForm({ alimento_id: alimentos[0] ? alimentos[0].id : '', gramas_base: '', ajustavel: true, nota: '' }); }
+  function abrirEditarItem(it) { setItemOpcaoAberta(it.opcao_id); setItemEditandoId(it.id); setItemForm({ alimento_id: it.alimento_id, gramas_base: String(it.gramas_base), ajustavel: it.ajustavel !== false, nota: it.nota || '' }); }
   function guardarItem() {
     var gNum = parseFloat(itemForm.gramas_base);
     if (!itemForm.alimento_id || isNaN(gNum) || gNum <= 0) return;
-    var payload = { alimento_id: itemForm.alimento_id, gramas_base: gNum, ajustavel: !!itemForm.ajustavel };
+    var payload = { alimento_id: itemForm.alimento_id, gramas_base: gNum, ajustavel: !!itemForm.ajustavel, nota: itemForm.nota.trim() || null };
     var query = itemEditandoId
       ? db.from('fitness_opcao_itens').update(payload).eq('id', itemEditandoId)
       : db.from('fitness_opcao_itens').insert(Object.assign({ opcao_id: itemOpcaoAberta }, payload));
@@ -942,7 +1044,7 @@ function FitnessApp(props) {
     var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
     return React.createElement(FiCard, { key: o.id, style: { marginBottom: 10 } },
       React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
-        React.createElement('div', { style: { flex: 1 } },
+        React.createElement('div', { style: { flex: 1, cursor: opcaoEditandoId === o.id ? 'default' : 'pointer' }, onClick: opcaoEditandoId === o.id ? undefined : function () { abrirReceita(o); } },
           opcaoEditandoId === o.id
             ? React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', value: opcaoNomeForm, onChange: function (e) { setOpcaoNomeForm(e.target.value); }, style: { marginBottom: 6 } })
             : React.createElement('div', { style: { fontWeight: 800, fontSize: 14 } }, (o.favorito ? '★ ' : '') + o.nome),
@@ -963,12 +1065,15 @@ function FitnessApp(props) {
       calc.avisoFora && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-vermelho)', marginTop: 6, fontWeight: 700 } }, '⚠️ Esta opção não encaixa bem nesta refeição (fator fora de 0.5–2.0).'),
       React.createElement('div', { style: { marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
         calc.itens.map(function (it) {
-          return React.createElement('div', { key: it.id, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '4px 0', borderTop: '1px solid var(--fi-borda)' } },
-            React.createElement('span', null, it.nome + ' — ' + Math.round(it.gramas) + ' g' + (it.unidades != null ? ' (' + it.unidades + ' ' + (it.unidade_nome || 'unid.') + ')' : '') + (it.ajustavel ? '' : ' · fixo')),
-            React.createElement('div', { style: { display: 'flex', gap: 6 } },
-              React.createElement('button', { onClick: function () { abrirEditarItem(itensOpcao.filter(function (x) { return x.id === it.id; })[0]); }, style: { background: 'none', border: 'none', fontSize: 12, cursor: 'pointer' } }, '✏️'),
-              React.createElement('button', { onClick: function () { setConfirmApagarItem(it.id); }, style: { background: 'none', border: 'none', fontSize: 12, cursor: 'pointer' } }, '🗑️')
-            )
+          return React.createElement('div', { key: it.id, style: { padding: '4px 0', borderTop: '1px solid var(--fi-borda)' } },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 } },
+              React.createElement('span', null, it.nome + ' — ' + Math.round(it.gramas) + ' ' + it.medida + (it.unidades != null ? ' (' + it.unidades + ' ' + (it.unidade_nome || 'unid.') + ')' : '') + (it.ajustavel ? '' : ' · fixo')),
+              React.createElement('div', { style: { display: 'flex', gap: 6 } },
+                React.createElement('button', { onClick: function () { abrirEditarItem(itensOpcao.filter(function (x) { return x.id === it.id; })[0]); }, style: { background: 'none', border: 'none', fontSize: 12, cursor: 'pointer' } }, '✏️'),
+                React.createElement('button', { onClick: function () { setConfirmApagarItem(it.id); }, style: { background: 'none', border: 'none', fontSize: 12, cursor: 'pointer' } }, '🗑️')
+              )
+            ),
+            it.nota && React.createElement('div', { style: { fontSize: 10.5, color: 'var(--fi-texto2)', marginTop: 2 } }, it.nota)
           );
         }),
         !calc.itens.length && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'Sem itens ainda.')
@@ -979,17 +1084,84 @@ function FitnessApp(props) {
               alimentos.map(function (a) { return React.createElement('option', { key: a.id, value: a.id }, a.nome); })
             ),
             React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center' } },
-              React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'gramas base', value: itemForm.gramas_base, onChange: function (e) { setItemForm(Object.assign({}, itemForm, { gramas_base: e.target.value })); } }),
+              React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: (alimentosPorId[itemForm.alimento_id] && alimentosPorId[itemForm.alimento_id].medida === 'ml' ? 'ml base' : 'gramas base'), value: itemForm.gramas_base, onChange: function (e) { setItemForm(Object.assign({}, itemForm, { gramas_base: e.target.value })); } }),
               React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, whiteSpace: 'nowrap' } },
                 React.createElement('input', { type: 'checkbox', checked: itemForm.ajustavel, onChange: function (e) { setItemForm(Object.assign({}, itemForm, { ajustavel: e.target.checked })); } }), 'ajustável'
               )
             ),
+            React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nota (opcional, ex: ou 150 g de fruta)', value: itemForm.nota, onChange: function (e) { setItemForm(Object.assign({}, itemForm, { nota: e.target.value })); } }),
             React.createElement('div', { style: { display: 'flex', gap: 8 } },
               React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setItemOpcaoAberta(null); } }, 'Cancelar'),
               React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, onClick: guardarItem }, '✓ Guardar item')
             )
           )
         : React.createElement('button', { className: 'fi-btn', style: { marginTop: 8, width: '100%' }, onClick: function () { abrirNovoItem(o.id); } }, '+ Item')
+    );
+  }
+
+  function renderReceita() {
+    var o = opcoes.filter(function (x) { return x.id === receitaOpcaoId; })[0];
+    if (!o) return null;
+    var refeicao = refeicoes.filter(function (r) { return r.id === o.refeicao_id; })[0];
+    var kcalRefeicao = (refeicao && meta.ativa) ? Math.round(meta.ativa * (refeicao.pct / 100)) : 0;
+    var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
+    var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
+    return React.createElement('div', { style: { padding: 16 } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 } },
+        React.createElement('button', { className: 'fi-btn', onClick: fecharReceita }, '← Voltar'),
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 17 } }, 'Receita')
+      ),
+      React.createElement(FiCard, { style: { marginBottom: 12, textAlign: 'center' } },
+        receitaFotoUrl && React.createElement('img', { src: receitaFotoUrl, style: { width: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 12, marginBottom: 10 } }),
+        React.createElement('div', { style: { fontWeight: 900, fontSize: 19 } }, (o.favorito ? '★ ' : '') + o.nome),
+        React.createElement('div', { style: { fontSize: 13, color: 'var(--fi-texto2)', marginTop: 4 } }, fiFmtKcal(calc.totais.kcal) + ' · P ' + fiFmtG(calc.totais.prot) + ' · HC ' + fiFmtG(calc.totais.hc) + ' · G ' + fiFmtG(calc.totais.gord)),
+        React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 10 } }, 'Quantidades já calculadas para ti (' + fiFmtKcal(kcalRefeicao) + ' nesta refeição)'),
+        React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 12, justifyContent: 'center' } },
+          ['porcoes', 'gramas'].map(function (m) {
+            var sel = receitaModo === m;
+            return React.createElement('button', { key: m, className: 'fi-chip', style: { background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { setReceitaModo(m); } }, m === 'porcoes' ? 'Porções' : 'Gramas');
+          })
+        )
+      ),
+      calc.avisoFora && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-vermelho)' } },
+        React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-vermelho)', fontWeight: 700 } }, '⚠️ Esta opção não encaixa bem nesta refeição (fator fora de 0.5–2.0).')
+      ),
+      React.createElement(FiCard, { style: { marginBottom: 12 } },
+        calc.itens.map(function (it, i) {
+          var linha;
+          if (receitaModo === 'porcoes' && it.unidades != null && it.unidade_nome) {
+            var n = Math.max(0.5, Math.round(it.unidades * 2) / 2);
+            var nTxt = (n % 1 === 0) ? String(n) : n.toFixed(1);
+            linha = nTxt + ' ' + it.unidade_nome + ' de ' + it.nome;
+          } else {
+            linha = Math.round(it.gramas) + ' ' + it.medida + ' ' + it.nome;
+          }
+          return React.createElement('div', { key: it.id, style: { padding: '8px 0', borderTop: i === 0 ? 'none' : '1px solid var(--fi-borda)' } },
+            React.createElement('div', { style: { fontSize: 14 } }, linha + (it.ajustavel ? '' : ' · fixo')),
+            it.nota && React.createElement('div', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 2 } }, it.nota)
+          );
+        }),
+        !calc.itens.length && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Sem itens ainda.')
+      ),
+      React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
+        React.createElement('button', { className: 'fi-btn', onClick: function () { toggleFavoritoOpcao(o); } }, o.favorito ? '★ Favorito' : '☆ Favorito'),
+        React.createElement('button', { className: 'fi-btn', onClick: function () { fecharReceita(); abrirEditarOpcao(o); } }, '✏️ Editar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-perigo', onClick: function () { setConfirmApagarOpcao(o.id); } }, '🗑 Apagar')
+      ),
+      React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
+        React.createElement('label', { className: 'fi-btn', style: { cursor: receitaFotoBusy ? 'default' : 'pointer', opacity: receitaFotoBusy ? 0.6 : 1 } },
+          receitaFotoBusy ? 'A enviar…' : (o.foto_path ? '🖼️ Trocar foto' : '🖼️ Adicionar foto'),
+          React.createElement('input', {
+            type: 'file', accept: 'image/*', autoComplete: 'off', style: { display: 'none' }, disabled: receitaFotoBusy,
+            onChange: function (e) {
+              var f = e.target.files && e.target.files[0];
+              e.target.value = '';
+              if (f) trocarFotoOpcao(o, f);
+            }
+          })
+        ),
+        o.foto_path && React.createElement('button', { className: 'fi-btn', disabled: receitaFotoBusy, onClick: function () { apagarFotoOpcao(o); } }, '🗑️ Apagar foto')
+      )
     );
   }
 
@@ -1110,7 +1282,7 @@ function FitnessApp(props) {
   var corpo;
   if (perfEditAberto) corpo = renderPerfilEditor();
   else if (tab === 'hoje') corpo = renderHoje();
-  else if (tab === 'plano') corpo = renderPlano();
+  else if (tab === 'plano') corpo = receitaOpcaoId ? renderReceita() : renderPlano();
   else if (tab === 'treino') corpo = renderPlaceholder('Treino', 'Treinos, exercícios e vídeos — Fase 4.');
   else if (tab === 'progresso') corpo = renderPlaceholder('Progresso', 'Avaliações, fotos e gráfico — Fase 3.');
   else if (maisView === 'alimentos') corpo = renderAlimentos();
@@ -1124,7 +1296,7 @@ function FitnessApp(props) {
   var bottomNav = !perfEditAberto && React.createElement('div', { style: { position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--fi-cartao)', borderTop: '1px solid var(--fi-borda)', display: 'flex', justifyContent: 'space-around', padding: '8px 0 20px', zIndex: 200 } },
     [['hoje', '🍽️', 'Hoje'], ['plano', '📋', 'Plano'], ['treino', '🏋️', 'Treino'], ['progresso', '📈', 'Progresso'], ['mais', '⋯', 'Mais']].map(function (it) {
       var active = tab === it[0];
-      return React.createElement('button', { key: it[0], onClick: function () { setTab(it[0]); if (it[0] === 'mais') setMaisView('menu'); }, style: { background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer', color: active ? FI_COR : 'var(--fi-texto2)', fontWeight: active ? 800 : 600 } },
+      return React.createElement('button', { key: it[0], onClick: function () { setTab(it[0]); setReceitaOpcaoId(null); if (it[0] === 'mais') setMaisView('menu'); }, style: { background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer', color: active ? FI_COR : 'var(--fi-texto2)', fontWeight: active ? 800 : 600 } },
         React.createElement('span', { style: { fontSize: 20 } }, it[1]),
         React.createElement('span', { style: { fontSize: 10 } }, it[2])
       );
