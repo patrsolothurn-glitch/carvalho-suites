@@ -80,7 +80,7 @@ begin
   insert into fitness_opcoes (user_id, refeicao_id, ordem, nome, preparo)
   values (v_user_id, v_refeicao_id, v_ordem, v_nome, v_preparo)
   returning id into v_opcao_id;
-  -- (o trigger fitness_opcoes_max_5 continua a proteger o máximo de 5
+  -- (o trigger fitness_opcoes_max_5 continua a proteger o máximo de 6
   -- opções por refeição, incluindo para este caminho)
 
   for v_ing in select * from jsonb_array_elements(v_ingredientes)
