@@ -184,6 +184,31 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
 }
 function fiFmtKcal(n) { return n == null ? '—' : Math.round(n) + ' kcal'; }
 function fiFmtG(n) { return n == null ? '—' : Math.round(n) + ' g'; }
+// "N kcal · P N g · HC N g · G N g" para uma quantidade — valor por 100
+// × quantidade ÷ 100, kcal a inteiro, macros a 1 casa decimal. Usado na
+// linha só-de-leitura de cada ingrediente da pré-visualização da IA.
+function fiFmtParaQtd(kcal100, prot100, hc100, gord100, qtd) {
+  var k = (parseFloat(kcal100) || 0) * qtd / 100;
+  var p = (parseFloat(prot100) || 0) * qtd / 100;
+  var h = (parseFloat(hc100) || 0) * qtd / 100;
+  var g = (parseFloat(gord100) || 0) * qtd / 100;
+  return Math.round(k) + ' kcal · P ' + (Math.round(p * 10) / 10) + ' g · HC ' + (Math.round(h * 10) / 10) + ' g · G ' + (Math.round(g * 10) / 10) + ' g';
+}
+// Quais dos 4 campos por 100 (kcal/prot/hc/gord) de um ingrediente da
+// pré-visualização da IA estão em falta ou inválidos — usado para abrir
+// o cartão sozinho e marcar o campo a vermelho.
+function fiIngredienteValoresInvalidos(ing) {
+  var inv = {};
+  var k = parseFloat(ing.kcal_100);
+  if (ing.kcal_100 === '' || ing.kcal_100 == null || isNaN(k) || k < 0 || k > 900) inv.kcal_100 = true;
+  var p = parseFloat(ing.prot_100);
+  if (ing.prot_100 === '' || ing.prot_100 == null || isNaN(p) || p < 0) inv.prot_100 = true;
+  var h = parseFloat(ing.hc_100);
+  if (ing.hc_100 === '' || ing.hc_100 == null || isNaN(h) || h < 0) inv.hc_100 = true;
+  var g = parseFloat(ing.gord_100);
+  if (ing.gord_100 === '' || ing.gord_100 == null || isNaN(g) || g < 0) inv.gord_100 = true;
+  return inv;
+}
 // Erro de uma chamada a functions.invoke — a mesma forma usada no resto
 // da suite (ver fnErr em src/10-shell.js), só que aqui como função de
 // módulo porque este ficheiro não tem acesso àquele closure.
@@ -276,7 +301,7 @@ function fiComprimirFoto(file, maxLado) {
 
 // ── Pequenas peças ──────────────────────────────────────────────
 function FiCard(p) { return React.createElement('div', { className: 'fi-card', style: p.style }, p.children); }
-function FiLabel(p) { return React.createElement('p', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-texto2)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 6px' } }, p.children); }
+function FiLabel(p) { return React.createElement('p', { style: Object.assign({ fontSize: 11, fontWeight: 800, color: 'var(--fi-texto2)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 6px' }, p.style) }, p.children); }
 // Botões "← Voltar / Seguinte →" do assistente — componente ao nível
 // do módulo (nunca dentro de FitnessApp: um componente redefinido a
 // cada render perde o estado/foco dos filhos, era a causa do bug de
@@ -360,6 +385,7 @@ function FitnessApp(props) {
   var _s49 = React.useState(null); var iaPreview = _s49[0], setIaPreview = _s49[1];
   var _s50 = React.useState(false); var iaSaving = _s50[0], setIaSaving = _s50[1];
   var _s51 = React.useState(null); var iaSaveErro = _s51[0], setIaSaveErro = _s51[1];
+  var _s52 = React.useState(false); var iaPreparoAberto = _s52[0], setIaPreparoAberto = _s52[1]; // secção "Como se faz", fechada por defeito
   var iaCancelRef = React.useRef(0);
 
   function carregar() {
@@ -888,11 +914,24 @@ function FitnessApp(props) {
             return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { alimCampo('medida', m); } }, m === 'g' ? 'Gramas (g)' : 'Mililitros (ml)');
           })
         ),
+        React.createElement('p', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-texto2)', margin: '0 0 6px' } }, 'Valores por 100 ' + (alimForm.medida === 'ml' ? 'ml' : 'g')),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 } },
-          React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal/100' + alimForm.medida, value: alimForm.kcal_100, onChange: function (e) { alimCampo('kcal_100', e.target.value); } }),
-          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'proteína g/100' + alimForm.medida, value: alimForm.prot_100, onChange: function (e) { alimCampo('prot_100', e.target.value); } }),
-          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'HC g/100' + alimForm.medida, value: alimForm.hc_100, onChange: function (e) { alimCampo('hc_100', e.target.value); } }),
-          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'gordura g/100' + alimForm.medida, value: alimForm.gord_100, onChange: function (e) { alimCampo('gord_100', e.target.value); } })
+          React.createElement('div', null,
+            React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Kcal'),
+            React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: alimForm.kcal_100, onChange: function (e) { alimCampo('kcal_100', e.target.value); } })
+          ),
+          React.createElement('div', null,
+            React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Proteína (g)'),
+            React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', value: alimForm.prot_100, onChange: function (e) { alimCampo('prot_100', e.target.value); } })
+          ),
+          React.createElement('div', null,
+            React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Hidratos (g)'),
+            React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', value: alimForm.hc_100, onChange: function (e) { alimCampo('hc_100', e.target.value); } })
+          ),
+          React.createElement('div', null,
+            React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Gordura (g)'),
+            React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', value: alimForm.gord_100, onChange: function (e) { alimCampo('gord_100', e.target.value); } })
+          )
         ),
         React.createElement(FiLabel, null, 'Porção (ex. fatia, colher de sobremesa, peça)'),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'ex: fatia', value: alimForm.unidade_nome, onChange: function (e) { alimCampo('unidade_nome', e.target.value); }, style: { marginBottom: 10 } }),
@@ -1109,16 +1148,19 @@ function FitnessApp(props) {
         nome: receita.nome || nome,
         preparo: receita.preparo || '',
         ingredientes: (receita.ingredientes || []).map(function (ing, i) {
-          return {
+          var obj = {
             _key: 'ia-' + i,
             nome: ing.nome || '', gramas: ing.gramas != null ? ing.gramas : '', ajustavel: ing.ajustavel !== false,
             nota: ing.nota || '', kcal_100: ing.kcal_100 != null ? ing.kcal_100 : '', prot_100: ing.prot_100 != null ? ing.prot_100 : '',
             hc_100: ing.hc_100 != null ? ing.hc_100 : '', gord_100: ing.gord_100 != null ? ing.gord_100 : '',
             medida: ing.medida === 'ml' ? 'ml' : 'g', unidade_nome: ing.unidade_nome || '', g_unidade: ing.g_unidade != null ? ing.g_unidade : ''
           };
+          obj._valoresAbertos = Object.keys(fiIngredienteValoresInvalidos(obj)).length > 0;
+          return obj;
         }),
         avisos: receita.avisos || []
       });
+      setIaPreparoAberto(false);
       setIaRefeicaoAberta(null);
     }).catch(function (e) {
       if (iaCancelRef.current !== geracao) return;
@@ -1143,7 +1185,7 @@ function FitnessApp(props) {
     setIaPreview(function (p) {
       return Object.assign({}, p, {
         ingredientes: p.ingredientes.concat([{
-          _key: 'novo-' + Date.now() + '-' + Math.random(), nome: '', gramas: '', ajustavel: true, nota: '',
+          _key: 'novo-' + Date.now() + '-' + Math.random(), _valoresAbertos: true, nome: '', gramas: '', ajustavel: true, nota: '',
           kcal_100: '', prot_100: '', hc_100: '', gord_100: '', medida: 'g', unidade_nome: '', g_unidade: ''
         }])
       });
@@ -1425,7 +1467,12 @@ function FitnessApp(props) {
       var g = parseFloat(ing.gramas) || 0, k = parseFloat(ing.kcal_100) || 0;
       return s + (g / 100) * k;
     }, 0);
-    return React.createElement('div', { style: { padding: 16 } },
+    var kcalAlvo = iaPreview.kcalAlvo || 0;
+    var desvioPct = kcalAlvo > 0 ? Math.abs(kcalCalc - kcalAlvo) / kcalAlvo * 100 : 0;
+    var dentroFaixa = kcalAlvo > 0 && desvioPct <= 10;
+    var corStatus = dentroFaixa ? FI_COR : 'var(--fi-amarelo)';
+    var pctBarra = kcalAlvo > 0 ? Math.min(100, Math.max(0, (kcalCalc / kcalAlvo) * 100)) : 0;
+    return React.createElement('div', { style: { padding: '16px 16px 100px' } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 } },
         React.createElement('button', { className: 'fi-btn', onClick: function () { setIaPreview(null); setIaSaveErro(null); } }, '← Voltar'),
         React.createElement('span', { style: { fontWeight: 900, fontSize: 17 } }, 'Pré-visualização — ✨ IA')
@@ -1438,50 +1485,82 @@ function FitnessApp(props) {
       ),
       React.createElement(FiCard, { style: { marginBottom: 12 } },
         React.createElement(FiLabel, null, 'Nome'),
-        React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', value: iaPreview.nome, onChange: function (e) { setIaPreview(Object.assign({}, iaPreview, { nome: e.target.value })); }, style: { marginBottom: 10 } }),
-        React.createElement(FiLabel, null, 'Como se faz'),
-        React.createElement('textarea', { className: 'fi-input', autoComplete: 'off', rows: 6, value: iaPreview.preparo, onChange: function (e) { setIaPreview(Object.assign({}, iaPreview, { preparo: e.target.value })); }, style: { resize: 'vertical' } })
+        React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', value: iaPreview.nome, onChange: function (e) { setIaPreview(Object.assign({}, iaPreview, { nome: e.target.value })); }, style: { marginBottom: 14 } }),
+        React.createElement('div', { style: { textAlign: 'center' } },
+          React.createElement('div', { style: { fontSize: 30, fontWeight: 900, color: corStatus } }, Math.round(kcalCalc) + ' / ' + Math.round(kcalAlvo) + ' kcal'),
+          React.createElement('div', { style: { height: 8, borderRadius: 4, background: 'var(--fi-borda)', overflow: 'hidden', marginTop: 10 } },
+            React.createElement('div', { style: { height: '100%', width: pctBarra + '%', background: corStatus } })
+          )
+        )
       ),
-      React.createElement(FiCard, { style: { marginBottom: 12 } },
-        React.createElement(FiLabel, null, 'Ingredientes'),
-        iaPreview.ingredientes.map(function (ing, i) {
-          var existe = !!alimentosPorNome[(ing.nome || '').toLowerCase().trim()];
-          return React.createElement('div', { key: ing._key || i, style: { borderTop: i === 0 ? 'none' : '1px solid var(--fi-borda)', paddingTop: i === 0 ? 0 : 10, marginTop: i === 0 ? 0 : 10 } },
-            React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 } },
-              React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'nome', value: ing.nome, onChange: function (e) { atualizarIngredienteIA(i, 'nome', e.target.value); }, style: { flex: 1 } }),
-              React.createElement('span', { style: { fontSize: 10, fontWeight: 800, color: existe ? FI_COR : 'var(--fi-texto2)', whiteSpace: 'nowrap' } }, existe ? 'já existe' : 'novo'),
-              React.createElement('button', { onClick: function () { removerIngredienteIA(i); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
+      React.createElement(FiLabel, null, 'Ingredientes'),
+      iaPreview.ingredientes.map(function (ing, i) {
+        var existe = !!alimentosPorNome[(ing.nome || '').toLowerCase().trim()];
+        var invalidos = fiIngredienteValoresInvalidos(ing);
+        var temInvalidos = Object.keys(invalidos).length > 0;
+        var aberto = !!ing._valoresAbertos || temInvalidos;
+        var medida = ing.medida === 'ml' ? 'ml' : 'g';
+        var qtd = parseFloat(ing.gramas) || 0;
+        function campoValor(campo, rotulo, step) {
+          return React.createElement('div', null,
+            React.createElement(FiLabel, { style: { margin: '0 0 4px', color: invalidos[campo] ? 'var(--fi-vermelho)' : undefined } }, rotulo),
+            React.createElement('input', {
+              type: 'number', step: step, className: 'fi-input', autoComplete: 'off', value: ing[campo],
+              onChange: function (e) { atualizarIngredienteIA(i, campo, e.target.value); },
+              style: invalidos[campo] ? { borderColor: 'var(--fi-vermelho)' } : undefined
+            })
+          );
+        }
+        return React.createElement(FiCard, { key: ing._key || i, style: { marginBottom: 10 } },
+          React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 } },
+            React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'nome do ingrediente', value: ing.nome, onChange: function (e) { atualizarIngredienteIA(i, 'nome', e.target.value); }, style: { flex: 1 } }),
+            React.createElement('span', { style: { fontSize: 10, fontWeight: 900, padding: '4px 7px', borderRadius: 6, whiteSpace: 'nowrap', background: existe ? FI_COR : 'var(--fi-borda)', color: existe ? '#fff' : 'var(--fi-texto2)' } }, existe ? 'JÁ EXISTE' : 'NOVO'),
+            React.createElement('button', { onClick: function () { removerIngredienteIA(i); }, style: { background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' } }, '🗑️')
+          ),
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 70px 1fr', gap: 8, marginBottom: 8 } },
+            React.createElement('div', null,
+              React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Quantidade'),
+              React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', value: ing.gramas, onChange: function (e) { atualizarIngredienteIA(i, 'gramas', e.target.value); } })
             ),
-            React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 60px 1fr', gap: 6, marginBottom: 6 } },
-              React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'quantidade', value: ing.gramas, onChange: function (e) { atualizarIngredienteIA(i, 'gramas', e.target.value); } }),
-              React.createElement('select', { className: 'fi-input', value: ing.medida === 'ml' ? 'ml' : 'g', onChange: function (e) { atualizarIngredienteIA(i, 'medida', e.target.value); } },
+            React.createElement('div', null,
+              React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Unidade'),
+              React.createElement('select', { className: 'fi-input', value: medida, onChange: function (e) { atualizarIngredienteIA(i, 'medida', e.target.value); } },
                 React.createElement('option', { value: 'g' }, 'g'),
                 React.createElement('option', { value: 'ml' }, 'ml')
-              ),
-              React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 } },
-                React.createElement('input', { type: 'checkbox', checked: !!ing.ajustavel, onChange: function (e) { atualizarIngredienteIA(i, 'ajustavel', e.target.checked); } }), 'ajustável'
               )
             ),
-            React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 6 } },
-              React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal/100', value: ing.kcal_100, onChange: function (e) { atualizarIngredienteIA(i, 'kcal_100', e.target.value); } }),
-              React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'P g/100', value: ing.prot_100, onChange: function (e) { atualizarIngredienteIA(i, 'prot_100', e.target.value); } }),
-              React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'HC g/100', value: ing.hc_100, onChange: function (e) { atualizarIngredienteIA(i, 'hc_100', e.target.value); } }),
-              React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', placeholder: 'G g/100', value: ing.gord_100, onChange: function (e) { atualizarIngredienteIA(i, 'gord_100', e.target.value); } })
+            React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, alignSelf: 'end', paddingBottom: 10 } },
+              React.createElement('input', { type: 'checkbox', checked: !!ing.ajustavel, onChange: function (e) { atualizarIngredienteIA(i, 'ajustavel', e.target.checked); } }), 'Ajustável'
+            )
+          ),
+          React.createElement('p', { style: { fontSize: 13, fontWeight: 800, margin: '0 0 8px' } }, fiFmtParaQtd(ing.kcal_100, ing.prot_100, ing.hc_100, ing.gord_100, qtd)),
+          React.createElement('button', {
+            onClick: function () { atualizarIngredienteIA(i, '_valoresAbertos', !aberto); },
+            disabled: temInvalidos,
+            style: { background: 'none', border: 'none', color: temInvalidos ? 'var(--fi-vermelho)' : 'var(--fi-texto2)', fontSize: 12, fontWeight: 800, cursor: temInvalidos ? 'default' : 'pointer', padding: 0 }
+          }, (aberto ? '▾' : '▸') + ' Editar valores por 100 ' + medida),
+          aberto && React.createElement('div', { style: { marginTop: 10 } },
+            React.createElement('p', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-texto2)', margin: '0 0 6px' } }, 'Valores por 100 ' + medida),
+            React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginBottom: 8 } },
+              campoValor('kcal_100', 'Kcal', undefined),
+              campoValor('prot_100', 'Proteína (g)', '0.1'),
+              campoValor('hc_100', 'Hidratos (g)', '0.1'),
+              campoValor('gord_100', 'Gordura (g)', '0.1')
             ),
             React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nota (opcional)', value: ing.nota || '', onChange: function (e) { atualizarIngredienteIA(i, 'nota', e.target.value); } })
-          );
-        }),
-        React.createElement('button', { className: 'fi-btn', style: { width: '100%', marginTop: 10 }, onClick: adicionarIngredienteIA }, '+ Ingrediente')
-      ),
+          )
+        );
+      }),
+      React.createElement('button', { className: 'fi-btn', style: { width: '100%', marginBottom: 12 }, onClick: adicionarIngredienteIA }, '+ Ingrediente'),
       React.createElement(FiCard, { style: { marginBottom: 12 } },
-        React.createElement('div', { style: { fontSize: 13, fontWeight: 800 } }, 'Total: ' + fiFmtKcal(kcalCalc) + ' · alvo ' + fiFmtKcal(iaPreview.kcalAlvo))
+        React.createElement('button', {
+          onClick: function () { setIaPreparoAberto(!iaPreparoAberto); },
+          style: { background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', padding: 0, fontSize: 13, fontWeight: 800, color: 'var(--fi-texto)' }
+        }, (iaPreparoAberto ? '▾' : '▸') + ' Como se faz'),
+        iaPreparoAberto && React.createElement('textarea', { className: 'fi-input', autoComplete: 'off', rows: 6, value: iaPreview.preparo, onChange: function (e) { setIaPreview(Object.assign({}, iaPreview, { preparo: e.target.value })); }, style: { marginTop: 10, resize: 'vertical' } })
       ),
       iaSaveErro && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-vermelho)' } },
         React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-vermelho)', fontWeight: 700 } }, '⚠️ ' + iaSaveErro)
-      ),
-      React.createElement('div', { style: { display: 'flex', gap: 8 } },
-        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setIaPreview(null); setIaSaveErro(null); } }, 'Cancelar'),
-        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: iaSaving, onClick: guardarIaPreview }, iaSaving ? 'A gravar…' : '✓ Guardar')
       )
     );
   }
@@ -1568,7 +1647,7 @@ function FitnessApp(props) {
     React.createElement('button', { className: 'fi-chip', onClick: function () { setMaisView('perfil'); } }, '👤 Perfil')
   );
 
-  var bottomNav = !perfEditAberto && React.createElement('div', { style: { position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--fi-cartao)', borderTop: '1px solid var(--fi-borda)', display: 'flex', justifyContent: 'space-around', padding: '8px 0 20px', zIndex: 200 } },
+  var bottomNav = !perfEditAberto && !iaPreview && React.createElement('div', { style: { position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--fi-cartao)', borderTop: '1px solid var(--fi-borda)', display: 'flex', justifyContent: 'space-around', padding: '8px 0 20px', zIndex: 200 } },
     [['hoje', '🍽️', 'Hoje'], ['plano', '📋', 'Plano'], ['treino', '🏋️', 'Treino'], ['progresso', '📈', 'Progresso'], ['mais', '⋯', 'Mais']].map(function (it) {
       var active = tab === it[0];
       return React.createElement('button', { key: it[0], onClick: function () { setTab(it[0]); setReceitaOpcaoId(null); setIaPreview(null); setIaRefeicaoAberta(null); if (it[0] === 'mais') setMaisView('menu'); }, style: { background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer', color: active ? FI_COR : 'var(--fi-texto2)', fontWeight: active ? 800 : 600 } },
@@ -1576,6 +1655,13 @@ function FitnessApp(props) {
         React.createElement('span', { style: { fontSize: 10 } }, it[2])
       );
     })
+  );
+
+  // Cancelar/Guardar fixos no fundo, só durante a pré-visualização da IA
+  // (substitui a barra de navegação normal, escondida acima).
+  var iaPreviewFooter = iaPreview && React.createElement('div', { style: { position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--fi-cartao)', borderTop: '1px solid var(--fi-borda)', display: 'flex', gap: 8, padding: '10px 16px 20px', zIndex: 200 } },
+    React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setIaPreview(null); setIaSaveErro(null); } }, 'Cancelar'),
+    React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: iaSaving, onClick: guardarIaPreview }, iaSaving ? 'A gravar…' : '✓ Guardar')
   );
 
   var modalApagarAlimento = confirmApagarAlimento && React.createElement('div', {
@@ -1621,6 +1707,7 @@ function FitnessApp(props) {
     erro && React.createElement('div', { style: { padding: '10px 16px 0' } }, React.createElement(FiCard, null, React.createElement('p', { style: { color: 'var(--fi-vermelho)', fontSize: 13 } }, '⚠️ ' + erro))),
     corpo,
     bottomNav,
+    iaPreviewFooter,
     modalApagarAlimento,
     modalApagarOpcao,
     modalApagarItem
