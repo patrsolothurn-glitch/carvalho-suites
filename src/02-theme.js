@@ -223,4 +223,11 @@ var APPS_DATA = [{
   badge: null,
   color: '#12A150',
   iconSvg: pollenIconSvg
+}, {
+  id: 'fitness',
+  emoji: '🥗',
+  name: 'Carvalho Fitness',
+  desc: 'Plano alimentar, progresso e treino',
+  badge: null,
+  color: '#1E8E3E'
 }];
