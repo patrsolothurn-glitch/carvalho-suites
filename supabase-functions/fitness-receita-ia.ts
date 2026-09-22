@@ -14,14 +14,18 @@
 // repositório não é em si um projeto `supabase` (não há
 // supabase/config.toml), é só onde o código-fonte das funções fica
 // versionado; o Patricio copia para o projeto Supabase real antes de
-// fazer deploy. Mantive essa convenção em vez do caminho pedido, para
-// não introduzir um layout novo a meio dos outros — ver PR para mais
-// detalhe.
+// fazer deploy.
+//
+// Autenticação: valida o JWT diretamente com admin.auth.getUser(token)
+// usando o cliente service-role (sem criar um segundo cliente "userClient"
+// com o header Authorization reencaminhado) — é o próprio service-role
+// client que verifica o token recebido.
 //
 // Deploy manual (Patricio), sempre que este ficheiro mudar:
 //   1. Guardar a chave em Supabase → Edge Functions → Secrets, nome
 //      ANTHROPIC_API_KEY (nunca no código).
-//   2. supabase functions deploy fitness-receita-ia
+//   2. Colar este ficheiro em Code → Deploy updates (ou
+//      supabase functions deploy fitness-receita-ia, se ligado à CLI).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -39,6 +43,13 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Cada erro devolvido à app passa por aqui — garante o mesmo log
+// '[fitness-ia] <código>: <motivo>' em todos os pontos de saída.
+function erroJson(motivo: string, status: number) {
+  console.error('[fitness-ia] ' + status + ': ' + motivo);
+  return json({ error: motivo }, status);
 }
 
 const SYSTEM_PROMPT = `És nutricionista português. A tua tarefa é criar a receita de UM prato para 1 pessoa, tal como se faz em Portugal.
@@ -87,27 +98,51 @@ function montarMensagemUtilizador(nome: string, notas: string, kcalAlvo: number,
   );
 }
 
+// Mapeia um erro da Anthropic API para uma mensagem específica e útil,
+// sem nunca expor o corpo bruto da resposta ao cliente (esse só vai
+// para o log do servidor).
+function mensagemErroAnthropic(status: number, corpo: string): string {
+  const c = (corpo || '').toLowerCase();
+  if (status === 401) return 'Chave da API inválida';
+  if (status === 402 || status === 403 || c.includes('credit')) return 'Sem créditos na conta Anthropic';
+  if (status === 404 || c.includes('model')) return 'Modelo não disponível';
+  if (status === 429) return 'Muitos pedidos, tenta daqui a um minuto';
+  return 'Falha na IA (código ' + status + ')';
+}
+
 async function chamarAnthropic(nome: string, notas: string, kcalAlvo: number, alimentosExistentes: unknown[], apiKey: string): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  // 90s — a geração de uma receita pode passar dos 30s originais e o
+  // AbortController cancelava o pedido antes de a Anthropic responder.
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 2000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: montarMensagemUtilizador(nome, notas, kcalAlvo, alimentosExistentes) }],
-      }),
-      signal: controller.signal,
-    });
+    let resp: Response;
+    try {
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-5',
+          max_tokens: 2000,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: montarMensagemUtilizador(nome, notas, kcalAlvo, alimentosExistentes) }],
+        }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        throw new Error('A IA demorou demasiado — tenta outra vez.');
+      }
+      throw e;
+    }
     if (!resp.ok) {
-      throw new Error('Anthropic API respondeu ' + resp.status);
+      const corpo = (await resp.text().catch(() => '')).slice(0, 300);
+      console.error('[fitness-ia] anthropic ' + resp.status + ': ' + corpo);
+      throw new Error(mensagemErroAnthropic(resp.status, corpo));
     }
     const data = await resp.json();
     const bloco = Array.isArray(data.content) ? data.content.find((c: any) => c && c.type === 'text') : null;
@@ -185,21 +220,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'Não autenticado' }, 401);
-
-    const userClient = createClient(SUPABASE_URL!, SERVICE_KEY!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) return json({ error: 'Sessão inválida' }, 401);
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    if (!token) return erroJson('Não autenticado', 401);
 
     const admin = createClient(SUPABASE_URL!, SERVICE_KEY!);
+    const { data: userData, error: userErr } = await admin.auth.getUser(token);
+    if (userErr || !userData?.user) return erroJson('Sessão inválida', 401);
+
     const { data: callerProfile } = await admin.from('profiles').select('is_admin').eq('id', userData.user.id).single();
-    if (!callerProfile?.is_admin) return json({ error: 'Apenas o admin pode fazer isto' }, 403);
+    if (!callerProfile?.is_admin) return erroJson('Apenas o admin pode fazer isto', 403);
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!apiKey) return json({ error: 'Chave da API em falta' }, 500);
+    if (!apiKey) return erroJson('Chave da API em falta', 500);
 
     const body = await req.json().catch(() => null);
     const nome = typeof body?.nome === 'string' ? body.nome.trim() : '';
@@ -207,13 +240,14 @@ Deno.serve(async (req) => {
     const kcalAlvo = Number(body?.kcal_alvo);
     const alimentosExistentes = Array.isArray(body?.alimentos_existentes) ? body.alimentos_existentes : [];
 
-    if (!nome) return json({ error: 'Nome do prato em falta' }, 400);
-    if (!Number.isFinite(kcalAlvo) || kcalAlvo <= 0) return json({ error: 'kcal_alvo inválido' }, 400);
+    if (!nome) return erroJson('Nome do prato em falta', 400);
+    if (!Number.isFinite(kcalAlvo) || kcalAlvo <= 0) return erroJson('kcal_alvo inválido', 400);
 
     const receita = await pedirReceitaIA(nome, notas, kcalAlvo, alimentosExistentes, apiKey);
     return json(receita);
   } catch (e) {
-    console.error('[fitness-ia] erro:', e instanceof Error ? e.message : String(e));
-    return json({ error: 'Falha ao gerar a receita — tenta outra vez.' }, 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[fitness-ia] 500: ' + msg);
+    return json({ error: msg }, 500);
   }
 });

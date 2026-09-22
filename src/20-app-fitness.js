@@ -1088,9 +1088,20 @@ function FitnessApp(props) {
       body: { nome: nome, notas: iaForm.notas.trim() || undefined, kcal_alvo: kcalAlvo, alimentos_existentes: alimentosExistentes }
     }).then(function (res) {
       if (iaCancelRef.current !== geracao) return;
+      if (res.error) {
+        // res.error.context é a Response da função (erro non-2xx) — tenta
+        // ler o corpo JSON dela para a mensagem específica que o servidor
+        // devolveu; só cai na genérica de fiFnErr se isso falhar.
+        var ctx = res.error && res.error.context;
+        var lerCorpo = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
+        lerCorpo.then(function (corpo) {
+          if (iaCancelRef.current !== geracao) return;
+          setIaBusy(false);
+          setIaErro((corpo && corpo.error) || fiFnErr(res) || 'Falha ao pedir a receita à IA — tenta outra vez.');
+        });
+        return;
+      }
       setIaBusy(false);
-      var err = fiFnErr(res);
-      if (err) { setIaErro(err); return; }
       var receita = res.data || {};
       setIaPreview({
         refeicaoId: refeicaoAberta,
