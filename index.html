@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-22T15:19:03.276Z
+  Gerado em: 2026-09-22T21:20:18.544Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-324";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-325";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -36173,7 +36173,7 @@ function FitnessApp(props) {
     if (!opcaoNomeForm.trim()) return;
     if (!opcaoEditandoId) {
       var existentes = opcoes.filter(function (o) { return o.refeicao_id === opcaoRefeicaoAberta; });
-      if (existentes.length >= 5) { window.mostrarErro('Fitness', new Error('Máximo de 5 opções por refeição.')); return; }
+      if (existentes.length >= 6) { window.mostrarErro('Fitness', new Error('Máximo de 6 opções por refeição.')); return; }
     }
     var query = opcaoEditandoId
       ? db.from('fitness_opcoes').update({ nome: opcaoNomeForm.trim() }).eq('id', opcaoEditandoId)
@@ -36622,8 +36622,8 @@ function FitnessApp(props) {
                   React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, onClick: guardarOpcao }, '✓ Guardar opção')
                 )
               )
-            : opcoesRefeicao.length < 5 && React.createElement('div', { style: { display: 'flex', gap: 8 } },
-                React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { abrirNovaOpcao(r.id); } }, '+ Opção (' + opcoesRefeicao.length + '/5)'),
+            : opcoesRefeicao.length < 6 && React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { abrirNovaOpcao(r.id); } }, '+ Opção (' + opcoesRefeicao.length + '/6)'),
                 iaRefeicaoAberta !== r.id && React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { abrirFormIA(r.id); } }, '✨ Adicionar prato por nome')
               ),
           iaRefeicaoAberta === r.id && renderFormIA(r)
