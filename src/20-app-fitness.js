@@ -122,7 +122,11 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
   });
   var fatorBruto = S > 0 ? (kcalAlvoRefeicao - F) / S : 1;
   var fator = Math.max(0.5, Math.min(2.0, fatorBruto));
-  var avisoFora = fatorBruto < 0.5 || fatorBruto > 2.0;
+  // Sem itens ajustáveis (S=0) não há fator para desviar — o aviso passa a
+  // olhar se os itens fixos (F) já se afastam de mais de 15% da kcal alvo T.
+  var avisoFora = S > 0
+    ? (fatorBruto < 0.5 || fatorBruto > 2.0)
+    : (kcalAlvoRefeicao > 0 ? (Math.abs(F - kcalAlvoRefeicao) / kcalAlvoRefeicao > 0.15) : F > 0);
   var itensCalc = itens.map(function (it) {
     var al = alimentosPorId[it.alimento_id];
     if (!al) return null;

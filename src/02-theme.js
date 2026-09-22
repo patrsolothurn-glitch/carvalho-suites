@@ -229,5 +229,6 @@ var APPS_DATA = [{
   name: 'Carvalho Fitness',
   desc: 'Plano alimentar, progresso e treino',
   badge: null,
-  color: '#1E8E3E'
+  color: '#1E8E3E',
+  adminOnly: true
 }];

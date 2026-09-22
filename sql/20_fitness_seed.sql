@@ -32,6 +32,12 @@ begin
     raise exception 'Não encontrei profiles.email = patr.carvalho@hotmail.com — confirma o email antes de correr este seed.';
   end if;
 
+  if exists (select 1 from fitness_refeicoes where user_id = v_user_id)
+     or exists (select 1 from fitness_alimentos where user_id = v_user_id)
+     or exists (select 1 from fitness_treinos where user_id = v_user_id) then
+    raise exception 'Seed já corrido (ou a app já foi usada) — não corro para não duplicar.';
+  end if;
+
   -- ── Perfil ──────────────────────────────────────────────────────
   insert into fitness_perfil (user_id, kcal_coach, usar_coach, agua_l, n_refeicoes, prox_avaliacao, intervalo_avaliacao_dias)
   values (v_user_id, 1811, true, 3, 4, '2026-09-25', 14)

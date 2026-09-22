@@ -53,10 +53,14 @@ create table if not exists fitness_perfil (
   unique (user_id)
 );
 alter table fitness_perfil enable row level security;
-create policy "fitness_perfil: dono lê" on fitness_perfil for select using (user_id = auth.uid());
-create policy "fitness_perfil: dono cria" on fitness_perfil for insert with check (user_id = auth.uid());
-create policy "fitness_perfil: dono edita" on fitness_perfil for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_perfil: dono apaga" on fitness_perfil for delete using (user_id = auth.uid());
+drop policy if exists "fitness_perfil: dono lê" on fitness_perfil;
+create policy "fitness_perfil: dono lê" on fitness_perfil for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_perfil: dono cria" on fitness_perfil;
+create policy "fitness_perfil: dono cria" on fitness_perfil for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_perfil: dono edita" on fitness_perfil;
+create policy "fitness_perfil: dono edita" on fitness_perfil for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_perfil: dono apaga" on fitness_perfil;
+create policy "fitness_perfil: dono apaga" on fitness_perfil for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_refeicoes ──────────────────────────────────────────────────
 create table if not exists fitness_refeicoes (
@@ -69,10 +73,14 @@ create table if not exists fitness_refeicoes (
   updated_at timestamptz not null default now()
 );
 alter table fitness_refeicoes enable row level security;
-create policy "fitness_refeicoes: dono lê" on fitness_refeicoes for select using (user_id = auth.uid());
-create policy "fitness_refeicoes: dono cria" on fitness_refeicoes for insert with check (user_id = auth.uid());
-create policy "fitness_refeicoes: dono edita" on fitness_refeicoes for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_refeicoes: dono apaga" on fitness_refeicoes for delete using (user_id = auth.uid());
+drop policy if exists "fitness_refeicoes: dono lê" on fitness_refeicoes;
+create policy "fitness_refeicoes: dono lê" on fitness_refeicoes for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_refeicoes: dono cria" on fitness_refeicoes;
+create policy "fitness_refeicoes: dono cria" on fitness_refeicoes for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_refeicoes: dono edita" on fitness_refeicoes;
+create policy "fitness_refeicoes: dono edita" on fitness_refeicoes for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_refeicoes: dono apaga" on fitness_refeicoes;
+create policy "fitness_refeicoes: dono apaga" on fitness_refeicoes for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_alimentos ──────────────────────────────────────────────────
 create table if not exists fitness_alimentos (
@@ -91,10 +99,14 @@ create table if not exists fitness_alimentos (
   updated_at timestamptz not null default now()
 );
 alter table fitness_alimentos enable row level security;
-create policy "fitness_alimentos: dono lê" on fitness_alimentos for select using (user_id = auth.uid());
-create policy "fitness_alimentos: dono cria" on fitness_alimentos for insert with check (user_id = auth.uid());
-create policy "fitness_alimentos: dono edita" on fitness_alimentos for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_alimentos: dono apaga" on fitness_alimentos for delete using (user_id = auth.uid());
+drop policy if exists "fitness_alimentos: dono lê" on fitness_alimentos;
+create policy "fitness_alimentos: dono lê" on fitness_alimentos for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_alimentos: dono cria" on fitness_alimentos;
+create policy "fitness_alimentos: dono cria" on fitness_alimentos for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_alimentos: dono edita" on fitness_alimentos;
+create policy "fitness_alimentos: dono edita" on fitness_alimentos for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_alimentos: dono apaga" on fitness_alimentos;
+create policy "fitness_alimentos: dono apaga" on fitness_alimentos for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_opcoes (máximo 5 por refeição — validado na app E aqui) ────
 create table if not exists fitness_opcoes (
@@ -109,17 +121,21 @@ create table if not exists fitness_opcoes (
   updated_at timestamptz not null default now()
 );
 alter table fitness_opcoes enable row level security;
-create policy "fitness_opcoes: dono lê" on fitness_opcoes for select using (user_id = auth.uid());
-create policy "fitness_opcoes: dono cria" on fitness_opcoes for insert with check (user_id = auth.uid());
-create policy "fitness_opcoes: dono edita" on fitness_opcoes for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_opcoes: dono apaga" on fitness_opcoes for delete using (user_id = auth.uid());
+drop policy if exists "fitness_opcoes: dono lê" on fitness_opcoes;
+create policy "fitness_opcoes: dono lê" on fitness_opcoes for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_opcoes: dono cria" on fitness_opcoes;
+create policy "fitness_opcoes: dono cria" on fitness_opcoes for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_opcoes: dono edita" on fitness_opcoes;
+create policy "fitness_opcoes: dono edita" on fitness_opcoes for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_opcoes: dono apaga" on fitness_opcoes;
+create policy "fitness_opcoes: dono apaga" on fitness_opcoes for delete to authenticated using (user_id = auth.uid());
 
 create or replace function fitness_check_max_opcoes()
 returns trigger
 language plpgsql
 as $$
 begin
-  if (select count(*) from fitness_opcoes where refeicao_id = new.refeicao_id) >= 5 then
+  if (select count(*) from fitness_opcoes where refeicao_id = new.refeicao_id and id <> new.id) >= 5 then
     raise exception 'Máximo de 5 opções por refeição.';
   end if;
   return new;
@@ -127,7 +143,7 @@ end;
 $$;
 drop trigger if exists fitness_opcoes_max_5 on fitness_opcoes;
 create trigger fitness_opcoes_max_5
-  before insert on fitness_opcoes
+  before insert or update of refeicao_id on fitness_opcoes
   for each row execute function fitness_check_max_opcoes();
 
 -- ── fitness_opcao_itens ────────────────────────────────────────────────
@@ -142,10 +158,14 @@ create table if not exists fitness_opcao_itens (
   updated_at timestamptz not null default now()
 );
 alter table fitness_opcao_itens enable row level security;
-create policy "fitness_opcao_itens: dono lê" on fitness_opcao_itens for select using (user_id = auth.uid());
-create policy "fitness_opcao_itens: dono cria" on fitness_opcao_itens for insert with check (user_id = auth.uid());
-create policy "fitness_opcao_itens: dono edita" on fitness_opcao_itens for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_opcao_itens: dono apaga" on fitness_opcao_itens for delete using (user_id = auth.uid());
+drop policy if exists "fitness_opcao_itens: dono lê" on fitness_opcao_itens;
+create policy "fitness_opcao_itens: dono lê" on fitness_opcao_itens for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_opcao_itens: dono cria" on fitness_opcao_itens;
+create policy "fitness_opcao_itens: dono cria" on fitness_opcao_itens for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_opcao_itens: dono edita" on fitness_opcao_itens;
+create policy "fitness_opcao_itens: dono edita" on fitness_opcao_itens for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_opcao_itens: dono apaga" on fitness_opcao_itens;
+create policy "fitness_opcao_itens: dono apaga" on fitness_opcao_itens for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_registo (histórico — grava os valores calculados no
 -- momento, nunca recalcula a partir do alimento atual) ───────────────
@@ -166,10 +186,14 @@ create table if not exists fitness_registo (
   updated_at timestamptz not null default now()
 );
 alter table fitness_registo enable row level security;
-create policy "fitness_registo: dono lê" on fitness_registo for select using (user_id = auth.uid());
-create policy "fitness_registo: dono cria" on fitness_registo for insert with check (user_id = auth.uid());
-create policy "fitness_registo: dono edita" on fitness_registo for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_registo: dono apaga" on fitness_registo for delete using (user_id = auth.uid());
+drop policy if exists "fitness_registo: dono lê" on fitness_registo;
+create policy "fitness_registo: dono lê" on fitness_registo for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_registo: dono cria" on fitness_registo;
+create policy "fitness_registo: dono cria" on fitness_registo for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_registo: dono edita" on fitness_registo;
+create policy "fitness_registo: dono edita" on fitness_registo for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_registo: dono apaga" on fitness_registo;
+create policy "fitness_registo: dono apaga" on fitness_registo for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_agua (uma linha por dia por utilizador) ───────────────────
 create table if not exists fitness_agua (
@@ -182,10 +206,14 @@ create table if not exists fitness_agua (
   unique (user_id, data)
 );
 alter table fitness_agua enable row level security;
-create policy "fitness_agua: dono lê" on fitness_agua for select using (user_id = auth.uid());
-create policy "fitness_agua: dono cria" on fitness_agua for insert with check (user_id = auth.uid());
-create policy "fitness_agua: dono edita" on fitness_agua for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_agua: dono apaga" on fitness_agua for delete using (user_id = auth.uid());
+drop policy if exists "fitness_agua: dono lê" on fitness_agua;
+create policy "fitness_agua: dono lê" on fitness_agua for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_agua: dono cria" on fitness_agua;
+create policy "fitness_agua: dono cria" on fitness_agua for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_agua: dono edita" on fitness_agua;
+create policy "fitness_agua: dono edita" on fitness_agua for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_agua: dono apaga" on fitness_agua;
+create policy "fitness_agua: dono apaga" on fitness_agua for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_compras ────────────────────────────────────────────────────
 create table if not exists fitness_compras (
@@ -199,10 +227,14 @@ create table if not exists fitness_compras (
   updated_at timestamptz not null default now()
 );
 alter table fitness_compras enable row level security;
-create policy "fitness_compras: dono lê" on fitness_compras for select using (user_id = auth.uid());
-create policy "fitness_compras: dono cria" on fitness_compras for insert with check (user_id = auth.uid());
-create policy "fitness_compras: dono edita" on fitness_compras for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_compras: dono apaga" on fitness_compras for delete using (user_id = auth.uid());
+drop policy if exists "fitness_compras: dono lê" on fitness_compras;
+create policy "fitness_compras: dono lê" on fitness_compras for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_compras: dono cria" on fitness_compras;
+create policy "fitness_compras: dono cria" on fitness_compras for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_compras: dono edita" on fitness_compras;
+create policy "fitness_compras: dono edita" on fitness_compras for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_compras: dono apaga" on fitness_compras;
+create policy "fitness_compras: dono apaga" on fitness_compras for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_avaliacoes ─────────────────────────────────────────────────
 create table if not exists fitness_avaliacoes (
@@ -221,10 +253,14 @@ create table if not exists fitness_avaliacoes (
   updated_at timestamptz not null default now()
 );
 alter table fitness_avaliacoes enable row level security;
-create policy "fitness_avaliacoes: dono lê" on fitness_avaliacoes for select using (user_id = auth.uid());
-create policy "fitness_avaliacoes: dono cria" on fitness_avaliacoes for insert with check (user_id = auth.uid());
-create policy "fitness_avaliacoes: dono edita" on fitness_avaliacoes for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_avaliacoes: dono apaga" on fitness_avaliacoes for delete using (user_id = auth.uid());
+drop policy if exists "fitness_avaliacoes: dono lê" on fitness_avaliacoes;
+create policy "fitness_avaliacoes: dono lê" on fitness_avaliacoes for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_avaliacoes: dono cria" on fitness_avaliacoes;
+create policy "fitness_avaliacoes: dono cria" on fitness_avaliacoes for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_avaliacoes: dono edita" on fitness_avaliacoes;
+create policy "fitness_avaliacoes: dono edita" on fitness_avaliacoes for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_avaliacoes: dono apaga" on fitness_avaliacoes;
+create policy "fitness_avaliacoes: dono apaga" on fitness_avaliacoes for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_fotos (o ficheiro em si vive no Storage, bucket privado
 -- "fitness-fotos" — apagar a linha NÃO apaga o ficheiro sozinho, a app
@@ -239,10 +275,14 @@ create table if not exists fitness_fotos (
   updated_at timestamptz not null default now()
 );
 alter table fitness_fotos enable row level security;
-create policy "fitness_fotos: dono lê" on fitness_fotos for select using (user_id = auth.uid());
-create policy "fitness_fotos: dono cria" on fitness_fotos for insert with check (user_id = auth.uid());
-create policy "fitness_fotos: dono edita" on fitness_fotos for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_fotos: dono apaga" on fitness_fotos for delete using (user_id = auth.uid());
+drop policy if exists "fitness_fotos: dono lê" on fitness_fotos;
+create policy "fitness_fotos: dono lê" on fitness_fotos for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_fotos: dono cria" on fitness_fotos;
+create policy "fitness_fotos: dono cria" on fitness_fotos for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_fotos: dono edita" on fitness_fotos;
+create policy "fitness_fotos: dono edita" on fitness_fotos for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_fotos: dono apaga" on fitness_fotos;
+create policy "fitness_fotos: dono apaga" on fitness_fotos for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_treinos ────────────────────────────────────────────────────
 create table if not exists fitness_treinos (
@@ -258,10 +298,14 @@ create table if not exists fitness_treinos (
   updated_at timestamptz not null default now()
 );
 alter table fitness_treinos enable row level security;
-create policy "fitness_treinos: dono lê" on fitness_treinos for select using (user_id = auth.uid());
-create policy "fitness_treinos: dono cria" on fitness_treinos for insert with check (user_id = auth.uid());
-create policy "fitness_treinos: dono edita" on fitness_treinos for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_treinos: dono apaga" on fitness_treinos for delete using (user_id = auth.uid());
+drop policy if exists "fitness_treinos: dono lê" on fitness_treinos;
+create policy "fitness_treinos: dono lê" on fitness_treinos for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_treinos: dono cria" on fitness_treinos;
+create policy "fitness_treinos: dono cria" on fitness_treinos for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_treinos: dono edita" on fitness_treinos;
+create policy "fitness_treinos: dono edita" on fitness_treinos for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_treinos: dono apaga" on fitness_treinos;
+create policy "fitness_treinos: dono apaga" on fitness_treinos for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_exercicios ─────────────────────────────────────────────────
 create table if not exists fitness_exercicios (
@@ -278,10 +322,14 @@ create table if not exists fitness_exercicios (
   updated_at timestamptz not null default now()
 );
 alter table fitness_exercicios enable row level security;
-create policy "fitness_exercicios: dono lê" on fitness_exercicios for select using (user_id = auth.uid());
-create policy "fitness_exercicios: dono cria" on fitness_exercicios for insert with check (user_id = auth.uid());
-create policy "fitness_exercicios: dono edita" on fitness_exercicios for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_exercicios: dono apaga" on fitness_exercicios for delete using (user_id = auth.uid());
+drop policy if exists "fitness_exercicios: dono lê" on fitness_exercicios;
+create policy "fitness_exercicios: dono lê" on fitness_exercicios for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_exercicios: dono cria" on fitness_exercicios;
+create policy "fitness_exercicios: dono cria" on fitness_exercicios for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_exercicios: dono edita" on fitness_exercicios;
+create policy "fitness_exercicios: dono edita" on fitness_exercicios for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_exercicios: dono apaga" on fitness_exercicios;
+create policy "fitness_exercicios: dono apaga" on fitness_exercicios for delete to authenticated using (user_id = auth.uid());
 
 -- ── fitness_treino_log ─────────────────────────────────────────────────
 create table if not exists fitness_treino_log (
@@ -295,10 +343,14 @@ create table if not exists fitness_treino_log (
   updated_at timestamptz not null default now()
 );
 alter table fitness_treino_log enable row level security;
-create policy "fitness_treino_log: dono lê" on fitness_treino_log for select using (user_id = auth.uid());
-create policy "fitness_treino_log: dono cria" on fitness_treino_log for insert with check (user_id = auth.uid());
-create policy "fitness_treino_log: dono edita" on fitness_treino_log for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "fitness_treino_log: dono apaga" on fitness_treino_log for delete using (user_id = auth.uid());
+drop policy if exists "fitness_treino_log: dono lê" on fitness_treino_log;
+create policy "fitness_treino_log: dono lê" on fitness_treino_log for select to authenticated using (user_id = auth.uid());
+drop policy if exists "fitness_treino_log: dono cria" on fitness_treino_log;
+create policy "fitness_treino_log: dono cria" on fitness_treino_log for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "fitness_treino_log: dono edita" on fitness_treino_log;
+create policy "fitness_treino_log: dono edita" on fitness_treino_log for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "fitness_treino_log: dono apaga" on fitness_treino_log;
+create policy "fitness_treino_log: dono apaga" on fitness_treino_log for delete to authenticated using (user_id = auth.uid());
 
 -- ══════════════════════════════════════════════════════════════════
 -- Storage: bucket privado "fitness-fotos"
@@ -310,18 +362,22 @@ insert into storage.buckets (id, name, public)
 values ('fitness-fotos', 'fitness-fotos', false)
 on conflict (id) do nothing;
 
-create policy "fitness-fotos: dono lê" on storage.objects for select using (
+drop policy if exists "fitness-fotos: dono lê" on storage.objects;
+create policy "fitness-fotos: dono lê" on storage.objects for select to authenticated using (
   bucket_id = 'fitness-fotos' and (storage.foldername(name))[1] = auth.uid()::text
 );
-create policy "fitness-fotos: dono envia" on storage.objects for insert with check (
+drop policy if exists "fitness-fotos: dono envia" on storage.objects;
+create policy "fitness-fotos: dono envia" on storage.objects for insert to authenticated with check (
   bucket_id = 'fitness-fotos' and (storage.foldername(name))[1] = auth.uid()::text
 );
-create policy "fitness-fotos: dono atualiza" on storage.objects for update using (
+drop policy if exists "fitness-fotos: dono atualiza" on storage.objects;
+create policy "fitness-fotos: dono atualiza" on storage.objects for update to authenticated using (
   bucket_id = 'fitness-fotos' and (storage.foldername(name))[1] = auth.uid()::text
 ) with check (
   bucket_id = 'fitness-fotos' and (storage.foldername(name))[1] = auth.uid()::text
 );
-create policy "fitness-fotos: dono apaga" on storage.objects for delete using (
+drop policy if exists "fitness-fotos: dono apaga" on storage.objects;
+create policy "fitness-fotos: dono apaga" on storage.objects for delete to authenticated using (
   bucket_id = 'fitness-fotos' and (storage.foldername(name))[1] = auth.uid()::text
 );
 
