@@ -15,10 +15,10 @@
 
 var FI_COR = '#1E8E3E';
 var FI_CSS = '' +
-  '.fi-app{--fi-fundo:#F7FAF7;--fi-cartao:#FFFFFF;--fi-borda:#DCE8DC;--fi-texto:#132116;--fi-texto2:#4B5D4E;--fi-verde:#1E8E3E;--fi-verde-texto:#FFFFFF;--fi-vermelho:#DC2626;' +
+  '.fi-app{--fi-fundo:#F7FAF7;--fi-cartao:#FFFFFF;--fi-borda:#DCE8DC;--fi-texto:#132116;--fi-texto2:#4B5D4E;--fi-verde:#1E8E3E;--fi-verde-texto:#FFFFFF;--fi-vermelho:#DC2626;--fi-amarelo:#B45309;' +
   'background:var(--fi-fundo);color:var(--fi-texto);min-height:100vh;padding-bottom:86px;' +
   'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}' +
-  '.fi-app.fi-dark{--fi-fundo:#0B140D;--fi-cartao:#121D14;--fi-borda:#213424;--fi-texto:#E6F1E8;--fi-texto2:#93A895;--fi-verde:#34C759;--fi-verde-texto:#04140B;--fi-vermelho:#F87171}' +
+  '.fi-app.fi-dark{--fi-fundo:#0B140D;--fi-cartao:#121D14;--fi-borda:#213424;--fi-texto:#E6F1E8;--fi-texto2:#93A895;--fi-verde:#34C759;--fi-verde-texto:#04140B;--fi-vermelho:#F87171;--fi-amarelo:#FBBF24}' +
   '.fi-card{background:var(--fi-cartao);border-radius:16px;border:1px solid var(--fi-borda);padding:14px}' +
   '.fi-input{width:100%;box-sizing:border-box;background:var(--fi-cartao);border:1px solid var(--fi-borda);color:var(--fi-texto);border-radius:10px;padding:10px 12px;font-size:14px}' +
   '.fi-btn{background:var(--fi-cartao);color:var(--fi-texto);border:1px solid var(--fi-borda);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:800;cursor:pointer}' +
@@ -31,10 +31,10 @@ function fiTemaEscuro() { return T.bg === T_DARK.bg; }
 
 // ── Opções de perfil (labels amigáveis) ─────────────────────────────
 var FI_ATIVIDADE_OPTS = [
-  { v: 1.2, label: 'Sedentário', desc: 'pouco ou nenhum exercício' },
-  { v: 1.375, label: 'Leve', desc: 'exercício leve 1–3x/semana' },
-  { v: 1.55, label: 'Moderado', desc: 'exercício moderado 3–5x/semana' },
-  { v: 1.725, label: 'Intenso', desc: 'exercício intenso 6–7x/semana' }
+  { v: 1.2, label: 'Sedentário', desc: 'trabalho sentado, pouco movimento' },
+  { v: 1.375, label: 'Leve', desc: 'algum movimento no dia' },
+  { v: 1.55, label: 'Moderada', desc: 'de pé / a andar grande parte do dia de trabalho' },
+  { v: 1.725, label: 'Muito ativo', desc: 'trabalho físico pesado ou treino diário' }
 ];
 var FI_OBJETIVO_OPTS = [
   { v: 'perder', label: 'Perder peso', emoji: '📉' },
@@ -42,9 +42,9 @@ var FI_OBJETIVO_OPTS = [
   { v: 'ganhar', label: 'Ganhar peso', emoji: '📈' }
 ];
 var FI_RITMO_OPTS = [
-  { v: 'ligeiro', label: 'Ligeiro', desc: '−15%' },
+  { v: 'ligeiro', label: 'Ligeiro', desc: '−15% · menos fome, mais lento' },
   { v: 'normal', label: 'Normal', desc: '−20%' },
-  { v: 'rapido', label: 'Rápido', desc: '−25%' }
+  { v: 'rapido', label: 'Rápido', desc: '−25% · mais difícil' }
 ];
 var FI_DIVISAO_DEFAULT = {
   1: [100], 2: [50, 50], 3: [30, 40, 30], 4: [25, 30, 15, 30],
@@ -88,11 +88,42 @@ function fiMetaAtiva(perfil, pesoAtual) {
     var idade = fiCalcularIdade(perfil.data_nasc);
     var bmr = fiBMR(perfil.sexo, pesoAtual, perfil.altura_cm, idade);
     var tdee = fiTDEE(bmr, perfil.atividade);
-    calculado = fiMetaCalculada(tdee, perfil.objetivo, perfil.ritmo, perfil.sexo);
+    calculado = Object.assign({ bmr: Math.round(bmr) }, fiMetaCalculada(tdee, perfil.objetivo, perfil.ritmo, perfil.sexo));
   }
   var usarCoach = !!(perfil && perfil.usar_coach && perfil.kcal_coach);
   var ativa = usarCoach ? perfil.kcal_coach : (calculado ? calculado.kcal : null);
   return { calculado: calculado, coach: (perfil && perfil.kcal_coach) || null, usarCoach: usarCoach, ativa: ativa };
+}
+// Cálculo passo a passo para o cartão META DIÁRIA (só quando "calculado"
+// existe, ou seja, quando há sexo/idade/altura/peso/atividade/objetivo).
+// deficitCalc/deficitEmUso positivos = défice; negativos = superávit.
+// ritmoSemanal em kg/semana (regra défice diário × 7 / 7700), positivo =
+// perda, negativo = ganho. metaPesoInfo só é calculado com peso_meta.
+function fiExplicacaoMeta(calculado, metaAtiva, pesoAtual, pesoMeta) {
+  if (!calculado) return null;
+  var manutencao = calculado.tdee;
+  var metaCalc = calculado.kcal;
+  var deficitCalc = manutencao - metaCalc;
+  var deficitCalcPct = manutencao > 0 ? (deficitCalc / manutencao * 100) : 0;
+  var ritmoSemanal = (deficitCalc * 7) / 7700;
+  var metaPesoInfo = null;
+  if (pesoMeta != null && pesoAtual != null) {
+    if (pesoMeta >= pesoAtual) metaPesoInfo = { estado: 'atingida_ou_acima' };
+    else if (ritmoSemanal > 0) metaPesoInfo = { estado: 'previsao', semanas: Math.ceil((pesoAtual - pesoMeta) / ritmoSemanal) };
+    else metaPesoInfo = { estado: 'sem_previsao' };
+  }
+  var deficitEmUso = null, deficitEmUsoPct = null;
+  if (metaAtiva != null && manutencao > 0) {
+    deficitEmUso = manutencao - metaAtiva;
+    deficitEmUsoPct = deficitEmUso / manutencao * 100;
+  }
+  return {
+    bmr: calculado.bmr, manutencao: manutencao, metaCalc: metaCalc,
+    deficitCalc: deficitCalc, deficitCalcPct: deficitCalcPct,
+    ritmoSemanal: ritmoSemanal, metaPesoInfo: metaPesoInfo,
+    deficitEmUsoPct: deficitEmUsoPct,
+    avisoDeficitAlto: deficitEmUsoPct != null && deficitEmUsoPct > 25
+  };
 }
 function fiProteinaAlvo(protGKg, pesoKg) {
   if (!protGKg || !pesoKg) return null;
@@ -321,6 +352,7 @@ function FitnessApp(props) {
   var meta = fiMetaAtiva(perfil, pesoAtual);
   var protAlvo = perfil ? fiProteinaAlvo(perfil.prot_g_kg, pesoAtual) : null;
   var macrosRef = meta.ativa != null ? fiMacrosReferencia(meta.ativa, protAlvo || 0) : null;
+  var explicacao = fiExplicacaoMeta(meta.calculado, meta.ativa, pesoAtual, perfil ? perfil.peso_meta : null);
 
   // ══════════════════════════════════════════════════════════════
   // ASSISTENTE (primeira abertura)
@@ -561,6 +593,34 @@ function FitnessApp(props) {
           React.createElement('div', { style: { fontSize: 11, color: FI_COR, fontWeight: 800 } }, 'Em uso'),
           React.createElement('div', { style: { fontSize: 18, fontWeight: 900, color: FI_COR } }, meta.ativa ? fiFmtKcal(meta.ativa) : '— (completa o perfil)')
         )
+      ),
+      meta.calculado && explicacao && React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--fi-borda)', fontSize: 12.5, lineHeight: 1.9, color: 'var(--fi-texto2)' } },
+        React.createElement('div', null, 'Metabolismo base (BMR): ' + fiFmtKcal(explicacao.bmr)),
+        React.createElement('div', null, 'Manutenção (BMR × atividade): ' + fiFmtKcal(explicacao.manutencao)),
+        React.createElement('div', null,
+          explicacao.deficitCalc > 0.5
+            ? 'Défice: −' + fiFmtKcal(explicacao.deficitCalc) + ' (−' + Math.round(Math.abs(explicacao.deficitCalcPct)) + '%)'
+            : explicacao.deficitCalc < -0.5
+              ? 'Superávit: +' + fiFmtKcal(Math.abs(explicacao.deficitCalc)) + ' (+' + Math.round(Math.abs(explicacao.deficitCalcPct)) + '%)'
+              : 'Meta = manutenção'
+        ),
+        React.createElement('div', null, 'Meta calculada: ' + fiFmtKcal(explicacao.metaCalc)),
+        React.createElement('div', null, 'Ritmo previsto: ~' + Math.abs(explicacao.ritmoSemanal).toFixed(1) + ' kg/semana' + (explicacao.ritmoSemanal > 0.05 ? ' de perda' : explicacao.ritmoSemanal < -0.05 ? ' de ganho' : ' (estável)')),
+        explicacao.metaPesoInfo && React.createElement('div', null,
+          explicacao.metaPesoInfo.estado === 'atingida_ou_acima'
+            ? 'Peso meta já atingido ou acima do atual — revê o valor'
+            : explicacao.metaPesoInfo.estado === 'previsao'
+              ? 'Meta de peso em: ~' + explicacao.metaPesoInfo.semanas + ' semana' + (explicacao.metaPesoInfo.semanas === 1 ? '' : 's')
+              : 'Ao ritmo atual não é possível prever quando atinges o peso meta.'
+        ),
+        meta.usarCoach && explicacao.manutencao > 0 && React.createElement('div', null, (function () {
+          var dCoach = explicacao.manutencao - meta.coach;
+          var dCoachPct = Math.round(Math.abs(dCoach / explicacao.manutencao * 100));
+          return dCoach >= 0
+            ? 'Coach: ' + fiFmtKcal(meta.coach) + ' = défice de −' + fiFmtKcal(dCoach) + ' (−' + dCoachPct + '%) face à tua manutenção'
+            : 'Coach: ' + fiFmtKcal(meta.coach) + ' = superávit de +' + fiFmtKcal(Math.abs(dCoach)) + ' (+' + dCoachPct + '%) face à tua manutenção';
+        })()),
+        explicacao.avisoDeficitAlto && React.createElement('div', { style: { color: 'var(--fi-amarelo)', fontWeight: 700, marginTop: 4 } }, '⚠️ Défice alto — mais difícil sem fome.')
       ),
       meta.calculado && meta.calculado.avisoMinimo && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-vermelho)', marginTop: 8, fontWeight: 700 } }, '⚠️ A meta calculada ficaria abaixo do mínimo de segurança — foi ajustada para o mínimo.'),
       !pesoAtual && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Sem peso registado ainda — o cálculo fica completo depois de uma avaliação.'),
