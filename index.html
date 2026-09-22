@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-22T09:36:32.004Z
+  Gerado em: 2026-09-22T15:14:56.360Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-322";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-323";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -36276,9 +36276,20 @@ function FitnessApp(props) {
       body: { nome: nome, notas: iaForm.notas.trim() || undefined, kcal_alvo: kcalAlvo, alimentos_existentes: alimentosExistentes }
     }).then(function (res) {
       if (iaCancelRef.current !== geracao) return;
+      if (res.error) {
+        // res.error.context é a Response da função (erro non-2xx) — tenta
+        // ler o corpo JSON dela para a mensagem específica que o servidor
+        // devolveu; só cai na genérica de fiFnErr se isso falhar.
+        var ctx = res.error && res.error.context;
+        var lerCorpo = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
+        lerCorpo.then(function (corpo) {
+          if (iaCancelRef.current !== geracao) return;
+          setIaBusy(false);
+          setIaErro((corpo && corpo.error) || fiFnErr(res) || 'Falha ao pedir a receita à IA — tenta outra vez.');
+        });
+        return;
+      }
       setIaBusy(false);
-      var err = fiFnErr(res);
-      if (err) { setIaErro(err); return; }
       var receita = res.data || {};
       setIaPreview({
         refeicaoId: refeicaoAberta,
