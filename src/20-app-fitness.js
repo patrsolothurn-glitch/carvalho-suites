@@ -264,8 +264,10 @@ function fiDiasAte(dataISO) {
 }
 
 // ── Open Food Facts (pesquisa pública, sem chave) ───────────────────
-function fiBuscarOFF(query) {
-  var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(query) + '&search_simple=1&action=process&json=1&page_size=12';
+function fiBuscarOFF(query, soMigros) {
+  var url = soMigros
+    ? 'https://ch.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(query) + '&search_simple=1&action=process&json=1&page_size=12&tagtype_0=stores&tag_contains_0=contains&tag_0=migros'
+    : 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(query) + '&search_simple=1&action=process&json=1&page_size=12';
   return fetch(url).then(function (r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
@@ -367,6 +369,7 @@ function FitnessApp(props) {
   var _s25 = React.useState(false); var offBusy = _s25[0], setOffBusy = _s25[1];
   var _s26 = React.useState(null); var offErro = _s26[0], setOffErro = _s26[1];
   var _s27 = React.useState([]); var offResultados = _s27[0], setOffResultados = _s27[1];
+  var _s55 = React.useState(null); var offOrigem = _s55[0], setOffOrigem = _s55[1]; // 'migros' | 'semelhantes'
   var alimFormRef = React.useRef(null);
 
   // Plano — refeições
@@ -913,15 +916,31 @@ function FitnessApp(props) {
   }
   function pesquisarOFF() {
     if (!offQuery.trim()) return;
-    setOffBusy(true); setOffErro(null); setOffResultados([]);
-    fiBuscarOFF(offQuery.trim()).then(function (rs) {
-      setOffBusy(false);
-      setOffResultados(rs);
-      if (!rs.length) setOffErro('Nenhum resultado com valores nutricionais completos.');
+    var q = offQuery.trim();
+    setOffBusy(true); setOffErro(null); setOffResultados([]); setOffOrigem(null);
+    function tentarMundo() {
+      return fiBuscarOFF(q, false).then(function (rsMundo) {
+        setOffBusy(false);
+        setOffResultados(rsMundo);
+        if (rsMundo.length) setOffOrigem('semelhantes');
+        else setOffErro('Nenhum resultado com valores nutricionais completos.');
+      }).catch(function (e) {
+        setOffBusy(false);
+        console.error('[fitness] Open Food Facts:', e);
+        setOffErro('Falha ao pesquisar na Open Food Facts — tenta outra vez ou preenche à mão.');
+      });
+    }
+    fiBuscarOFF(q, true).then(function (rsMigros) {
+      if (rsMigros.length) {
+        setOffBusy(false);
+        setOffResultados(rsMigros);
+        setOffOrigem('migros');
+        return;
+      }
+      return tentarMundo();
     }).catch(function (e) {
-      setOffBusy(false);
-      console.error('[fitness] Open Food Facts:', e);
-      setOffErro('Falha ao pesquisar na Open Food Facts — tenta outra vez ou preenche à mão.');
+      console.error('[fitness] Open Food Facts (Migros):', e);
+      return tentarMundo();
     });
   }
   function aplicarResultadoOFF(r) {
@@ -950,6 +969,8 @@ function FitnessApp(props) {
           React.createElement('button', { className: 'fi-btn', disabled: offBusy, onClick: pesquisarOFF }, offBusy ? '…' : 'Procurar')
         ),
         offErro && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-vermelho)', marginTop: 8 } }, '⚠️ ' + offErro),
+        offResultados.length > 0 && offOrigem === 'migros' && React.createElement('p', { style: { fontSize: 12, fontWeight: 700, marginTop: 8 } }, '🛒 Produtos Migros'),
+        offResultados.length > 0 && offOrigem === 'semelhantes' && React.createElement('p', { style: { fontSize: 12, fontWeight: 700, color: 'var(--fi-amarelo)', marginTop: 8 } }, '⚠️ Sem produtos Migros — a mostrar semelhantes (confirma os valores)'),
         offResultados.length > 0 && React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 } },
           offResultados.map(function (r, i) {
             return React.createElement('button', { key: i, className: 'fi-btn', style: { textAlign: 'left' }, onClick: function () { aplicarResultadoOFF(r); } },
