@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-22T21:24:02.759Z
+  Gerado em: 2026-09-23T03:57:48.918Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-326";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-327";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -36671,8 +36671,8 @@ function FitnessApp(props) {
                     React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginLeft: 8 } }, r.pct + '%' + (kcalRefeicao ? ' · ' + fiFmtKcal(kcalRefeicao) : ''))
                   ),
               refEditandoId !== r.id && React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
-                React.createElement('button', { disabled: ri === 0, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === 0 ? 'default' : 'pointer', opacity: ri === 0 ? 0.3 : 1 } }, '↑'),
-                React.createElement('button', { disabled: ri === ordenadas.length - 1, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === ordenadas.length - 1 ? 'default' : 'pointer', opacity: ri === ordenadas.length - 1 ? 0.3 : 1 } }, '↓'),
+                React.createElement('button', { disabled: ri === 0, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === 0 ? 'default' : 'pointer', opacity: ri === 0 ? 0.3 : 1 } }, '←'),
+                React.createElement('button', { disabled: ri === ordenadas.length - 1, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === ordenadas.length - 1 ? 'default' : 'pointer', opacity: ri === ordenadas.length - 1 ? 0.3 : 1 } }, '→'),
                 React.createElement('button', { onClick: function () { abrirEditarRefeicao(r); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️')
               )
             ),
