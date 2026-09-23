@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-23T14:47:55.237Z
+  Gerado em: 2026-09-23T18:52:15.820Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-331";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-332";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -35203,6 +35203,9 @@ function PollenApp(props) {
 
 var FI_COR = '#1E8E3E';
 var FI_BUCKET = 'fitness-fotos';
+// Paleta fixa por posição da refeição no Plano (repete a partir da 7.ª).
+var FI_CORES_REFEICAO = ['#1E8E3E', '#2563EB', '#B45309', '#7C3AED', '#DC2626', '#0891B2'];
+function fiCorRefeicao(indice) { return FI_CORES_REFEICAO[indice % FI_CORES_REFEICAO.length]; }
 var FI_CSS = '' +
   '.fi-app{--fi-fundo:#F7FAF7;--fi-cartao:#FFFFFF;--fi-borda:#DCE8DC;--fi-texto:#132116;--fi-texto2:#4B5D4E;--fi-verde:#1E8E3E;--fi-verde-texto:#FFFFFF;--fi-vermelho:#DC2626;--fi-amarelo:#B45309;' +
   'background:var(--fi-fundo);color:var(--fi-texto);min-height:100vh;padding-bottom:86px;' +
@@ -35228,6 +35231,16 @@ var FI_CSS = '' +
   '}' +
   '.fi-plano-col-btns{display:flex;flex-wrap:wrap;gap:8px}' +
   '.fi-plano-col-btns>.fi-btn{flex:1 1 140px}' +
+  '.fi-refeicao-corpo{position:relative;padding-left:12px}' +
+  '.fi-refeicao-barra{position:absolute;left:0;top:2px;bottom:2px;width:4px;border-radius:4px}' +
+  '.fi-refeicao-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;color:#fff;font-size:12px;font-weight:900;flex:none}' +
+  '.fi-anel-refeicao-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}' +
+  '.fi-anel-refeicao{position:relative;width:44px;height:44px}' +
+  '.fi-anel-refeicao-svg{width:44px;height:44px;display:block}' +
+  '.fi-anel-refeicao-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}' +
+  '.fi-anel-refeicao-pct{font-size:9.5px;color:var(--fi-texto2);font-weight:700}' +
+  '.fi-ingredientes-toggle{margin-top:8px;font-size:12px;font-weight:700;color:var(--fi-texto2);cursor:pointer}' +
+  '.fi-macro-bar{display:flex;height:5px;border-radius:3px;overflow:hidden;margin-top:6px}' +
   '.fi-anel-hoje-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:16px}' +
   '.fi-anel-hoje{position:relative;width:120px;height:120px}' +
   '.fi-anel-hoje-svg{width:120px;height:120px;display:block}' +
@@ -35409,6 +35422,32 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
 }
 function fiFmtKcal(n) { return n == null ? '—' : Math.round(n) + ' kcal'; }
 function fiFmtG(n) { return n == null ? '—' : Math.round(n) + ' g'; }
+// Emoji do prato, por palavras-chave no nome da opção + nomes dos ingredientes
+// (minúsculas, sem acentos). Sem correspondência → 🍽️.
+function fiIconeOpcao(nome, nomesIngredientes) {
+  function normalizar(s) {
+    var t = (s || '').toLowerCase();
+    return t.normalize ? t.normalize('NFD').replace(/[̀-ͯ]/g, '') : t;
+  }
+  var texto = normalizar(nome) + ' ' + (nomesIngredientes || []).map(normalizar).join(' ');
+  var regras = [
+    [/\b(frango|peru|carne)\b/, '🍗'],
+    [/\b(vaca|vitela|porco)\b/, '🥩'],
+    [/\b(peixe|atum|bacalhau|salmao)\b/, '🐟'],
+    [/\b(camarao|marisco)\b/, '🦐'],
+    [/\b(arroz|massa|batata|quinoa)\b/, '🍚'],
+    [/\b(pao|sandes|tosta)\b/, '🥪'],
+    [/\b(iogurte|leite|queijo|mousse|pudim)\b/, '🥛'],
+    [/\bovo\b/, '🥚'],
+    [/\b(fruta|banana|maca|laranja)\b/, '🍌'],
+    [/\b(salada|legumes|sopa)\b/, '🥗'],
+    [/\b(bolacha|cereais|aveia)\b/, '🍪']
+  ];
+  for (var i = 0; i < regras.length; i++) {
+    if (regras[i][0].test(texto)) return regras[i][1];
+  }
+  return '🍽️';
+}
 // "N kcal · P N g · HC N g · G N g" para uma quantidade — valor por 100
 // × quantidade ÷ 100, kcal a inteiro, macros a 1 casa decimal. Usado na
 // linha só-de-leitura de cada ingrediente da pré-visualização da IA.
@@ -35611,6 +35650,7 @@ function FitnessApp(props) {
   var _s33 = React.useState(null); var opcaoEditandoId = _s33[0], setOpcaoEditandoId = _s33[1];
   var _s34 = React.useState(null); var confirmApagarOpcao = _s34[0], setConfirmApagarOpcao = _s34[1];
   var _s54 = React.useState(null); var moverOpcaoId = _s54[0], setMoverOpcaoId = _s54[1]; // id da opção a mover para outra refeição
+  var _s75 = React.useState({}); var opcoesAbertas = _s75[0], setOpcoesAbertas = _s75[1]; // { [opcaoId]: true } — lista de ingredientes aberta
   // Plano — itens de uma opção
   var _s35 = React.useState(null); var itemOpcaoAberta = _s35[0], setItemOpcaoAberta = _s35[1]; // id da opção com form de novo item aberto
   var _s36 = React.useState({ alimento_id: '', gramas_base: '', ajustavel: true, nota: '' }); var itemForm = _s36[0], setItemForm = _s36[1];
@@ -36601,8 +36641,14 @@ function FitnessApp(props) {
     });
   }
 
-  function abrirNovoItem(opcaoId) { setItemOpcaoAberta(opcaoId); setItemEditandoId(null); setItemForm({ alimento_id: alimentos[0] ? alimentos[0].id : '', gramas_base: '', ajustavel: true, nota: '' }); }
-  function abrirEditarItem(it) { setItemOpcaoAberta(it.opcao_id); setItemEditandoId(it.id); setItemForm({ alimento_id: it.alimento_id, gramas_base: String(it.gramas_base), ajustavel: it.ajustavel !== false, nota: it.nota || '' }); }
+  function abrirNovoItem(opcaoId) {
+    setItemOpcaoAberta(opcaoId); setItemEditandoId(null); setItemForm({ alimento_id: alimentos[0] ? alimentos[0].id : '', gramas_base: '', ajustavel: true, nota: '' });
+    setOpcoesAbertas(function (m) { var n = Object.assign({}, m); n[opcaoId] = true; return n; });
+  }
+  function abrirEditarItem(it) {
+    setItemOpcaoAberta(it.opcao_id); setItemEditandoId(it.id); setItemForm({ alimento_id: it.alimento_id, gramas_base: String(it.gramas_base), ajustavel: it.ajustavel !== false, nota: it.nota || '' });
+    setOpcoesAbertas(function (m) { var n = Object.assign({}, m); n[it.opcao_id] = true; return n; });
+  }
   function guardarItem() {
     var gNum = parseFloat(itemForm.gramas_base);
     if (!itemForm.alimento_id || isNaN(gNum) || gNum <= 0) return;
@@ -36627,13 +36673,22 @@ function FitnessApp(props) {
   function renderOpcao(o, kcalRefeicao, irmas, idx) {
     var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
     var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
+    var aberto = !!opcoesAbertas[o.id];
+    var icone = fiIconeOpcao(o.nome, itensOpcao.map(function (it) { var al = alimentosPorId[it.alimento_id]; return al ? al.nome : ''; }));
+    var kcalP = calc.totais.prot * 4, kcalH = calc.totais.hc * 4, kcalG = calc.totais.gord * 9;
+    var totalMacroKcal = kcalP + kcalH + kcalG;
     return React.createElement(FiCard, { key: o.id, style: { marginBottom: 10 } },
       React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
         React.createElement('div', { style: { flex: 1, cursor: opcaoEditandoId === o.id ? 'default' : 'pointer' }, onClick: opcaoEditandoId === o.id ? undefined : function () { abrirReceita(o); } },
           opcaoEditandoId === o.id
             ? React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', value: opcaoNomeForm, onChange: function (e) { setOpcaoNomeForm(e.target.value); }, style: { marginBottom: 6 } })
-            : React.createElement('div', { style: { fontWeight: 800, fontSize: 14 } }, (o.favorito ? '★ ' : '') + o.nome),
-          React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, fiFmtKcal(calc.totais.kcal) + ' · P ' + fiFmtG(calc.totais.prot) + ' · HC ' + fiFmtG(calc.totais.hc) + ' · G ' + fiFmtG(calc.totais.gord))
+            : React.createElement('div', { style: { fontWeight: 800, fontSize: 14 } }, icone + ' ' + (o.favorito ? '★ ' : '') + o.nome),
+          React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, fiFmtKcal(calc.totais.kcal) + ' · P ' + fiFmtG(calc.totais.prot) + ' · HC ' + fiFmtG(calc.totais.hc) + ' · G ' + fiFmtG(calc.totais.gord)),
+          calc.itens.length > 0 && totalMacroKcal > 0 && React.createElement('div', { className: 'fi-macro-bar' },
+            React.createElement('div', { style: { width: (kcalP / totalMacroKcal * 100) + '%', background: '#2563EB' } }),
+            React.createElement('div', { style: { width: (kcalH / totalMacroKcal * 100) + '%', background: '#B45309' } }),
+            React.createElement('div', { style: { width: (kcalG / totalMacroKcal * 100) + '%', background: '#DC2626' } })
+          )
         ),
         React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
           opcaoEditandoId === o.id
@@ -36649,7 +36704,11 @@ function FitnessApp(props) {
         )
       ),
       calc.avisoFora && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-vermelho)', marginTop: 6, fontWeight: 700 } }, '⚠️ Esta opção não encaixa bem nesta refeição (fator fora de 0.5–2.0).'),
-      React.createElement('div', { style: { marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
+      React.createElement('div', {
+        className: 'fi-ingredientes-toggle',
+        onClick: function () { setOpcoesAbertas(function (m) { var n = Object.assign({}, m); n[o.id] = !n[o.id]; return n; }); }
+      }, calc.itens.length + ' ingrediente' + (calc.itens.length === 1 ? '' : 's') + ' ' + (aberto ? '▾' : '▸')),
+      aberto && React.createElement('div', { style: { marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 } },
         calc.itens.map(function (it) {
           return React.createElement('div', { key: it.id, style: { padding: '4px 0', borderTop: '1px solid var(--fi-borda)' } },
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 } },
@@ -36681,7 +36740,7 @@ function FitnessApp(props) {
               React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, onClick: guardarItem }, '✓ Guardar item')
             )
           )
-        : React.createElement('button', { className: 'fi-btn', style: { marginTop: 8, width: '100%' }, onClick: function () { abrirNovoItem(o.id); } }, '+ Item')
+        : (aberto && React.createElement('button', { className: 'fi-btn', style: { marginTop: 8, width: '100%' }, onClick: function () { abrirNovoItem(o.id); } }, '+ Item'))
     );
   }
 
@@ -36771,6 +36830,20 @@ function FitnessApp(props) {
     );
   }
 
+  function renderAnelRefeicao(r, kcalRefeicao, cor) {
+    var pctClamped = Math.max(0, Math.min(100, Number(r.pct) || 0));
+    var R = 18, C = 2 * Math.PI * R, arco = (pctClamped / 100) * C;
+    return React.createElement('div', { className: 'fi-anel-refeicao-wrap' },
+      React.createElement('div', { className: 'fi-anel-refeicao' },
+        React.createElement('svg', { viewBox: '0 0 44 44', className: 'fi-anel-refeicao-svg' },
+          React.createElement('circle', { cx: 22, cy: 22, r: R, fill: 'none', stroke: cor, strokeOpacity: 0.15, strokeWidth: 5 }),
+          React.createElement('circle', { cx: 22, cy: 22, r: R, fill: 'none', stroke: cor, strokeWidth: 5, strokeDasharray: arco + ' ' + C, strokeLinecap: 'round', transform: 'rotate(-90 22 22)' })
+        ),
+        React.createElement('div', { className: 'fi-anel-refeicao-num' }, kcalRefeicao ? Math.round(kcalRefeicao) : '—')
+      ),
+      React.createElement('span', { className: 'fi-anel-refeicao-pct' }, r.pct + '%')
+    );
+  }
   function renderPlano() {
     if (!perfil) return null;
     var soma = fiSomaPct(refeicoes);
@@ -36785,8 +36858,10 @@ function FitnessApp(props) {
       ordenadas.length > 1 && React.createElement('div', { className: 'fi-plano-chips' },
         ordenadas.map(function (r, i) {
           var chipAtivo = r.id === ativoId;
+          var corChip = fiCorRefeicao(i);
           return React.createElement('button', {
-            key: r.id, className: 'fi-chip' + (chipAtivo ? ' fi-chip-ativo' : ''),
+            key: r.id, className: 'fi-chip',
+            style: chipAtivo ? { background: corChip, borderColor: corChip, color: '#fff' } : { borderColor: corChip },
             onClick: function () { irParaRefeicao(r.id); }
           }, String(i + 1));
         })
@@ -36795,42 +36870,49 @@ function FitnessApp(props) {
         ordenadas.map(function (r, ri) {
           var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : null;
           var opcoesRefeicao = opcoes.filter(function (o) { return o.refeicao_id === r.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
+          var corRefeicao = fiCorRefeicao(ri);
           return React.createElement('div', {
             key: r.id, className: 'fi-plano-col', 'data-refeicao-id': r.id,
             ref: function (el) { if (el) planoColRefs.current[r.id] = el; else delete planoColRefs.current[r.id]; }
           },
-            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
-              refEditandoId === r.id
-                ? React.createElement('div', { style: { display: 'flex', gap: 6, flex: 1, minWidth: 0 } },
-                    React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', value: refForm.nome, onChange: function (e) { setRefForm(Object.assign({}, refForm, { nome: e.target.value })); } }),
-                    React.createElement('input', { type: 'number', step: '0.01', className: 'fi-input', autoComplete: 'off', style: { maxWidth: 80 }, value: refForm.pct, onChange: function (e) { setRefForm(Object.assign({}, refForm, { pct: e.target.value })); } }),
-                    React.createElement('button', { className: 'fi-btn fi-btn-ativo', onClick: guardarRefeicao }, '✓')
-                  )
-                : React.createElement('div', { style: { minWidth: 0 } },
-                    React.createElement('span', { style: { fontWeight: 900, fontSize: 16 } }, r.nome),
-                    React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginLeft: 8 } }, r.pct + '%' + (kcalRefeicao ? ' · ' + fiFmtKcal(kcalRefeicao) : ''))
-                  ),
-              refEditandoId !== r.id && React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
-                React.createElement('button', { disabled: ri === 0, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === 0 ? 'default' : 'pointer', opacity: ri === 0 ? 0.3 : 1 } }, '←'),
-                React.createElement('button', { disabled: ri === ordenadas.length - 1, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === ordenadas.length - 1 ? 'default' : 'pointer', opacity: ri === ordenadas.length - 1 ? 0.3 : 1 } }, '→'),
-                React.createElement('button', { onClick: function () { abrirEditarRefeicao(r); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️')
-              )
-            ),
-            refEditandoId === r.id && refErro && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-vermelho)', marginBottom: 8 } }, refErro),
-            opcoesRefeicao.map(function (o, oi) { return renderOpcao(o, kcalRefeicao || 0, opcoesRefeicao, oi); }),
-            opcaoRefeicaoAberta === r.id
-              ? React.createElement(FiCard, { style: { marginBottom: 10 } },
-                  React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome da opção', value: opcaoNomeForm, onChange: function (e) { setOpcaoNomeForm(e.target.value); }, style: { marginBottom: 8 } }),
-                  React.createElement('div', { style: { display: 'flex', gap: 8 } },
-                    React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setOpcaoRefeicaoAberta(null); } }, 'Cancelar'),
-                    React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, onClick: guardarOpcao }, '✓ Guardar opção')
+            React.createElement('div', { className: 'fi-refeicao-corpo' },
+              React.createElement('div', { className: 'fi-refeicao-barra', style: { background: corRefeicao } }),
+              React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 } },
+                refEditandoId === r.id
+                  ? React.createElement('div', { style: { display: 'flex', gap: 6, flex: 1, minWidth: 0 } },
+                      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', value: refForm.nome, onChange: function (e) { setRefForm(Object.assign({}, refForm, { nome: e.target.value })); } }),
+                      React.createElement('input', { type: 'number', step: '0.01', className: 'fi-input', autoComplete: 'off', style: { maxWidth: 80 }, value: refForm.pct, onChange: function (e) { setRefForm(Object.assign({}, refForm, { pct: e.target.value })); } }),
+                      React.createElement('button', { className: 'fi-btn fi-btn-ativo', onClick: guardarRefeicao }, '✓')
+                    )
+                  : React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+                      React.createElement('span', { className: 'fi-refeicao-num', style: { background: corRefeicao } }, ri + 1),
+                      React.createElement('span', { style: { fontWeight: 900, fontSize: 16 } }, r.nome)
+                    ),
+                refEditandoId !== r.id && React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flex: 'none' } },
+                  renderAnelRefeicao(r, kcalRefeicao, corRefeicao),
+                  React.createElement('div', { style: { display: 'flex', gap: 4 } },
+                    React.createElement('button', { disabled: ri === 0, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === 0 ? 'default' : 'pointer', opacity: ri === 0 ? 0.3 : 1 } }, '←'),
+                    React.createElement('button', { disabled: ri === ordenadas.length - 1, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === ordenadas.length - 1 ? 'default' : 'pointer', opacity: ri === ordenadas.length - 1 ? 0.3 : 1 } }, '→'),
+                    React.createElement('button', { onClick: function () { abrirEditarRefeicao(r); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️')
                   )
                 )
-              : opcoesRefeicao.length < 6 && React.createElement('div', { className: 'fi-plano-col-btns' },
-                  React.createElement('button', { className: 'fi-btn', onClick: function () { abrirNovaOpcao(r.id); } }, '+ Opção (' + opcoesRefeicao.length + '/6)'),
-                  iaRefeicaoAberta !== r.id && React.createElement('button', { className: 'fi-btn', onClick: function () { abrirFormIA(r.id); } }, '✨ Adicionar prato por nome')
-                ),
-            iaRefeicaoAberta === r.id && renderFormIA(r)
+              ),
+              refEditandoId === r.id && refErro && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-vermelho)', marginBottom: 8 } }, refErro),
+              opcoesRefeicao.map(function (o, oi) { return renderOpcao(o, kcalRefeicao || 0, opcoesRefeicao, oi); }),
+              opcaoRefeicaoAberta === r.id
+                ? React.createElement(FiCard, { style: { marginBottom: 10 } },
+                    React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome da opção', value: opcaoNomeForm, onChange: function (e) { setOpcaoNomeForm(e.target.value); }, style: { marginBottom: 8 } }),
+                    React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                      React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setOpcaoRefeicaoAberta(null); } }, 'Cancelar'),
+                      React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, onClick: guardarOpcao }, '✓ Guardar opção')
+                    )
+                  )
+                : opcoesRefeicao.length < 6 && React.createElement('div', { className: 'fi-plano-col-btns' },
+                    React.createElement('button', { className: 'fi-btn', onClick: function () { abrirNovaOpcao(r.id); } }, '+ Opção (' + opcoesRefeicao.length + '/6)'),
+                    iaRefeicaoAberta !== r.id && React.createElement('button', { className: 'fi-btn', onClick: function () { abrirFormIA(r.id); } }, '✨ Adicionar prato por nome')
+                  ),
+              iaRefeicaoAberta === r.id && renderFormIA(r)
+            )
           );
         })
       )
