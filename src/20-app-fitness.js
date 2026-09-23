@@ -23,6 +23,7 @@ var FI_CSS = '' +
   '.fi-card{background:var(--fi-cartao);border-radius:16px;border:1px solid var(--fi-borda);padding:14px}' +
   '.fi-input{width:100%;box-sizing:border-box;background:var(--fi-cartao);border:1px solid var(--fi-borda);color:var(--fi-texto);border-radius:10px;padding:10px 12px;font-size:14px}' +
   '.fi-btn{background:var(--fi-cartao);color:var(--fi-texto);border:1px solid var(--fi-borda);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:800;cursor:pointer}' +
+  '.fi-app button:not([class]){color:var(--fi-texto)}' +
   '.fi-btn-ativo{background:var(--fi-verde);color:var(--fi-verde-texto);border-color:var(--fi-verde)}' +
   '.fi-btn-perigo{background:var(--fi-vermelho);color:#fff;border-color:var(--fi-vermelho)}' +
   '.fi-chip{background:var(--fi-cartao);border:1px solid var(--fi-borda);color:var(--fi-texto2);border-radius:20px;padding:9px 15px;font-size:13px;font-weight:800;cursor:pointer;text-align:left}' +
