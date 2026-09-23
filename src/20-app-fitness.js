@@ -376,6 +376,7 @@ function FitnessApp(props) {
   var _s32 = React.useState(''); var opcaoNomeForm = _s32[0], setOpcaoNomeForm = _s32[1];
   var _s33 = React.useState(null); var opcaoEditandoId = _s33[0], setOpcaoEditandoId = _s33[1];
   var _s34 = React.useState(null); var confirmApagarOpcao = _s34[0], setConfirmApagarOpcao = _s34[1];
+  var _s54 = React.useState(null); var moverOpcaoId = _s54[0], setMoverOpcaoId = _s54[1]; // id da opção a mover para outra refeição
   // Plano — itens de uma opção
   var _s35 = React.useState(null); var itemOpcaoAberta = _s35[0], setItemOpcaoAberta = _s35[1]; // id da opção com form de novo item aberto
   var _s36 = React.useState({ alimento_id: '', gramas_base: '', ajustavel: true, nota: '' }); var itemForm = _s36[0], setItemForm = _s36[1];
@@ -1063,6 +1064,14 @@ function FitnessApp(props) {
       carregar();
     }).catch(function (e) { console.error('[fitness] apagar opção:', e); window.mostrarErro('Fitness', e); });
   }
+  function moverOpcaoParaRefeicao(o, refeicaoDestinoId) {
+    var novaOrdem = opcoes.filter(function (x) { return x.refeicao_id === refeicaoDestinoId; }).length + 1;
+    db.from('fitness_opcoes').update({ refeicao_id: refeicaoDestinoId, ordem: novaOrdem }).eq('id', o.id).then(function (res) {
+      if (res.error) { console.error('[fitness] mover opção:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setMoverOpcaoId(null);
+      carregar();
+    }).catch(function (e) { console.error('[fitness] mover opção:', e); window.mostrarErro('Fitness', e); });
+  }
   // Troca a "ordem" de duas linhas (refeições ou opções) — usado para reordenar.
   function fiTrocarOrdem(tabela, a, b) {
     Promise.all([
@@ -1315,6 +1324,7 @@ function FitnessApp(props) {
                 React.createElement('button', { disabled: idx === 0, onClick: function () { fiTrocarOrdem('fitness_opcoes', o, irmas[idx - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1 } }, '↑'),
                 React.createElement('button', { disabled: idx === irmas.length - 1, onClick: function () { fiTrocarOrdem('fitness_opcoes', o, irmas[idx + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: idx === irmas.length - 1 ? 'default' : 'pointer', opacity: idx === irmas.length - 1 ? 0.3 : 1 } }, '↓'),
                 React.createElement('button', { onClick: function () { toggleFavoritoOpcao(o); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, o.favorito ? '★' : '☆'),
+                ordenadas.length > 1 && React.createElement('button', { onClick: function () { setMoverOpcaoId(o.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '⇄'),
                 React.createElement('button', { onClick: function () { abrirEditarOpcao(o); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️'),
                 React.createElement('button', { onClick: function () { setConfirmApagarOpcao(o.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '🗑️')
               )
@@ -1765,6 +1775,26 @@ function FitnessApp(props) {
       )
     )
   );
+  var moverOpcaoObj = moverOpcaoId ? opcoes.filter(function (x) { return x.id === moverOpcaoId; })[0] : null;
+  var modalMoverOpcao = moverOpcaoObj && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setMoverOpcaoId(null); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Mover «' + moverOpcaoObj.nome + '» para:'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 } },
+        ordenadas.filter(function (r) { return r.id !== moverOpcaoObj.refeicao_id; }).map(function (r) {
+          var n = opcoes.filter(function (x) { return x.refeicao_id === r.id; }).length;
+          var cheia = n >= 6;
+          return React.createElement('button', {
+            key: r.id, className: 'fi-btn', disabled: cheia, style: { opacity: cheia ? 0.4 : 1 },
+            onClick: function () { moverOpcaoParaRefeicao(moverOpcaoObj, r.id); }
+          }, r.nome + ' (' + (cheia ? '6/6 cheia' : n + '/6') + ')');
+        })
+      ),
+      React.createElement('button', { className: 'fi-btn', style: { width: '100%' }, onClick: function () { setMoverOpcaoId(null); } }, 'Cancelar')
+    )
+  );
 
   return React.createElement('div', { className: appClass },
     React.createElement('style', null, FI_CSS),
@@ -1775,6 +1805,7 @@ function FitnessApp(props) {
     iaPreviewFooter,
     modalApagarAlimento,
     modalApagarOpcao,
-    modalApagarItem
+    modalApagarItem,
+    modalMoverOpcao
   );
 }
