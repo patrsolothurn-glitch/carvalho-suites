@@ -69,6 +69,10 @@ Regras:
 - No máximo 12 ingredientes. Se o prato levar mais, junta os pequenos num só (ex.: "Temperos (alho, coentros, sal)") com "ajustavel": false.
 - "preparo": no máximo 6 passos curtos, separados por \\n. NUNCA metas quebras de linha reais dentro das strings do JSON.
 - Sê breve: nada de comentários, explicações nem campos extra fora do formato pedido.
+- O utilizador vive na Suíça e faz as compras na Migros. Usa ingredientes que se encontram na Migros (incluindo as linhas próprias, ex.: M-Classic, Anna's Best, You/oh!, Farmer, Bio). Evita produtos que só existem em Portugal; se um ingrediente típico português não existir na Suíça, escolhe o equivalente mais próximo à venda na Migros.
+- Mantém os nomes dos ingredientes em português (é essa a língua da app), mesmo quando o produto é suíço.
+- Preferir sempre a versão mais magra do alimento quando existir (leite e iogurte magros, queijo light, carnes magras: peito de frango ou peru, lombo, vitela magra, peixe branco, atum em água). Nada de peles, fritos, enchidos gordos, bacon nem queijos gordos.
+- Gordura total do prato: no máximo 30% das kcal. Prioriza proteína e legumes.
 
 Formato de resposta (APENAS isto, em JSON):
 {
