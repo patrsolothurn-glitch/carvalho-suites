@@ -367,6 +367,7 @@ function FitnessApp(props) {
   var _s25 = React.useState(false); var offBusy = _s25[0], setOffBusy = _s25[1];
   var _s26 = React.useState(null); var offErro = _s26[0], setOffErro = _s26[1];
   var _s27 = React.useState([]); var offResultados = _s27[0], setOffResultados = _s27[1];
+  var alimFormRef = React.useRef(null);
 
   // Plano — refeições
   var _s28 = React.useState(null); var refEditandoId = _s28[0], setRefEditandoId = _s28[1];
@@ -875,11 +876,15 @@ function FitnessApp(props) {
   // ══════════════════════════════════════════════════════════════
   // ALIMENTOS (Mais → Alimentos)
   // ══════════════════════════════════════════════════════════════
-  function abrirNovoAlimento() { setAlimEditandoId(null); setAlimForm(fiAlimentoVazio()); setAlimFormAberto(true); }
+  function abrirNovoAlimento() {
+    setAlimEditandoId(null); setAlimForm(fiAlimentoVazio()); setAlimFormAberto(true);
+    setTimeout(function () { alimFormRef.current && alimFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 0);
+  }
   function abrirEditarAlimento(a) {
     setAlimEditandoId(a.id);
     setAlimForm({ nome: a.nome, categoria: a.categoria || '', medida: a.medida === 'ml' ? 'ml' : 'g', kcal_100: a.kcal_100, prot_100: a.prot_100, hc_100: a.hc_100, gord_100: a.gord_100, unidade_nome: a.unidade_nome || '', g_unidade: a.g_unidade || '' });
     setAlimFormAberto(true);
+    setTimeout(function () { alimFormRef.current && alimFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 0);
   }
   function alimCampo(nome, valor) { setAlimForm(function (f) { var n = {}; n[nome] = valor; return Object.assign({}, f, n); }); }
   function guardarAlimento() {
@@ -954,7 +959,8 @@ function FitnessApp(props) {
           })
         )
       ),
-      alimFormAberto && React.createElement(FiCard, null,
+      alimFormAberto && React.createElement('div', { ref: alimFormRef },
+      React.createElement(FiCard, null,
         React.createElement(FiLabel, null, alimEditandoId ? 'Editar alimento' : 'Novo alimento — confirma antes de guardar'),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome', value: alimForm.nome, onChange: function (e) { alimCampo('nome', e.target.value); }, style: { marginBottom: 8 } }),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Categoria (opcional)', value: alimForm.categoria, onChange: function (e) { alimCampo('categoria', e.target.value); }, style: { marginBottom: 8 } }),
@@ -992,6 +998,7 @@ function FitnessApp(props) {
           React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setAlimFormAberto(false); } }, 'Cancelar'),
           React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: alimSaving, onClick: guardarAlimento }, alimSaving ? 'A guardar…' : '✓ Guardar')
         )
+      )
       ),
       React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
         lista.map(function (a) {
