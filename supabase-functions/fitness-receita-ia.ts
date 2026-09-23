@@ -64,6 +64,8 @@ Regras:
 - Molhos e azeite são sempre expressos em gramas (nunca em colheres nem ml).
 - Ingredientes "a gosto" (sal, ervas, especiarias, legumes de acompanhamento livre) usam "ajustavel": false.
 - "preparo" é uma lista de passos curtos, numerados, como texto único (ex.: "1. Tempera o frango...\\n2. Leva ao forno...").
+- No máximo 12 ingredientes. Se o prato levar mais, junta os pequenos num só (ex.: "Temperos (alho, coentros, sal)") com "ajustavel": false.
+- Mantém o "preparo" com 6 passos no máximo, curtos.
 
 Formato de resposta (APENAS isto, em JSON):
 {
@@ -127,7 +129,7 @@ async function chamarAnthropic(nome: string, notas: string, kcalAlvo: number, al
         },
         body: JSON.stringify({
           model: 'claude-sonnet-5',
-          max_tokens: 2000,
+          max_tokens: 3000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: montarMensagemUtilizador(nome, notas, kcalAlvo, alimentosExistentes) }],
         }),
@@ -200,18 +202,21 @@ function validarReceita(r: any): string | null {
 
 async function pedirReceitaIA(nome: string, notas: string, kcalAlvo: number, alimentosExistentes: unknown[], apiKey: string) {
   const MAX_TENTATIVAS = 2; // pedido + 1 nova tentativa, só quando a resposta vem inválida
+  let ultimoMotivo = '';
   for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
     const texto = await chamarAnthropic(nome, notas, kcalAlvo, alimentosExistentes, apiKey);
     const parsed = tentarParsearJSON(texto);
     if (!parsed) {
+      ultimoMotivo = 'resposta não é JSON válido';
       console.error('[fitness-ia] resposta não é JSON válido (tentativa ' + tentativa + ')');
       continue;
     }
     const erro = validarReceita(parsed);
     if (!erro) return parsed;
+    ultimoMotivo = erro;
     console.error('[fitness-ia] resposta inválida (tentativa ' + tentativa + '): ' + erro);
   }
-  throw new Error('A IA não conseguiu gerar uma receita válida — tenta outra vez.');
+  throw new Error('A IA não conseguiu gerar uma receita válida (' + ultimoMotivo + ') — tenta outra vez.');
 }
 
 Deno.serve(async (req) => {
