@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-23T04:14:23.022Z
+  Gerado em: 2026-09-23T14:13:08.417Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-328";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-329";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -35555,6 +35555,7 @@ function FitnessApp(props) {
   var _s25 = React.useState(false); var offBusy = _s25[0], setOffBusy = _s25[1];
   var _s26 = React.useState(null); var offErro = _s26[0], setOffErro = _s26[1];
   var _s27 = React.useState([]); var offResultados = _s27[0], setOffResultados = _s27[1];
+  var alimFormRef = React.useRef(null);
 
   // Plano — refeições
   var _s28 = React.useState(null); var refEditandoId = _s28[0], setRefEditandoId = _s28[1];
@@ -36063,11 +36064,15 @@ function FitnessApp(props) {
   // ══════════════════════════════════════════════════════════════
   // ALIMENTOS (Mais → Alimentos)
   // ══════════════════════════════════════════════════════════════
-  function abrirNovoAlimento() { setAlimEditandoId(null); setAlimForm(fiAlimentoVazio()); setAlimFormAberto(true); }
+  function abrirNovoAlimento() {
+    setAlimEditandoId(null); setAlimForm(fiAlimentoVazio()); setAlimFormAberto(true);
+    setTimeout(function () { alimFormRef.current && alimFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 0);
+  }
   function abrirEditarAlimento(a) {
     setAlimEditandoId(a.id);
     setAlimForm({ nome: a.nome, categoria: a.categoria || '', medida: a.medida === 'ml' ? 'ml' : 'g', kcal_100: a.kcal_100, prot_100: a.prot_100, hc_100: a.hc_100, gord_100: a.gord_100, unidade_nome: a.unidade_nome || '', g_unidade: a.g_unidade || '' });
     setAlimFormAberto(true);
+    setTimeout(function () { alimFormRef.current && alimFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 0);
   }
   function alimCampo(nome, valor) { setAlimForm(function (f) { var n = {}; n[nome] = valor; return Object.assign({}, f, n); }); }
   function guardarAlimento() {
@@ -36142,7 +36147,8 @@ function FitnessApp(props) {
           })
         )
       ),
-      alimFormAberto && React.createElement(FiCard, null,
+      alimFormAberto && React.createElement('div', { ref: alimFormRef },
+      React.createElement(FiCard, null,
         React.createElement(FiLabel, null, alimEditandoId ? 'Editar alimento' : 'Novo alimento — confirma antes de guardar'),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome', value: alimForm.nome, onChange: function (e) { alimCampo('nome', e.target.value); }, style: { marginBottom: 8 } }),
         React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Categoria (opcional)', value: alimForm.categoria, onChange: function (e) { alimCampo('categoria', e.target.value); }, style: { marginBottom: 8 } }),
@@ -36180,6 +36186,7 @@ function FitnessApp(props) {
           React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setAlimFormAberto(false); } }, 'Cancelar'),
           React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: alimSaving, onClick: guardarAlimento }, alimSaving ? 'A guardar…' : '✓ Guardar')
         )
+      )
       ),
       React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
         lista.map(function (a) {
