@@ -2067,20 +2067,33 @@ function FitnessApp(props) {
   // ══════════════════════════════════════════════════════════════
   // LISTA DE COMPRAS (Mais → Lista de compras)
   // ══════════════════════════════════════════════════════════════
-  // "Gerar da semana" soma as gramas (já ajustadas à kcal de cada
-  // refeição, como no Plano) de cada opção do dia inteiro e multiplica
-  // por 7 — a lista serve para comprar o suficiente para a semana toda,
-  // assumindo que o mesmo plano se repete todos os dias.
+  // "Gerar da semana" escolhe, por refeição, UMA só opção (a favorita
+  // — a mesma marca ☆ do Plano — ou a primeira pela ordem se não
+  // houver favorita), soma as gramas dessa opção (já ajustadas à kcal
+  // da refeição, como no Plano) e multiplica por 7 — a lista serve
+  // para comprar o suficiente para a semana toda, assumindo que se
+  // come a mesma opção todos os dias.
+  function opcaoEscolhidaRefeicao(refeicaoId) {
+    var opcoesRefeicao = opcoes.filter(function (o) { return o.refeicao_id === refeicaoId; }).sort(function (a, b) { return a.ordem - b.ordem; });
+    if (!opcoesRefeicao.length) return null;
+    return opcoesRefeicao.filter(function (o) { return o.favorito; })[0] || opcoesRefeicao[0];
+  }
+  function refeicoesSemFavorita() {
+    return refeicoes.filter(function (r) {
+      var opcoesRefeicao = opcoes.filter(function (o) { return o.refeicao_id === r.id; });
+      return opcoesRefeicao.length > 0 && !opcoesRefeicao.some(function (o) { return o.favorito; });
+    }).length;
+  }
   function gerarCompras(substituir) {
     var somaPorAlimento = {};
     refeicoes.forEach(function (r) {
+      var escolhida = opcaoEscolhidaRefeicao(r.id);
+      if (!escolhida) return;
       var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : 0;
-      opcoes.filter(function (o) { return o.refeicao_id === r.id; }).forEach(function (o) {
-        var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
-        var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
-        calc.itens.forEach(function (it) {
-          somaPorAlimento[it.alimento_id] = (somaPorAlimento[it.alimento_id] || 0) + it.gramas * 7;
-        });
+      var itensOpcao = itens.filter(function (it) { return it.opcao_id === escolhida.id; });
+      var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
+      calc.itens.forEach(function (it) {
+        somaPorAlimento[it.alimento_id] = (somaPorAlimento[it.alimento_id] || 0) + it.gramas * 7;
       });
     });
     var linhas = Object.keys(somaPorAlimento).map(function (alimentoId) {
@@ -2160,8 +2173,12 @@ function FitnessApp(props) {
         React.createElement('span', { style: { fontWeight: 900, fontSize: 17 } }, 'Lista de compras')
       ),
       React.createElement('p', { style: { fontSize: 12.5, color: 'var(--fi-texto2)' } }, faltam + ' ' + (faltam === 1 ? 'item por comprar' : 'itens por comprar')),
+      (function () {
+        var nSemFavorita = refeicoesSemFavorita();
+        return nSemFavorita > 0 && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-amarelo)', fontWeight: 700 } }, '⚠️ Sem opção favorita em ' + nSemFavorita + ' refeiç' + (nSemFavorita === 1 ? 'ão' : 'ões') + ' — foi usada a primeira. Marca a favorita com ☆ para escolheres.');
+      })(),
       React.createElement('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap' } },
-        React.createElement('button', { className: 'fi-btn fi-btn-ativo', disabled: comprasGerando, onClick: clicarGerarCompras }, comprasGerando ? 'A gerar…' : '🔄 Gerar da semana'),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', disabled: comprasGerando, onClick: clicarGerarCompras }, comprasGerando ? 'A gerar…' : '🔄 Gerar da semana (1 opção por refeição × 7 dias)'),
         React.createElement('button', { className: 'fi-btn', onClick: abrirNovoCompraItem }, '+ Item'),
         comprasLista.some(function (c) { return c.comprado; }) && React.createElement('button', { className: 'fi-btn', onClick: limparComprados }, 'Limpar comprados')
       ),
