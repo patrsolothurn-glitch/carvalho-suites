@@ -64,6 +64,11 @@ Regras:
 - Molhos e azeite são sempre expressos em gramas (nunca em colheres nem ml).
 - Ingredientes "a gosto" (sal, ervas, especiarias, legumes de acompanhamento livre) usam "ajustavel": false.
 - "preparo" é uma lista de passos curtos, numerados, como texto único (ex.: "1. Tempera o frango...\\n2. Leva ao forno...").
+- Receitas fit, para emagrecimento: grelhado, forno, cozido, air fryer ou salteado com pouca gordura. Nada de fritos, panados, natas, manteiga, maionese, molhos gordos ou açúcar adicionado.
+- No máximo 10 g de azeite por prato.
+- No máximo 12 ingredientes. Se o prato levar mais, junta os pequenos num só (ex.: "Temperos (alho, coentros, sal)") com "ajustavel": false.
+- "preparo": no máximo 6 passos curtos, separados por \\n. NUNCA metas quebras de linha reais dentro das strings do JSON.
+- Sê breve: nada de comentários, explicações nem campos extra fora do formato pedido.
 
 Formato de resposta (APENAS isto, em JSON):
 {
@@ -110,7 +115,7 @@ function mensagemErroAnthropic(status: number, corpo: string): string {
   return 'Falha na IA (código ' + status + ')';
 }
 
-async function chamarAnthropic(nome: string, notas: string, kcalAlvo: number, alimentosExistentes: unknown[], apiKey: string): Promise<string> {
+async function chamarAnthropic(nome: string, notas: string, kcalAlvo: number, alimentosExistentes: unknown[], apiKey: string): Promise<{ texto: string; stopReason: string }> {
   const controller = new AbortController();
   // 90s — a geração de uma receita pode passar dos 30s originais e o
   // AbortController cancelava o pedido antes de a Anthropic responder.
@@ -127,7 +132,7 @@ async function chamarAnthropic(nome: string, notas: string, kcalAlvo: number, al
         },
         body: JSON.stringify({
           model: 'claude-sonnet-5',
-          max_tokens: 2000,
+          max_tokens: 4000,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: montarMensagemUtilizador(nome, notas, kcalAlvo, alimentosExistentes) }],
         }),
@@ -149,7 +154,7 @@ async function chamarAnthropic(nome: string, notas: string, kcalAlvo: number, al
     if (!bloco || typeof bloco.text !== 'string') {
       throw new Error('Resposta da IA sem texto.');
     }
-    return bloco.text;
+    return { texto: bloco.text, stopReason: typeof data.stop_reason === 'string' ? data.stop_reason : '' };
   } finally {
     clearTimeout(timeoutId);
   }
@@ -164,7 +169,16 @@ function tentarParsearJSON(texto: string): any | null {
   try {
     return JSON.parse(limpo);
   } catch {
-    return null;
+    // O modelo pode ter escrito texto antes/depois do JSON — tenta extrair
+    // só o primeiro objeto (da primeira '{' até à última '}').
+    const inicio = limpo.indexOf('{');
+    const fim = limpo.lastIndexOf('}');
+    if (inicio === -1 || fim <= inicio) return null;
+    try {
+      return JSON.parse(limpo.slice(inicio, fim + 1));
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -200,18 +214,26 @@ function validarReceita(r: any): string | null {
 
 async function pedirReceitaIA(nome: string, notas: string, kcalAlvo: number, alimentosExistentes: unknown[], apiKey: string) {
   const MAX_TENTATIVAS = 2; // pedido + 1 nova tentativa, só quando a resposta vem inválida
+  let ultimoMotivo = '';
   for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
-    const texto = await chamarAnthropic(nome, notas, kcalAlvo, alimentosExistentes, apiKey);
+    const { texto, stopReason } = await chamarAnthropic(nome, notas, kcalAlvo, alimentosExistentes, apiKey);
+    if (stopReason === 'max_tokens') {
+      ultimoMotivo = 'resposta cortada (demasiado longa)';
+      console.error('[fitness-ia] resposta cortada (max_tokens)');
+      continue;
+    }
     const parsed = tentarParsearJSON(texto);
     if (!parsed) {
+      ultimoMotivo = 'resposta não é JSON válido';
       console.error('[fitness-ia] resposta não é JSON válido (tentativa ' + tentativa + ')');
       continue;
     }
     const erro = validarReceita(parsed);
     if (!erro) return parsed;
+    ultimoMotivo = erro;
     console.error('[fitness-ia] resposta inválida (tentativa ' + tentativa + '): ' + erro);
   }
-  throw new Error('A IA não conseguiu gerar uma receita válida — tenta outra vez.');
+  throw new Error('A IA não conseguiu gerar uma receita válida (' + ultimoMotivo + ') — tenta outra vez.');
 }
 
 Deno.serve(async (req) => {
