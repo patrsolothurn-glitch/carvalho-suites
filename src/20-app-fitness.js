@@ -1312,8 +1312,8 @@ function FitnessApp(props) {
           opcaoEditandoId === o.id
             ? React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 10px', fontSize: 11 }, onClick: guardarOpcao }, '✓')
             : React.createElement(React.Fragment, null,
-                React.createElement('button', { disabled: idx === 0, onClick: function () { fiTrocarOrdem('fitness_opcoes', o, irmas[idx - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1 } }, '↑'),
-                React.createElement('button', { disabled: idx === irmas.length - 1, onClick: function () { fiTrocarOrdem('fitness_opcoes', o, irmas[idx + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: idx === irmas.length - 1 ? 'default' : 'pointer', opacity: idx === irmas.length - 1 ? 0.3 : 1 } }, '↓'),
+                React.createElement('button', { disabled: idx === 0, onClick: function () { fiTrocarOrdem('fitness_opcoes', o, irmas[idx - 1]); }, style: { background: 'none', border: 'none', color: 'var(--fi-texto)', fontSize: 15, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1 } }, '↑'),
+                React.createElement('button', { disabled: idx === irmas.length - 1, onClick: function () { fiTrocarOrdem('fitness_opcoes', o, irmas[idx + 1]); }, style: { background: 'none', border: 'none', color: 'var(--fi-texto)', fontSize: 15, cursor: idx === irmas.length - 1 ? 'default' : 'pointer', opacity: idx === irmas.length - 1 ? 0.3 : 1 } }, '↓'),
                 React.createElement('button', { onClick: function () { toggleFavoritoOpcao(o); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, o.favorito ? '★' : '☆'),
                 React.createElement('button', { onClick: function () { abrirEditarOpcao(o); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️'),
                 React.createElement('button', { onClick: function () { setConfirmApagarOpcao(o.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '🗑️')
@@ -1483,8 +1483,8 @@ function FitnessApp(props) {
                     React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginLeft: 8 } }, r.pct + '%' + (kcalRefeicao ? ' · ' + fiFmtKcal(kcalRefeicao) : ''))
                   ),
               refEditandoId !== r.id && React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
-                React.createElement('button', { disabled: ri === 0, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri - 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === 0 ? 'default' : 'pointer', opacity: ri === 0 ? 0.3 : 1 } }, '←'),
-                React.createElement('button', { disabled: ri === ordenadas.length - 1, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri + 1]); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: ri === ordenadas.length - 1 ? 'default' : 'pointer', opacity: ri === ordenadas.length - 1 ? 0.3 : 1 } }, '→'),
+                React.createElement('button', { disabled: ri === 0, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri - 1]); }, style: { background: 'none', border: 'none', color: 'var(--fi-texto)', fontSize: 15, cursor: ri === 0 ? 'default' : 'pointer', opacity: ri === 0 ? 0.3 : 1 } }, '←'),
+                React.createElement('button', { disabled: ri === ordenadas.length - 1, onClick: function () { fiTrocarOrdem('fitness_refeicoes', r, ordenadas[ri + 1]); }, style: { background: 'none', border: 'none', color: 'var(--fi-texto)', fontSize: 15, cursor: ri === ordenadas.length - 1 ? 'default' : 'pointer', opacity: ri === ordenadas.length - 1 ? 0.3 : 1 } }, '→'),
                 React.createElement('button', { onClick: function () { abrirEditarRefeicao(r); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️')
               )
             ),
