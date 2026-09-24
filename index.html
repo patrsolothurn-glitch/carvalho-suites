@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-24T03:59:27.860Z
+  Gerado em: 2026-09-24T14:11:59.384Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-333";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-334";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -35429,6 +35429,13 @@ function fiCalcularGramasOpcao(itens, alimentosPorId, kcalAlvoRefeicao) {
 }
 function fiFmtKcal(n) { return n == null ? '—' : Math.round(n) + ' kcal'; }
 function fiFmtG(n) { return n == null ? '—' : Math.round(n) + ' g'; }
+// Porções mostradas ao utilizador: arredonda ao 0.5 mais próximo, mínimo 0.5,
+// sem casas decimais quando dá inteiro. As gramas exatas (kcal/macros) não usam isto.
+function fiFmtUnidades(n) {
+  if (n == null) return null;
+  var arred = Math.max(0.5, Math.round(n * 2) / 2);
+  return (arred % 1 === 0) ? String(arred) : arred.toFixed(1);
+}
 // Emoji do prato, por palavras-chave no nome da opção + nomes dos ingredientes
 // (minúsculas, sem acentos). Sem correspondência → 🍽️.
 function fiIconeOpcao(nome, nomesIngredientes) {
@@ -35678,6 +35685,7 @@ function FitnessApp(props) {
   // Receita — "Como se faz" (preparo), editável e apagável
   var _s43 = React.useState(false); var preparoEditAberto = _s43[0], setPreparoEditAberto = _s43[1];
   var _s44 = React.useState(''); var preparoForm = _s44[0], setPreparoForm = _s44[1];
+  var _s87 = React.useState(null); var confirmApagarPreparo = _s87[0], setConfirmApagarPreparo = _s87[1]; // id da opção
   // Plano — "Adicionar prato por nome" (IA)
   var _s45 = React.useState(null); var iaRefeicaoAberta = _s45[0], setIaRefeicaoAberta = _s45[1];
   var _s46 = React.useState({ nome: '', notas: '' }); var iaForm = _s46[0], setIaForm = _s46[1];
@@ -36509,10 +36517,10 @@ function FitnessApp(props) {
       carregar();
     }).catch(function (e) { console.error('[fitness] guardar preparo:', e); window.mostrarErro('Fitness', e); });
   }
-  function apagarPreparo(o) {
-    if (!window.confirm('Apagar o texto de "Como se faz"?')) return;
-    db.from('fitness_opcoes').update({ preparo: null }).eq('id', o.id).then(function (res) {
+  function apagarPreparo(id) {
+    db.from('fitness_opcoes').update({ preparo: null }).eq('id', id).then(function (res) {
       if (res.error) { console.error('[fitness] apagar preparo:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setConfirmApagarPreparo(null);
       setPreparoEditAberto(false);
       carregar();
     }).catch(function (e) { console.error('[fitness] apagar preparo:', e); window.mostrarErro('Fitness', e); });
@@ -36754,7 +36762,7 @@ function FitnessApp(props) {
         calc.itens.map(function (it) {
           return React.createElement('div', { key: it.id, style: { padding: '4px 0', borderTop: '1px solid var(--fi-borda)' } },
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 } },
-              React.createElement('span', null, it.nome + ' — ' + Math.round(it.gramas) + ' ' + it.medida + (it.unidades != null ? ' (' + it.unidades + ' ' + (it.unidade_nome || 'unid.') + ')' : '') + (it.ajustavel ? '' : ' · fixo')),
+              React.createElement('span', null, it.nome + ' — ' + Math.round(it.gramas) + ' ' + it.medida + (it.unidades != null ? ' (' + fiFmtUnidades(it.unidades) + ' ' + (it.unidade_nome || 'unid.') + ')' : '') + (it.ajustavel ? '' : ' · fixo')),
               React.createElement('div', { style: { display: 'flex', gap: 6 } },
                 React.createElement('button', { onClick: function () { abrirEditarItem(itensOpcao.filter(function (x) { return x.id === it.id; })[0]); }, style: { background: 'none', border: 'none', fontSize: 12, cursor: 'pointer' } }, '✏️'),
                 React.createElement('button', { onClick: function () { setConfirmApagarItem(it.id); }, style: { background: 'none', border: 'none', fontSize: 12, cursor: 'pointer' } }, '🗑️')
@@ -36815,7 +36823,7 @@ function FitnessApp(props) {
           React.createElement(FiLabel, { style: { margin: 0 } }, 'Como se faz'),
           !preparoEditAberto && React.createElement('div', { style: { display: 'flex', gap: 6 } },
             React.createElement('button', { onClick: function () { abrirEditarPreparo(o); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '✏️'),
-            o.preparo && React.createElement('button', { onClick: function () { apagarPreparo(o); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
+            o.preparo && React.createElement('button', { onClick: function () { setConfirmApagarPreparo(o.id); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
           )
         ),
         preparoEditAberto
@@ -36837,9 +36845,7 @@ function FitnessApp(props) {
         calc.itens.map(function (it, i) {
           var linha;
           if (receitaModo === 'porcoes' && it.unidades != null && it.unidade_nome) {
-            var n = Math.max(0.5, Math.round(it.unidades * 2) / 2);
-            var nTxt = (n % 1 === 0) ? String(n) : n.toFixed(1);
-            linha = nTxt + ' ' + it.unidade_nome + ' de ' + it.nome;
+            linha = fiFmtUnidades(it.unidades) + ' ' + it.unidade_nome + ' de ' + it.nome;
           } else {
             linha = Math.round(it.gramas) + ' ' + it.medida + ' ' + it.nome;
           }
@@ -37866,6 +37872,18 @@ function FitnessApp(props) {
       )
     )
   );
+  var modalApagarPreparo = confirmApagarPreparo && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarPreparo(null); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Apagar o «Como se faz» desta receita?'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setConfirmApagarPreparo(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-perigo', style: { flex: 1 }, onClick: function () { apagarPreparo(confirmApagarPreparo); } }, 'Apagar')
+      )
+    )
+  );
   var modalApagarItem = confirmApagarItem && React.createElement('div', {
     style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
     onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarItem(null); }
@@ -37956,6 +37974,7 @@ function FitnessApp(props) {
     iaPreviewFooter,
     modalApagarAlimento,
     modalApagarOpcao,
+    modalApagarPreparo,
     modalApagarItem,
     modalMoverOpcao,
     modalApagarRegisto,
