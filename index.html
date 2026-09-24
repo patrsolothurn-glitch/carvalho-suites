@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-23T18:52:15.820Z
+  Gerado em: 2026-09-24T03:59:27.860Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-332";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-333";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -35264,7 +35264,14 @@ var FI_CSS = '' +
   '.fi-dose-chips{display:flex;gap:6px;flex:none}' +
   '.fi-copos-fila{display:flex;flex-wrap:wrap;gap:6px}' +
   '.fi-copo{background:none;border:1px solid var(--fi-borda);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer;opacity:.35}' +
-  '.fi-copo-cheio{opacity:1;border-color:#2563EB}';
+  '.fi-copo-cheio{opacity:1;border-color:#2563EB}' +
+  '.fi-progresso-barra-fundo{height:8px;border-radius:4px;background:var(--fi-borda);overflow:hidden}' +
+  '.fi-progresso-barra-cheia{height:100%;background:var(--fi-verde);border-radius:4px}' +
+  '.fi-grafico-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}' +
+  '.fi-comparar-tabela{display:flex;flex-direction:column;gap:2px}' +
+  '.fi-comparar-linha{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;font-size:12px;padding:6px 0;border-top:1px solid var(--fi-borda)}' +
+  '.fi-comparar-linha:first-child{border-top:none}' +
+  '.fi-comparar-cabecalho{font-weight:800;color:var(--fi-texto2);font-size:11px;text-transform:uppercase}';
 
 function fiTemaEscuro() { return T.bg === T_DARK.bg; }
 
@@ -35507,6 +35514,12 @@ function fiFmtDataCurta(dataISO) {
   var p = dataISO.split('-');
   return p[2] + '-' + p[1] + '-' + p[0];
 }
+// "DD-MM", sem ano — usado nas legendas do gráfico e no resumo do Progresso.
+function fiFmtDataCurtaSemAno(dataISO) {
+  if (!dataISO) return '—';
+  var p = dataISO.split('-');
+  return p[2] + '-' + p[1];
+}
 // Dias inteiros entre hoje e dataISO (negativo se já passou).
 function fiDiasAte(dataISO) {
   var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -35596,6 +35609,7 @@ function FiAssistNav(p) {
   );
 }
 function fiAlimentoVazio() { return { nome: '', categoria: '', medida: 'g', kcal_100: '', prot_100: '', hc_100: '', gord_100: '', unidade_nome: '', g_unidade: '' }; }
+function fiAvaliacaoVazia() { return { data: new Date().toISOString().slice(0, 10), peso: '', cintura: '', peito: '', anca: '', braco: '', coxa: '', gordura_pct: '', notas: '' }; }
 
 // ── App principal (todo o estado aqui) ───────────────────────────
 function FitnessApp(props) {
@@ -35698,6 +35712,19 @@ function FitnessApp(props) {
   var _s73 = React.useState(null); var comprasItemEditandoId = _s73[0], setComprasItemEditandoId = _s73[1];
   var _s74 = React.useState(null); var confirmApagarCompra = _s74[0], setConfirmApagarCompra = _s74[1];
 
+  // Progresso (Fase 3)
+  var _s76 = React.useState([]); var avaliacoes = _s76[0], setAvaliacoes = _s76[1]; // ordenadas por data ascendente
+  var _s77 = React.useState(false); var avaliacoesCarregando = _s77[0], setAvaliacoesCarregando = _s77[1];
+  var _s78 = React.useState(false); var avalFormAberto = _s78[0], setAvalFormAberto = _s78[1];
+  var _s79 = React.useState(fiAvaliacaoVazia()); var avalForm = _s79[0], setAvalForm = _s79[1];
+  var _s80 = React.useState(null); var avalEditandoId = _s80[0], setAvalEditandoId = _s80[1];
+  var _s81 = React.useState(false); var avalSaving = _s81[0], setAvalSaving = _s81[1];
+  var _s82 = React.useState(null); var confirmApagarAvaliacao = _s82[0], setConfirmApagarAvaliacao = _s82[1];
+  var _s83 = React.useState(null); var avalConflito = _s83[0], setAvalConflito = _s83[1]; // avaliação já existente nessa data
+  var _s84 = React.useState(null); var compararA = _s84[0], setCompararA = _s84[1];
+  var _s85 = React.useState(null); var compararB = _s85[0], setCompararB = _s85[1];
+  var _s86 = React.useState(null); var graficoSelecionado = _s86[0], setGraficoSelecionado = _s86[1]; // id da avaliação tocada no gráfico
+
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
@@ -35769,6 +35796,21 @@ function FitnessApp(props) {
     });
   }
   React.useEffect(function () { if (maisView === 'compras') carregarCompras(); }, [maisView]);
+
+  function carregarAvaliacoes() {
+    if (!db) return;
+    setAvaliacoesCarregando(true);
+    db.from('fitness_avaliacoes').select('*').order('data', { ascending: true }).then(function (res) {
+      setAvaliacoesCarregando(false);
+      if (res.error) { console.error('[fitness] carregar avaliações:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setAvaliacoes(res.data || []);
+    }).catch(function (e) {
+      setAvaliacoesCarregando(false);
+      console.error('[fitness] carregar avaliações:', e);
+      window.mostrarErro('Fitness', e);
+    });
+  }
+  React.useEffect(function () { if (tab === 'progresso') carregarAvaliacoes(); }, [tab]);
 
   var alimentosPorId = React.useMemo(function () {
     var m = {};
@@ -37485,12 +37527,295 @@ function FitnessApp(props) {
     );
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // PROGRESSO — avaliações, gráfico de peso, comparar (Fase 3)
+  // ══════════════════════════════════════════════════════════════
+  function abrirNovaAvaliacao() { setAvalEditandoId(null); setAvalConflito(null); setAvalForm(fiAvaliacaoVazia()); setAvalFormAberto(true); }
+  function abrirEditarAvaliacao(a) {
+    setAvalEditandoId(a.id); setAvalConflito(null);
+    setAvalForm({
+      data: a.data, peso: String(a.peso),
+      cintura: a.cintura != null ? String(a.cintura) : '', peito: a.peito != null ? String(a.peito) : '',
+      anca: a.anca != null ? String(a.anca) : '', braco: a.braco != null ? String(a.braco) : '',
+      coxa: a.coxa != null ? String(a.coxa) : '', gordura_pct: a.gordura_pct != null ? String(a.gordura_pct) : '',
+      notas: a.notas || ''
+    });
+    setAvalFormAberto(true);
+  }
+  function avalCampo(nome, valor) {
+    setAvalForm(function (f) { var n = {}; n[nome] = valor; return Object.assign({}, f, n); });
+    if (nome === 'data') setAvalConflito(null);
+  }
+  function fiAvaliacaoPayload(f) {
+    return {
+      data: f.data, peso: parseFloat(f.peso),
+      cintura: f.cintura !== '' ? parseFloat(f.cintura) : null,
+      peito: f.peito !== '' ? parseFloat(f.peito) : null,
+      anca: f.anca !== '' ? parseFloat(f.anca) : null,
+      braco: f.braco !== '' ? parseFloat(f.braco) : null,
+      coxa: f.coxa !== '' ? parseFloat(f.coxa) : null,
+      gordura_pct: f.gordura_pct !== '' ? parseFloat(f.gordura_pct) : null,
+      notas: f.notas.trim() || null
+    };
+  }
+  function guardarAvaliacao() {
+    var pesoNum = parseFloat(avalForm.peso);
+    if (!avalForm.data || isNaN(pesoNum) || pesoNum <= 0) return;
+    var existente = avaliacoes.filter(function (a) { return a.data === avalForm.data && a.id !== avalEditandoId; })[0];
+    if (existente) { setAvalConflito(existente); return; }
+    setAvalSaving(true);
+    var payload = fiAvaliacaoPayload(avalForm);
+    var query = avalEditandoId
+      ? db.from('fitness_avaliacoes').update(payload).eq('id', avalEditandoId)
+      : db.from('fitness_avaliacoes').insert(payload);
+    query.then(function (res) {
+      setAvalSaving(false);
+      if (res.error) { console.error('[fitness] guardar avaliação:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setAvalFormAberto(false); setAvalEditandoId(null); setAvalConflito(null);
+      carregarAvaliacoes();
+      carregar();
+    }).catch(function (e) { setAvalSaving(false); console.error('[fitness] guardar avaliação:', e); window.mostrarErro('Fitness', e); });
+  }
+  function confirmarSubstituirAvaliacao() {
+    if (!avalConflito) return;
+    setAvalSaving(true);
+    var payload = fiAvaliacaoPayload(avalForm);
+    db.from('fitness_avaliacoes').update(payload).eq('id', avalConflito.id).then(function (res) {
+      setAvalSaving(false);
+      if (res.error) { console.error('[fitness] substituir avaliação:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setAvalFormAberto(false); setAvalEditandoId(null); setAvalConflito(null);
+      carregarAvaliacoes();
+      carregar();
+    }).catch(function (e) { setAvalSaving(false); console.error('[fitness] substituir avaliação:', e); window.mostrarErro('Fitness', e); });
+  }
+  function apagarAvaliacao(id) {
+    db.from('fitness_avaliacoes').delete().eq('id', id).then(function (res) {
+      if (res.error) { console.error('[fitness] apagar avaliação:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setConfirmApagarAvaliacao(null);
+      carregarAvaliacoes();
+      carregar();
+    }).catch(function (e) { console.error('[fitness] apagar avaliação:', e); window.mostrarErro('Fitness', e); });
+  }
+
+  function renderResumoProgresso() {
+    var n = avaliacoes.length;
+    var atual = avaliacoes[n - 1];
+    var anterior = n > 1 ? avaliacoes[n - 2] : null;
+    var primeira = avaliacoes[0];
+    var pesoMeta = perfil && perfil.peso_meta ? Number(perfil.peso_meta) : null;
+    var varAnterior = anterior ? Math.round((atual.peso - anterior.peso) * 10) / 10 : null;
+    var varTotal = (primeira && primeira.id !== atual.id) ? Math.round((atual.peso - primeira.peso) * 10) / 10 : null;
+    var corVar = function (v) { return v == null ? 'var(--fi-texto2)' : (v <= 0 ? 'var(--fi-verde)' : 'var(--fi-amarelo)'); };
+    var faltaMeta = pesoMeta ? Math.round((atual.peso - pesoMeta) * 10) / 10 : null;
+    var pctBarra = null;
+    if (pesoMeta && primeira && primeira.peso !== pesoMeta) {
+      pctBarra = Math.max(0, Math.min(100, ((primeira.peso - atual.peso) / (primeira.peso - pesoMeta)) * 100));
+    }
+    return React.createElement(FiCard, { style: { marginBottom: 12, textAlign: 'center' } },
+      React.createElement('div', { style: { fontSize: 34, fontWeight: 900 } }, atual.peso + ' kg'),
+      anterior && React.createElement('div', { style: { fontSize: 13, fontWeight: 700, color: corVar(varAnterior), marginTop: 4 } },
+        (varAnterior > 0 ? '+' : '') + varAnterior + ' kg desde ' + fiFmtDataCurtaSemAno(anterior.data)
+      ),
+      varTotal != null && React.createElement('div', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 6 } },
+        'Desde o início: ' + (varTotal > 0 ? '+' : '') + varTotal + ' kg'
+      ),
+      pesoMeta && React.createElement('div', { style: { marginTop: 14 } },
+        React.createElement('div', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginBottom: 6 } },
+          faltaMeta > 0 ? ('Faltam ' + faltaMeta + ' kg para a meta (' + pesoMeta + ' kg)') : (faltaMeta < 0 ? ('Já passaste a meta em ' + Math.abs(faltaMeta) + ' kg') : 'Atingiste a meta! 🎉')
+        ),
+        pctBarra != null && React.createElement('div', { className: 'fi-progresso-barra-fundo' },
+          React.createElement('div', { className: 'fi-progresso-barra-cheia', style: { width: pctBarra + '%' } })
+        )
+      )
+    );
+  }
+
+  function renderGraficoPeso() {
+    var n = avaliacoes.length;
+    var pesos = avaliacoes.map(function (a) { return a.peso; });
+    var min = Math.min.apply(null, pesos);
+    var max = Math.max.apply(null, pesos);
+    var pesoMeta = perfil && perfil.peso_meta ? Number(perfil.peso_meta) : null;
+    if (pesoMeta != null) { min = Math.min(min, pesoMeta); max = Math.max(max, pesoMeta); }
+    var folga = Math.max(0.5, (max - min) * 0.1);
+    var yMin = min - folga, yMax = max + folga;
+    var W = Math.max(n * 32, 280), H = 160;
+    var padL = 34, padR = 12, padT = 14, padB = 26;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    function xAt(i) { return n > 1 ? padL + (i / (n - 1)) * plotW : padL + plotW / 2; }
+    function yAt(peso) { return padT + (1 - (peso - yMin) / (yMax - yMin)) * plotH; }
+    var pontos = avaliacoes.map(function (a, i) { return { x: xAt(i), y: yAt(a.peso), a: a }; });
+    var pathD = pontos.map(function (p, i) { return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); }).join(' ');
+    var passoLabel = Math.max(1, Math.ceil(n / 6));
+    var selecionada = graficoSelecionado ? avaliacoes.filter(function (a) { return a.id === graficoSelecionado; })[0] : null;
+    return React.createElement('div', null,
+      React.createElement('div', { className: 'fi-grafico-scroll' },
+        React.createElement('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: 'max(100%, ' + W + 'px)', height: H, display: 'block' } },
+          pesoMeta != null && React.createElement('line', {
+            x1: padL, x2: W - padR, y1: yAt(pesoMeta), y2: yAt(pesoMeta),
+            stroke: 'var(--fi-texto2)', strokeWidth: 1, strokeDasharray: '4 3'
+          }),
+          React.createElement('text', { x: 2, y: padT + 4, fontSize: 9, fill: 'var(--fi-texto2)' }, Math.round(yMax * 10) / 10),
+          React.createElement('text', { x: 2, y: H - padB, fontSize: 9, fill: 'var(--fi-texto2)' }, Math.round(yMin * 10) / 10),
+          React.createElement('path', { d: pathD, fill: 'none', stroke: FI_COR, strokeWidth: 2 }),
+          pontos.map(function (p, i) {
+            return React.createElement(React.Fragment, { key: p.a.id },
+              React.createElement('circle', {
+                cx: p.x, cy: p.y, r: 4, fill: FI_COR, style: { cursor: 'pointer' },
+                onClick: function () { setGraficoSelecionado(p.a.id === graficoSelecionado ? null : p.a.id); }
+              }),
+              i % passoLabel === 0 && React.createElement('text', { x: p.x, y: H - 6, fontSize: 9, fill: 'var(--fi-texto2)', textAnchor: 'middle' }, fiFmtDataCurtaSemAno(p.a.data))
+            );
+          })
+        )
+      ),
+      selecionada && React.createElement('p', { style: { fontSize: 12, textAlign: 'center', marginTop: 6, fontWeight: 700 } }, fiFmtDataCurta(selecionada.data) + ' · ' + selecionada.peso + ' kg')
+    );
+  }
+
+  function renderComparar() {
+    if (avaliacoes.length < 2) return null;
+    var compA = compararA || avaliacoes[0].data;
+    var compB = compararB || avaliacoes[avaliacoes.length - 1].data;
+    var a = avaliacoes.filter(function (x) { return x.data === compA; })[0] || avaliacoes[0];
+    var b = avaliacoes.filter(function (x) { return x.data === compB; })[0] || avaliacoes[avaliacoes.length - 1];
+    var campos = [['peso', 'Peso', 'kg'], ['cintura', 'Cintura', 'cm'], ['peito', 'Peito', 'cm'], ['anca', 'Anca', 'cm'], ['braco', 'Braço', 'cm'], ['coxa', 'Coxa', 'cm'], ['gordura_pct', 'Gordura', '%']];
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement(FiLabel, null, 'Comparar'),
+      React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 10 } },
+        React.createElement('select', { className: 'fi-input', value: compA, onChange: function (e) { setCompararA(e.target.value); } },
+          avaliacoes.map(function (x) { return React.createElement('option', { key: x.id, value: x.data }, fiFmtDataCurta(x.data)); })
+        ),
+        React.createElement('select', { className: 'fi-input', value: compB, onChange: function (e) { setCompararB(e.target.value); } },
+          avaliacoes.map(function (x) { return React.createElement('option', { key: x.id, value: x.data }, fiFmtDataCurta(x.data)); })
+        )
+      ),
+      React.createElement('div', { className: 'fi-comparar-tabela' },
+        React.createElement('div', { className: 'fi-comparar-linha fi-comparar-cabecalho' },
+          React.createElement('span', null, ''),
+          React.createElement('span', null, fiFmtDataCurta(compA)),
+          React.createElement('span', null, fiFmtDataCurta(compB)),
+          React.createElement('span', null, 'Dif.')
+        ),
+        campos.map(function (c) {
+          var va = a[c[0]], vb = b[c[0]];
+          if (va == null && vb == null) return null;
+          var dif = (va != null && vb != null) ? Math.round((vb - va) * 10) / 10 : null;
+          return React.createElement('div', { key: c[0], className: 'fi-comparar-linha' },
+            React.createElement('span', null, c[1]),
+            React.createElement('span', null, va != null ? (va + ' ' + c[2]) : '—'),
+            React.createElement('span', null, vb != null ? (vb + ' ' + c[2]) : '—'),
+            React.createElement('span', { style: { color: dif == null ? 'var(--fi-texto2)' : (dif <= 0 ? 'var(--fi-verde)' : 'var(--fi-amarelo)'), fontWeight: 700 } },
+              dif != null ? ((dif > 0 ? '+' : '') + dif) : '—'
+            )
+          );
+        })
+      )
+    );
+  }
+
+  function renderFormAvaliacao() {
+    var f = avalForm;
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement(FiLabel, null, avalEditandoId ? 'Editar avaliação' : '+ Nova avaliação'),
+      avalConflito && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-amarelo)', fontWeight: 700, marginBottom: 8 } },
+        '⚠️ Já existe uma avaliação em ' + fiFmtDataCurta(avalConflito.data) + '. Guardar substitui os valores dessa em vez de criar outra.'
+      ),
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 } },
+        React.createElement('div', null,
+          React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Data'),
+          React.createElement('input', { type: 'date', className: 'fi-input', autoComplete: 'off', value: f.data, onChange: function (e) { avalCampo('data', e.target.value); } })
+        ),
+        React.createElement('div', null,
+          React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, 'Peso (kg)'),
+          React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', value: f.peso, onChange: function (e) { avalCampo('peso', e.target.value); } })
+        )
+      ),
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 } },
+        [['cintura', 'Cintura (cm)'], ['peito', 'Peito (cm)'], ['anca', 'Anca (cm)'], ['braco', 'Braço (cm)'], ['coxa', 'Coxa (cm)'], ['gordura_pct', 'Gordura (%)']].map(function (c) {
+          return React.createElement('div', { key: c[0] },
+            React.createElement(FiLabel, { style: { margin: '0 0 4px' } }, c[1]),
+            React.createElement('input', { type: 'number', step: '0.1', className: 'fi-input', autoComplete: 'off', value: f[c[0]], onChange: function (e) { avalCampo(c[0], e.target.value); } })
+          );
+        })
+      ),
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Notas (opcional)', value: f.notas, onChange: function (e) { avalCampo('notas', e.target.value); }, style: { marginBottom: 10 } }),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setAvalFormAberto(false); setAvalEditandoId(null); setAvalConflito(null); } }, 'Cancelar'),
+        avalConflito
+          ? React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: avalSaving, onClick: confirmarSubstituirAvaliacao }, avalSaving ? 'A guardar…' : '✓ Substituir')
+          : React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: avalSaving || !f.peso, onClick: guardarAvaliacao }, avalSaving ? 'A guardar…' : '✓ Guardar')
+      )
+    );
+  }
+
+  function renderListaAvaliacoes() {
+    var desc = avaliacoes.slice().reverse();
+    return React.createElement('div', null,
+      desc.map(function (a, i) {
+        var anterior = desc[i + 1];
+        var varPeso = anterior ? Math.round((a.peso - anterior.peso) * 10) / 10 : null;
+        var medidas = [];
+        if (a.cintura != null) medidas.push('Cintura ' + a.cintura + ' cm');
+        if (a.peito != null) medidas.push('Peito ' + a.peito + ' cm');
+        if (a.anca != null) medidas.push('Anca ' + a.anca + ' cm');
+        if (a.braco != null) medidas.push('Braço ' + a.braco + ' cm');
+        if (a.coxa != null) medidas.push('Coxa ' + a.coxa + ' cm');
+        if (a.gordura_pct != null) medidas.push('Gordura ' + a.gordura_pct + '%');
+        return React.createElement(FiCard, { key: a.id, style: { marginBottom: 8 } },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+            React.createElement('div', { style: { minWidth: 0 } },
+              React.createElement('div', { style: { fontWeight: 800, fontSize: 14 } }, fiFmtDataCurta(a.data)),
+              React.createElement('div', { style: { fontSize: 13, marginTop: 2 } },
+                a.peso + ' kg',
+                varPeso != null && React.createElement('span', { style: { marginLeft: 8, fontSize: 12, fontWeight: 700, color: varPeso <= 0 ? 'var(--fi-verde)' : 'var(--fi-amarelo)' } }, (varPeso > 0 ? '+' : '') + varPeso + ' kg')
+              ),
+              medidas.length > 0 && React.createElement('div', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 4 } }, medidas.join(' · ')),
+              a.notas && React.createElement('div', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 4, fontStyle: 'italic' } }, a.notas)
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
+              React.createElement('button', { onClick: function () { abrirEditarAvaliacao(a); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️'),
+              React.createElement('button', { onClick: function () { setConfirmApagarAvaliacao(a.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '🗑️')
+            )
+          )
+        );
+      })
+    );
+  }
+
+  function renderProgresso() {
+    if (avaliacoesCarregando && !avaliacoes.length) {
+      return React.createElement('div', { style: { padding: 16 } },
+        React.createElement('p', { style: { fontSize: 12.5, color: 'var(--fi-texto2)', textAlign: 'center' } }, 'A carregar…')
+      );
+    }
+    if (!avaliacoes.length) {
+      return React.createElement('div', { style: { padding: 16 } },
+        React.createElement(FiCard, { style: { marginBottom: 12, textAlign: 'center' } },
+          React.createElement('p', { style: { fontSize: 13, color: 'var(--fi-texto2)' } }, 'Ainda não tens avaliações registadas. Regista a primeira para começares a acompanhar o teu progresso.')
+        ),
+        renderFormAvaliacao()
+      );
+    }
+    return React.createElement('div', { style: { padding: 16 } },
+      renderResumoProgresso(),
+      React.createElement(FiCard, { style: { marginBottom: 12 } }, renderGraficoPeso()),
+      renderComparar(),
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
+        React.createElement(FiLabel, { style: { margin: 0 } }, 'Histórico'),
+        !avalFormAberto && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 12px', fontSize: 12 }, onClick: abrirNovaAvaliacao }, '+ Nova avaliação')
+      ),
+      avalFormAberto && renderFormAvaliacao(),
+      renderListaAvaliacoes()
+    );
+  }
+
   var corpo;
   if (perfEditAberto) corpo = renderPerfilEditor();
   else if (tab === 'hoje') corpo = renderHoje();
   else if (tab === 'plano') corpo = iaPreview ? renderIaPreview() : (receitaOpcaoId ? renderReceita() : renderPlano());
   else if (tab === 'treino') corpo = renderPlaceholder('Treino', 'Treinos, exercícios e vídeos — Fase 4.');
-  else if (tab === 'progresso') corpo = renderPlaceholder('Progresso', 'Avaliações, fotos e gráfico — Fase 3.');
+  else if (tab === 'progresso') corpo = renderProgresso();
   else if (maisView === 'alimentos') corpo = renderAlimentos();
   else if (maisView === 'compras') corpo = renderCompras();
   else if (maisView === 'perfil') corpo = renderPerfilView();
@@ -37597,6 +37922,18 @@ function FitnessApp(props) {
       )
     )
   );
+  var modalApagarAvaliacao = confirmApagarAvaliacao && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarAvaliacao(null); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Apagar esta avaliação?'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setConfirmApagarAvaliacao(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-perigo', style: { flex: 1 }, onClick: function () { apagarAvaliacao(confirmApagarAvaliacao); } }, 'Apagar')
+      )
+    )
+  );
   var modalSubstituirCompras = confirmSubstituirCompras && React.createElement('div', {
     style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
     onClick: function (e) { if (e.target === e.currentTarget) setConfirmSubstituirCompras(false); }
@@ -37623,7 +37960,8 @@ function FitnessApp(props) {
     modalMoverOpcao,
     modalApagarRegisto,
     modalApagarCompra,
-    modalSubstituirCompras
+    modalSubstituirCompras,
+    modalApagarAvaliacao
   );
 }
 
