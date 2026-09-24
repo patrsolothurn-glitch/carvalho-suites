@@ -84,7 +84,9 @@ var FI_CSS = '' +
   '.fi-comparar-linha{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;font-size:12px;padding:6px 0;border-top:1px solid var(--fi-borda)}' +
   '.fi-comparar-linha:first-child{border-top:none}' +
   '.fi-comparar-cabecalho{font-weight:800;color:var(--fi-texto2);font-size:11px;text-transform:uppercase}' +
-  '.fi-treino-aviso{font-size:11px;color:var(--fi-texto2);text-align:center;margin:0 0 12px;padding:8px 10px;background:var(--fi-cartao);border:1px solid var(--fi-borda);border-radius:10px}';
+  '.fi-treino-aviso{font-size:11px;color:var(--fi-texto2);text-align:center;margin:0 0 12px;padding:8px 10px;background:var(--fi-cartao);border:1px solid var(--fi-borda);border-radius:10px}' +
+  '.fi-historico-linha{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--fi-borda);cursor:pointer}' +
+  '.fi-historico-linha:first-child{border-top:none}';
 
 function fiTemaEscuro() { return T.bg === T_DARK.bg; }
 
@@ -340,6 +342,13 @@ function fiFmtDataCurtaSemAno(dataISO) {
   var p = dataISO.split('-');
   return p[2] + '-' + p[1];
 }
+var FI_DIAS_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+// "DD-MM, diaDaSemana" — usado no histórico "Últimos dias" do Hoje.
+function fiFmtDataComDia(dataISO) {
+  if (!dataISO) return '—';
+  var dia = FI_DIAS_SEMANA[new Date(dataISO + 'T00:00:00Z').getUTCDay()];
+  return fiFmtDataCurtaSemAno(dataISO) + ', ' + dia;
+}
 // Dias inteiros entre hoje e dataISO (negativo se já passou).
 function fiDiasAte(dataISO) {
   var hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -524,6 +533,7 @@ function FitnessApp(props) {
   var _s64 = React.useState(null); var registoEditandoId = _s64[0], setRegistoEditandoId = _s64[1]; // id do registo com a dose a editar
   var _s65 = React.useState(null); var confirmApagarRegisto = _s65[0], setConfirmApagarRegisto = _s65[1];
   var _s66 = React.useState(false); var aguaSaving = _s66[0], setAguaSaving = _s66[1];
+  var _s110 = React.useState([]); var historicoHoje = _s110[0], setHistoricoHoje = _s110[1]; // últimos dias com registos (cartão "Últimos dias")
 
   // Lista de compras (Mais → Lista de compras)
   var _s67 = React.useState([]); var comprasLista = _s67[0], setComprasLista = _s67[1];
@@ -611,15 +621,29 @@ function FitnessApp(props) {
   function carregarHoje(dataISO) {
     if (!db) return;
     setHojeCarregando(true);
+    var hojeIsoReal = new Date().toISOString().slice(0, 10);
     Promise.all([
       db.from('fitness_registo').select('*').eq('data', dataISO),
-      db.from('fitness_agua').select('*').eq('data', dataISO).maybeSingle()
+      db.from('fitness_agua').select('*').eq('data', dataISO).maybeSingle(),
+      db.from('fitness_registo').select('*').gte('data', fiSomarDias(hojeIsoReal, -14))
     ]).then(function (res) {
-      var regRes = res[0], aguaRes = res[1];
+      var regRes = res[0], aguaRes = res[1], histRes = res[2];
       if (regRes.error) { console.error('[fitness] carregar registo:', regRes.error); window.mostrarErro('Fitness', regRes.error); }
       if (aguaRes.error) { console.error('[fitness] carregar água:', aguaRes.error); window.mostrarErro('Fitness', aguaRes.error); }
+      if (histRes.error) { console.error('[fitness] carregar histórico:', histRes.error); window.mostrarErro('Fitness', histRes.error); }
       setRegistoDia(regRes.data || []);
       setAguaDia(aguaRes.data || null);
+      var porDia = {};
+      (histRes.data || []).forEach(function (reg) {
+        if (!porDia[reg.data]) porDia[reg.data] = { data: reg.data, kcal: 0, prot: 0, hc: 0, gord: 0 };
+        porDia[reg.data].kcal += Number(reg.kcal || 0);
+        porDia[reg.data].prot += Number(reg.prot || 0);
+        porDia[reg.data].hc += Number(reg.hc || 0);
+        porDia[reg.data].gord += Number(reg.gord || 0);
+      });
+      var dias = Object.keys(porDia).filter(function (d) { return d !== dataISO; }).map(function (d) { return porDia[d]; });
+      dias.sort(function (a, b) { return a.data < b.data ? 1 : (a.data > b.data ? -1 : 0); });
+      setHistoricoHoje(dias);
       setHojeCarregando(false);
     }).catch(function (e) {
       console.error('[fitness] carregar hoje:', e);
@@ -2186,6 +2210,26 @@ function FitnessApp(props) {
       )
     );
   }
+  function renderHistoricoHoje() {
+    return React.createElement(FiCard, { style: { marginTop: 12 } },
+      React.createElement(FiLabel, null, 'Últimos dias'),
+      historicoHoje.length
+        ? historicoHoje.map(function (d) {
+            var cor = fiCorAnelHoje(d.kcal, meta.ativa);
+            return React.createElement('div', {
+              key: d.data, className: 'fi-historico-linha',
+              onClick: function () { setHojeData(d.data); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+            },
+              React.createElement('div', { style: { minWidth: 0 } },
+                React.createElement('div', { style: { fontSize: 13, fontWeight: 700 } }, fiFmtDataComDia(d.data)),
+                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'P ' + Math.round(d.prot) + ' · HC ' + Math.round(d.hc) + ' · G ' + Math.round(d.gord) + ' g')
+              ),
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 800, color: cor, flex: 'none' } }, Math.round(d.kcal) + ' kcal')
+            );
+          })
+        : React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Ainda sem dias registados.')
+    );
+  }
   // Faixa "Próxima avaliação física" — já disponível na Fase 1.
   function renderProxAvaliacaoFaixa() {
     if (!perfil || !perfil.prox_avaliacao) return null;
@@ -2232,7 +2276,8 @@ function FitnessApp(props) {
           comiOutraAberta === r.id ? renderFormComiOutra(r.id) : React.createElement('button', { className: 'fi-btn', style: { width: '100%', marginTop: 8 }, onClick: function () { abrirComiOutra(r.id); } }, '🍕 Comi outra coisa')
         );
       }),
-      renderAgua()
+      renderAgua(),
+      renderHistoricoHoje()
     );
   }
 
