@@ -83,7 +83,8 @@ var FI_CSS = '' +
   '.fi-comparar-tabela{display:flex;flex-direction:column;gap:2px}' +
   '.fi-comparar-linha{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;font-size:12px;padding:6px 0;border-top:1px solid var(--fi-borda)}' +
   '.fi-comparar-linha:first-child{border-top:none}' +
-  '.fi-comparar-cabecalho{font-weight:800;color:var(--fi-texto2);font-size:11px;text-transform:uppercase}';
+  '.fi-comparar-cabecalho{font-weight:800;color:var(--fi-texto2);font-size:11px;text-transform:uppercase}' +
+  '.fi-treino-aviso{font-size:11px;color:var(--fi-texto2);text-align:center;margin:0 0 12px;padding:8px 10px;background:var(--fi-cartao);border:1px solid var(--fi-borda);border-radius:10px}';
 
 function fiTemaEscuro() { return T.bg === T_DARK.bg; }
 
@@ -429,6 +430,8 @@ function FiAssistNav(p) {
 }
 function fiAlimentoVazio() { return { nome: '', categoria: '', medida: 'g', kcal_100: '', prot_100: '', hc_100: '', gord_100: '', unidade_nome: '', g_unidade: '' }; }
 function fiAvaliacaoVazia() { return { data: new Date().toISOString().slice(0, 10), peso: '', cintura: '', peito: '', anca: '', braco: '', coxa: '', gordura_pct: '', notas: '' }; }
+function fiTreinoVazio() { return { nome: '', duracao_min: '', voltas: '', descanso_s: '', notas: '' }; }
+function fiExercicioVazio() { return { nome: '', series: '', reps: '', notas: '', video_url: '' }; }
 
 // ── App principal (todo o estado aqui) ───────────────────────────
 function FitnessApp(props) {
@@ -545,6 +548,30 @@ function FitnessApp(props) {
   var _s85 = React.useState(null); var compararB = _s85[0], setCompararB = _s85[1];
   var _s86 = React.useState(null); var graficoSelecionado = _s86[0], setGraficoSelecionado = _s86[1]; // id da avaliação tocada no gráfico
 
+  // Treino (Fase 4)
+  var _s88 = React.useState([]); var treinos = _s88[0], setTreinos = _s88[1]; // ordenados por ordem asc
+  var _s89 = React.useState([]); var exercicios = _s89[0], setExercicios = _s89[1];
+  var _s90 = React.useState([]); var treinoLog = _s90[0], setTreinoLog = _s90[1]; // ordenado por data desc
+  var _s91 = React.useState(false); var treinosCarregando = _s91[0], setTreinosCarregando = _s91[1];
+  var _s92 = React.useState({}); var treinosAbertos = _s92[0], setTreinosAbertos = _s92[1]; // { [treinoId]: true } — exercícios visíveis
+  var _s93 = React.useState(false); var treinoFormAberto = _s93[0], setTreinoFormAberto = _s93[1];
+  var _s94 = React.useState(fiTreinoVazio()); var treinoForm = _s94[0], setTreinoForm = _s94[1];
+  var _s95 = React.useState(null); var treinoEditandoId = _s95[0], setTreinoEditandoId = _s95[1];
+  var _s96 = React.useState(null); var confirmApagarTreino = _s96[0], setConfirmApagarTreino = _s96[1];
+  var _s97 = React.useState(null); var exercicioTreinoAberto = _s97[0], setExercicioTreinoAberto = _s97[1]; // id do treino com form de exercício aberto
+  var _s98 = React.useState(fiExercicioVazio()); var exercicioForm = _s98[0], setExercicioForm = _s98[1];
+  var _s99 = React.useState(null); var exercicioEditandoId = _s99[0], setExercicioEditandoId = _s99[1];
+  var _s100 = React.useState(null); var confirmApagarExercicio = _s100[0], setConfirmApagarExercicio = _s100[1];
+  var _s101 = React.useState(null); var videoColarAberto = _s101[0], setVideoColarAberto = _s101[1]; // id do exercício com campo de colar link aberto
+  var _s102 = React.useState(''); var videoUrlForm = _s102[0], setVideoUrlForm = _s102[1];
+  var _s103 = React.useState(null); var sessaoTreinoId = _s103[0], setSessaoTreinoId = _s103[1]; // id do treino com painel "Fiz este treino" aberto
+  var _s104 = React.useState(null); var sessaoForm = _s104[0], setSessaoForm = _s104[1]; // { feitos: [...], notas }
+  var _s105 = React.useState(null); var sessaoEditandoId = _s105[0], setSessaoEditandoId = _s105[1];
+  var _s106 = React.useState(false); var sessaoSaving = _s106[0], setSessaoSaving = _s106[1];
+  var _s107 = React.useState(null); var confirmApagarSessao = _s107[0], setConfirmApagarSessao = _s107[1];
+  var _s108 = React.useState(''); var caminhadaForm = _s108[0], setCaminhadaForm = _s108[1]; // minutos (texto)
+  var _s109 = React.useState(false); var caminhadaSaving = _s109[0], setCaminhadaSaving = _s109[1];
+
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
@@ -631,6 +658,30 @@ function FitnessApp(props) {
     });
   }
   React.useEffect(function () { if (tab === 'progresso') carregarAvaliacoes(); }, [tab]);
+
+  function carregarTreinos() {
+    if (!db) return;
+    setTreinosCarregando(true);
+    Promise.all([
+      db.from('fitness_treinos').select('*').order('ordem', { ascending: true }),
+      db.from('fitness_exercicios').select('*').order('ordem', { ascending: true }),
+      db.from('fitness_treino_log').select('*').order('data', { ascending: false })
+    ]).then(function (res) {
+      setTreinosCarregando(false);
+      var treRes = res[0], exRes = res[1], logRes = res[2];
+      if (treRes.error) { console.error('[fitness] carregar treinos:', treRes.error); window.mostrarErro('Fitness', treRes.error); }
+      if (exRes.error) { console.error('[fitness] carregar exercícios:', exRes.error); window.mostrarErro('Fitness', exRes.error); }
+      if (logRes.error) { console.error('[fitness] carregar registo de treino:', logRes.error); window.mostrarErro('Fitness', logRes.error); }
+      setTreinos(treRes.data || []);
+      setExercicios(exRes.data || []);
+      setTreinoLog(logRes.data || []);
+    }).catch(function (e) {
+      setTreinosCarregando(false);
+      console.error('[fitness] carregar treinos:', e);
+      window.mostrarErro('Fitness', e);
+    });
+  }
+  React.useEffect(function () { if (tab === 'treino') carregarTreinos(); }, [tab]);
 
   var alimentosPorId = React.useMemo(function () {
     var m = {};
@@ -1292,15 +1343,16 @@ function FitnessApp(props) {
       carregar();
     }).catch(function (e) { console.error('[fitness] mover opção:', e); window.mostrarErro('Fitness', e); });
   }
-  // Troca a "ordem" de duas linhas (refeições ou opções) — usado para reordenar.
-  function fiTrocarOrdem(tabela, a, b) {
+  // Troca a "ordem" de duas linhas (refeições, opções, treinos, exercícios) — usado para reordenar.
+  // aoTerminar (opcional) recarrega os dados certos; por omissão recarrega o Plano.
+  function fiTrocarOrdem(tabela, a, b, aoTerminar) {
     Promise.all([
       db.from(tabela).update({ ordem: b.ordem }).eq('id', a.id),
       db.from(tabela).update({ ordem: a.ordem }).eq('id', b.id)
     ]).then(function (resultados) {
       var falha = resultados.filter(function (r) { return r && r.error; })[0];
       if (falha) { console.error('[fitness] reordenar (' + tabela + '):', falha.error); window.mostrarErro('Fitness', falha.error); return; }
-      carregar();
+      (aoTerminar || carregar)();
     }).catch(function (e) { console.error('[fitness] reordenar (' + tabela + '):', e); window.mostrarErro('Fitness', e); });
   }
 
@@ -1924,16 +1976,6 @@ function FitnessApp(props) {
     React.createElement('span', { style: { fontSize: 26 } }, '🥗'),
     React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontWeight: 900, fontSize: 16 } }, 'Carvalho Fitness'))
   );
-
-  function renderPlaceholder(titulo, faseTexto) {
-    return React.createElement('div', { style: { padding: 16 } },
-      React.createElement(FiCard, { style: { textAlign: 'center', padding: 30 } },
-        React.createElement('div', { style: { fontSize: 34, marginBottom: 10 } }, '🚧'),
-        React.createElement('div', { style: { fontWeight: 800, marginBottom: 4 } }, titulo),
-        React.createElement('div', { style: { fontSize: 12.5, color: 'var(--fi-texto2)' } }, faseTexto)
-      )
-    );
-  }
 
   // ══════════════════════════════════════════════════════════════
   // HOJE — registo do dia e água (Fase 2)
@@ -2628,11 +2670,364 @@ function FitnessApp(props) {
     );
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // TREINO — treinos, exercícios, sessões e caminhada (Fase 4)
+  // ══════════════════════════════════════════════════════════════
+  function abrirNovoTreino() { setTreinoEditandoId(null); setTreinoForm(fiTreinoVazio()); setTreinoFormAberto(true); }
+  function abrirEditarTreino(t) {
+    setTreinoEditandoId(t.id);
+    setTreinoForm({
+      nome: t.nome,
+      duracao_min: t.duracao_min != null ? String(t.duracao_min) : '',
+      voltas: t.voltas != null ? String(t.voltas) : '',
+      descanso_s: t.descanso_s != null ? String(t.descanso_s) : '',
+      notas: t.notas || ''
+    });
+    setTreinoFormAberto(true);
+  }
+  function guardarTreino() {
+    if (!treinoForm.nome.trim()) return;
+    var payload = {
+      nome: treinoForm.nome.trim(),
+      duracao_min: treinoForm.duracao_min !== '' ? parseInt(treinoForm.duracao_min, 10) : null,
+      voltas: treinoForm.voltas !== '' ? parseInt(treinoForm.voltas, 10) : null,
+      descanso_s: treinoForm.descanso_s !== '' ? parseInt(treinoForm.descanso_s, 10) : null,
+      notas: treinoForm.notas.trim() || null
+    };
+    var query = treinoEditandoId
+      ? db.from('fitness_treinos').update(payload).eq('id', treinoEditandoId)
+      : db.from('fitness_treinos').insert(Object.assign({ ordem: treinos.length + 1 }, payload));
+    query.then(function (res) {
+      if (res.error) { console.error('[fitness] guardar treino:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setTreinoFormAberto(false); setTreinoEditandoId(null);
+      carregarTreinos();
+    }).catch(function (e) { console.error('[fitness] guardar treino:', e); window.mostrarErro('Fitness', e); });
+  }
+  function apagarTreino(id) {
+    db.from('fitness_treinos').delete().eq('id', id).then(function (res) {
+      if (res.error) { console.error('[fitness] apagar treino:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setConfirmApagarTreino(null);
+      carregarTreinos();
+    }).catch(function (e) { console.error('[fitness] apagar treino:', e); window.mostrarErro('Fitness', e); });
+  }
+
+  function abrirNovoExercicio(treinoId) {
+    setExercicioTreinoAberto(treinoId); setExercicioEditandoId(null); setExercicioForm(fiExercicioVazio());
+    setTreinosAbertos(function (m) { var n = Object.assign({}, m); n[treinoId] = true; return n; });
+  }
+  function abrirEditarExercicio(ex) {
+    setExercicioTreinoAberto(ex.treino_id); setExercicioEditandoId(ex.id);
+    setExercicioForm({
+      nome: ex.nome, series: ex.series != null ? String(ex.series) : '', reps: ex.reps || '',
+      notas: ex.notas || '', video_url: ex.video_url || ''
+    });
+    setTreinosAbertos(function (m) { var n = Object.assign({}, m); n[ex.treino_id] = true; return n; });
+  }
+  function guardarExercicio() {
+    if (!exercicioForm.nome.trim()) return;
+    var payload = {
+      nome: exercicioForm.nome.trim(),
+      series: exercicioForm.series !== '' ? parseInt(exercicioForm.series, 10) : null,
+      reps: exercicioForm.reps.trim() || null,
+      notas: exercicioForm.notas.trim() || null,
+      video_url: exercicioForm.video_url.trim() || null
+    };
+    var query = exercicioEditandoId
+      ? db.from('fitness_exercicios').update(payload).eq('id', exercicioEditandoId)
+      : db.from('fitness_exercicios').insert(Object.assign({
+          treino_id: exercicioTreinoAberto,
+          ordem: exercicios.filter(function (e) { return e.treino_id === exercicioTreinoAberto; }).length + 1
+        }, payload));
+    query.then(function (res) {
+      if (res.error) { console.error('[fitness] guardar exercício:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setExercicioTreinoAberto(null); setExercicioEditandoId(null);
+      carregarTreinos();
+    }).catch(function (e) { console.error('[fitness] guardar exercício:', e); window.mostrarErro('Fitness', e); });
+  }
+  function apagarExercicio(id) {
+    db.from('fitness_exercicios').delete().eq('id', id).then(function (res) {
+      if (res.error) { console.error('[fitness] apagar exercício:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setConfirmApagarExercicio(null);
+      carregarTreinos();
+    }).catch(function (e) { console.error('[fitness] apagar exercício:', e); window.mostrarErro('Fitness', e); });
+  }
+
+  // Vídeo: abre a pesquisa do YouTube pelo nome do exercício e mostra o campo para colar o link.
+  function abrirPesquisaVideo(ex) {
+    window.open('https://www.youtube.com/results?search_query=' + encodeURIComponent(ex.nome + ' execução'), '_blank');
+    setVideoColarAberto(ex.id);
+    setVideoUrlForm('');
+  }
+  function guardarVideoUrl(ex) {
+    if (!videoUrlForm.trim()) return;
+    db.from('fitness_exercicios').update({ video_url: videoUrlForm.trim() }).eq('id', ex.id).then(function (res) {
+      if (res.error) { console.error('[fitness] guardar vídeo:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setVideoColarAberto(null); setVideoUrlForm('');
+      carregarTreinos();
+    }).catch(function (e) { console.error('[fitness] guardar vídeo:', e); window.mostrarErro('Fitness', e); });
+  }
+
+  // Sessão: grava/edita fitness_treino_log com o treino_id e a lista de exercícios
+  // (todos, marcados ou não — marcar menos é normal e não é tratado como falha).
+  function abrirSessao(treino) {
+    var exsTreino = exercicios.filter(function (e) { return e.treino_id === treino.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
+    setSessaoTreinoId(treino.id);
+    setSessaoEditandoId(null);
+    setSessaoForm({
+      feitos: exsTreino.map(function (e) { return { exercicio_id: e.id, nome: e.nome, feito: false, obs: '' }; }),
+      notas: ''
+    });
+  }
+  function abrirEditarSessao(log) {
+    var exsTreino = exercicios.filter(function (e) { return e.treino_id === log.treino_id; }).sort(function (a, b) { return a.ordem - b.ordem; });
+    var feitosPorId = {};
+    (log.feitos || []).forEach(function (f) { feitosPorId[f.exercicio_id] = f; });
+    setSessaoTreinoId(log.treino_id);
+    setSessaoEditandoId(log.id);
+    setSessaoForm({
+      feitos: exsTreino.map(function (e) {
+        var f = feitosPorId[e.id];
+        return { exercicio_id: e.id, nome: e.nome, feito: !!(f && f.feito), obs: (f && f.obs) || '' };
+      }),
+      notas: log.notas || ''
+    });
+  }
+  function fecharSessao() { setSessaoTreinoId(null); setSessaoForm(null); setSessaoEditandoId(null); }
+  function marcarExercicioSessao(exercicioId, campo, valor) {
+    setSessaoForm(function (f) {
+      return Object.assign({}, f, {
+        feitos: f.feitos.map(function (x) {
+          return x.exercicio_id === exercicioId ? Object.assign({}, x, campo === 'feito' ? { feito: valor } : { obs: valor }) : x;
+        })
+      });
+    });
+  }
+  function guardarSessao() {
+    if (!sessaoForm) return;
+    setSessaoSaving(true);
+    var feitos = sessaoForm.feitos.map(function (f) {
+      var item = { exercicio_id: f.exercicio_id, nome: f.nome, feito: !!f.feito };
+      if (f.obs && f.obs.trim()) item.obs = f.obs.trim();
+      return item;
+    });
+    var payload = { treino_id: sessaoTreinoId, feitos: feitos, notas: sessaoForm.notas.trim() || null };
+    var query = sessaoEditandoId
+      ? db.from('fitness_treino_log').update(payload).eq('id', sessaoEditandoId)
+      : db.from('fitness_treino_log').insert(Object.assign({ data: new Date().toISOString().slice(0, 10) }, payload));
+    query.then(function (res) {
+      setSessaoSaving(false);
+      if (res.error) { console.error('[fitness] guardar sessão:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      fecharSessao();
+      carregarTreinos();
+    }).catch(function (e) { setSessaoSaving(false); console.error('[fitness] guardar sessão:', e); window.mostrarErro('Fitness', e); });
+  }
+  function apagarSessao(id) {
+    db.from('fitness_treino_log').delete().eq('id', id).then(function (res) {
+      if (res.error) { console.error('[fitness] apagar sessão:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setConfirmApagarSessao(null);
+      carregarTreinos();
+    }).catch(function (e) { console.error('[fitness] apagar sessão:', e); window.mostrarErro('Fitness', e); });
+  }
+
+  // Caminhada: fitness_treino_log com treino_id null e feitos = { tipo: 'caminhada', minutos: N }.
+  function caminhadaHojeMinutos() {
+    var hoje = new Date().toISOString().slice(0, 10);
+    return treinoLog.filter(function (l) { return l.treino_id == null && l.data === hoje && l.feitos && l.feitos.tipo === 'caminhada'; })
+      .reduce(function (s, l) { return s + (Number(l.feitos.minutos) || 0); }, 0);
+  }
+  function caminhada7DiasMinutos() {
+    var limite = new Date(); limite.setDate(limite.getDate() - 6);
+    var limiteISO = limite.toISOString().slice(0, 10);
+    return treinoLog.filter(function (l) { return l.treino_id == null && l.feitos && l.feitos.tipo === 'caminhada' && l.data >= limiteISO; })
+      .reduce(function (s, l) { return s + (Number(l.feitos.minutos) || 0); }, 0);
+  }
+  function registarCaminhada() {
+    var min = parseInt(caminhadaForm, 10);
+    if (!min || min <= 0) return;
+    setCaminhadaSaving(true);
+    db.from('fitness_treino_log').insert({
+      data: new Date().toISOString().slice(0, 10), treino_id: null,
+      feitos: { tipo: 'caminhada', minutos: min }
+    }).then(function (res) {
+      setCaminhadaSaving(false);
+      if (res.error) { console.error('[fitness] registar caminhada:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setCaminhadaForm('');
+      carregarTreinos();
+    }).catch(function (e) { setCaminhadaSaving(false); console.error('[fitness] registar caminhada:', e); window.mostrarErro('Fitness', e); });
+  }
+
+  function renderFormTreino() {
+    var f = treinoForm;
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement(FiLabel, null, treinoEditandoId ? 'Editar treino' : '+ Treino'),
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome do treino', value: f.nome, onChange: function (e) { setTreinoForm(Object.assign({}, f, { nome: e.target.value })); }, style: { marginBottom: 8 } }),
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 } },
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'Duração (min)', value: f.duracao_min, onChange: function (e) { setTreinoForm(Object.assign({}, f, { duracao_min: e.target.value })); } }),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'Voltas', value: f.voltas, onChange: function (e) { setTreinoForm(Object.assign({}, f, { voltas: e.target.value })); } }),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'Descanso (s)', value: f.descanso_s, onChange: function (e) { setTreinoForm(Object.assign({}, f, { descanso_s: e.target.value })); } })
+      ),
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Notas (opcional)', value: f.notas, onChange: function (e) { setTreinoForm(Object.assign({}, f, { notas: e.target.value })); }, style: { marginBottom: 10 } }),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setTreinoFormAberto(false); setTreinoEditandoId(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: !f.nome.trim(), onClick: guardarTreino }, '✓ Guardar')
+      )
+    );
+  }
+
+  function renderFormExercicio() {
+    var f = exercicioForm;
+    return React.createElement('div', { style: { marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 } },
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome do exercício', value: f.nome, onChange: function (e) { setExercicioForm(Object.assign({}, f, { nome: e.target.value })); } }),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'Séries', value: f.series, onChange: function (e) { setExercicioForm(Object.assign({}, f, { series: e.target.value })); } }),
+        React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Repetições (ex: 10-12)', value: f.reps, onChange: function (e) { setExercicioForm(Object.assign({}, f, { reps: e.target.value })); } })
+      ),
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Notas (opcional)', value: f.notas, onChange: function (e) { setExercicioForm(Object.assign({}, f, { notas: e.target.value })); } }),
+      React.createElement('input', { type: 'url', className: 'fi-input', autoComplete: 'off', placeholder: 'Link do vídeo (opcional)', value: f.video_url, onChange: function (e) { setExercicioForm(Object.assign({}, f, { video_url: e.target.value })); } }),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setExercicioTreinoAberto(null); setExercicioEditandoId(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: !f.nome.trim(), onClick: guardarExercicio }, '✓ Guardar exercício')
+      )
+    );
+  }
+
+  function renderLinhaExercicio(ex, idx, lista) {
+    return React.createElement('div', { key: ex.id, style: { padding: '6px 0', borderTop: '1px solid var(--fi-borda)' } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 } },
+        React.createElement('div', { style: { minWidth: 0, flex: 1 } },
+          React.createElement('div', { style: { fontSize: 13, fontWeight: 700 } }, ex.nome),
+          React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } },
+            [ex.series != null ? ex.series + ' séries' : null, ex.reps ? ex.reps + ' reps' : null].filter(Boolean).join(' · ') || '—'
+          )
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none', alignItems: 'center' } },
+          React.createElement('button', { disabled: idx === 0, onClick: function () { fiTrocarOrdem('fitness_exercicios', ex, lista[idx - 1], carregarTreinos); }, style: { background: 'none', border: 'none', fontSize: 13, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1 } }, '↑'),
+          React.createElement('button', { disabled: idx === lista.length - 1, onClick: function () { fiTrocarOrdem('fitness_exercicios', ex, lista[idx + 1], carregarTreinos); }, style: { background: 'none', border: 'none', fontSize: 13, cursor: idx === lista.length - 1 ? 'default' : 'pointer', opacity: idx === lista.length - 1 ? 0.3 : 1 } }, '↓'),
+          ex.video_url
+            ? React.createElement('button', { onClick: function () { window.open(ex.video_url, '_blank'); }, style: { background: 'none', border: 'none', fontSize: 13, cursor: 'pointer' } }, '🎥')
+            : React.createElement('button', { onClick: function () { abrirPesquisaVideo(ex); }, style: { background: 'none', border: 'none', fontSize: 13, cursor: 'pointer' } }, '🔎'),
+          React.createElement('button', { onClick: function () { abrirEditarExercicio(ex); }, style: { background: 'none', border: 'none', fontSize: 13, cursor: 'pointer' } }, '✏️'),
+          React.createElement('button', { onClick: function () { setConfirmApagarExercicio(ex.id); }, style: { background: 'none', border: 'none', fontSize: 13, cursor: 'pointer' } }, '🗑️')
+        )
+      ),
+      ex.notas && React.createElement('div', { style: { fontSize: 10.5, color: 'var(--fi-texto2)', marginTop: 2 } }, ex.notas),
+      videoColarAberto === ex.id && React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 6 } },
+        React.createElement('input', { type: 'url', className: 'fi-input', autoComplete: 'off', placeholder: 'Cola aqui o link do vídeo', value: videoUrlForm, onChange: function (e) { setVideoUrlForm(e.target.value); }, style: { flex: 1 } }),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 10px', fontSize: 12 }, disabled: !videoUrlForm.trim(), onClick: function () { guardarVideoUrl(ex); } }, '✓'),
+        React.createElement('button', { className: 'fi-btn', style: { padding: '6px 10px', fontSize: 12 }, onClick: function () { setVideoColarAberto(null); } }, '✕')
+      )
+    );
+  }
+
+  function renderTreinoItem(t, idx, lista) {
+    var exsTreino = exercicios.filter(function (e) { return e.treino_id === t.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
+    var aberto = !!treinosAbertos[t.id];
+    var detalhes = [
+      t.duracao_min != null ? t.duracao_min + ' min' : null,
+      t.voltas != null ? t.voltas + ' volta' + (t.voltas === 1 ? '' : 's') : null,
+      t.descanso_s != null ? t.descanso_s + 's descanso' : null
+    ].filter(Boolean).join(' · ');
+    return React.createElement(FiCard, { key: t.id, style: { marginBottom: 10 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+        React.createElement('div', { style: { minWidth: 0 } },
+          React.createElement('div', { style: { fontWeight: 800, fontSize: 15 } }, t.nome),
+          React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)', marginTop: 2 } },
+            exsTreino.length + ' exercício' + (exsTreino.length === 1 ? '' : 's') + (detalhes ? ' · ' + detalhes : '')
+          )
+        ),
+        React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
+          React.createElement('button', { disabled: idx === 0, onClick: function () { fiTrocarOrdem('fitness_treinos', t, lista[idx - 1], carregarTreinos); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: idx === 0 ? 'default' : 'pointer', opacity: idx === 0 ? 0.3 : 1 } }, '↑'),
+          React.createElement('button', { disabled: idx === lista.length - 1, onClick: function () { fiTrocarOrdem('fitness_treinos', t, lista[idx + 1], carregarTreinos); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: idx === lista.length - 1 ? 'default' : 'pointer', opacity: idx === lista.length - 1 ? 0.3 : 1 } }, '↓'),
+          React.createElement('button', { onClick: function () { abrirEditarTreino(t); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '✏️'),
+          React.createElement('button', { onClick: function () { setConfirmApagarTreino(t.id); }, style: { background: 'none', border: 'none', fontSize: 15, cursor: 'pointer' } }, '🗑️')
+        )
+      ),
+      t.notas && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 6 } }, t.notas),
+      React.createElement('div', {
+        className: 'fi-ingredientes-toggle',
+        onClick: function () { setTreinosAbertos(function (m) { var n = Object.assign({}, m); n[t.id] = !n[t.id]; return n; }); }
+      }, (aberto ? '▾' : '▸') + ' exercícios'),
+      aberto && React.createElement('div', { style: { marginTop: 4 } },
+        exsTreino.map(function (ex, exi) { return renderLinhaExercicio(ex, exi, exsTreino); }),
+        !exsTreino.length && React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)', padding: '6px 0' } }, 'Sem exercícios ainda.'),
+        exercicioTreinoAberto === t.id ? renderFormExercicio() : React.createElement('button', { className: 'fi-btn', style: { marginTop: 8, width: '100%' }, onClick: function () { abrirNovoExercicio(t.id); } }, '+ Exercício')
+      ),
+      React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 10 }, onClick: function () { abrirSessao(t); } }, '✓ Fiz este treino')
+    );
+  }
+
+  function renderCaminhada() {
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement(FiLabel, null, 'Caminhada'),
+      React.createElement('div', { style: { display: 'flex', gap: 20, marginBottom: 10 } },
+        React.createElement('div', null,
+          React.createElement('div', { style: { fontSize: 20, fontWeight: 900 } }, caminhadaHojeMinutos() + ' min'),
+          React.createElement('div', { style: { fontSize: 10.5, color: 'var(--fi-texto2)' } }, 'hoje')
+        ),
+        React.createElement('div', null,
+          React.createElement('div', { style: { fontSize: 20, fontWeight: 900 } }, caminhada7DiasMinutos() + ' min'),
+          React.createElement('div', { style: { fontSize: 10.5, color: 'var(--fi-texto2)' } }, 'últimos 7 dias')
+        )
+      ),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'Minutos', value: caminhadaForm, onChange: function (e) { setCaminhadaForm(e.target.value); }, style: { flex: 1 } }),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', disabled: caminhadaSaving || !caminhadaForm, onClick: registarCaminhada }, caminhadaSaving ? 'A registar…' : '✓ Registar')
+      )
+    );
+  }
+
+  function renderHistoricoTreino() {
+    var sessoes = treinoLog.filter(function (l) { return l.treino_id != null; });
+    if (!sessoes.length) return React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Ainda não há sessões registadas.');
+    return React.createElement('div', null,
+      sessoes.map(function (l) {
+        var treino = treinos.filter(function (t) { return t.id === l.treino_id; })[0];
+        var feitos = l.feitos || [];
+        var nFeitos = feitos.filter(function (f) { return f.feito; }).length;
+        return React.createElement(FiCard, { key: l.id, style: { marginBottom: 8 } },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+            React.createElement('div', { style: { minWidth: 0 } },
+              React.createElement('div', { style: { fontWeight: 800, fontSize: 13 } }, fiFmtDataCurta(l.data) + ' · ' + (treino ? treino.nome : 'Treino apagado')),
+              React.createElement('div', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 2 } }, nFeitos + ' exercício' + (nFeitos === 1 ? '' : 's') + ' feito' + (nFeitos === 1 ? '' : 's')),
+              l.notas && React.createElement('div', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', marginTop: 4, fontStyle: 'italic' } }, l.notas)
+            ),
+            React.createElement('div', { style: { display: 'flex', gap: 4, flex: 'none' } },
+              React.createElement('button', { onClick: function () { abrirEditarSessao(l); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '✏️'),
+              React.createElement('button', { onClick: function () { setConfirmApagarSessao(l.id); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
+            )
+          )
+        );
+      })
+    );
+  }
+
+  function renderTreino() {
+    var ordenados = treinos.slice().sort(function (a, b) { return a.ordem - b.ordem; });
+    if (treinosCarregando && !treinos.length) {
+      return React.createElement('div', { style: { padding: 16 } },
+        React.createElement('p', { style: { fontSize: 12.5, color: 'var(--fi-texto2)', textAlign: 'center' } }, 'A carregar…')
+      );
+    }
+    return React.createElement('div', { style: { padding: 16 } },
+      React.createElement('p', { className: 'fi-treino-aviso' }, 'Plano definido por quem te acompanha. Se sentires algo estranho, pára.'),
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
+        React.createElement(FiLabel, { style: { margin: 0 } }, 'Treinos'),
+        !treinoFormAberto && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 12px', fontSize: 12 }, onClick: abrirNovoTreino }, '+ Treino')
+      ),
+      treinoFormAberto && renderFormTreino(),
+      ordenados.map(function (t, i) { return renderTreinoItem(t, i, ordenados); }),
+      !ordenados.length && !treinoFormAberto && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginBottom: 12 } }, 'Ainda não há treinos.'),
+      renderCaminhada(),
+      React.createElement(FiLabel, null, 'Histórico'),
+      renderHistoricoTreino()
+    );
+  }
+
   var corpo;
   if (perfEditAberto) corpo = renderPerfilEditor();
   else if (tab === 'hoje') corpo = renderHoje();
   else if (tab === 'plano') corpo = iaPreview ? renderIaPreview() : (receitaOpcaoId ? renderReceita() : renderPlano());
-  else if (tab === 'treino') corpo = renderPlaceholder('Treino', 'Treinos, exercícios e vídeos — Fase 4.');
+  else if (tab === 'treino') corpo = renderTreino();
   else if (tab === 'progresso') corpo = renderProgresso();
   else if (maisView === 'alimentos') corpo = renderAlimentos();
   else if (maisView === 'compras') corpo = renderCompras();
@@ -2776,6 +3171,65 @@ function FitnessApp(props) {
       )
     )
   );
+  var modalApagarTreino = confirmApagarTreino && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarTreino(null); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Apagar este treino e os seus exercícios?'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setConfirmApagarTreino(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-perigo', style: { flex: 1 }, onClick: function () { apagarTreino(confirmApagarTreino); } }, 'Apagar')
+      )
+    )
+  );
+  var modalApagarExercicio = confirmApagarExercicio && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarExercicio(null); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Apagar este exercício?'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setConfirmApagarExercicio(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-perigo', style: { flex: 1 }, onClick: function () { apagarExercicio(confirmApagarExercicio); } }, 'Apagar')
+      )
+    )
+  );
+  var modalApagarSessao = confirmApagarSessao && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) setConfirmApagarSessao(null); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 340, width: '100%' } },
+      React.createElement('p', { style: { fontWeight: 700, marginBottom: 16 } }, 'Apagar esta sessão do histórico?'),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setConfirmApagarSessao(null); } }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-perigo', style: { flex: 1 }, onClick: function () { apagarSessao(confirmApagarSessao); } }, 'Apagar')
+      )
+    )
+  );
+  var modalSessaoTreino = (sessaoTreinoId && sessaoForm) && React.createElement('div', {
+    style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 20 },
+    onClick: function (e) { if (e.target === e.currentTarget) fecharSessao(); }
+  },
+    React.createElement(FiCard, { style: { maxWidth: 420, width: '100%', maxHeight: '80vh', overflowY: 'auto' } },
+      React.createElement(FiLabel, null, (sessaoEditandoId ? 'Editar sessão · ' : 'Fiz este treino · ') + ((treinos.filter(function (t) { return t.id === sessaoTreinoId; })[0] || {}).nome || '')),
+      sessaoForm && sessaoForm.feitos.map(function (f) {
+        return React.createElement('div', { key: f.exercicio_id, style: { padding: '8px 0', borderTop: '1px solid var(--fi-borda)' } },
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' } },
+            React.createElement('input', { type: 'checkbox', checked: f.feito, onChange: function (e) { marcarExercicioSessao(f.exercicio_id, 'feito', e.target.checked); } }),
+            f.nome
+          ),
+          f.feito && React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Peso / observação (opcional)', value: f.obs, onChange: function (e) { marcarExercicioSessao(f.exercicio_id, 'obs', e.target.value); }, style: { marginTop: 6 } })
+        );
+      }),
+      sessaoForm && !sessaoForm.feitos.length && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', padding: '6px 0' } }, 'Este treino ainda não tem exercícios.'),
+      sessaoForm && React.createElement('textarea', { className: 'fi-input', autoComplete: 'off', rows: 2, placeholder: 'Notas da sessão (opcional)', value: sessaoForm.notas, onChange: function (e) { setSessaoForm(Object.assign({}, sessaoForm, { notas: e.target.value })); }, style: { marginTop: 10, marginBottom: 10, resize: 'vertical' } }),
+      React.createElement('div', { style: { display: 'flex', gap: 8 } },
+        React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: fecharSessao }, 'Cancelar'),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: sessaoSaving, onClick: guardarSessao }, sessaoSaving ? 'A guardar…' : '✓ Guardar')
+      )
+    )
+  );
 
   return React.createElement('div', { className: appClass },
     React.createElement('style', null, FI_CSS),
@@ -2792,6 +3246,10 @@ function FitnessApp(props) {
     modalApagarRegisto,
     modalApagarCompra,
     modalSubstituirCompras,
-    modalApagarAvaliacao
+    modalApagarAvaliacao,
+    modalApagarTreino,
+    modalApagarExercicio,
+    modalApagarSessao,
+    modalSessaoTreino
   );
 }
