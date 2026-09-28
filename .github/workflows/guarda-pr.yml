@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: "1) index.html não pode passar de 500 KB"
+      - name: "1) index.html tem de ter pelo menos 500 KB"
         run: |
           set -euo pipefail
           if [ ! -f index.html ]; then
@@ -33,10 +33,10 @@ jobs:
             exit 1
           fi
           SIZE=$(stat -c%s index.html)
-          MAX=$((500 * 1024))
-          echo "index.html: ${SIZE} bytes (máximo ${MAX})"
-          if [ "$SIZE" -gt "$MAX" ]; then
-            echo "::error::index.html tem ${SIZE} bytes, acima do limite de 500 KB"
+          MIN=$((500 * 1024))
+          echo "index.html: ${SIZE} bytes (mínimo ${MIN})"
+          if [ "$SIZE" -lt "$MIN" ]; then
+            echo "::error::index.html tem só ${SIZE} bytes, abaixo do mínimo de 500 KB — pode estar vazio ou partido"
             exit 1
           fi
           echo "✓ tamanho OK"
