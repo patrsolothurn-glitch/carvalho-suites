@@ -31,7 +31,7 @@ jobs:
   # gate garante que só um deles corre mesmo, consoante o offset real no
   # dia em que dispara. workflow_dispatch passa sempre.
   gate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       deve_correr: ${{ steps.check.outputs.deve_correr }}
     steps:
@@ -59,7 +59,7 @@ jobs:
   vigilancia:
     needs: gate
     if: needs.gate.outputs.deve_correr == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SITE_URL: https://patrsolothurn-glitch.github.io/carvalho-suites/
@@ -67,12 +67,12 @@ jobs:
       SIMULAR_FALHA: ${{ github.event.inputs.simular_falha }}
     steps:
       - name: Checkout do main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5.1.0
         with:
           ref: main
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5.0.0
         with:
           node-version: '20'
 
