@@ -1,0 +1,569 @@
+# Vigilância sexta: verifica semanalmente que a Carvalho Suite está de pé
+# (site publicado, deploy, Supabase, backup) e tenta reparar sozinha as
+# duas coisas que sabe reparar sem risco (republicar o que já está no main,
+# e correr o backup outra vez). Nunca escreve dados, nunca corre build.js,
+# nunca faz commit nem revert.
+#
+# Aviso: quando há reparação ou continua a falhar, abre sempre uma issue
+# NOVA atribuída a patrsolothurn-glitch (o GitHub trata do email). Quando
+# está tudo OK, não cria nada — só o resumo do run.
+name: Vigilância sexta
+
+on:
+  schedule:
+    - cron: '0 3 * * 5' # sexta 05:00 na Suíça em horário de verão (+0200)
+    - cron: '0 4 * * 5' # sexta 05:00 na Suíça em horário de inverno (+0100)
+  workflow_dispatch:
+    inputs:
+      simular_falha:
+        description: 'Simular uma falha na verificação a) — para testar a reparação e a issue'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  # Um cron só pode ter um horário fixo em UTC, mas a Suíça muda de fuso
+  # duas vezes por ano — por isso há dois crons (verão e inverno) e este
+  # gate garante que só um deles corre mesmo, consoante o offset real no
+  # dia em que dispara. workflow_dispatch passa sempre.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      deve_correr: ${{ steps.check.outputs.deve_correr }}
+    steps:
+      - name: Decidir se corre (evita duplicar por causa do horário de verão/inverno)
+        id: check
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "deve_correr=true" >> "$GITHUB_OUTPUT"
+            echo "Disparo manual — a correr."
+            exit 0
+          fi
+          OFFSET=$(TZ=Europe/Zurich date +%z)
+          SCHEDULE="${{ github.event.schedule }}"
+          echo "Offset Europe/Zurich agora: $OFFSET · cron que disparou: $SCHEDULE"
+          if [ "$OFFSET" = "+0200" ] && [ "$SCHEDULE" = "0 3 * * 5" ]; then
+            echo "deve_correr=true" >> "$GITHUB_OUTPUT"
+          elif [ "$OFFSET" = "+0100" ] && [ "$SCHEDULE" = "0 4 * * 5" ]; then
+            echo "deve_correr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deve_correr=false" >> "$GITHUB_OUTPUT"
+            echo "Fora do horário certo para este offset — a sair sem verificar nada."
+          fi
+
+  vigilancia:
+    needs: gate
+    if: needs.gate.outputs.deve_correr == 'true'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SITE_URL: https://patrsolothurn-glitch.github.io/carvalho-suites/
+      SITE_BASE: https://patrsolothurn-glitch.github.io/carvalho-suites
+      SIMULAR_FALHA: ${{ github.event.inputs.simular_falha }}
+    steps:
+      - name: Checkout do main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar Playwright (Chromium) — usado na verificação d)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pwtools
+          cd /tmp/pwtools
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.48.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: Escrever ferramentas partilhadas (lib.sh + smoke.js)
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/smoke.js" <<'NODEEOF'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const url = process.env.SMOKE_URL;
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            const erros = [];
+
+            page.on('pageerror', (err) => {
+              erros.push('pageerror: ' + String((err && err.message) || err).slice(0, 200));
+            });
+            page.on('console', (msg) => {
+              if (msg.type() !== 'error') return;
+              const texto = msg.text();
+              if (/is not a function|is not defined|Unexpected token/.test(texto)) {
+                erros.push('console.error: ' + texto.slice(0, 200));
+              }
+            });
+
+            try {
+              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            } catch (e) {
+              erros.push('falha ao abrir a página: ' + String(e.message || e).slice(0, 200));
+            }
+
+            await page.waitForTimeout(10000);
+
+            let rootVazio = true;
+            try {
+              const html = await page.$eval('#root', (el) => el.innerHTML.trim());
+              rootVazio = html.length === 0;
+            } catch (e) {
+              rootVazio = true;
+            }
+            if (rootVazio) erros.push('elemento raiz (#root) está vazio após 10s');
+
+            await browser.close();
+
+            if (erros.length > 0) {
+              console.log('FALHAS:');
+              erros.forEach((e) => console.log('  - ' + e));
+              process.exitCode = 1;
+            } else {
+              console.log('OK — sem pageerror, sem erros de consola relevantes, #root não vazio');
+            }
+          })();
+          NODEEOF
+
+          cat > "$RUNNER_TEMP/lib.sh" <<'SHEOF'
+          #!/usr/bin/env bash
+          # Funções partilhadas — registo de resultados + verificações a)-h),
+          # reutilizáveis tanto na primeira passagem como depois de uma reparação.
+          set +e
+
+          RESULTADOS="${RUNNER_TEMP:-/tmp}/resultados.tsv"
+          touch "$RESULTADOS"
+
+          registar() { # id status detalhe
+            local id="$1" status="$2" detalhe="$3"
+            grep -v "^${id}	" "$RESULTADOS" > "${RESULTADOS}.tmp" 2>/dev/null || true
+            mv "${RESULTADOS}.tmp" "$RESULTADOS"
+            printf '%s\t%s\t%s\n' "$id" "$status" "$detalhe" >> "$RESULTADOS"
+          }
+
+          estado() { # id -> OK|FALHA|REPARADO (vazio se ainda não corrida)
+            awk -F'\t' -v id="$1" '$1==id{print $2}' "$RESULTADOS" 2>/dev/null | tail -1
+          }
+
+          detalhe_de() { # id -> texto do detalhe
+            awk -F'\t' -v id="$1" '$1==id{$1=""; $2=""; print}' "$RESULTADOS" 2>/dev/null | tail -1 | sed 's/^\t\t//'
+          }
+
+          verificar_a() {
+            if [ "${SIMULAR_FALHA:-false}" = "true" ]; then
+              registar a FALHA "simulado (simular_falha=true)"
+              echo "✗ a) FALHA (simulada)"
+              return
+            fi
+            local status size max
+            status=$(curl -s -o "${RUNNER_TEMP:-/tmp}/site-index.html" -w '%{http_code}' --max-time 20 "$SITE_URL" 2>/dev/null || echo "000")
+            if [ "$status" != "200" ]; then
+              registar a FALHA "HTTP $status"
+              echo "✗ a) FALHA — HTTP $status"
+              return
+            fi
+            size=$(stat -c%s "${RUNNER_TEMP:-/tmp}/site-index.html" 2>/dev/null || echo 0)
+            max=$((500 * 1024))
+            if [ "$size" -le "$max" ]; then
+              registar a FALHA "index.html publicado só tem ${size} bytes (esperado > ${max})"
+              echo "✗ a) FALHA — tamanho ${size} bytes"
+              return
+            fi
+            registar a OK "HTTP 200, ${size} bytes"
+            echo "✓ a) OK — HTTP 200, ${size} bytes"
+          }
+
+          verificar_b() {
+            if [ ! -s "${RUNNER_TEMP:-/tmp}/site-index.html" ]; then
+              registar b FALHA "sem index.html publicado para comparar"
+              echo "IDENTICO=0" >> "$GITHUB_ENV"
+              echo "✗ b) FALHA — sem ficheiro publicado"
+              return
+            fi
+            local sha_pub sha_main
+            sha_pub=$(sha256sum "${RUNNER_TEMP:-/tmp}/site-index.html" 2>/dev/null | cut -d' ' -f1)
+            sha_main=$(sha256sum index.html 2>/dev/null | cut -d' ' -f1)
+            if [ -n "$sha_pub" ] && [ "$sha_pub" = "$sha_main" ]; then
+              registar b OK "sha256 iguais"
+              echo "IDENTICO=1" >> "$GITHUB_ENV"
+              echo "✓ b) OK — sha256 iguais"
+            else
+              registar b FALHA "sha256 diferentes"
+              echo "IDENTICO=0" >> "$GITHUB_ENV"
+              echo "✗ b) FALHA — sha256 diferentes"
+            fi
+          }
+
+          verificar_c() {
+            local falhas="" f status
+            for f in sw.js manifest.json lucas.html; do
+              status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${SITE_BASE}/$f" 2>/dev/null || echo "000")
+              echo "  $f -> HTTP $status"
+              if [ "$status" != "200" ]; then falhas="$falhas $f=$status"; fi
+            done
+            if [ -n "$falhas" ]; then
+              registar c FALHA "HTTP não-200:$falhas"
+              echo "✗ c) FALHA —$falhas"
+            else
+              registar c OK "sw.js, manifest.json, lucas.html todos 200"
+              echo "✓ c) OK"
+            fi
+          }
+
+          verificar_d() {
+            local saida ok
+            saida=$(SMOKE_URL="$SITE_URL" NODE_PATH=/tmp/pwtools/node_modules node "${RUNNER_TEMP:-/tmp}/smoke.js" 2>&1)
+            ok=$?
+            echo "$saida"
+            if [ "$ok" = "0" ]; then
+              registar d OK "sem pageerror, sem erros de consola relevantes, #root não vazio"
+              echo "✓ d) OK"
+            else
+              registar d FALHA "$(echo "$saida" | tr '\n' ' ' | cut -c1-300)"
+              echo "✗ d) FALHA"
+            fi
+          }
+
+          verificar_e() {
+            local conclusao
+            conclusao=$(gh run list --workflow=deploy.yml --branch=main --status=completed --limit=1 --json conclusion --jq '.[0].conclusion // "sem runs"' 2>/dev/null || echo "erro ao consultar")
+            if [ "$conclusao" = "success" ]; then
+              registar e OK "último run: success"
+              echo "✓ e) OK"
+            else
+              registar e FALHA "último run: $conclusao"
+              echo "✗ e) FALHA — $conclusao"
+            fi
+          }
+
+          verificar_f() {
+            local s1 s2
+            s1=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1" -H "apikey: ${SUPABASE_KEY}" -H "Authorization: Bearer ${SUPABASE_KEY}" 2>/dev/null || echo "000")
+            s2=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${SUPABASE_URL}/auth/v1/health" -H "apikey: ${SUPABASE_KEY}" 2>/dev/null || echo "000")
+            echo "  profiles -> HTTP $s1 · auth/health -> HTTP $s2"
+            if [ "$s1" = "200" ] && [ "$s2" = "200" ]; then
+              registar f OK "profiles=200, auth/health=200"
+              echo "✓ f) OK"
+            else
+              registar f FALHA "profiles=$s1, auth/health=$s2"
+              echo "✗ f) FALHA — profiles=$s1 auth/health=$s2"
+            fi
+          }
+
+          verificar_g() {
+            local dados conclusao quando idade_h commit_data idade_commit_h
+            dados=$(gh run list --workflow=backup.yml --branch=main --status=completed --limit=1 --json conclusion,updatedAt --jq '.[0] // empty' 2>/dev/null || echo "")
+            if [ -z "$dados" ]; then
+              registar g FALHA "sem runs do backup.yml"
+              echo "✗ g) FALHA — sem runs do backup.yml"
+              return
+            fi
+            conclusao=$(echo "$dados" | jq -r '.conclusion' 2>/dev/null || echo "erro")
+            quando=$(echo "$dados" | jq -r '.updatedAt' 2>/dev/null || echo "")
+            if [ -z "$quando" ]; then
+              registar g FALHA "resposta inesperada do GitHub para o último run do backup.yml"
+              echo "✗ g) FALHA — resposta inesperada"
+              return
+            fi
+            idade_h=$(( ($(date -u +%s) - $(date -u -d "$quando" +%s 2>/dev/null || echo 0)) / 3600 ))
+            commit_data=$(GH_TOKEN="${BACKUP_REPO_TOKEN}" gh api repos/patrsolothurn-glitch/carvalho-backups/commits --jq '.[0].commit.committer.date' 2>/dev/null || echo "")
+            if [ -z "$commit_data" ]; then
+              registar g FALHA "run backup.yml: $conclusao (${idade_h}h) · não foi possível ler carvalho-backups"
+              echo "✗ g) FALHA — não foi possível ler carvalho-backups"
+              return
+            fi
+            idade_commit_h=$(( ($(date -u +%s) - $(date -u -d "$commit_data" +%s 2>/dev/null || echo 0)) / 3600 ))
+            if [ "$conclusao" = "success" ] && [ "$idade_h" -lt 26 ] && [ "$idade_commit_h" -lt 26 ]; then
+              registar g OK "run backup.yml: success (${idade_h}h) · último commit (${idade_commit_h}h)"
+              echo "✓ g) OK"
+            else
+              registar g FALHA "run backup.yml: $conclusao (${idade_h}h) · último commit (${idade_commit_h}h)"
+              echo "✗ g) FALHA — run: $conclusao (${idade_h}h) · commit (${idade_commit_h}h)"
+            fi
+          }
+
+          verificar_h() {
+            local hoje expira dias
+            hoje=$(date -u +%s)
+            expira=$(date -u -d '2027-09-21' +%s)
+            dias=$(( (expira - hoje) / 86400 ))
+            if [ "$dias" -gt 30 ]; then
+              registar h OK "faltam ${dias} dias para expirar"
+              echo "✓ h) OK — faltam ${dias} dias"
+            else
+              registar h FALHA "renovar token — faltam apenas ${dias} dias"
+              echo "✗ h) FALHA — renovar token, faltam ${dias} dias"
+            fi
+          }
+          SHEOF
+          echo "IDENTICO=0" >> "$GITHUB_ENV"
+
+      - name: "Verificação a) site publicado + tamanho do index.html"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_a
+
+      - name: "Verificação b) sha256 publicado == sha256 do main"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_b
+
+      - name: "Verificação c) sw.js, manifest.json, lucas.html publicados"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_c
+
+      - name: "Verificação d) teste de fumo (Playwright) ao site publicado"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_d
+
+      - name: "Verificação e) último run do deploy.yml no main"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_e
+
+      - name: "Verificação f) Supabase (profiles + auth health)"
+        env:
+          SUPABASE_URL: https://qtynznppkxjmihxiquze.supabase.co
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_f
+
+      - name: "Verificação g) backup.yml recente + carvalho-backups atualizado"
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_g
+
+      - name: "Verificação h) validade do BACKUP_REPO_TOKEN (expira 21/09/2027)"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          verificar_h
+
+      - name: "Reparação: republicar (deploy.yml) se a/b/c/d/e falharam"
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+
+          FALHOU_A=0; [ "$(estado a)" = "FALHA" ] && FALHOU_A=1
+          FALHOU_B=0; [ "$(estado b)" = "FALHA" ] && FALHOU_B=1
+          FALHOU_C=0; [ "$(estado c)" = "FALHA" ] && FALHOU_C=1
+          FALHOU_D=0; [ "$(estado d)" = "FALHA" ] && FALHOU_D=1
+          FALHOU_E=0; [ "$(estado e)" = "FALHA" ] && FALHOU_E=1
+
+          DISPARA=0
+          [ "$FALHOU_A" = 1 ] && DISPARA=1
+          [ "$FALHOU_B" = 1 ] && DISPARA=1
+          [ "$FALHOU_C" = 1 ] && DISPARA=1
+          [ "$FALHOU_E" = 1 ] && DISPARA=1
+          if [ "$FALHOU_D" = 1 ] && [ "${IDENTICO:-0}" != "1" ]; then DISPARA=1; fi
+
+          if [ "$FALHOU_D" = 1 ] && [ "${IDENTICO:-0}" = "1" ]; then
+            echo "PRECISA_CORRECAO_CODIGO=1" >> "$GITHUB_ENV"
+            echo "⚠ d) falha e o index.html publicado já é igual ao do main — republicar não resolve, precisa de correção no código."
+          fi
+
+          if [ "$DISPARA" != "1" ]; then
+            echo "Nada para reparar em a/b/c/d/e."
+            exit 0
+          fi
+
+          echo "A disparar deploy.yml (Deploy Carvalho Suite)..."
+          ANTES=$(gh run list --workflow=deploy.yml --branch=main --limit=1 --json databaseId --jq '.[0].databaseId // 0' 2>/dev/null || echo 0)
+          gh workflow run deploy.yml --ref main 2>/dev/null
+
+          NOVO_ID=""
+          for i in $(seq 1 30); do
+            sleep 5
+            ID=$(gh run list --workflow=deploy.yml --branch=main --limit=1 --json databaseId --jq '.[0].databaseId // 0' 2>/dev/null || echo 0)
+            if [ "$ID" != "$ANTES" ] && [ "$ID" != "0" ]; then NOVO_ID="$ID"; break; fi
+          done
+          if [ -z "$NOVO_ID" ]; then
+            echo "::warning::não foi possível confirmar o novo run do deploy.yml a tempo"
+            exit 0
+          fi
+          echo "Novo run do deploy.yml: $NOVO_ID — a aguardar (máx. 10 min)..."
+          for i in $(seq 1 58); do
+            STATUS=$(gh run view "$NOVO_ID" --json status --jq '.status' 2>/dev/null || echo "unknown")
+            if [ "$STATUS" = "completed" ]; then break; fi
+            sleep 10
+          done
+          CONCLUSAO=$(gh run view "$NOVO_ID" --json conclusion --jq '.conclusion' 2>/dev/null || echo "desconhecido")
+          echo "Run $NOVO_ID terminou: $CONCLUSAO"
+
+          echo "A voltar a correr a)-d)..."
+          verificar_a
+          verificar_b
+          verificar_c
+          verificar_d
+
+          [ "$FALHOU_A" = 1 ] && [ "$(estado a)" = "OK" ] && registar a REPARADO "$(detalhe_de a)"
+          [ "$FALHOU_B" = 1 ] && [ "$(estado b)" = "OK" ] && registar b REPARADO "$(detalhe_de b)"
+          [ "$FALHOU_C" = 1 ] && [ "$(estado c)" = "OK" ] && registar c REPARADO "$(detalhe_de c)"
+          [ "$FALHOU_D" = 1 ] && [ "$(estado d)" = "OK" ] && registar d REPARADO "$(detalhe_de d)"
+          true
+
+      - name: "Reparação: correr backup.yml se g) falhou"
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          if [ "$(estado g)" != "FALHA" ]; then
+            echo "g) não falhou — nada para reparar."
+            exit 0
+          fi
+          echo "A disparar backup.yml (Backup Supabase Data)..."
+          ANTES=$(gh run list --workflow=backup.yml --branch=main --limit=1 --json databaseId --jq '.[0].databaseId // 0' 2>/dev/null || echo 0)
+          gh workflow run backup.yml --ref main 2>/dev/null
+          NOVO_ID=""
+          for i in $(seq 1 30); do
+            sleep 5
+            ID=$(gh run list --workflow=backup.yml --branch=main --limit=1 --json databaseId --jq '.[0].databaseId // 0' 2>/dev/null || echo 0)
+            if [ "$ID" != "$ANTES" ] && [ "$ID" != "0" ]; then NOVO_ID="$ID"; break; fi
+          done
+          if [ -z "$NOVO_ID" ]; then
+            echo "::warning::não foi possível confirmar o novo run do backup.yml a tempo"
+            exit 0
+          fi
+          echo "Novo run do backup.yml: $NOVO_ID — a aguardar (máx. 10 min)..."
+          for i in $(seq 1 58); do
+            STATUS=$(gh run view "$NOVO_ID" --json status --jq '.status' 2>/dev/null || echo "unknown")
+            if [ "$STATUS" = "completed" ]; then break; fi
+            sleep 10
+          done
+          CONCLUSAO=$(gh run view "$NOVO_ID" --json conclusion --jq '.conclusion' 2>/dev/null || echo "desconhecido")
+          echo "Run $NOVO_ID terminou: $CONCLUSAO"
+
+          echo "A voltar a correr g)..."
+          verificar_g
+          [ "$(estado g)" = "OK" ] && registar g REPARADO "$(detalhe_de g)"
+          true
+
+      - name: Decidir resultado final e abrir issue se necessário
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+
+          NUM_FALHAS=0
+          HOUVE_REPARACAO=0
+          for id in a b c d e f g h; do
+            case "$(estado "$id")" in
+              FALHA) NUM_FALHAS=$((NUM_FALHAS + 1)) ;;
+              REPARADO) HOUVE_REPARACAO=1 ;;
+            esac
+          done
+
+          DATA=$(date -u +%Y-%m-%d)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "$NUM_FALHAS" -gt 0 ]; then
+            TIPO="falha"
+            TITULO="⚠️ Vigilância sexta ${DATA} — ${NUM_FALHAS} falha(s)"
+          elif [ "$HOUVE_REPARACAO" = "1" ]; then
+            TIPO="reparado"
+            TITULO="🔧 Vigilância sexta ${DATA} — reparado automaticamente"
+          else
+            TIPO="ok"
+          fi
+          echo "TIPO_RESULTADO=$TIPO" >> "$GITHUB_ENV"
+
+          if [ "$TIPO" = "ok" ]; then
+            echo "Tudo OK — sem issue."
+            exit 0
+          fi
+
+          CORPO="$RUNNER_TEMP/corpo_issue.txt"
+          {
+            echo "## Resultado da Vigilância sexta — ${DATA}"
+            echo ""
+            echo "| Verificação | Estado |"
+            echo "|---|---|"
+            for id in a b c d e f g h; do
+              echo "| ${id}) | $(estado "$id") |"
+            done
+            echo ""
+            echo "### Detalhe"
+            echo ""
+            for id in a b c d e f g h; do
+              ST=$(estado "$id")
+              DET=$(detalhe_de "$id")
+              echo "- **${id}) ${ST}** — ${DET}"
+              if [ "$ST" = "FALHA" ]; then
+                case "$id" in
+                  a) echo "  - O que significa: o site não respondeu ou o ficheiro publicado é suspeitosamente pequeno. O que fazer: abre a app no telemóvel; se não carregar, avisa o Claude." ;;
+                  b) echo "  - O que significa: o que está publicado não é o mesmo código que está no main. O que fazer: pede ao Claude para republicar." ;;
+                  c) echo "  - O que significa: falta um ficheiro (sw.js, manifest.json ou lucas.html) no site publicado. O que fazer: pede ao Claude para verificar o deploy." ;;
+                  d) echo "  - O que significa: a app abre mas rebenta logo a seguir (erro no ecrã). O que fazer: abre a app e manda print do erro ao Claude." ;;
+                  e) echo "  - O que significa: a última publicação falhou. O que fazer: pede ao Claude para tentar publicar de novo." ;;
+                  f) echo "  - O que significa: a base de dados (Supabase) não respondeu bem — pode estar em baixo ou sem quota. O que fazer: avisa o Claude; pode ser preciso reativar o projeto no painel do Supabase." ;;
+                  g) echo "  - O que significa: o backup diário não correu ou está atrasado. O que fazer: pede ao Claude para verificar o backup.yml." ;;
+                  h) echo "  - O que significa: o token de acesso ao backup está prestes a expirar. O que fazer: é preciso gerar um novo BACKUP_REPO_TOKEN antes de 21/09/2027." ;;
+                esac
+              fi
+            done
+            if [ "${PRECISA_CORRECAO_CODIGO:-0}" = "1" ]; then
+              echo ""
+              echo "⚠️ **d) falhou e o ficheiro publicado já é igual ao do main** — republicar não ia resolver, por isso não foi tentado. Isto precisa de uma correção no código."
+            fi
+            echo ""
+            echo "---"
+            echo "[Ver o run desta vigilância](${RUN_URL})"
+          } > "$CORPO"
+
+          gh issue create --title "$TITULO" --body-file "$CORPO" --assignee patrsolothurn-glitch
+
+      - name: Resumo
+        if: always()
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          {
+            echo "## 🛡️ Vigilância sexta — $(date -u +%Y-%m-%d)"
+            echo ""
+            echo "| Verificação | Estado | Detalhe |"
+            echo "|---|---|---|"
+            for id in a b c d e f g h; do
+              echo "| ${id}) | $(estado "$id") | $(detalhe_de "$id") |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Marcar o run como vermelho se ainda há falhas
+        if: always()
+        run: |
+          set +e
+          source "$RUNNER_TEMP/lib.sh"
+          FALHOU=0
+          for id in a b c d e f g h; do
+            if [ "$(estado "$id")" = "FALHA" ]; then
+              echo "::error::${id}) continua em FALHA"
+              FALHOU=1
+            fi
+          done
+          if [ "$FALHOU" = "1" ]; then
+            exit 1
+          fi
+          echo "Tudo OK ou reparado."

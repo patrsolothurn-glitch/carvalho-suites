@@ -1,0 +1,253 @@
+# Guarda-PR: bloqueia builds partidas antes de chegarem ao main.
+# Só lê o conteúdo do PR — nunca altera nenhum ficheiro.
+#
+# Regra para quem opera a suite (incluindo o Claude Code): nunca fazer merge
+# de um PR com este workflow vermelho, seja em que app for da suite.
+name: Guarda PR
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guarda:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do PR
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: "1) index.html não pode passar de 500 KB"
+        run: |
+          set -euo pipefail
+          if [ ! -f index.html ]; then
+            echo "::error::index.html não existe neste PR"
+            exit 1
+          fi
+          SIZE=$(stat -c%s index.html)
+          MAX=$((500 * 1024))
+          echo "index.html: ${SIZE} bytes (máximo ${MAX})"
+          if [ "$SIZE" -gt "$MAX" ]; then
+            echo "::error::index.html tem ${SIZE} bytes, acima do limite de 500 KB"
+            exit 1
+          fi
+          echo "✓ tamanho OK"
+
+      - name: "2) Sem ficheiros FINAL-* em src/ nem na raiz"
+        run: |
+          set -euo pipefail
+          ENCONTRADOS=$( { find . -maxdepth 1 -iname 'FINAL-*'; find src -iname 'FINAL-*' 2>/dev/null; } | sort -u || true)
+          if [ -n "$ENCONTRADOS" ]; then
+            echo "::error::Ficheiros FINAL-* encontrados (não devem existir no repositório):"
+            echo "$ENCONTRADOS"
+            exit 1
+          fi
+          echo "✓ sem ficheiros FINAL-*"
+
+      - name: "3) Sintaxe de todos os <script> inline do index.html"
+        run: |
+          set -euo pipefail
+          node <<'NODEEOF'
+          const fs = require('fs');
+          const os = require('os');
+          const path = require('path');
+          const { execFileSync } = require('child_process');
+
+          const html = fs.readFileSync('index.html', 'utf8');
+          const re = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi;
+          let m, idx = 0, falhas = 0;
+          while ((m = re.exec(html)) !== null) {
+            const attrs = m[1] || '';
+            if (/\bsrc\s*=/.test(attrs)) continue; // script externo (CDN), não inline
+            const typeMatch = /\btype\s*=\s*["']([^"']+)["']/i.exec(attrs);
+            if (typeMatch && !/^(text\/javascript|module|application\/javascript)$/i.test(typeMatch[1])) continue;
+            idx++;
+            const code = m[2];
+            const tmp = path.join(os.tmpdir(), `inline-script-${idx}.js`);
+            fs.writeFileSync(tmp, code);
+            try {
+              execFileSync(process.execPath, ['--check', tmp], { stdio: 'pipe' });
+              console.log(`✓ bloco <script> #${idx} — sintaxe OK`);
+            } catch (e) {
+              falhas++;
+              console.log(`✗ bloco <script> #${idx} — erro de sintaxe:`);
+              console.log(String((e.stderr || e.message)).split('\n').slice(0, 5).join('\n'));
+            }
+          }
+          console.log(`\n${idx} bloco(s) <script> inline verificados, ${falhas} falha(s).`);
+          if (falhas > 0) process.exit(1);
+          NODEEOF
+
+      - name: "5) Nenhuma query do Supabase com .catch()/.finally() sem .then() antes"
+        run: |
+          set -euo pipefail
+          node <<'NODEEOF'
+          // Regra do thenable do supabase-js 2.116: o query builder
+          // (.from(...).select/insert/update/delete/upsert/eq/not...) só
+          // implementa .then(), não é uma Promise nativa — chamar
+          // .catch()/.finally() diretamente, sem passar primeiro por
+          // .then(), não funciona como parece.
+          const fs = require('fs');
+          const path = require('path');
+
+          const dir = 'src';
+          const ficheiros = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.js')) : [];
+          const QUALIFICADORES = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'not'];
+          const falhas = [];
+
+          function saltarParen(text, iAbre) {
+            let d = 0, emString = null;
+            for (let j = iAbre; j < text.length; j++) {
+              const c = text[j];
+              if (emString) {
+                if (c === '\\') { j++; continue; }
+                if (c === emString) emString = null;
+                continue;
+              }
+              if (c === '"' || c === "'" || c === '`') { emString = c; continue; }
+              if (c === '(') d++;
+              else if (c === ')') { d--; if (d === 0) return j; }
+            }
+            return text.length - 1;
+          }
+
+          for (const fname of ficheiros) {
+            const full = path.join(dir, fname);
+            const text = fs.readFileSync(full, 'utf8');
+            const lineStarts = [];
+            { let pos = 0; for (const l of text.split('\n')) { lineStarts.push(pos); pos += l.length + 1; } }
+            function linhaDe(offset) {
+              let lo = 0, hi = lineStarts.length - 1, ans = 0;
+              while (lo <= hi) { const mid = (lo + hi) >> 1; if (lineStarts[mid] <= offset) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
+              return ans + 1;
+            }
+
+            const fromRe = /\.from\(/g;
+            let m;
+            while ((m = fromRe.exec(text)) !== null) {
+              const parenOpen = text.indexOf('(', m.index);
+              const parenClose = saltarParen(text, parenOpen);
+              let cursor = parenClose + 1;
+              let viuQualificador = false;
+              let viuThen = false;
+              let limite = 0;
+              while (limite < 60) {
+                limite++;
+                while (cursor < text.length && /\s/.test(text[cursor])) cursor++;
+                if (text[cursor] !== '.') break;
+                const chamadaMatch = /^\.(\w+)\(/.exec(text.slice(cursor));
+                if (!chamadaMatch) break;
+                const metodo = chamadaMatch[1];
+                const abreParen = cursor + chamadaMatch[0].length - 1;
+                const fechaParen = saltarParen(text, abreParen);
+                if (QUALIFICADORES.includes(metodo)) viuQualificador = true;
+                if ((metodo === 'catch' || metodo === 'finally') && viuQualificador && !viuThen) {
+                  falhas.push({ ficheiro: full, linha: linhaDe(cursor), metodo });
+                }
+                if (metodo === 'then') viuThen = true;
+                cursor = fechaParen + 1;
+              }
+            }
+          }
+
+          if (falhas.length > 0) {
+            console.log('✗ Encontradas chamadas .catch()/.finally() sem .then() antes numa cadeia do Supabase:');
+            for (const f of falhas) {
+              console.log(`  ${f.ficheiro}:${f.linha} — .${f.metodo}(...) sem .then() antes`);
+            }
+            process.exit(1);
+          }
+          console.log('✓ nenhuma cadeia do Supabase com .catch()/.finally() sem .then() antes');
+          NODEEOF
+
+      - name: "4) Preparar Playwright (Chromium) para o teste de fumo"
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pwtools
+          cd /tmp/pwtools
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.48.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
+
+      - name: "4) Servir o index.html do PR localmente"
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8973 >/tmp/http-server.log 2>&1 &
+          echo $! > /tmp/http-server.pid
+          for i in $(seq 1 20); do
+            if curl -sf -o /dev/null "http://localhost:8973/index.html"; then
+              echo "✓ servidor local a responder"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "::error::servidor local nunca respondeu"
+          exit 1
+
+      - name: "4) Teste de fumo (Playwright/Chromium) ao index.html do PR"
+        env:
+          NODE_PATH: /tmp/pwtools/node_modules
+          SMOKE_URL: http://localhost:8973/index.html
+        run: |
+          set -euo pipefail
+          node <<'NODEEOF'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const url = process.env.SMOKE_URL;
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            const erros = [];
+
+            page.on('pageerror', (err) => {
+              erros.push('pageerror: ' + String((err && err.message) || err).slice(0, 200));
+            });
+            page.on('console', (msg) => {
+              if (msg.type() !== 'error') return;
+              const texto = msg.text();
+              if (/is not a function|is not defined|Unexpected token/.test(texto)) {
+                erros.push('console.error: ' + texto.slice(0, 200));
+              }
+            });
+
+            try {
+              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            } catch (e) {
+              erros.push('falha ao abrir a página: ' + String(e.message || e).slice(0, 200));
+            }
+
+            await page.waitForTimeout(10000);
+
+            let rootVazio = true;
+            try {
+              const html = await page.$eval('#root', (el) => el.innerHTML.trim());
+              rootVazio = html.length === 0;
+            } catch (e) {
+              rootVazio = true;
+            }
+            if (rootVazio) erros.push('elemento raiz (#root) está vazio após 10s');
+
+            await browser.close();
+
+            if (erros.length > 0) {
+              console.log('✗ teste de fumo falhou:');
+              erros.forEach((e) => console.log('  - ' + e));
+              process.exitCode = 1;
+            } else {
+              console.log('✓ teste de fumo OK — sem pageerror, sem erros de consola relevantes, #root não vazio');
+            }
+          })();
+          NODEEOF
+
+      - name: Parar servidor local
+        if: always()
+        run: |
+          if [ -f /tmp/http-server.pid ]; then kill "$(cat /tmp/http-server.pid)" 2>/dev/null || true; fi
