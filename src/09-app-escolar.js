@@ -1281,8 +1281,12 @@ function EscolarApp(_ref31) {
     var stage1 = inc('disciplinas') ? gravarDisciplinas() : Promise.resolve(true);
     return stage1.then(function (discOk) {
       // passo 1 falhou — já mostrou o erro; não arriscar horario/tpc/notas
-      // com uma FK a apontar para uma disciplina que pode não estar gravada
-      if (discOk === false) return;
+      // com uma FK a apontar para uma disciplina que pode não estar gravada.
+      // Rejeitar (não só "return") é essencial: saveAlunoSnapshot só chama
+      // onDone(err) no .catch() — sem isto, "apagar disciplina" acharia que
+      // a gravação teve sucesso e limparia os testes do calendário da
+      // Família mesmo com a disciplina por apagar no servidor.
+      if (discOk === false) return Promise.reject(new Error('Gravação de disciplinas falhou ou foi cancelada.'));
       var stage2 = [];
       if (inc('horario')) stage2.push(gravarHorario());
       if (inc('tpc')) stage2.push(gravarTpc());
