@@ -1463,7 +1463,12 @@ function EscolarApp(_ref31) {
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
         _escolarSavePending[key] = null;
-        _escolarSavePendingDomains[key] = null;
+        // undefined, não null: null fica reservado só para "a fila pediu
+        // gravar tudo" (ramo !domains acima) — limpar com null faria a
+        // próxima chamada em fila, ao ver _escolarSavePendingDomains[key]
+        // === null, achar erradamente que já era "tudo" e ficar assim
+        // para sempre, mesmo pedindo só um domínio específico.
+        _escolarSavePendingDomains[key] = undefined;
         saveAlunoSnapshot(key, next, nextDoms);
       }
     }).catch(function (e) {
@@ -1480,7 +1485,8 @@ function EscolarApp(_ref31) {
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
         _escolarSavePending[key] = null;
-        _escolarSavePendingDomains[key] = null;
+        // undefined, não null — mesma razão do .then() acima.
+        _escolarSavePendingDomains[key] = undefined;
         var domsUniao;
         if (!domains || !nextDoms) {
           domsUniao = null;
