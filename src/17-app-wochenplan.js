@@ -877,6 +877,10 @@ function wpPaginaProps(p) {
 function wpDiaProps(p, k, n) {
   return p.nur ? { key: k, className: 'wp-dia', style: { flexGrow: Math.max(n, 1) } } : { key: k };
 }
+// Aviso em destaque nas folhas só para o admin (Admin-Übersicht, Wochenübersicht "Alle")
+function wpAviso() {
+  return React.createElement('b', { style: { display: 'inline-block', border: '1.5pt solid #BE2318', color: '#BE2318', padding: '1px 6px', fontSize: '9.5pt' } }, 'Intern – nicht weitergeben');
+}
 function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
   var c = wpMk(cur), m = wpMon(c);
   var pessoa = (who && who !== 'alle') ? (leute || []).filter(function(pe) { return pe.name === who; })[0] : null;
@@ -964,7 +968,8 @@ function WpPrintUebersicht(p) {
   var plan = 0, ist = 0;
   W.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
   return React.createElement('div', wpPaginaProps(p),
-    wpKopfZeile('Wochenübersicht', p.cur, p.seite, p.who, p.leute),
+    // "Alle" mostra desempenho de cada pessoa (Geleistet, Auslastung, Rückstand…): só para o admin
+    wpKopfZeile('Wochenübersicht', p.cur, p.who === 'alle' ? React.createElement(React.Fragment, null, wpAviso(), p.seite && React.createElement('div', { className: 'wp-seite' }, p.seite)) : p.seite, p.who, p.leute),
     !p.nur && React.createElement('div', { className: 'wp-sum' },
       React.createElement('span', null, React.createElement('b', null, 'Aufträge:'), ' ' + W.length),
       React.createElement('span', null, React.createElement('b', null, 'Erledigt:'), ' ' + W.filter(function(a) { return a.status === 'erledigt'; }).length),
@@ -1039,7 +1044,7 @@ function WpPrintAdmin(p) {
   var nomes = p.leute.map(function(pe) { return pe.name; }).concat(['']);
   var grupos = nomes.map(function(nm) { return { nm: nm, L: sp.filter(function(a) { return (a.wer || '') === nm; }) }; })
     .filter(function(g) { return g.L.length > 0; });
-  var aviso = React.createElement('b', { style: { display: 'inline-block', border: '1.5pt solid #BE2318', color: '#BE2318', padding: '1px 6px', fontSize: '9.5pt' } }, 'Intern – nicht weitergeben');
+  var aviso = wpAviso();
   return React.createElement('div', wpPaginaProps(p),
     wpKopfZeile('Admin-Übersicht', p.cur, aviso, 'alle', p.leute),
     !p.spaet && React.createElement('div', { className: 'wp-pd wp-noprint' }, 'Nicht erledigt ist ausgeschaltet – „Nicht erledigt mitdrucken“ einschalten.'),
@@ -1066,7 +1071,7 @@ function wpOrient(tipo, o) {
 // Verso (Beidseitig) das folhas de equipa / pessoa / admin: página de Notizen, nunca a Wochenübersicht.
 var WP_VERSO_TITEL = { team: 'Wochenplan', pers: 'Wochenliste', admin: 'Admin-Übersicht' };
 function wpVerso(p, tipo, who) {
-  var aviso = tipo === 'admin' ? React.createElement('b', { style: { display: 'inline-block', border: '1.5pt solid #BE2318', color: '#BE2318', padding: '1px 6px', fontSize: '9.5pt' } }, 'Intern – nicht weitergeben') : 'Rückseite';
+  var aviso = tipo === 'admin' ? wpAviso() : 'Rückseite';
   return React.createElement('div', wpPaginaProps(p),
     wpKopfZeile(WP_VERSO_TITEL[tipo], p.cur, aviso, who, p.leute),
     wpPrintNotizen('')
