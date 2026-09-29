@@ -1461,6 +1461,22 @@ function EscolarApp(_ref31) {
     }).catch(function (e) {
       _escolarSaveInFlight[key] = false;
       callbacksDesteEnvio.forEach(function (cb) { cb(e || new Error('Falha ao gravar.')); });
+      // Se entretanto ficaram dados em fila (editados enquanto esta gravação
+      // decorria), não podem ficar presos — são os mais recentes, por isso
+      // grava-los agora repõe tudo, incluindo os domínios que acabaram de
+      // falhar (ainda não persistidos). Sem fila, não repete sozinho: evitar
+      // um ciclo de tentativas quando a rede está em baixo.
+      var next = _escolarSavePending[key];
+      var nextDoms = _escolarSavePendingDomains[key];
+      if (next) {
+        _escolarSavePending[key] = null;
+        _escolarSavePendingDomains[key] = null;
+        var domsUniao = (domains || []).slice();
+        (nextDoms || []).forEach(function (d) {
+          if (domsUniao.indexOf(d) === -1) domsUniao.push(d);
+        });
+        saveAlunoSnapshot(key, next, domsUniao);
+      }
     });
   };
   // Debounce do save ao Supabase: cada keystroke num input (sala, professor, etc.)
