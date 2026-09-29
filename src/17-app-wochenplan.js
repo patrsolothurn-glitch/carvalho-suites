@@ -870,8 +870,8 @@ function wpSpaetDruck(p) {
 }
 function wpNotizOk(p) { return !p.nur && p.notizen !== false; }
 function wpSigOk(p) { return !p.nur && p.sig !== false; }
-function wpPaginaProps(p) {
-  return { className: 'wp-pagina' + (p.nur ? ' wp-nur' : ''), style: { '--wp-h': wpFolhaH(p.orient) + 'mm', '--wp-w': wpFolhaW(p.orient) + 'mm' } };
+function wpPaginaProps(p, extra) {
+  return { className: 'wp-pagina' + (extra ? ' ' + extra : '') + (p.nur ? ' wp-nur' : ''), style: { '--wp-h': wpFolhaH(p.orient) + 'mm', '--wp-w': wpFolhaW(p.orient) + 'mm' } };
 }
 // Bloco de um dia: em Nur Tabelle cresce (proporcional ao nº de linhas) para ocupar a folha.
 function wpDiaProps(p, k, n) {
@@ -925,7 +925,7 @@ function WpPrintPlan(p) {
   var sp = wpSpaetDruck(p);
   var dr = (p.nur || p.team) ? [] : wpPoolL(p.tasks, p.who, true);
   var dias = {}; // horas planeadas por dia (linha Summe da Team-Tabelle)
-  return React.createElement('div', wpPaginaProps(p),
+  return React.createElement('div', wpPaginaProps(p, 'wp-plantafel'),
     wpKopfZeile('Wochenplan', p.cur, wpSeiteAviso(p), p.who, p.leute),
     React.createElement('table', { className: 'wp-pt2' },
       React.createElement('thead', null, React.createElement('tr', null,
@@ -1207,9 +1207,59 @@ function WpVorschau(p) {
 // padding 12,3/12,3/15,3 mm (contra-escalado por --wp-f) e o cabeçalho repetido: o
 // conteúdo é medido e repartido por folhas, nunca cortando linhas ou cartões.
 var WP_PAD_H = 27.6; // mm: 12,3 em cima + 15,3 em baixo (0,3 mm de folga: o Chrome arredonda ao pixel e 12,0 dava 11,9)
-var WP_MIN_F = 0.62; // limite de escala: legibilidade em papel
+var WP_MIN_F = 0.62; // limite de escala das folhas de lista
+// Plantafel (Wochenplan A4, Team-Tabelle): tamanho mínimo real no papel — células >= 6,8 pt (base 8 pt)
+// e horas/totais >= 6 pt (base 7 pt) => escala >= 0,86; o que não cabe passa para a folha seguinte.
+var WP_MIN_F_TABELA = 0.86;
 function wpFolhaH(orient) { return (orient === 'landscape' ? 210 : 297) - 1; } // 1 mm de folga: evita folha em branco
 function wpFolhaW(orient) { return orient === 'landscape' ? 297 : 210; }
+// Linha de tabela mais alta do que uma folha (ex.: pessoa com dezenas de trabalhos): divide-se em linhas
+// parciais por trabalho (nunca a meio de um cartão), repetindo o nome e pondo o total (Std) só na última.
+function wpDividirLinha(a, k, cap, zf) {
+  var tr = a.el, tds = Array.prototype.slice.call(tr.children), ult = tds.length - 1;
+  var trH = tr.getBoundingClientRect().height / k;
+  var cel = tds.map(function(td, ti) {
+    if (ti === 0 || ti === ult) return [];
+    var it = Array.prototype.slice.call(td.children).filter(function(c) { return c.getBoundingClientRect().height > 0; });
+    var lista = it.map(function(c, i) {
+      var r = c.getBoundingClientRect();
+      var fim = i + 1 < it.length ? it[i + 1].getBoundingClientRect().top : r.bottom + 3 * zf; // + margin-bottom do cartão
+      return { els: [c], h: (fim - r.top) / k };
+    });
+    if (lista.length > 1 && lista[0].els[0].tagName === 'B') { lista[1].els.unshift(lista[0].els[0]); lista[1].h += lista[0].h; lista.shift(); } // Frei/Krank colado ao 1.º cartão
+    return lista;
+  });
+  var soma = function(l) { return l.reduce(function(t, x) { return t + x.h; }, 0); };
+  var maxSoma = Math.max.apply(null, cel.map(soma).concat([0]));
+  var over = Math.max(0, trH - maxSoma), capIt = Math.max(cap - over, 1);
+  var chunks = cel.map(function(l) {
+    var r = [[]], cur = 0;
+    l.forEach(function(x) {
+      if (cur + x.h > capIt && r[r.length - 1].length) { r.push([]); cur = 0; }
+      r[r.length - 1].push(x); cur += x.h;
+    });
+    return r;
+  });
+  var P = Math.max.apply(null, chunks.map(function(c) { return c.length; }));
+  var partes = [];
+  for (var p = 0; p < P; p++) {
+    var ntr = tr.cloneNode(false), span = 0;
+    tds.forEach(function(td, ti) {
+      var ntd;
+      if (ti === 0) ntd = td.cloneNode(true);
+      else if (ti === ult) ntd = p === P - 1 ? td.cloneNode(true) : td.cloneNode(false);
+      else {
+        ntd = td.cloneNode(false);
+        var ch = chunks[ti][p] || [];
+        ch.forEach(function(x) { x.els.forEach(function(e) { ntd.appendChild(e.cloneNode(true)); }); });
+        span = Math.max(span, soma(ch));
+      }
+      ntr.appendChild(ntd);
+    });
+    partes.push({ el: ntr, shell: a.shell, tipo: 'table', thead: a.thead, theadH: a.theadH, span: span + over });
+  }
+  return partes;
+}
 // Reparte uma .wp-pagina (origem, gerida pelo React) em folhas clonadas. Medidas em px visuais.
 function wpPaginarUma(src, usable, k, reserva) {
   var kids = Array.prototype.slice.call(src.children);
@@ -1233,10 +1283,17 @@ function wpPaginarUma(src, usable, k, reserva) {
   });
   // cabeçalho da folha (sem o thead da 1.ª tabela, que conta com as linhas dessa tabela)
   var headerH = atoms.length ? (tops[0].top - srcTop) / k - (atoms[0].theadH || 0) : 0;
-  var groups = [];
+  var zf = parseFloat(src.style.getPropertyValue('--wp-f')) || 1;
+  var expandidos = [];
   atoms.forEach(function(a, i) {
     var fim = i + 1 < atoms.length ? tops[i + 1].top : tops[i].bottom;
     a.span = (fim - tops[i].top) / k;
+    var cap = usable - headerH - (a.theadH || 0) - 4;
+    if (a.tipo === 'table' && a.span > cap) Array.prototype.push.apply(expandidos, wpDividirLinha(a, k, cap, zf)); else expandidos.push(a);
+  });
+  atoms = expandidos;
+  var groups = [];
+  atoms.forEach(function(a) {
     var cls = a.el.classList;
     var colaAoAnterior = cls.contains('wp-tsumrow') && groups.length;
     var g = colaAoAnterior ? groups[groups.length - 1] : (groups.length && groups[groups.length - 1].aberto ? groups[groups.length - 1] : null);
@@ -1296,17 +1353,17 @@ function wpPaginar(srcEl, outEl, areaEl, orient, screenW) {
   if (areaEl) areaEl.style.cssText = 'display:block;position:absolute;left:-10000px;top:0';
   var usable = (wpFolhaH(orient) - WP_PAD_H) * WP_MM - 6;
   function origens() { return Array.prototype.slice.call(srcEl.querySelectorAll('.wp-pagina')); }
-  srcEl.style.setProperty('--wp-f', '1');
-  var f = 1;
-  origens().forEach(function(el) {
+  var o = origens();
+  o.forEach(function(el) { el.style.setProperty('--wp-f', '1'); });
+  var f = 1; // escala necessária para caber numa folha (a mesma para todas as origens, como antes)
+  o.forEach(function(el) {
     var c = el.getBoundingClientRect().height - WP_PAD_H * WP_MM; // conteúdo natural sem padding
     if (c > usable) f = Math.min(f, usable / c);
   });
-  if (f < WP_MIN_F) f = WP_MIN_F;
-  var fs = f.toFixed(4);
-  srcEl.style.setProperty('--wp-f', fs);
-  outEl.style.setProperty('--wp-f', fs);
-  var o = origens();
+  var fPlan = Math.max(f, WP_MIN_F_TABELA);
+  f = Math.max(f, WP_MIN_F);
+  var fatores = o.map(function(el) { return el.classList.contains('wp-plantafel') ? fPlan : f; });
+  o.forEach(function(el, i) { el.style.setProperty('--wp-f', fatores[i].toFixed(4)); });
   var k = o.length ? o[0].getBoundingClientRect().width / (wmm * WP_MM) : 1; // 1 se o navegador devolver px visuais
   if (!(k > 0)) k = 1;
   outEl.innerHTML = '';
@@ -1319,7 +1376,7 @@ function wpPaginar(srcEl, outEl, areaEl, orient, screenW) {
   });
   outEl.style.zoom = screenW ? String(Math.min((screenW - 32) / (wmm * WP_MM), 1)) : '';
   if (areaEl) areaEl.style.cssText = '';
-  return { f: f, folhas: total };
+  return { f: fatores.length ? fatores[0] : f, fatores: fatores, folhas: total };
 }
 function wpCsvExport(tasks, cur, who) {
   var linhas = [['Datum', 'Von', 'Bis', 'Std', 'Einsatzort', 'Arbeit', 'AuftragsNr', 'Kunde', 'Prio', 'Mitarbeiter', 'Status']];
