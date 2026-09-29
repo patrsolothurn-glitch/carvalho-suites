@@ -269,8 +269,12 @@ var WP_CSS = '\
 .wp-legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:4px}\
 .wp-week{background:#FAF0DA;border-left:5px solid #A96700;padding:8px 11px;margin:9px 0;display:flex;align-items:center;gap:10px;font-size:13px;color:#A96700}\
 #wp-printArea{display:none;background:#fff;color:#000;font-size:10pt}\
-#wp-printInner{transform-origin:top left}\
-.wp-pagina{display:flex;flex-direction:column;box-sizing:border-box;padding:calc(12mm / var(--wp-f,1)) calc(12mm / var(--wp-f,1)) calc(14mm / var(--wp-f,1));min-height:calc(var(--wp-mh,1) * var(--wp-h,0mm) / var(--wp-f,1))}\
+.wp-pagina{display:flex;flex-direction:column;box-sizing:border-box;zoom:var(--wp-f,1);width:calc(var(--wp-w) / var(--wp-f,1));padding:calc(12.3mm / var(--wp-f,1)) calc(12.3mm / var(--wp-f,1)) calc(15.3mm / var(--wp-f,1))}\
+.wp-blatt{height:calc(var(--wp-h) / var(--wp-f,1))}\
+#wp-printOut .wp-blatt+.wp-blatt{break-before:page;page-break-before:always}\
+.wp-vorschau-src{position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none}\
+.wp-vorschau-out .wp-blatt{box-shadow:0 1px 6px rgba(0,0,0,.25);margin:0 auto 14px}\
+.wp-vorschau-wrap .wp-vorschau-inner,.wp-vorschau-wrap .wp-vorschau-out{background-color:transparent!important}\
 .wp-ph{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:5px;margin-bottom:9px;flex:none}\
 .wp-ph .wp-lg{width:14px;height:14px;background:#12B886;display:inline-block;vertical-align:-2px;margin-right:6px}\
 .wp-pt2{width:100%;border-collapse:collapse;table-layout:fixed;flex:none}\
@@ -302,7 +306,7 @@ var WP_CSS = '\
 .wp-vorschau-top .wp-mini:first-child{margin-right:auto}\
 .wp-vorschau-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-wrap{flex:0 1 auto;max-height:100%;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8;box-sizing:border-box}\
-.wp-vorschau-inner{box-shadow:0 1px 6px rgba(0,0,0,.25);transform-origin:top center;flex:none;align-self:flex-start}\
+.wp-vorschau-inner{flex:none;align-self:flex-start}\
 .wp-vorschau-inner,.wp-vorschau-inner *{color:#000!important;background-color:#fff!important;font-size:10pt}\
 .wp-vorschau-inner .wp-pt2 th,.wp-vorschau-inner .wp-pt2 td{font-size:8pt}\
 .wp-vorschau-inner .wp-pd{font-size:9pt}\
@@ -315,6 +319,7 @@ var WP_CSS = '\
   .wp-app{--bg:#fff;background:#fff;min-height:0;padding-bottom:0}\
   .wp-top,.wp-bar,.wp-kpis,.wp-cols,.wp-scroll,.wp-alarm,.wp-legend,.wp-abs,.wp-ov,.wp-week,.wp-noprint,.wp-vorschau,.wp-team-narrow{display:none!important}\
   #wp-printArea{display:block!important}\
+  #wp-printInner{display:none!important}\
   .wp-pbreak{break-before:page;page-break-before:always}\
 }';
 
@@ -832,7 +837,7 @@ function wpSpaetDruck(p) {
   return (p.who !== 'alle' || p.spaet) ? wpSpaet(p.tasks, wpTodayIso(), p.who) : [];
 }
 function wpPaginaProps(p) {
-  return { className: 'wp-pagina' + (p.nur ? ' wp-nur' : ''), style: { '--wp-h': wpFolhaH(p.orient) + 'mm' } };
+  return { className: 'wp-pagina' + (p.nur ? ' wp-nur' : ''), style: { '--wp-h': wpFolhaH(p.orient) + 'mm', '--wp-w': wpFolhaW(p.orient) + 'mm' } };
 }
 // Bloco de um dia: em Nur Tabelle cresce (proporcional ao nº de linhas) para ocupar a folha.
 function wpDiaProps(p, k, n) {
@@ -850,7 +855,7 @@ function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
         React.createElement('span', { style: { fontSize: '8.5pt' } }, wpFmt(m) + '–' + wpFmt(wpAddD(m, 6)) + c.getUTCFullYear()))
     ),
     React.createElement('div', { style: { textAlign: 'right', fontSize: '8.5pt' } },
-      seite2 && React.createElement('div', null, seite2),
+      seite2 && React.createElement('div', typeof seite2 === 'string' ? { className: 'wp-seite' } : null, seite2),
       React.createElement('div', null, 'Mitarbeiter: ', React.createElement('b', null, who && who !== 'alle' ? who : 'Alle')),
       React.createElement('div', null, 'Pers.Nr.: ', pessoa ? (pessoa.pers_nr || '–') : '–'),
       React.createElement('div', null, 'Projekt: ', React.createElement('span', { style: { display: 'inline-block', width: 90, borderBottom: '.5pt solid #000' } }))
@@ -1051,7 +1056,8 @@ function WpPrintArea(p) {
   return React.createElement(React.Fragment, null,
     React.createElement('style', null, pageCss),
     React.createElement('div', { id: 'wp-printArea', ref: p.areaRef },
-      React.createElement('div', { id: 'wp-printInner', ref: p.innerRef }, wpFolhas(p, tipo, orient))
+      React.createElement('div', { id: 'wp-printInner', ref: p.innerRef }, wpFolhas(p, tipo, orient)),
+      React.createElement('div', { id: 'wp-printOut', ref: p.outRef })
     )
   );
 }
@@ -1097,46 +1103,130 @@ function WpVorschau(p) {
       })
     ),
     React.createElement('div', { className: 'wp-vorschau-wrap', ref: p.wrapRef },
-      React.createElement('div', {
-        className: 'wp-vorschau-inner', ref: p.innerRef,
-        style: { width: (orient === 'landscape' ? 297 : 210) + 'mm' }
-      }, wpFolhas(p, tipo, orient))
+      React.createElement('div', { className: 'wp-vorschau-inner' },
+        React.createElement('div', { className: 'wp-vorschau-src', ref: p.innerRef }, wpFolhas(p, tipo, orient)),
+        React.createElement('div', { className: 'wp-vorschau-out', ref: p.outRef })
+      )
     )
   );
 }
-// Folha A4 inteira (@page margin:0): a margem de 12/12/14 mm vive no padding de
-// .wp-pagina e é contra-escalada por --wp-f, para nunca encolher com o conteúdo.
-var WP_PAD_H = 26; // mm: 12 em cima + 14 em baixo
+// Folha A4 inteira (@page margin:0). Cada folha é um bloco próprio (.wp-blatt) com
+// padding 12,3/12,3/15,3 mm (contra-escalado por --wp-f) e o cabeçalho repetido: o
+// conteúdo é medido e repartido por folhas, nunca cortando linhas ou cartões.
+var WP_PAD_H = 27.6; // mm: 12,3 em cima + 15,3 em baixo (0,3 mm de folga: o Chrome arredonda ao pixel e 12,0 dava 11,9)
+var WP_MIN_F = 0.62; // limite de escala: legibilidade em papel
 function wpFolhaH(orient) { return (orient === 'landscape' ? 210 : 297) - 1; } // 1 mm de folga: evita folha em branco
-function wpFitA4(innerEl, areaEl, orient, minF, screenW) {
-  if (!innerEl) return 1;
-  var wmm = orient === 'landscape' ? 297 : 210;
-  var hmm = orient === 'landscape' ? 210 : 297;
-  var pageWpx = wmm * WP_MM;
-  var nutz = (hmm - WP_PAD_H) * WP_MM - 6;
-  // #wp-printArea tem display:none fora do ecrã de impressão — sem isto o
-  // scrollHeight medido a seguir seria sempre 0 e a escala nunca entraria em ação.
-  if (areaEl) areaEl.style.cssText = 'display:block;position:absolute;left:-10000px;top:0';
-  innerEl.style.transform = 'none';
-  innerEl.style.width = pageWpx + 'px';
-  innerEl.style.setProperty('--wp-f', '1');
-  innerEl.style.setProperty('--wp-mh', '0');
-  // Uma .wp-pagina por folha (Beidseitig tem duas): usa-se a que precisar de
-  // encolher mais, para as duas caberem por igual.
-  var f = 1;
-  Array.prototype.forEach.call(innerEl.querySelectorAll('.wp-pagina'), function(el) {
-    var c = el.scrollHeight - WP_PAD_H * WP_MM; // conteúdo sem padding
-    if (c > nutz) f = Math.min(f, nutz / c);
+function wpFolhaW(orient) { return orient === 'landscape' ? 297 : 210; }
+// Reparte uma .wp-pagina (origem, gerida pelo React) em folhas clonadas. Medidas em px visuais.
+function wpPaginarUma(src, usable, k, reserva) {
+  var kids = Array.prototype.slice.call(src.children);
+  var hdr = kids.filter(function(c) { return c.classList.contains('wp-ph'); })[0];
+  var atoms = [];
+  kids.forEach(function(c) {
+    if (c === hdr) return;
+    if (c.tagName === 'TABLE') {
+      var th = c.querySelector('thead');
+      Array.prototype.forEach.call(c.querySelectorAll('tbody > tr'), function(tr) { atoms.push({ el: tr, shell: c, tipo: 'table', thead: th }); });
+    } else if (c.tagName === 'DIV' && (!c.className || c.classList.contains('wp-dia')) && c.firstElementChild && c.firstElementChild.classList.contains('wp-pd')) { // bloco de um dia
+      Array.prototype.forEach.call(c.children, function(x) { atoms.push({ el: x, shell: c, tipo: 'wrap' }); });
+    } else atoms.push({ el: c, shell: null });
   });
-  if (f < minF) f = minF;
-  innerEl.style.setProperty('--wp-mh', '1');
-  innerEl.style.setProperty('--wp-f', f.toFixed(4));
-  innerEl.style.width = (pageWpx / f) + 'px';
-  // ecrã (Vorschau): encolhe ainda para caber na largura disponível, nunca amplia
-  var fFinal = f * (screenW ? Math.min((screenW - 32) / pageWpx, 1) : 1);
-  innerEl.style.transform = fFinal < 1 ? 'scale(' + fFinal.toFixed(4) + ')' : 'none';
+  var ph = null;
+  if (reserva && hdr && hdr.lastElementChild) { ph = document.createElement('div'); ph.textContent = 'Seite 1 von 1'; hdr.lastElementChild.insertBefore(ph, hdr.lastElementChild.firstChild); }
+  var tops = atoms.map(function(a) { return a.el.getBoundingClientRect(); });
+  var srcTop = hdr ? hdr.getBoundingClientRect().top : src.getBoundingClientRect().top;
+  atoms.forEach(function(a) {
+    if (a.tipo === 'table' && a.thead) a.theadH = (a.shell.querySelector('tbody > tr').getBoundingClientRect().top - a.shell.getBoundingClientRect().top) / k;
+  });
+  // cabeçalho da folha (sem o thead da 1.ª tabela, que conta com as linhas dessa tabela)
+  var headerH = atoms.length ? (tops[0].top - srcTop) / k - (atoms[0].theadH || 0) : 0;
+  var groups = [];
+  atoms.forEach(function(a, i) {
+    var fim = i + 1 < atoms.length ? tops[i + 1].top : tops[i].bottom;
+    a.span = (fim - tops[i].top) / k;
+    var cls = a.el.classList;
+    var colaAoAnterior = cls.contains('wp-tsumrow') && groups.length;
+    var g = colaAoAnterior ? groups[groups.length - 1] : (groups.length && groups[groups.length - 1].aberto ? groups[groups.length - 1] : null);
+    if (!g) { g = { atoms: [], span: 0, aberto: false }; groups.push(g); }
+    g.atoms.push(a); g.span += a.span;
+    g.aberto = !colaAoAnterior && (cls.contains('wp-pd') || cls.contains('wp-notiz')); // título/Notizen colados ao seguinte
+    if (colaAoAnterior) g.aberto = false;
+  });
+  if (ph) ph.parentNode.removeChild(ph);
+  var folhas = [[]], cur = headerH, vistas = [];
+  groups.forEach(function(g) {
+    var extra = 0, novas = [];
+    g.atoms.forEach(function(a) { if (a.tipo === 'table' && a.thead && vistas.indexOf(a.shell) < 0 && novas.indexOf(a.shell) < 0) { novas.push(a.shell); extra += a.theadH; } });
+    if (cur + g.span + extra > usable && folhas[folhas.length - 1].length) {
+      folhas.push([]); cur = headerH; vistas = []; novas = []; extra = 0;
+      g.atoms.forEach(function(a) { if (a.tipo === 'table' && a.thead && novas.indexOf(a.shell) < 0) { novas.push(a.shell); extra += a.theadH; } });
+    }
+    cur += g.span + extra; vistas = vistas.concat(novas);
+    folhas[folhas.length - 1] = folhas[folhas.length - 1].concat(g.atoms);
+  });
+  var n = folhas.length;
+  return folhas.map(function(lista, i) {
+    var el = document.createElement('div');
+    el.className = src.className + ' wp-blatt';
+    el.style.cssText = src.style.cssText;
+    if (hdr) {
+      var h = hdr.cloneNode(true);
+      if (n > 1) {
+        var se = h.querySelector('.wp-seite');
+        if (!se) { se = document.createElement('div'); se.className = 'wp-seite'; h.lastElementChild.insertBefore(se, h.lastElementChild.firstChild); }
+        se.textContent = 'Seite ' + (i + 1) + ' von ' + n;
+      }
+      el.appendChild(h);
+    }
+    var shellAtual = null, pai = null;
+    lista.forEach(function(a) {
+      if (!a.shell) { shellAtual = null; el.appendChild(a.el.cloneNode(true)); return; }
+      if (a.shell !== shellAtual) {
+        shellAtual = a.shell;
+        var sc = a.shell.cloneNode(false);
+        if (a.tipo === 'table') {
+          if (a.thead) sc.appendChild(a.thead.cloneNode(true));
+          pai = document.createElement('tbody'); sc.appendChild(pai);
+        } else pai = sc;
+        el.appendChild(sc);
+      }
+      pai.appendChild(a.el.cloneNode(true));
+    });
+    return el;
+  });
+}
+// srcEl: conteúdo do React (medido, nunca mostrado); outEl: folhas geradas (imperativo, o React não lhe toca).
+function wpPaginar(srcEl, outEl, areaEl, orient, screenW) {
+  if (!srcEl || !outEl) return null;
+  var wmm = wpFolhaW(orient);
+  // #wp-printArea tem display:none fora do ecrã de impressão — sem isto as medidas seriam sempre 0.
+  if (areaEl) areaEl.style.cssText = 'display:block;position:absolute;left:-10000px;top:0';
+  var usable = (wpFolhaH(orient) - WP_PAD_H) * WP_MM - 6;
+  function origens() { return Array.prototype.slice.call(srcEl.querySelectorAll('.wp-pagina')); }
+  srcEl.style.setProperty('--wp-f', '1');
+  var f = 1;
+  origens().forEach(function(el) {
+    var c = el.getBoundingClientRect().height - WP_PAD_H * WP_MM; // conteúdo natural sem padding
+    if (c > usable) f = Math.min(f, usable / c);
+  });
+  if (f < WP_MIN_F) f = WP_MIN_F;
+  var fs = f.toFixed(4);
+  srcEl.style.setProperty('--wp-f', fs);
+  outEl.style.setProperty('--wp-f', fs);
+  var o = origens();
+  var k = o.length ? o[0].getBoundingClientRect().width / (wmm * WP_MM) : 1; // 1 se o navegador devolver px visuais
+  if (!(k > 0)) k = 1;
+  outEl.innerHTML = '';
+  var total = 0;
+  o.forEach(function(src) {
+    var fl = wpPaginarUma(src, usable, k, false);
+    if (fl.length > 1) fl = wpPaginarUma(src, usable, k, true); // reserva a linha "Seite n von N" no cabeçalho
+    fl.forEach(function(e) { outEl.appendChild(e); });
+    total += fl.length;
+  });
+  outEl.style.zoom = screenW ? String(Math.min((screenW - 32) / (wmm * WP_MM), 1)) : '';
   if (areaEl) areaEl.style.cssText = '';
-  return f;
+  return { f: f, folhas: total };
 }
 function wpCsvExport(tasks, cur, who) {
   var linhas = [['Datum', 'Von', 'Bis', 'Std', 'Einsatzort', 'Arbeit', 'AuftragsNr', 'Kunde', 'Prio', 'Mitarbeiter', 'Status']];
@@ -1195,6 +1285,8 @@ function WochenplanApp(props) {
   var _s30 = React.useState({ nur: false, spaet: false, pro: false }); var printOpt = _s30[0], setPrintOpt = _s30[1];
   var printInnerRef = React.useRef(null);
   var printAreaRef = React.useRef(null);
+  var printOutRef = React.useRef(null);
+  var vorschauOutRef = React.useRef(null);
   var _s28 = React.useState(null); var previewJob = _s28[0], setPreviewJob = _s28[1];
   var vorschauWrapRef = React.useRef(null);
   var vorschauInnerRef = React.useRef(null);
@@ -1511,10 +1603,10 @@ function WochenplanApp(props) {
     if (!printJob) return;
     var id = requestAnimationFrame(function() {
       var orient = wpOrient(printJob);
-      wpFitA4(printInnerRef.current, printAreaRef.current, orient, 0.62);
+      wpPaginar(printInnerRef.current, printOutRef.current, printAreaRef.current, orient, null);
       window.print();
       setTimeout(function() {
-        if (printInnerRef.current) { printInnerRef.current.style.transform = 'none'; printInnerRef.current.style.width = ''; }
+        if (printOutRef.current) printOutRef.current.innerHTML = '';
         setPrintJob(null);
       }, 400);
     });
@@ -1531,8 +1623,8 @@ function WochenplanApp(props) {
       var wrap = vorschauWrapRef.current, inner = vorschauInnerRef.current;
       if (!wrap || !inner) return;
       var orient = wpOrient(previewJob);
-      // mesma lógica da impressão + encolhe para a largura do ecrã
-      wpFitA4(inner, null, orient, 0.5, wrap.getBoundingClientRect().width);
+      // mesma lógica da impressão (mesmas folhas) + encolhe para a largura do ecrã
+      wpPaginar(inner, vorschauOutRef.current, null, orient, wrap.getBoundingClientRect().width);
     }
     var id = requestAnimationFrame(ajustarEscala);
     window.addEventListener('resize', ajustarEscala);
@@ -1603,11 +1695,11 @@ function WochenplanApp(props) {
       ),
       React.createElement(WpLegend, null)
     ),
-    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef, notizSemana: notizSemana, nur: printOpt.nur, spaet: printOpt.spaet, pro: printOpt.pro, person: printOpt.person, rolle: rolle }),
+    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef, outRef: printOutRef, notizSemana: notizSemana, nur: printOpt.nur, spaet: printOpt.spaet, pro: printOpt.pro, person: printOpt.person, rolle: rolle }),
 
     previewJob && React.createElement(WpVorschau, {
       tipo: previewJob, rolle: rolle, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who,
-      wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef,
+      wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef, outRef: vorschauOutRef,
       nur: printOpt.nur, spaet: printOpt.spaet, pro: printOpt.pro, person: printOpt.person,
       onOpt: function(patch) { setPrintOpt(Object.assign({}, printOpt, patch)); },
       zeigeAdminOpt: rolle === 'bauleiter' && who === 'alle',
