@@ -162,11 +162,11 @@ jobs:
           }
 
           verificar_a() {
-            if [ "${SIMULAR_FALHA:-false}" = "true" ]; then
-              registar a FALHA "simulado (simular_falha=true)"
-              echo "✗ a) FALHA (simulada)"
-              return
-            fi
+            # O download do index.html publicado corre sempre, mesmo com
+            # simular_falha=true — a b) precisa sempre do ficheiro para
+            # comparar. simular_falha só força o resultado da a) a FALHA,
+            # no fim, depois de o download e o tamanho já terem sido
+            # verificados a sério.
             local status size max
             status=$(curl -s -o "${RUNNER_TEMP:-/tmp}/site-index.html" -w '%{http_code}' --max-time 20 "$SITE_URL" 2>/dev/null || echo "000")
             if [ "$status" != "200" ]; then
@@ -179,6 +179,11 @@ jobs:
             if [ "$size" -le "$max" ]; then
               registar a FALHA "index.html publicado só tem ${size} bytes (esperado > ${max})"
               echo "✗ a) FALHA — tamanho ${size} bytes"
+              return
+            fi
+            if [ "${SIMULAR_FALHA:-false}" = "true" ]; then
+              registar a FALHA "simulado (simular_falha=true) — download e tamanho OK (HTTP 200, ${size} bytes)"
+              echo "✗ a) FALHA (simulada) — HTTP 200, ${size} bytes"
               return
             fi
             registar a OK "HTTP 200, ${size} bytes"
