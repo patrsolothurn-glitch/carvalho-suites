@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-29T10:10:29.340Z
+  Gerado em: 2026-09-29T10:15:05.837Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-339";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-340";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -16566,11 +16566,19 @@ function EscolarApp(_ref31) {
     }
     if (_escolarSaveInFlight[key]) {
       _escolarSavePending[key] = data;
-      var pendDoms = _escolarSavePendingDomains[key] || [];
-      (domains || []).forEach(function (d) {
-        if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
-      });
-      _escolarSavePendingDomains[key] = pendDoms;
+      // null/undefined em domains (ou já em fila) significa "gravar tudo";
+      // uma vez que a fila passe a "tudo" tem de ficar assim até ser
+      // gravada — nunca voltar a ser uma lista parcial por causa de uma
+      // chamada seguinte com domínios específicos.
+      if (!domains || _escolarSavePendingDomains[key] === null) {
+        _escolarSavePendingDomains[key] = null;
+      } else {
+        var pendDoms = _escolarSavePendingDomains[key] || [];
+        domains.forEach(function (d) {
+          if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
+        });
+        _escolarSavePendingDomains[key] = pendDoms;
+      }
       if (onDone) {
         var pendCbs = _escolarSaveCallbacks[key] || [];
         pendCbs.push(onDone);
@@ -16598,16 +16606,23 @@ function EscolarApp(_ref31) {
       // decorria), não podem ficar presos — são os mais recentes, por isso
       // grava-los agora repõe tudo, incluindo os domínios que acabaram de
       // falhar (ainda não persistidos). Sem fila, não repete sozinho: evitar
-      // um ciclo de tentativas quando a rede está em baixo.
+      // um ciclo de tentativas quando a rede está em baixo. Se a gravação
+      // que falhou ou a fila pediam null (gravar tudo), a nova tentativa
+      // também tem de ser null — nunca perder esse "tudo" ao unir com [].
       var next = _escolarSavePending[key];
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
         _escolarSavePending[key] = null;
         _escolarSavePendingDomains[key] = null;
-        var domsUniao = (domains || []).slice();
-        (nextDoms || []).forEach(function (d) {
-          if (domsUniao.indexOf(d) === -1) domsUniao.push(d);
-        });
+        var domsUniao;
+        if (!domains || !nextDoms) {
+          domsUniao = null;
+        } else {
+          domsUniao = domains.slice();
+          nextDoms.forEach(function (d) {
+            if (domsUniao.indexOf(d) === -1) domsUniao.push(d);
+          });
+        }
         saveAlunoSnapshot(key, next, domsUniao);
       }
     });

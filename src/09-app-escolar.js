@@ -1433,11 +1433,19 @@ function EscolarApp(_ref31) {
     }
     if (_escolarSaveInFlight[key]) {
       _escolarSavePending[key] = data;
-      var pendDoms = _escolarSavePendingDomains[key] || [];
-      (domains || []).forEach(function (d) {
-        if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
-      });
-      _escolarSavePendingDomains[key] = pendDoms;
+      // null/undefined em domains (ou já em fila) significa "gravar tudo";
+      // uma vez que a fila passe a "tudo" tem de ficar assim até ser
+      // gravada — nunca voltar a ser uma lista parcial por causa de uma
+      // chamada seguinte com domínios específicos.
+      if (!domains || _escolarSavePendingDomains[key] === null) {
+        _escolarSavePendingDomains[key] = null;
+      } else {
+        var pendDoms = _escolarSavePendingDomains[key] || [];
+        domains.forEach(function (d) {
+          if (pendDoms.indexOf(d) === -1) pendDoms.push(d);
+        });
+        _escolarSavePendingDomains[key] = pendDoms;
+      }
       if (onDone) {
         var pendCbs = _escolarSaveCallbacks[key] || [];
         pendCbs.push(onDone);
@@ -1465,16 +1473,23 @@ function EscolarApp(_ref31) {
       // decorria), não podem ficar presos — são os mais recentes, por isso
       // grava-los agora repõe tudo, incluindo os domínios que acabaram de
       // falhar (ainda não persistidos). Sem fila, não repete sozinho: evitar
-      // um ciclo de tentativas quando a rede está em baixo.
+      // um ciclo de tentativas quando a rede está em baixo. Se a gravação
+      // que falhou ou a fila pediam null (gravar tudo), a nova tentativa
+      // também tem de ser null — nunca perder esse "tudo" ao unir com [].
       var next = _escolarSavePending[key];
       var nextDoms = _escolarSavePendingDomains[key];
       if (next) {
         _escolarSavePending[key] = null;
         _escolarSavePendingDomains[key] = null;
-        var domsUniao = (domains || []).slice();
-        (nextDoms || []).forEach(function (d) {
-          if (domsUniao.indexOf(d) === -1) domsUniao.push(d);
-        });
+        var domsUniao;
+        if (!domains || !nextDoms) {
+          domsUniao = null;
+        } else {
+          domsUniao = domains.slice();
+          nextDoms.forEach(function (d) {
+            if (domsUniao.indexOf(d) === -1) domsUniao.push(d);
+          });
+        }
         saveAlunoSnapshot(key, next, domsUniao);
       }
     });
