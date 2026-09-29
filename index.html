@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-29T15:27:08.080Z
+  Gerado em: 2026-09-29T15:31:46.285Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-346";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-347";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -30087,6 +30087,34 @@ var WP_MM = 3.7795;
 var WP_WL_KEY = 'wplan_view_layout';
 var WP_LUNCH_KEY = 'wplan_lunch';
 var WP_ULTIMO_TRABALHO_KEY = 'wplan_ultimo_trabalho';
+// Painel "Wie drucken": só se lembram Inhalt e Format de cada folha. Nunca a folha
+// escolhida nem "Nicht erledigt mitdrucken" (cada impressão começa com isso desligado).
+var WP_DRUCK_KEY = 'wplan_druck';
+var WP_NEU = { team: 1, pers: 1, admin: 1 };
+var WP_DRUCK_DEF = {
+  team: { nur: true, notizen: false, sig: false, orient: 'landscape', beide: false },
+  pers: { nur: false, notizen: true, sig: true, orient: 'portrait', beide: false },
+  admin: { nur: false, notizen: false, sig: false, orient: 'portrait', beide: false }
+};
+function wpLoadDruck() {
+  var o = {};
+  try { o = JSON.parse(localStorage.getItem(WP_DRUCK_KEY) || '{}') || {}; } catch (e) {}
+  var r = {};
+  Object.keys(WP_DRUCK_DEF).forEach(function(k) {
+    var d = Object.assign({}, WP_DRUCK_DEF[k]), v = o[k] || {};
+    ['nur', 'notizen', 'sig', 'beide'].forEach(function(c) { if (typeof v[c] === 'boolean') d[c] = v[c]; });
+    if (v.orient === 'landscape' || v.orient === 'portrait') d.orient = v.orient;
+    r[k] = d;
+  });
+  return r;
+}
+function wpSaveDruck(d) { try { localStorage.setItem(WP_DRUCK_KEY, JSON.stringify(d)); } catch (e) {} }
+// Opções efetivas de uma folha a partir do estado do painel
+function wpEff(o, tipo) {
+  if (!WP_NEU[tipo]) return { nur: o.nur, spaet: o.spaet, pro: o.pro, person: o.person };
+  var d = o.druck[tipo];
+  return { nur: d.nur, notizen: !d.nur && d.notizen, sig: !d.nur && d.sig, orient: d.orient, beide: d.beide, spaet: o.spaet, pro: o.pro, person: o.person, excl: o.excl };
+}
 
 // ── Datas (tudo em UTC para não haver deslizes de fuso horário) ──
 function wpMk(dateStr) {
@@ -30365,6 +30393,9 @@ var WP_CSS = '\
 .wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
 .wp-vorschau-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-top .wp-mini:first-child{margin-right:auto}\
+.wp-panel{border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;flex:none;font-size:12.5px}\
+.wp-panel summary{cursor:pointer;font-weight:600}\
+.wp-panel-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:6px}\
 .wp-vorschau-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-wrap{flex:0 1 auto;max-height:100%;overflow:auto;display:flex;justify-content:center;padding:16px;background:#e8e8e8;box-sizing:border-box}\
 .wp-vorschau-inner{flex:none;align-self:flex-start}\
@@ -30894,9 +30925,12 @@ function WpNoteModal(p) {
 // Nicht erledigt: folha de UMA pessoa mostra o dela; folha "Alle" (afixar) só com a
 // caixa ligada — e aí entram também as tarefas sem mitarbeiter. Nur Tabelle nunca.
 function wpSpaetDruck(p) {
-  if (p.nur) return [];
+  if (p.nur || p.team) return []; // Team-Tabelle: nunca Nicht erledigt / Übertrag
+  if (p.spaetExpl) return p.spaet ? wpSpaet(p.tasks, wpTodayIso(), p.who) : []; // Persönlich: só com a caixa ligada
   return (p.who !== 'alle' || p.spaet) ? wpSpaet(p.tasks, wpTodayIso(), p.who) : [];
 }
+function wpNotizOk(p) { return !p.nur && p.notizen !== false; }
+function wpSigOk(p) { return !p.nur && p.sig !== false; }
 function wpPaginaProps(p) {
   return { className: 'wp-pagina' + (p.nur ? ' wp-nur' : ''), style: { '--wp-h': wpFolhaH(p.orient) + 'mm', '--wp-w': wpFolhaW(p.orient) + 'mm' } };
 }
@@ -30937,10 +30971,11 @@ function wpPrintNotizen(texto) {
 }
 function WpPrintPlan(p) {
   var W = wpWeekDays(p.cur), m = wpMon(wpMk(p.cur));
-  var linhas = p.leute.filter(function(pe) { return p.who === 'alle' || pe.name === p.who; }).map(function(pe) { return pe.name; });
-  if (p.who === 'alle') linhas.push('');
+  var linhas = p.leute.filter(function(pe) { return (p.who === 'alle' || pe.name === p.who) && !(p.excl && p.excl.indexOf(pe.name) >= 0); }).map(function(pe) { return pe.name; });
+  // Team-Tabelle: "ohne Name" só se tiver tarefas nesta semana
+  if (p.who === 'alle' && (!p.team || p.tasks.some(function(a) { return a.wer === '' && a.datum && W.indexOf(a.datum) !== -1; }))) linhas.push('');
   var sp = wpSpaetDruck(p);
-  var dr = p.nur ? [] : wpPoolL(p.tasks, p.who, true);
+  var dr = (p.nur || p.team) ? [] : wpPoolL(p.tasks, p.who, true);
   var dias = {}; // horas planeadas por dia (linha Summe da Team-Tabelle)
   return React.createElement('div', wpPaginaProps(p),
     wpKopfZeile('Wochenplan', p.cur, p.seite, p.who, p.leute),
@@ -30980,8 +31015,8 @@ function WpPrintPlan(p) {
     dr.map(function(a) {
       return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
-    !p.nur && wpPrintNotizen(p.notizSemana),
-    !p.nur && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Erstellt / Datum'), React.createElement('div', null, 'Bauleiter'), React.createElement('div', null, 'Kenntnisnahme Monteur')),
+    wpNotizOk(p) && wpPrintNotizen(p.notizSemana),
+    wpSigOk(p) && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Erstellt / Datum'), React.createElement('div', null, 'Bauleiter'), React.createElement('div', null, 'Kenntnisnahme Monteur')),
     p.fuss && React.createElement('div', { className: 'wp-pfoot' }, p.fuss)
   );
 }
@@ -31021,15 +31056,15 @@ function WpPrintUebersicht(p) {
         })
       );
     }),
-    !p.nur && wpPrintNotizen(p.notizSemana),
-    !p.nur && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'), React.createElement('div', null, 'Bauleiter'))
+    wpNotizOk(p) && wpPrintNotizen(p.notizSemana),
+    wpSigOk(p) && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'), React.createElement('div', null, 'Bauleiter'))
   );
 }
 function WpPrintListe(p) {
   var nurTag = p.mode === 'tag';
   var tage = nurTag ? [p.cur] : wpWeekDays(p.cur);
   var sp = wpSpaetDruck(p);
-  var dr = p.nur ? [] : wpPoolL(p.tasks, p.who, true);
+  var dr = (p.nur || p.team) ? [] : wpPoolL(p.tasks, p.who, true);
   return React.createElement('div', wpPaginaProps(p),
     wpKopfZeile(nurTag ? 'Tagesplan' : 'Wochenliste', p.cur, null, p.who, p.leute, nurTag ? p.cur : null),
     tage.map(function(k) {
@@ -31054,21 +31089,22 @@ function WpPrintListe(p) {
     dr.map(function(a) {
       return React.createElement('div', { key: 'dr' + a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, '☐'), React.createElement('span', { className: 'wp-t' }), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
     }),
-    !p.nur && wpPrintNotizen(p.notizSemana),
-    !p.nur && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'))
+    wpNotizOk(p) && wpPrintNotizen(p.notizSemana),
+    wpSigOk(p) && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'))
   );
 }
 // Admin-Übersicht: todo o Nicht erledigt de todos + tarefas sem nome, por pessoa. Só admin.
 var WP_ST_TXT = { offen: 'Offen', laeuft: 'Läuft', gebaut_nio: 'Gebaut n.i.o', erledigt: 'Erledigt' };
 function WpPrintAdmin(p) {
-  var sp = wpSpaet(p.tasks, wpTodayIso(), 'alle');
+  var sp = p.spaet ? wpSpaet(p.tasks, wpTodayIso(), 'alle') : [];
   var nomes = p.leute.map(function(pe) { return pe.name; }).concat(['']);
   var grupos = nomes.map(function(nm) { return { nm: nm, L: sp.filter(function(a) { return (a.wer || '') === nm; }) }; })
     .filter(function(g) { return g.L.length > 0; });
   var aviso = React.createElement('b', { style: { display: 'inline-block', border: '1.5pt solid #BE2318', color: '#BE2318', padding: '1px 6px', fontSize: '9.5pt' } }, 'Intern – nicht weitergeben');
   return React.createElement('div', wpPaginaProps(p),
     wpKopfZeile('Admin-Übersicht', p.cur, aviso, 'alle', p.leute),
-    !grupos.length && React.createElement('div', { className: 'wp-pd' }, 'Nichts offen.'),
+    !p.spaet && React.createElement('div', { className: 'wp-pd wp-noprint' }, 'Nicht erledigt ist ausgeschaltet – „Nicht erledigt mitdrucken“ einschalten.'),
+    p.spaet && !grupos.length && React.createElement('div', { className: 'wp-pd' }, 'Nichts offen.'),
     grupos.map(function(g) {
       return React.createElement('div', { key: g.nm || '_' },
         React.createElement('div', { className: 'wp-pd' }, (g.nm || 'ohne Name') + ' · ' + g.L.length),
@@ -31079,10 +31115,24 @@ function WpPrintAdmin(p) {
             React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · Bemerkung: ' + a.bemerkungen : '')),
             React.createElement('span', { className: 'wp-n', style: { width: 76 } }, WP_ST_TXT[a.status] || a.status));
         }));
-    })
+    }),
+    wpNotizOk(p) && wpPrintNotizen(''),
+    wpSigOk(p) && React.createElement('div', { className: 'wp-sig' }, React.createElement('div', null, 'Datum / Unterschrift'), React.createElement('div', null, 'Bauleiter'))
   );
 }
-function wpOrient(tipo) { return (tipo === 'plan' || tipo === 'beide' || tipo === 'team') ? 'landscape' : 'portrait'; }
+function wpOrient(tipo, o) {
+  if (WP_NEU[tipo]) return (o && o.orient) || WP_DRUCK_DEF[tipo].orient;
+  return (tipo === 'plan' || tipo === 'beide') ? 'landscape' : 'portrait';
+}
+// Verso (Beidseitig) das folhas de equipa / pessoa / admin: página de Notizen, nunca a Wochenübersicht.
+var WP_VERSO_TITEL = { team: 'Wochenplan', pers: 'Wochenliste', admin: 'Admin-Übersicht' };
+function wpVerso(p, tipo, who) {
+  var aviso = tipo === 'admin' ? React.createElement('b', { style: { display: 'inline-block', border: '1.5pt solid #BE2318', color: '#BE2318', padding: '1px 6px', fontSize: '9.5pt' } }, 'Intern – nicht weitergeben') : 'Rückseite';
+  return React.createElement('div', wpPaginaProps(p),
+    wpKopfZeile(WP_VERSO_TITEL[tipo], p.cur, aviso, who, p.leute),
+    wpPrintNotizen('')
+  );
+}
 // As folhas (impressão e Vorschau montam exatamente o mesmo conteúdo).
 // p.nur / p.spaet: ver wpSpaetDruck. team / pers / admin: só o admin (p.rolle).
 function wpFolhas(p, tipo, orient) {
@@ -31093,14 +31143,18 @@ function wpFolhas(p, tipo, orient) {
     return React.createElement(React.Fragment, null, nomes.filter(Boolean).map(function(nm, i) {
       return React.createElement(React.Fragment, { key: nm },
         i > 0 && React.createElement('div', { className: 'wp-pbreak' }),
-        wpFolhas(Object.assign({}, p, { who: nm, pro: false, nur: false, spaet: false, notizSemana: '' }), 'woche', orient));
+        wpFolhas(Object.assign({}, p, { who: nm, pro: false, spaetExpl: true, notizSemana: '' }), 'woche', orient),
+        p.beide && React.createElement('div', { className: 'wp-pbreak' }),
+        p.beide && wpVerso(Object.assign({}, p, { orient: orient }), 'pers', nm));
     }));
   }
-  var b ={ tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana, nur: p.nur, spaet: p.spaet };
+  var b = { tasks: p.tasks, leute: p.leute, tagRows: p.tagRows, cur: p.cur, who: p.who, orient: orient, notizSemana: p.notizSemana, nur: p.nur, spaet: p.spaet, notizen: p.notizen, sig: p.sig, excl: p.excl, spaetExpl: p.spaetExpl };
   function com(extra) { return Object.assign({}, b, extra); }
   if (tipo === 'plan') return React.createElement(WpPrintPlan, b);
-  if (tipo === 'team') return React.createElement(WpPrintPlan, com({ who: 'alle', nur: true, team: true }));
-  if (tipo === 'admin') return React.createElement(WpPrintAdmin, b);
+  if (tipo === 'team' || tipo === 'admin') {
+    var frente = tipo === 'team' ? React.createElement(WpPrintPlan, com({ who: 'alle', team: true, notizSemana: '' })) : React.createElement(WpPrintAdmin, com({ notizSemana: '' }));
+    return p.beide ? React.createElement(React.Fragment, null, frente, React.createElement('div', { className: 'wp-pbreak' }), wpVerso(com({}), tipo, 'alle')) : frente;
+  }
   if (tipo === 'bericht') return React.createElement(WpPrintUebersicht, b);
   if (tipo === 'tag' || tipo === 'woche') return React.createElement(WpPrintListe, com({ mode: tipo }));
   if (tipo === 'beide') return React.createElement(React.Fragment, null,
@@ -31112,7 +31166,7 @@ function wpFolhas(p, tipo, orient) {
 }
 function WpPrintArea(p) {
   var tipo = p.printJob;
-  var orient = wpOrient(tipo);
+  var orient = wpOrient(tipo, p);
   var pageCss = tipo ? ('@media print{@page{size:A4 ' + orient + ';margin:0}}') : '';
   return React.createElement(React.Fragment, null,
     React.createElement('style', null, pageCss),
@@ -31126,11 +31180,45 @@ var WP_VORSCHAU_ABAS = {
   bauleiter: [['plan', 'Wochenplan A4'], ['bericht', 'Wochenübersicht A4'], ['beide', 'Beidseitig'], ['team', 'Team-Tabelle'], ['pers', 'Persönlich'], ['admin', 'Admin-Übersicht']],
   monteur: [['tag', 'Tagesplan'], ['woche', 'Wochenliste']]
 };
+// Painel "Wie drucken" (só admin): altera as opções que wpFolhas usa — a Vorschau e o Drucken partilham-nas.
+function WpDruckPanel(p) {
+  var E = React.createElement, t = p.tipo, r = p.raw;
+  function chk(label, checked, onChange, disabled) {
+    return E('label', { key: label, className: 'wp-spaetbox' },
+      E('input', { type: 'checkbox', checked: !!checked, disabled: !!disabled, onChange: function(e) { onChange(e.target.checked); } }), ' ' + label);
+  }
+  function chip(label, on, fn) { return E('button', { key: label, className: 'wp-chip' + (on ? ' wp-on' : ''), onClick: fn }, label); }
+  function linha(titel, kids) { return E('div', { className: 'wp-panel-row' }, E('b', null, titel), kids); }
+  var excl = p.excl || [];
+  return E('details', { className: 'wp-panel wp-noprint', open: true },
+    E('summary', null, 'Wie drucken'),
+    linha('Blatt', [['team', 'Team-Tabelle'], ['pers', 'Persönlich'], ['admin', 'Admin-Übersicht']].map(function(o) { return chip(o[1], t === o[0], function() { p.onAba(o[0]); }); })),
+    t === 'team' && linha('Mitarbeiter', p.leute.map(function(pe) {
+      return chk(pe.name, excl.indexOf(pe.name) < 0, function(v) { p.onOpt({ excl: v ? excl.filter(function(n) { return n !== pe.name; }) : excl.concat([pe.name]) }); });
+    })),
+    t === 'pers' && linha('Mitarbeiter', [
+      !p.pro && E('select', { key: 'sel', value: p.person || (p.leute[0] && p.leute[0].name) || '', onChange: function(e) { p.onOpt({ person: e.target.value }); } },
+        p.leute.map(function(pe) { return E('option', { key: pe.name, value: pe.name }, pe.name); })),
+      chk('Ein Blatt pro Mitarbeiter', p.pro, function(v) { p.onOpt({ pro: v }); })
+    ]),
+    linha('Inhalt', [
+      chk('Nur Tabelle', r.nur, function(v) { p.onDruck({ nur: v }); }),
+      chk('Notizen-Zeilen', !r.nur && r.notizen, function(v) { p.onDruck({ notizen: v }); }, r.nur),
+      chk('Unterschriften', !r.nur && r.sig, function(v) { p.onDruck({ sig: v }); }, r.nur),
+      t !== 'team' && chk('Nicht erledigt mitdrucken', p.spaet, function(v) { p.onOpt({ spaet: v }); })
+    ]),
+    linha('Format', [
+      chip('Querformat', r.orient === 'landscape', function() { p.onDruck({ orient: 'landscape' }); }),
+      chip('Hochformat', r.orient === 'portrait', function() { p.onDruck({ orient: 'portrait' }); }),
+      chk('Beidseitig', r.beide, function(v) { p.onDruck({ beide: v }); })
+    ])
+  );
+}
 function WpVorschau(p) {
   var tipo = p.tipo;
   if (!tipo) return null;
-  var orient = wpOrient(tipo);
-  var neu = tipo === 'team' || tipo === 'pers' || tipo === 'admin';
+  var orient = wpOrient(tipo, p);
+  var neu = !!WP_NEU[tipo];
   var abas = WP_VORSCHAU_ABAS[p.rolle === 'bauleiter' ? 'bauleiter' : 'monteur'];
   return React.createElement('div', { className: 'wp-vorschau' },
     React.createElement('div', { className: 'wp-vorschau-top wp-noprint' },
@@ -31145,14 +31233,6 @@ function WpVorschau(p) {
         React.createElement('input', { type: 'checkbox', checked: !!p.spaet, onChange: function(e) { p.onOpt({ spaet: e.target.checked }); } }),
         ' Nicht erledigt mitdrucken'
       ),
-      tipo === 'pers' && !p.pro && React.createElement('select', {
-        className: 'wp-spaetbox', value: p.person || (p.leute[0] && p.leute[0].name) || '',
-        onChange: function(e) { p.onOpt({ person: e.target.value }); }
-      }, p.leute.map(function(pe) { return React.createElement('option', { key: pe.name, value: pe.name }, pe.name); })),
-      tipo === 'pers' && React.createElement('label', { className: 'wp-spaetbox' },
-        React.createElement('input', { type: 'checkbox', checked: !!p.pro, onChange: function(e) { p.onOpt({ pro: e.target.checked }); } }),
-        ' Ein Blatt pro Mitarbeiter'
-      ),
       React.createElement('button', { className: 'wp-mini wp-vorschau-drucken', onClick: p.onDrucken }, '🖨️ Drucken')
     ),
     React.createElement('div', { className: 'wp-vorschau-tabs wp-noprint' },
@@ -31163,6 +31243,7 @@ function WpVorschau(p) {
         }, a[1]);
       })
     ),
+    neu && p.rolle === 'bauleiter' && React.createElement(WpDruckPanel, p),
     React.createElement('div', { className: 'wp-vorschau-wrap', ref: p.wrapRef },
       React.createElement('div', { className: 'wp-vorschau-inner' },
         React.createElement('div', { className: 'wp-vorschau-src', ref: p.innerRef }, wpFolhas(p, tipo, orient)),
@@ -31343,7 +31424,7 @@ function WochenplanApp(props) {
   var notaBlobRef = React.useRef(null);
 
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
-  var _s30 = React.useState({ nur: false, spaet: false, pro: false }); var printOpt = _s30[0], setPrintOpt = _s30[1];
+  var _s30 = React.useState(function() { return { nur: false, spaet: false, pro: false, person: undefined, excl: [], druck: wpLoadDruck() }; }); var printOpt = _s30[0], setPrintOpt = _s30[1];
   var printInnerRef = React.useRef(null);
   var printAreaRef = React.useRef(null);
   var printOutRef = React.useRef(null);
@@ -31663,11 +31744,12 @@ function WochenplanApp(props) {
   React.useEffect(function() {
     if (!printJob) return;
     var id = requestAnimationFrame(function() {
-      var orient = wpOrient(printJob);
+      var orient = wpOrient(printJob, wpEff(printOpt, printJob));
       wpPaginar(printInnerRef.current, printOutRef.current, printAreaRef.current, orient, null);
       window.print();
       setTimeout(function() {
         if (printOutRef.current) printOutRef.current.innerHTML = '';
+        setPrintOpt(function(o) { return Object.assign({}, o, { spaet: false }); }); // cada impressão começa sem Nicht erledigt
         setPrintJob(null);
       }, 400);
     });
@@ -31676,6 +31758,7 @@ function WochenplanApp(props) {
 
   // ── Vorschau (pré-visualização no ecrã, mesmos componentes de impressão) ──
   function acionarVorschau() {
+    setPrintOpt(Object.assign({}, printOpt, { spaet: false }));
     setPreviewJob(rolle === 'bauleiter' ? 'plan' : (mode === 'tag' ? 'tag' : 'woche'));
   }
   React.useEffect(function() {
@@ -31683,14 +31766,14 @@ function WochenplanApp(props) {
     function ajustarEscala() {
       var wrap = vorschauWrapRef.current, inner = vorschauInnerRef.current;
       if (!wrap || !inner) return;
-      var orient = wpOrient(previewJob);
+      var orient = wpOrient(previewJob, wpEff(printOpt, previewJob));
       // mesma lógica da impressão (mesmas folhas) + encolhe para a largura do ecrã
       wpPaginar(inner, vorschauOutRef.current, null, orient, wrap.getBoundingClientRect().width);
     }
     var id = requestAnimationFrame(ajustarEscala);
     window.addEventListener('resize', ajustarEscala);
     return function() { cancelAnimationFrame(id); window.removeEventListener('resize', ajustarEscala); };
-  }, [previewJob, printOpt.nur, printOpt.spaet, printOpt.pro, printOpt.person, who, rolle]);
+  }, [previewJob, printOpt, who, rolle]);
 
   React.useEffect(function() {
     return function() {
@@ -31756,19 +31839,23 @@ function WochenplanApp(props) {
       ),
       React.createElement(WpLegend, null)
     ),
-    React.createElement(WpPrintArea, { printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef, outRef: printOutRef, notizSemana: notizSemana, nur: printOpt.nur, spaet: printOpt.spaet, pro: printOpt.pro, person: printOpt.person, rolle: rolle }),
+    React.createElement(WpPrintArea, Object.assign({ printJob: printJob, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who, innerRef: printInnerRef, areaRef: printAreaRef, outRef: printOutRef, notizSemana: notizSemana, rolle: rolle }, wpEff(printOpt, printJob))),
 
-    previewJob && React.createElement(WpVorschau, {
+    previewJob && React.createElement(WpVorschau, Object.assign({
       tipo: previewJob, rolle: rolle, tasks: tasks, leute: leute, tagRows: tagRows, cur: cur, who: who,
       wrapRef: vorschauWrapRef, innerRef: vorschauInnerRef, outRef: vorschauOutRef,
-      nur: printOpt.nur, spaet: printOpt.spaet, pro: printOpt.pro, person: printOpt.person,
+      raw: printOpt.druck[previewJob],
       onOpt: function(patch) { setPrintOpt(Object.assign({}, printOpt, patch)); },
+      onDruck: function(patch) {
+        var d = Object.assign({}, printOpt.druck); d[previewJob] = Object.assign({}, d[previewJob], patch);
+        wpSaveDruck(d); setPrintOpt(Object.assign({}, printOpt, { druck: d }));
+      },
       zeigeAdminOpt: rolle === 'bauleiter' && who === 'alle',
       onZurueck: function() { setPreviewJob(null); },
       onAba: setPreviewJob,
       onDrucken: function() { acionarImpressao(previewJob); },
       notizSemana: notizSemana
-    }),
+    }, wpEff(printOpt, previewJob))),
 
     editTaskDraft && React.createElement(WpTaskModal, {
       id: editTaskId, draft: editTaskDraft, leute: leute, cur: cur, erro: editTaskErro, guardando: guardandoTask,
