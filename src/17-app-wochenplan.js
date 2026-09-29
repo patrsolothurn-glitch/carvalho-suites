@@ -881,6 +881,11 @@ function wpDiaProps(p, k, n) {
 function wpAviso() {
   return React.createElement('b', { style: { display: 'inline-block', border: '1.5pt solid #BE2318', color: '#BE2318', padding: '1px 6px', fontSize: '9.5pt' } }, 'Intern – nicht weitergeben');
 }
+// Cabeçalho das folhas de admin com filtro "Alle" (Wochenplan A4, Wochenübersicht; a Team-Tabelle é a folha para dar a outros): aviso + "Seite"
+function wpSeiteAviso(p) {
+  if (p.who !== 'alle' || p.team) return p.seite;
+  return React.createElement(React.Fragment, null, wpAviso(), p.seite && React.createElement('div', { className: 'wp-seite' }, p.seite));
+}
 function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
   var c = wpMk(cur), m = wpMon(c);
   var pessoa = (who && who !== 'alle') ? (leute || []).filter(function(pe) { return pe.name === who; })[0] : null;
@@ -921,7 +926,7 @@ function WpPrintPlan(p) {
   var dr = (p.nur || p.team) ? [] : wpPoolL(p.tasks, p.who, true);
   var dias = {}; // horas planeadas por dia (linha Summe da Team-Tabelle)
   return React.createElement('div', wpPaginaProps(p),
-    wpKopfZeile('Wochenplan', p.cur, p.seite, p.who, p.leute),
+    wpKopfZeile('Wochenplan', p.cur, wpSeiteAviso(p), p.who, p.leute),
     React.createElement('table', { className: 'wp-pt2' },
       React.createElement('thead', null, React.createElement('tr', null,
         React.createElement('th', { className: 'wp-w' }, 'Mitarbeiter'),
@@ -969,7 +974,7 @@ function WpPrintUebersicht(p) {
   W.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
   return React.createElement('div', wpPaginaProps(p),
     // "Alle" mostra desempenho de cada pessoa (Geleistet, Auslastung, Rückstand…): só para o admin
-    wpKopfZeile('Wochenübersicht', p.cur, p.who === 'alle' ? React.createElement(React.Fragment, null, wpAviso(), p.seite && React.createElement('div', { className: 'wp-seite' }, p.seite)) : p.seite, p.who, p.leute),
+    wpKopfZeile('Wochenübersicht', p.cur, wpSeiteAviso(p), p.who, p.leute),
     !p.nur && React.createElement('div', { className: 'wp-sum' },
       React.createElement('span', null, React.createElement('b', null, 'Aufträge:'), ' ' + W.length),
       React.createElement('span', null, React.createElement('b', null, 'Erledigt:'), ' ' + W.filter(function(a) { return a.status === 'erledigt'; }).length),
@@ -1080,7 +1085,7 @@ function wpVerso(p, tipo, who) {
 // As folhas (impressão e Vorschau montam exatamente o mesmo conteúdo).
 // p.nur / p.spaet: ver wpSpaetDruck. team / pers / admin: só o admin (p.rolle).
 function wpFolhas(p, tipo, orient) {
-  if ((tipo === 'team' || tipo === 'pers' || tipo === 'admin') && p.rolle !== 'bauleiter') return null;
+  if ((WP_NEU[tipo] || tipo === 'plan' || tipo === 'bericht' || tipo === 'beide') && p.rolle !== 'bauleiter') return null;
   // Persönlich: uma pessoa, ou (Ein Blatt pro Mitarbeiter) uma folha por pessoa — cada uma só com o dela.
   if (tipo === 'pers') {
     var nomes = p.pro ? p.leute.map(function(pe) { return pe.name; }) : [p.person || (p.leute[0] && p.leute[0].name)];
@@ -1136,6 +1141,7 @@ function WpDruckPanel(p) {
   var excl = p.excl || [];
   return E('details', { className: 'wp-panel wp-noprint', open: true },
     E('summary', null, 'Wie drucken'),
+    E('div', { className: 'wp-panel-row' }, 'Zum Weitergeben an andere: Team-Tabelle. Wochenplan A4, Wochenübersicht und Beidseitig mit „Alle“ sind intern.'),
     linha('Blatt', [['team', 'Team-Tabelle'], ['pers', 'Persönlich'], ['admin', 'Admin-Übersicht']].map(function(o) { return chip(o[1], t === o[0], function() { p.onAba(o[0]); }); })),
     t === 'team' && linha('Mitarbeiter', p.leute.map(function(pe) {
       return chk(pe.name, excl.indexOf(pe.name) < 0, function(v) { p.onOpt({ excl: v ? excl.filter(function(n) { return n !== pe.name; }) : excl.concat([pe.name]) }); });
@@ -1188,6 +1194,7 @@ function WpVorschau(p) {
       })
     ),
     neu && p.rolle === 'bauleiter' && React.createElement(WpDruckPanel, p),
+    !neu && p.rolle === 'bauleiter' && p.who === 'alle' && (tipo === 'plan' || tipo === 'bericht' || tipo === 'beide') && React.createElement('div', { className: 'wp-panel wp-noprint' }, '🔒 Intern – nicht weitergeben. Zum Weitergeben an andere: Team-Tabelle.'),
     React.createElement('div', { className: 'wp-vorschau-wrap', ref: p.wrapRef },
       React.createElement('div', { className: 'wp-vorschau-inner' },
         React.createElement('div', { className: 'wp-vorschau-src', ref: p.innerRef }, wpFolhas(p, tipo, orient)),
