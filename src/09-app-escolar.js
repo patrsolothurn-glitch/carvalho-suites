@@ -704,6 +704,13 @@ function EscolarApp(_ref31) {
     _useState158 = _slicedToArray(_useState157, 2),
     editAula = _useState158[0],
     setEditAula = _useState158[1];
+  // chave "aluno-dia-i" do slot à espera que o utilizador escolha uma
+  // disciplina antes de "🔔 Pôr aula" poder marcar livre:false (ver botão
+  // mais abaixo) — nunca alterna às cegas um slot sem disc_id válido.
+  var _useState177 = (0, _react.useState)(null),
+    _useState178 = _slicedToArray(_useState177, 2),
+    escolherDiscAula = _useState178[0],
+    setEscolherDiscAula = _useState178[1];
   var _useState159 = (0, _react.useState)(false),
     _useState160 = _slicedToArray(_useState159, 2),
     editKlasse = _useState160[0],
@@ -1115,8 +1122,12 @@ function EscolarApp(_ref31) {
       (data.disciplinas || []).forEach(function (d) { idsDisciplinasAtuais[d.id] = true; });
       var semDisciplina = rows.filter(function (r) { return !r.livre && (isBadDiscId(r.disc_id) || !idsDisciplinasAtuais[r.disc_id]); });
       if (semDisciplina.length > 0) {
-        console.error('[escolar] horario: gravação cancelada, ' + semDisciplina.length + ' aula(s) com disc_id inválido ou que já não existe nas disciplinas atuais');
-        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' aula(s) apontam para uma disciplina inválida ou já apagada. Os dados no servidor ficaram intactos.' });
+        // A guarda cancela a gravação do horário INTEIRO — sem dizer QUAL
+        // aula está em falta o utilizador fica bloqueado sem saber onde.
+        var diasSemanaGuarda = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+        var listaAulasSemDisc = semDisciplina.map(function (r) { return (diasSemanaGuarda[r.dia] || ('dia ' + r.dia)) + ' ' + (r.hi || '?'); }).join(', ');
+        console.error('[escolar] horario: gravação cancelada, ' + semDisciplina.length + ' aula(s) com disc_id inválido ou que já não existe nas disciplinas atuais: ' + listaAulasSemDisc);
+        window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + semDisciplina.length + ' aula(s) apontam para uma disciplina inválida ou já apagada (' + listaAulasSemDisc + '). Os dados no servidor ficaram intactos.' });
         return Promise.resolve(false);
       }
       var apagarEInserir = function apagarEInserir() {
@@ -2831,6 +2842,11 @@ function EscolarApp(_ref31) {
           }, "\uFF0B"));
         }
         var disc = getDisc(info.lesson.discId);
+        // Ver nota igual na vista "dia" acima: aula marcada (livre=false)
+        // sem disciplina válida nunca pode ter o aspeto de hora livre.
+        var semDisciplina = !info.lesson.livre && !aluno.disciplinas.some(function (d) {
+          return d.id === info.lesson.discId;
+        });
         return /*#__PURE__*/React.createElement("div", {
           key: di,
           onClick: onClick,
@@ -2838,8 +2854,8 @@ function EscolarApp(_ref31) {
         }, /*#__PURE__*/React.createElement("div", {
           style: {
             borderRadius: 6,
-            background: disc.cor,
-            boxShadow: "0 2px 8px ".concat(disc.cor, "66"),
+            background: semDisciplina ? '#DC2626' : disc.cor,
+            boxShadow: "0 2px 8px ".concat(semDisciplina ? '#DC2626' : disc.cor, "66"),
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
@@ -2849,13 +2865,13 @@ function EscolarApp(_ref31) {
           }
         }, /*#__PURE__*/React.createElement("p", {
           style: {
-            fontSize: 11,
+            fontSize: semDisciplina ? 7 : 11,
             fontWeight: 900,
             color: '#fff',
-            lineHeight: 1.2,
+            lineHeight: 1.15,
             textShadow: '0 1px 3px rgba(0,0,0,0.5)'
           }
-        }, disc.abr || disc.nome.slice(0, 3)), /*#__PURE__*/React.createElement("p", {
+        }, semDisciplina ? '⚠ SEM DISCIPLINA' : disc.abr || disc.nome.slice(0, 3)), /*#__PURE__*/React.createElement("p", {
           style: {
             fontSize: 8,
             color: 'rgba(255,255,255,0.8)',
@@ -2932,11 +2948,19 @@ function EscolarApp(_ref31) {
   }, (aluno.horario[dayIdx] || []).length, " aulas"), (aluno.horario[dayIdx] || []).map(function (aula, i) {
     var disc = getDisc(aula.discId);
     var isEdit = editAula === "".concat(alunoKey, "-").concat(dayIdx, "-").concat(i);
+    var estaAEscolherDisc = escolherDiscAula === "".concat(alunoKey, "-").concat(dayIdx, "-").concat(i);
+    // Aula marcada (livre=false) mas sem disciplina válida: a base de dados
+    // já não permite este estado (check livre is true or disc_id is not
+    // null), mas dados antigos/em memória ainda podem chegar aqui — nunca
+    // pode ter o mesmo aspeto de uma hora livre (ver getDisc acima).
+    var semDisciplina = !aula.livre && !aluno.disciplinas.some(function (d) {
+      return d.id === aula.discId;
+    });
     return /*#__PURE__*/React.createElement(ECard, {
       key: i,
       style: {
         marginBottom: 9,
-        borderLeft: "4px solid ".concat(aula.livre ? '#444' : disc.cor),
+        borderLeft: "4px solid ".concat(semDisciplina ? '#DC2626' : aula.livre ? '#444' : disc.cor),
         overflow: 'hidden'
       }
     }, /*#__PURE__*/React.createElement("div", {
@@ -2955,8 +2979,8 @@ function EscolarApp(_ref31) {
         width: 44,
         height: 44,
         borderRadius: 13,
-        background: "".concat(aula.livre ? '#333' : disc.cor, "22"),
-        border: "1px solid ".concat(aula.livre ? '#444' : disc.cor, "44"),
+        background: "".concat(semDisciplina ? '#DC2626' : aula.livre ? '#333' : disc.cor, "22"),
+        border: "1px solid ".concat(semDisciplina ? '#DC2626' : aula.livre ? '#444' : disc.cor, "44"),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -2966,7 +2990,7 @@ function EscolarApp(_ref31) {
       style: {
         fontSize: 22
       }
-    }, aula.livre ? '⏸' : disc.emoji)), /*#__PURE__*/React.createElement("div", {
+    }, semDisciplina ? '⚠' : aula.livre ? '⏸' : disc.emoji)), /*#__PURE__*/React.createElement("div", {
       style: {
         flex: 1
       }
@@ -2974,9 +2998,9 @@ function EscolarApp(_ref31) {
       style: {
         fontWeight: 800,
         fontSize: 14,
-        color: aula.livre ? E.muted : E.text
+        color: semDisciplina ? '#DC2626' : aula.livre ? E.muted : E.text
       }
-    }, aula.livre ? 'Hora livre' : disc.nome), /*#__PURE__*/React.createElement("p", {
+    }, semDisciplina ? '⚠ SEM DISCIPLINA' : aula.livre ? 'Hora livre' : disc.nome), /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.muted,
         fontSize: 11,
@@ -3127,43 +3151,50 @@ function EscolarApp(_ref31) {
         outline: 'none',
         boxSizing: 'border-box'
       }
-    }))), !aula.livre && /*#__PURE__*/React.createElement("div", {
+    }))), (!aula.livre || estaAEscolherDisc) && /*#__PURE__*/React.createElement("div", {
       style: {
         marginBottom: 8
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
-        color: E.muted,
+        color: estaAEscolherDisc ? '#DC2626' : E.muted,
         fontSize: 10,
         fontWeight: 700,
         textTransform: 'uppercase',
         marginBottom: 4
       }
-    }, "Disciplina"), /*#__PURE__*/React.createElement("select", {
-      value: aula.discId,
+    }, estaAEscolherDisc ? 'Escolhe a disciplina para marcar esta hora' : 'Disciplina'), /*#__PURE__*/React.createElement("select", {
+      value: estaAEscolherDisc ? '' : aula.discId,
       onChange: function onChange(e) {
-        return setAluno(function (al) {
+        if (!e.target.value) return;
+        var novoId = parseInt(e.target.value);
+        setAluno(function (al) {
           var h = _objectSpread({}, al.horario);
           var d = _toConsumableArray(h[dayIdx]);
           d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
-            discId: parseInt(e.target.value)
+            discId: novoId,
+            livre: false
           });
           return _objectSpread(_objectSpread({}, al), {}, {
             horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
           });
         }, 'horario');
+        return setEscolherDiscAula(null);
       },
       style: {
         width: '100%',
         background: E.surface2,
-        border: "1px solid ".concat(E.border),
+        border: "1px solid ".concat(estaAEscolherDisc ? '#DC2626' : E.border),
         borderRadius: 9,
         padding: '8px 10px',
         color: E.text,
         fontSize: 13,
         outline: 'none'
       }
-    }, aluno.disciplinas.map(function (d) {
+    }, estaAEscolherDisc && /*#__PURE__*/React.createElement("option", {
+      value: "",
+      disabled: true
+    }, "Escolhe uma disciplina…"), aluno.disciplinas.map(function (d) {
       return /*#__PURE__*/React.createElement("option", {
         key: d.id,
         value: d.id
@@ -3280,16 +3311,43 @@ function EscolarApp(_ref31) {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return setAluno(function (al) {
-          var h = _objectSpread({}, al.horario);
-          var d = _toConsumableArray(h[dayIdx]);
-          d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
-            livre: !d[i].livre
+        if (!aula.livre) {
+          // aula -> livre: sem restrições, continua exatamente como estava.
+          return setAluno(function (al) {
+            var h = _objectSpread({}, al.horario);
+            var d = _toConsumableArray(h[dayIdx]);
+            d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
+              livre: true
+            });
+            return _objectSpread(_objectSpread({}, al), {}, {
+              horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
+            });
+          }, 'horario');
+        }
+        // livre -> aula: nunca alternar às cegas — o servidor recusa
+        // livre:false com disc_id nulo (incidentes Lucas 11/09 e 28/09).
+        var discIdAtual = aula.discId;
+        var discValido = discIdAtual !== null && discIdAtual !== undefined && !Number.isNaN(discIdAtual) && aluno.disciplinas.some(function (d) {
+          return d.id === discIdAtual;
+        });
+        if (discValido) {
+          return setAluno(function (al) {
+            var h = _objectSpread({}, al.horario);
+            var d = _toConsumableArray(h[dayIdx]);
+            d[i] = _objectSpread(_objectSpread({}, d[i]), {}, {
+              livre: false
+            });
+            return _objectSpread(_objectSpread({}, al), {}, {
+              horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
+            });
+          }, 'horario');
+        }
+        if (!aluno.disciplinas.length) {
+          return window.mostrarErro('Vida Escolar', {
+            message: 'Este aluno ainda não tem nenhuma disciplina — cria uma disciplina primeiro.'
           });
-          return _objectSpread(_objectSpread({}, al), {}, {
-            horario: _objectSpread(_objectSpread({}, h), {}, _defineProperty({}, dayIdx, d))
-          });
-        }, 'horario');
+        }
+        return setEscolherDiscAula("".concat(alunoKey, "-").concat(dayIdx, "-").concat(i));
       },
       style: {
         flex: 1,
