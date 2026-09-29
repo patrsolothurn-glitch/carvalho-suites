@@ -2,7 +2,7 @@ name: Pollen Fetch (MeteoSwiss)
 
 on:
   schedule:
-    - cron: '0 */3 * * *'   # a cada 3 horas
+    - cron: '17 */3 * * *'   # a cada 3 horas
   workflow_dispatch: {}       # correr manualmente para testar
 
 jobs:
