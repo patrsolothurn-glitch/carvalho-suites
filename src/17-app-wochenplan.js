@@ -940,7 +940,8 @@ function WpPrintPlan(p) {
           var st = nm ? wpStatOf(p.tagRows, p.leute, k, p.who, nm) : null;
           var s = 0; L.forEach(function(a) { s += wpDur(a); }); wk += s; dias[k] = (dias[k] || 0) + s;
           return React.createElement('td', { key: k },
-            st && React.createElement('b', null, WP_DST[st][0]),
+            // Team-Tabelle (folha partilhada): dado de saúde/ausência de um colega sai como "Abwesend"
+            st && React.createElement('b', null, p.team && (st === 'krank' || st === 'ferien') ? 'Abwesend' : WP_DST[st][0]),
             L.map(function(a) {
               // Team-Tabelle: hora, morada, tipo de trabalho; ☐ neutro, sem estado nem Bemerkungen
               if (p.team) return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), '☐ ' + a.titel + (a.arbeit ? ' · ' + a.arbeit : ''));
