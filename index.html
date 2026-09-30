@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-30T15:01:07.699Z
+  Gerado em: 2026-09-30T15:07:00.026Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-364";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-365";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -5664,7 +5664,7 @@ var CATEGORIAS_WORK = {
   familia: { label: 'Família', emoji: '🏠', color: '#D43C3C' },
   pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
 };
-// Só para a vista: uma categoria que não está na lista (p.ex. 'escola' em marcações antigas) conta como 'trabalho'. Não altera a base de dados.
+// Só para a vista: uma categoria que não está na lista (p.ex. 'escola' em marcações antigas) conta como 'trabalho' no gráfico por categoria e fica sempre visível nos filtros. Não altera a base de dados.
 function apCatVista(a) {
   var c = a.categoria || 'trabalho';
   return CATEGORIAS_WORK[c] ? c : 'trabalho';
@@ -6347,7 +6347,7 @@ function AgendaProApp(_ref13) {
   var filtered = appts.filter(function (a) {
     var matchSearch = !search || a.morada.toLowerCase().includes(search.toLowerCase()) || a.proj.toLowerCase().includes(search.toLowerCase()) || a.monteur.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-    var catMatch = filtrosAtivos.indexOf(apCatVista(a)) !== -1;
+    var catMatch = !CATEGORIAS_WORK[a.categoria || 'trabalho'] || filtrosAtivos.indexOf(a.categoria || 'trabalho') !== -1; // categoria fora da lista (p.ex. 'escola'): sempre visível
     var familiaMatch = a.partilhado && filtrosAtivos.indexOf('familia') !== -1;
     if (!catMatch && !familiaMatch) return false;
     if (filter === 'Hoje') return a.date === todayStr;

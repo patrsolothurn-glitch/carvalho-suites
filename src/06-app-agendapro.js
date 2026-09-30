@@ -45,7 +45,7 @@ var CATEGORIAS_WORK = {
   familia: { label: 'Família', emoji: '🏠', color: '#D43C3C' },
   pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
 };
-// Só para a vista: uma categoria que não está na lista (p.ex. 'escola' em marcações antigas) conta como 'trabalho'. Não altera a base de dados.
+// Só para a vista: uma categoria que não está na lista (p.ex. 'escola' em marcações antigas) conta como 'trabalho' no gráfico por categoria e fica sempre visível nos filtros. Não altera a base de dados.
 function apCatVista(a) {
   var c = a.categoria || 'trabalho';
   return CATEGORIAS_WORK[c] ? c : 'trabalho';
@@ -728,7 +728,7 @@ function AgendaProApp(_ref13) {
   var filtered = appts.filter(function (a) {
     var matchSearch = !search || a.morada.toLowerCase().includes(search.toLowerCase()) || a.proj.toLowerCase().includes(search.toLowerCase()) || a.monteur.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-    var catMatch = filtrosAtivos.indexOf(apCatVista(a)) !== -1;
+    var catMatch = !CATEGORIAS_WORK[a.categoria || 'trabalho'] || filtrosAtivos.indexOf(a.categoria || 'trabalho') !== -1; // categoria fora da lista (p.ex. 'escola'): sempre visível
     var familiaMatch = a.partilhado && filtrosAtivos.indexOf('familia') !== -1;
     if (!catMatch && !familiaMatch) return false;
     if (filter === 'Hoje') return a.date === todayStr;
