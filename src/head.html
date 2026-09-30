@@ -28,13 +28,21 @@
     }
     #root{min-height:100vh;min-height:100dvh}
     input,textarea,select{font-size:16px!important}
-    /* Ecrã cheio, sempre direito: em telemóveis (não tablets/PC — usa a
-       altura em landscape para distinguir, um telemóvel deitado nunca
-       passa de ~500px de altura, um tablet ou PC deitado passa sempre
-       largamente disso) mostra um aviso a pedir para rodar em vez de
-       deixar o layout partir-se na horizontal. */
+    /* Ecrã cheio, sempre direito: em telemóveis (não tablets/PC/Chrome de
+       secretária) mostra um aviso a pedir para rodar, em vez de deixar o
+       layout partir-se na horizontal. Três condições têm de ser
+       verdadeiras ao mesmo tempo:
+       - orientation:landscape — está deitado;
+       - max-height:600px — um telemóvel deitado nunca passa de ~500px de
+         altura, um tablet ou PC deitado passa sempre largamente disso;
+       - pointer:coarse — o dedo (touch) é a forma principal de apontar.
+         Sem isto, uma janela do Chrome no PC redimensionada para ficar
+         baixa e larga (ex: 500x400) também batia certo com as duas
+         primeiras condições e mostrava o aviso por engano, mesmo sendo
+         rato/trackpad. Um PC com rato dá sempre pointer:fine, mesmo numa
+         janela pequena — só um telemóvel/tablet real dá pointer:coarse. */
     #__cs_rotate_guard{display:none}
-    @media (orientation:landscape) and (max-height:600px){
+    @media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
       #root{display:none}
       #__cs_rotate_guard{
         display:flex;position:fixed;inset:0;z-index:999999;
