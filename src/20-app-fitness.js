@@ -1330,7 +1330,7 @@ function FitnessApp(props) {
     if (!opcaoNomeForm.trim()) return;
     if (!opcaoEditandoId) {
       var existentes = opcoes.filter(function (o) { return o.refeicao_id === opcaoRefeicaoAberta; });
-      if (existentes.length >= 6) { window.mostrarErro('Fitness', new Error('Máximo de 6 opções por refeição.')); return; }
+      if (existentes.length >= 7) { window.mostrarErro('Fitness', new Error('Máximo de 7 opções por refeição.')); return; }
     }
     var query = opcaoEditandoId
       ? db.from('fitness_opcoes').update({ nome: opcaoNomeForm.trim() }).eq('id', opcaoEditandoId)
@@ -1843,8 +1843,8 @@ function FitnessApp(props) {
                       React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, onClick: guardarOpcao }, '✓ Guardar opção')
                     )
                   )
-                : opcoesRefeicao.length < 6 && React.createElement('div', { className: 'fi-plano-col-btns' },
-                    React.createElement('button', { className: 'fi-btn', onClick: function () { abrirNovaOpcao(r.id); } }, '+ Opção (' + opcoesRefeicao.length + '/6)'),
+                : opcoesRefeicao.length < 7 && React.createElement('div', { className: 'fi-plano-col-btns' },
+                    React.createElement('button', { className: 'fi-btn', onClick: function () { abrirNovaOpcao(r.id); } }, '+ Opção (' + opcoesRefeicao.length + '/7)'),
                     iaRefeicaoAberta !== r.id && React.createElement('button', { className: 'fi-btn', onClick: function () { abrirFormIA(r.id); } }, '✨ Adicionar prato por nome')
                   ),
               iaRefeicaoAberta === r.id && renderFormIA(r)
@@ -2463,6 +2463,18 @@ function FitnessApp(props) {
       notas: f.notas.trim() || null
     };
   }
+  // Depois de gravar uma avaliação: se for a MAIS RECENTE (>= a maior data das outras), prox_avaliacao = data + intervalo
+  // (mesmo cálculo do assistente, fiSomarDias). Se for mais antiga, não mexe. Se o update do perfil falhar, mostra o erro
+  // mas a avaliação já gravada fica. Devolve sempre uma Promise resolvida (nunca rejeita).
+  function atualizarProxAvaliacao(dataGravada, idIgnorar) {
+    if (!perfil || !perfil.id) return Promise.resolve();
+    var maiorOutras = avaliacoes.filter(function (a) { return a.id !== idIgnorar; }).reduce(function (m, a) { return a.data > m ? a.data : m; }, '');
+    if (dataGravada < maiorOutras) return Promise.resolve();
+    var dias = parseInt(perfil.intervalo_avaliacao_dias, 10) || 14;
+    return db.from('fitness_perfil').update({ prox_avaliacao: fiSomarDias(dataGravada, dias) }).eq('id', perfil.id).then(function (res) {
+      if (res.error) { console.error('[fitness] atualizar prox_avaliacao:', res.error); window.mostrarErro('Fitness', res.error); }
+    }).catch(function (e) { console.error('[fitness] atualizar prox_avaliacao:', e); window.mostrarErro('Fitness', e); });
+  }
   function guardarAvaliacao() {
     var pesoNum = parseFloat(avalForm.peso);
     if (!avalForm.data || isNaN(pesoNum) || pesoNum <= 0) return;
@@ -2478,7 +2490,7 @@ function FitnessApp(props) {
       if (res.error) { console.error('[fitness] guardar avaliação:', res.error); window.mostrarErro('Fitness', res.error); return; }
       setAvalFormAberto(false); setAvalEditandoId(null); setAvalConflito(null);
       carregarAvaliacoes();
-      carregar();
+      atualizarProxAvaliacao(payload.data, avalEditandoId).then(function () { carregar(); });
     }).catch(function (e) { setAvalSaving(false); console.error('[fitness] guardar avaliação:', e); window.mostrarErro('Fitness', e); });
   }
   function confirmarSubstituirAvaliacao() {
@@ -2490,7 +2502,7 @@ function FitnessApp(props) {
       if (res.error) { console.error('[fitness] substituir avaliação:', res.error); window.mostrarErro('Fitness', res.error); return; }
       setAvalFormAberto(false); setAvalEditandoId(null); setAvalConflito(null);
       carregarAvaliacoes();
-      carregar();
+      atualizarProxAvaliacao(payload.data, avalConflito.id).then(function () { carregar(); });
     }).catch(function (e) { setAvalSaving(false); console.error('[fitness] substituir avaliação:', e); window.mostrarErro('Fitness', e); });
   }
   function apagarAvaliacao(id) {
@@ -3158,11 +3170,11 @@ function FitnessApp(props) {
       React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 } },
         ordenadas.filter(function (r) { return r.id !== moverOpcaoObj.refeicao_id; }).map(function (r) {
           var n = opcoes.filter(function (x) { return x.refeicao_id === r.id; }).length;
-          var cheia = n >= 6;
+          var cheia = n >= 7;
           return React.createElement('button', {
             key: r.id, className: 'fi-btn', disabled: cheia, style: { opacity: cheia ? 0.4 : 1 },
             onClick: function () { moverOpcaoParaRefeicao(moverOpcaoObj, r.id); }
-          }, r.nome + ' (' + (cheia ? '6/6 cheia' : n + '/6') + ')');
+          }, r.nome + ' (' + (cheia ? '7/7 cheia' : n + '/7') + ')');
         })
       ),
       React.createElement('button', { className: 'fi-btn', style: { width: '100%' }, onClick: function () { setMoverOpcaoId(null); } }, 'Cancelar')
