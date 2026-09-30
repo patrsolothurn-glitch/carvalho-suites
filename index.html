@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-29T15:59:33.181Z
+  Gerado em: 2026-09-30T09:37:23.812Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-352";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-353";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -30151,8 +30151,61 @@ function wpIsLunch(a, mVon, mBis) { return !!(a.von && a.bis && a.von < mBis && 
 function wpNormalizarHora(v) { return v ? String(v).slice(0, 5) : v; }
 function wpNormalizarTarefa(t) { return Object.assign({}, t, { von: wpNormalizarHora(t.von), bis: wpNormalizarHora(t.bis) }); }
 function wpPerson(leute, nome) { return leute.find(function(p) { return p.name === nome; }); }
-function wpSollTag(p, dataKey) { return (p && p.arbeitstage[wpDi(wpMk(dataKey))]) ? p.std_tag : 0; }
-function wpSollWoche(p) { return p ? p.std_tag * p.arbeitstage.reduce(function(a, b) { return a + b; }, 0) : 0; }
+// ── Pensum (wplan_pensum): percentagem de trabalho por pessoa e mês, com histórico ──
+// 100 % = WP_VOLLZEIT_H h/Woche. É o único sítio do código com este valor: cada entrada guarda
+// o seu próprio vollzeit_h (por isso mudar a constante nunca recalcula o passado).
+var WP_VOLLZEIT_H = 43;
+var WP_KATEGORIEN = ['Monteur', 'Leitender Monteur', 'Gruppenchef', 'Chefmonteur'];
+// Linhas de wplan_pensum. Atribuído por WochenplanApp a cada render, para que as contas (Soll, Frei,
+// Kategorie) vejam sempre o Pensum carregado sem o passar por cada componente.
+var WP_PENSUM = [];
+function wpNDias(arbeitstage) { return (arbeitstage || []).reduce(function(a, b) { return a + (+b ? 1 : 0); }, 0); }
+// Entrada em vigor para uma pessoa num dia: a mais recente com gueltig_ab <= dia. Sem entrada → null
+// (usa-se o std_tag/arbeitstage antigos de wplan_leute, como até aqui).
+function wpPensumAm(pe, datum) {
+  if (!pe || pe.id == null) return null;
+  var melhor = null;
+  WP_PENSUM.forEach(function(r) {
+    if (String(r.leute_id) === String(pe.id) && String(r.gueltig_ab).slice(0, 10) <= datum && (!melhor || r.gueltig_ab > melhor.gueltig_ab)) melhor = r;
+  });
+  return melhor;
+}
+function wpArbeitstageAm(pe, datum) { var r = wpPensumAm(pe, datum); return r ? r.arbeitstage : pe.arbeitstage; }
+// Soll de um dia em horas: vollzeit × Pensum ÷ nº Arbeitstage + Zuschlag (min). Krank/Ferien contam (como hoje).
+function wpSollDiaMin(r, wd) {
+  var n = wpNDias(r.arbeitstage);
+  if (!n || !(+r.arbeitstage[wd])) return 0;
+  return (+r.vollzeit_h) * 60 * (+r.pensum_prozent) / 100 / n + (+r.zuschlag_min || 0);
+}
+function wpSollTag(p, dataKey) {
+  if (!p) return 0;
+  var wd = wpDi(wpMk(dataKey)), r = wpPensumAm(p, dataKey);
+  if (r) return wpSollDiaMin(r, wd) / 60;
+  return p.arbeitstage[wd] ? p.std_tag : 0;
+}
+// Soll da semana de `cur` = soma dos 7 dias, cada um com o Pensum em vigor nesse dia
+function wpSollWoche(p, cur) {
+  if (!p) return 0;
+  return wpWeekDays(cur).reduce(function(t, k) { return t + wpSollTag(p, k); }, 0);
+}
+function wpSollLegado(std, tage) { return (std || 0) * wpNDias(tage); }
+// "Chefmonteur · Position" da pessoa nesse dia (vazio se não houver entrada)
+function wpKatPos(pe, datum) {
+  var r = wpPensumAm(pe, datum);
+  return r ? [r.kategorie, r.position].filter(Boolean).join(' · ') : '';
+}
+// Nome + "Kategorie · Position" (folhas impressas), com o Pensum em vigor nesse dia
+function wpNomeKP(nome, pe, datum) {
+  var kp = pe ? wpKatPos(pe, datum) : '';
+  return kp ? React.createElement(React.Fragment, null, nome, React.createElement('small', null, kp)) : nome;
+}
+// Linha resumo (ecrã Team / Team verwalten): Pensum em vigor nesse dia
+function wpPessoaResumo(pe, cur) {
+  var d = wpWeekDays(cur)[0], r = wpPensumAm(pe, d);
+  var sw = wpDezh(wpSollWoche(pe, cur)) + ' h/Woche';
+  var kp = wpKatPos(pe, d);
+  return 'Nr. ' + (pe.pers_nr || '–') + ' · ' + (r ? wpDezh(+r.pensum_prozent) + ' %' : wpDezh(pe.std_tag) + ' h/Tag') + ' · ' + sw + (kp ? ' · ' + kp : '');
+}
 function wpMine(a, who) { return who === 'alle' || a.wer === who; }
 function wpByDay(tasks, datum, who, werFixo) {
   return tasks.filter(function(a) { return a.datum === datum && (werFixo !== undefined ? a.wer === werFixo : wpMine(a, who)); })
@@ -30171,7 +30224,7 @@ function wpStatOf(tagRows, leute, datum, who, werFixo) {
   if (row) return row.tag_status;
   if (nm) {
     var p = wpPerson(leute, nm);
-    if (p && !p.arbeitstage[wpDi(wpMk(datum))]) return 'frei';
+    if (p && !wpArbeitstageAm(p, datum)[wpDi(wpMk(datum))]) return 'frei';
   }
   return null;
 }
@@ -30370,6 +30423,7 @@ var WP_CSS = '\
 .wp-pt2 th,.wp-pt2 td{border:.5pt solid #999;padding:3px 4px;font-size:8pt;vertical-align:top;word-wrap:break-word}\
 .wp-pt2 th{background:#eee;font-size:8pt}\
 .wp-pt2 .wp-w{width:78px;font-weight:700}\
+.wp-pt2 .wp-w small{display:block;font-weight:400;font-size:6.5pt;color:#444}\
 .wp-pt2 tr{break-inside:avoid;page-break-inside:avoid}\
 .wp-pj{border-left:2.5pt solid #000;padding-left:4px;margin-bottom:3px;break-inside:avoid}\
 .wp-pj b{display:block;font-size:7pt;font-weight:400}\
@@ -30504,7 +30558,7 @@ function WpKpis(p) {
   var nio = W.filter(function(a) { return a.status === 'gebaut_nio'; });
   var plan = 0, ist = 0;
   W.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
-  var soll = (p.who === 'alle' ? p.leute.reduce(function(s, pe) { return s + wpSollWoche(pe); }, 0) : wpSollWoche(wpPerson(p.leute, p.who))) * 60;
+  var soll = (p.who === 'alle' ? p.leute.reduce(function(s, pe) { return s + wpSollWoche(pe, p.cur); }, 0) : wpSollWoche(wpPerson(p.leute, p.who), p.cur)) * 60;
   var aus = soll ? Math.round(plan / soll * 100) : 0;
   var sp = wpSpaet(p.tasks, wpTodayIso(), p.who).length;
   var cls = aus > 100 ? 'wp-hi' : aus > 85 ? 'wp-mid' : '';
@@ -30772,9 +30826,9 @@ function WpTeamView(p) {
             (soma && sT) ? React.createElement('div', { className: 'wp-load' }, React.createElement('i', { className: soma > sT * 1.02 ? 'wp-hi' : soma < sT * 0.8 ? 'wp-mid' : '', style: { width: Math.min(Math.round(soma / sT * 100), 100) + '%' } })) : null
           );
         });
-        var soll = P ? wpSollWoche(P) * 60 : 0, pc = soll ? Math.round(wk / soll * 100) : 0;
+        var soll = P ? wpSollWoche(P, p.cur) * 60 : 0, pc = soll ? Math.round(wk / soll * 100) : 0;
         return React.createElement('tr', { key: nm || '_semnome' },
-          React.createElement('td', { className: 'wp-who' }, nm ? React.createElement(React.Fragment, null, nm, React.createElement('small', null, 'Nr. ' + (P.pers_nr || '–') + ' · ' + P.std_tag + 'h/Tag · ' + wpDezh(wpSollWoche(P)) + 'h/Woche')) : React.createElement('span', { style: { color: 'var(--ink3)' } }, 'ohne Name')),
+          React.createElement('td', { className: 'wp-who' }, nm ? React.createElement(React.Fragment, null, nm, React.createElement('small', null, wpPessoaResumo(P, p.cur))) : React.createElement('span', { style: { color: 'var(--ink3)' } }, 'ohne Name')),
           cols,
           React.createElement('td', { style: { textAlign: 'right' } },
             React.createElement('b', { style: { fontSize: 13 } }, wpDez(wk) + 'h'),
@@ -30854,9 +30908,10 @@ function WpTeamListModal(p) {
         p.leute.length === 0 && React.createElement('div', { style: { padding: '8px 0', fontSize: 12.5, color: 'var(--ink3)' } }, 'Noch keine Mitarbeiter.'),
         p.leute.map(function(pe) {
           var c = p.tasks.filter(function(a) { return a.wer === pe.name; }).length;
-          var tage = pe.arbeitstage.map(function(x, j) { return x ? WP_DAY[j] : null; }).filter(Boolean).join(' ');
+          var tage = wpArbeitstageAm(pe, wpTodayIso()).map(function(x, j) { return +x ? WP_DAY[j] : null; }).filter(Boolean).join(' ');
           return React.createElement('div', { key: pe.id, className: 'wp-prow' },
-            React.createElement('span', null, pe.name, React.createElement('small', { style: { display: 'block', fontSize: 11, color: 'var(--ink2)' } }, 'Nr. ' + (pe.pers_nr || '–') + ' · ' + pe.std_tag + ' h/Tag · ' + tage + ' = ' + wpDezh(wpSollWoche(pe)) + ' h · ' + c + ' Aufträge')),
+            React.createElement('span', null, pe.name, React.createElement('small', { style: { display: 'block', fontSize: 11, color: 'var(--ink2)' } }, wpPessoaResumo(pe, wpTodayIso()) + ' · ' + tage + ' · ' + c + ' Aufträge')),
+            p.podePensum && React.createElement('button', { className: 'wp-mini', onClick: function() { p.onPensum(pe); } }, 'Pensum'),
             React.createElement('button', { className: 'wp-mini', onClick: function() { p.onEditar(pe); } }, 'Ändern'),
             React.createElement('button', { className: 'wp-mini', style: { color: '#BE2318', borderColor: '#BE2318' }, onClick: function() { p.onApagar(pe); } }, 'Löschen')
           );
@@ -30864,6 +30919,67 @@ function WpTeamListModal(p) {
       ),
       React.createElement('div', { style: { textAlign: 'center', marginTop: 10 } }, React.createElement('button', { className: 'wp-mini', onClick: p.onNovo }, '+ Mitarbeiter')),
       React.createElement('div', { className: 'wp-acts' }, React.createElement('button', { className: 'wp-go', onClick: p.onFechar }, 'Fertig'))
+    )
+  );
+}
+// ── Modal: Pensum (só admin) — criar, ändern e löschen de entradas mensais por pessoa ──
+function wpPensumMes(iso) { return String(iso).slice(5, 7) + '.' + String(iso).slice(0, 4); }
+function WpPensumModal(p) {
+  var pe = p.pessoa, d = p.draft;
+  var ordenadas = p.eintraege.slice().sort(function(a, b) { return a.gueltig_ab < b.gueltig_ab ? 1 : -1; });
+  if (!d) {
+    return React.createElement('div', { className: 'wp-ov', onClick: function(e) { if (e.target === e.currentTarget) p.onFechar(); } },
+      React.createElement('div', { className: 'wp-sheet', onClick: function(e) { e.stopPropagation(); } },
+        React.createElement('h2', null, 'Pensum – ' + pe.name),
+        React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)', marginBottom: 6 } }, '100 % = ' + WP_VOLLZEIT_H + ' h/Woche. Vor dem ersten Eintrag gilt der Grundwert aus „Ändern“ (' + wpDezh(pe.std_tag) + ' h/Tag).'),
+        React.createElement('div', { className: 'wp-plist' },
+          ordenadas.length === 0 && React.createElement('div', { style: { padding: '8px 0', fontSize: 12.5, color: 'var(--ink3)' } }, 'Noch kein Pensum-Eintrag.'),
+          ordenadas.map(function(r) {
+            var tage = r.arbeitstage.map(function(x, j) { return +x ? WP_DAY[j] : null; }).filter(Boolean).join(' ');
+            var sw = wpNDias(r.arbeitstage) ? (function() { var t = 0; for (var i = 0; i < 7; i++) t += wpSollDiaMin(r, i); return t / 60; })() : 0;
+            return React.createElement('div', { key: r.id, className: 'wp-prow' },
+              React.createElement('span', null, 'ab ' + wpPensumMes(r.gueltig_ab) + ' · ' + wpDezh(+r.pensum_prozent) + ' %',
+                React.createElement('small', { style: { display: 'block', fontSize: 11, color: 'var(--ink2)' } },
+                  tage + ' · +' + (+r.zuschlag_min || 0) + ' min/Tag · ' + wpDezh(sw) + ' h/Woche · ' + (r.kategorie || '–') + (r.position ? ' · ' + r.position : ''))),
+              React.createElement('button', { className: 'wp-mini', onClick: function() { p.onEditar(r); } }, 'Ändern'),
+              React.createElement('button', { className: 'wp-mini', style: { color: '#BE2318', borderColor: '#BE2318' }, onClick: function() { p.onApagar(r); } }, 'Löschen')
+            );
+          })
+        ),
+        p.erro && React.createElement('div', { className: 'wp-errmsg' }, p.erro),
+        React.createElement('div', { style: { textAlign: 'center', marginTop: 10 } }, React.createElement('button', { className: 'wp-mini', onClick: p.onNovo }, '+ Pensum')),
+        React.createElement('div', { className: 'wp-acts' }, React.createElement('button', { onClick: p.onFechar }, 'Schließen'))
+      )
+    );
+  }
+  var tageDraft = wpNDias(d.arbeitstage);
+  var sollTag = tageDraft ? (+d.vollzeit_h * 60 * (+d.pensum_prozent || 0) / 100 / tageDraft + (+d.zuschlag_min || 0)) / 60 : 0;
+  return React.createElement('div', { className: 'wp-ov', onClick: function(e) { if (e.target === e.currentTarget) p.onCancelar(); } },
+    React.createElement('div', { className: 'wp-sheet', onClick: function(e) { e.stopPropagation(); } },
+      React.createElement('h2', null, (d.id ? 'Pensum ändern – ' : 'Neues Pensum – ') + pe.name),
+      React.createElement('div', { className: 'wp-two' },
+        React.createElement('div', null, React.createElement('label', { htmlFor: 'wpPGa' }, 'Gültig ab (Monat)'), React.createElement('input', { id: 'wpPGa', type: 'month', value: d.gueltig_ab || '', onChange: function(e) { p.onChange('gueltig_ab', e.target.value); } })),
+        React.createElement('div', null, React.createElement('label', { htmlFor: 'wpPPr' }, 'Pensum (%)'), React.createElement('input', { id: 'wpPPr', type: 'number', min: '1', max: '100', step: '1', value: d.pensum_prozent, onChange: function(e) { p.onChange('pensum_prozent', e.target.value); } }))
+      ),
+      React.createElement('label', null, 'Arbeitstage'),
+      React.createElement('div', { className: 'wp-prios' }, WP_DAY.map(function(dn, i) {
+        var on = !!(+d.arbeitstage[i]);
+        return React.createElement('button', { key: i, className: 'wp-pb', onClick: function() { p.onToggleDia(i); }, style: { borderColor: on ? 'var(--ink)' : 'var(--line)', background: on ? 'var(--card2)' : 'var(--card)', color: on ? 'var(--ink)' : 'var(--ink3)' } }, dn);
+      })),
+      React.createElement('label', { htmlFor: 'wpPZu' }, 'Zuschlag pro Tag (Min.)'),
+      React.createElement('input', { id: 'wpPZu', type: 'number', min: '0', max: '240', step: '1', value: d.zuschlag_min, onChange: function(e) { p.onChange('zuschlag_min', e.target.value); } }),
+      React.createElement('div', { className: 'wp-two' },
+        React.createElement('div', null, React.createElement('label', { htmlFor: 'wpPKa' }, 'Kategorie'), React.createElement('select', { id: 'wpPKa', value: d.kategorie || '', onChange: function(e) { p.onChange('kategorie', e.target.value); } },
+          React.createElement('option', { value: '' }, '– wählen –'),
+          WP_KATEGORIEN.map(function(k) { return React.createElement('option', { key: k, value: k }, k); }))),
+        React.createElement('div', null, React.createElement('label', { htmlFor: 'wpPPo' }, 'Position'), React.createElement('input', { id: 'wpPPo', type: 'text', autoComplete: 'off', value: d.position || '', onChange: function(e) { p.onChange('position', e.target.value); } }))
+      ),
+      React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)', marginTop: 6 } }, 'Soll pro Tag: ', React.createElement('b', null, wpDezh(sollTag) + ' h'), ' · Soll pro Woche: ', React.createElement('b', null, wpDezh(sollTag * tageDraft) + ' h'), ' (' + WP_VOLLZEIT_H + ' h × ' + (+d.pensum_prozent || 0) + ' % ÷ ' + tageDraft + ' Tage + ' + (+d.zuschlag_min || 0) + ' Min.)'),
+      p.erro && React.createElement('div', { className: 'wp-errmsg' }, p.erro),
+      React.createElement('div', { className: 'wp-acts' },
+        React.createElement('button', { onClick: p.onCancelar }, 'Abbrechen'),
+        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Speichern')
+      )
     )
   );
 }
@@ -30876,14 +30992,14 @@ function WpPersonModal(p) {
         React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFN' }, 'Name'), React.createElement('input', { id: 'wpFN', type: 'text', autoComplete: 'off', value: e.name || '', placeholder: 'Sandro', onChange: function(ev) { p.onChange('name', ev.target.value); } })),
         React.createElement('div', null, React.createElement('label', { htmlFor: 'wpFNum' }, 'Pers.Nr.'), React.createElement('input', { id: 'wpFNum', type: 'text', autoComplete: 'off', value: e.pers_nr || '', placeholder: '742', onChange: function(ev) { p.onChange('pers_nr', ev.target.value); } }))
       ),
-      React.createElement('label', { htmlFor: 'wpFTag' }, 'Stunden pro Arbeitstag'),
+      React.createElement('label', { htmlFor: 'wpFTag' }, 'Grundwert (vor dem ersten Pensum): Stunden pro Arbeitstag'),
       React.createElement('input', { id: 'wpFTag', type: 'number', step: '0.1', value: e.std_tag != null ? e.std_tag : 8.6, onChange: function(ev) { p.onChange('std_tag', parseFloat(ev.target.value) || 0); } }),
-      React.createElement('label', null, 'Arbeitstage'),
+      React.createElement('label', null, 'Arbeitstage (Grundwert)'),
       React.createElement('div', { className: 'wp-prios' }, WP_DAY.map(function(dn, i) {
         var on = !!e.arbeitstage[i];
         return React.createElement('button', { key: i, className: 'wp-pb', onClick: function() { p.onToggleDia(i); }, style: { borderColor: on ? 'var(--ink)' : 'var(--line)', background: on ? 'var(--card2)' : 'var(--card)', color: on ? 'var(--ink)' : 'var(--ink3)' } }, dn);
       })),
-      React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)', marginTop: 6 } }, 'Wochensoll: ', React.createElement('b', null, wpDezh(wpSollWoche({ std_tag: e.std_tag || 8.6, arbeitstage: e.arbeitstage })), ' h'), ' · freie Tage erscheinen automatisch als Frei'),
+      React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)', marginTop: 6 } }, 'Wochensoll: ', React.createElement('b', null, wpDezh(wpSollLegado(e.std_tag || 8.6, e.arbeitstage)), ' h'), ' · freie Tage erscheinen automatisch als Frei'),
       p.erro && React.createElement('div', { className: 'wp-errmsg' }, p.erro),
       React.createElement('div', { className: 'wp-acts' },
         React.createElement('button', { onClick: p.onCancelar }, 'Abbrechen'),
@@ -30962,6 +31078,7 @@ function wpKopfZeile(titulo, cur, seite2, who, leute, diaIso) {
       seite2 && React.createElement('div', typeof seite2 === 'string' ? { className: 'wp-seite' } : null, seite2),
       React.createElement('div', null, 'Mitarbeiter: ', React.createElement('b', null, who && who !== 'alle' ? who : 'Alle')),
       React.createElement('div', null, 'Pers.Nr.: ', pessoa ? (pessoa.pers_nr || '–') : '–'),
+      pessoa && wpKatPos(pessoa, diaIso || wpIso(m)) && React.createElement('div', null, wpKatPos(pessoa, diaIso || wpIso(m))),
       React.createElement('div', null, 'Projekt: ', React.createElement('span', { style: { display: 'inline-block', width: 90, borderBottom: '.5pt solid #000' } }))
     )
   );
@@ -31011,7 +31128,7 @@ function WpPrintPlan(p) {
             p.team && s > 0 && React.createElement('div', { className: 'wp-tsum' }, wpDez(s) + ' h')
           );
         });
-        return React.createElement('tr', { key: nm || '_' }, React.createElement('td', { className: 'wp-w' }, nm || 'ohne Name'), cols, React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('b', null, wpDez(wk))));
+        return React.createElement('tr', { key: nm || '_' }, React.createElement('td', { className: 'wp-w' }, nm ? wpNomeKP(nm, wpPerson(p.leute, nm), W[0]) : 'ohne Name'), cols, React.createElement('td', { style: { textAlign: 'right' } }, React.createElement('b', null, wpDez(wk))));
       }).concat(p.team ? [React.createElement('tr', { key: '_summe', className: 'wp-tsumrow' },
         React.createElement('td', { className: 'wp-w' }, 'Summe'),
         W.map(function(k) { return React.createElement('td', { key: k }, React.createElement('b', null, wpDez(dias[k] || 0) + ' h')); }),
@@ -31049,8 +31166,8 @@ function WpPrintUebersicht(p) {
       React.createElement('tbody', null, p.leute.filter(function(pe) { return p.who === 'alle' || pe.name === p.who; }).map(function(pe) {
         var L = W.filter(function(a) { return a.wer === pe.name; });
         var pl = 0, is = 0; L.forEach(function(a) { pl += wpDur(a); if (a.status === 'erledigt') is += wpDur(a); });
-        var sw = wpSollWoche(pe);
-        return React.createElement('tr', { key: pe.id }, React.createElement('td', { className: 'wp-w' }, pe.name), React.createElement('td', null, wpDezh(sw) + ' h'), React.createElement('td', null, wpDez(pl) + ' h'), React.createElement('td', null, wpDez(is) + ' h'), React.createElement('td', null, (sw ? Math.round(pl / (sw * 60) * 100) : 0) + '%'), React.createElement('td', null, L.filter(function(a) { return a.status !== 'erledigt'; }).length));
+        var sw = wpSollWoche(pe, p.cur);
+        return React.createElement('tr', { key: pe.id }, React.createElement('td', { className: 'wp-w' }, wpNomeKP(pe.name, pe, days[0])), React.createElement('td', null, wpDezh(sw) + ' h'), React.createElement('td', null, wpDez(pl) + ' h'), React.createElement('td', null, wpDez(is) + ' h'), React.createElement('td', null, (sw ? Math.round(pl / (sw * 60) * 100) : 0) + '%'), React.createElement('td', null, L.filter(function(a) { return a.status !== 'erledigt'; }).length));
       }))
     ),
     days.map(function(k, i) {
@@ -31508,21 +31625,32 @@ function WochenplanApp(props) {
   var _s29 = React.useState(''); var notizSemana = _s29[0], setNotizSemana = _s29[1];
   var notizSemanaTimerRef = React.useRef(null);
 
+  var _p1 = React.useState([]); var pensum = _p1[0], setPensum = _p1[1];
+  var _p2 = React.useState(null); var pensumPessoa = _p2[0], setPensumPessoa = _p2[1];
+  var _p3 = React.useState(null); var pensumDraft = _p3[0], setPensumDraft = _p3[1];
+  var _p4 = React.useState(''); var pensumErro = _p4[0], setPensumErro = _p4[1];
+  var _p5 = React.useState(false); var guardandoPensum = _p5[0], setGuardandoPensum = _p5[1];
+  WP_PENSUM = pensum; // as contas (Soll, Frei, Kategorie) leem o Pensum carregado — ver wpPensumAm
+
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
     setLoading(true);
     Promise.all([
       db.from('wplan_leute').select('*').order('name', { ascending: true }),
       db.from('wplan_tasks').select('*'),
-      db.from('wplan_tag').select('*')
+      db.from('wplan_tag').select('*'),
+      db.from('wplan_pensum').select('*')
     ]).then(function(res) {
-      var lRes = res[0], tRes = res[1], gRes = res[2];
+      var lRes = res[0], tRes = res[1], gRes = res[2], pRes = res[3];
       if (lRes.error) { setErro('Falha ao carregar equipa: ' + lRes.error.message); setLoading(false); return; }
       if (tRes.error) { setErro('Falha ao carregar tarefas: ' + tRes.error.message); setLoading(false); return; }
       if (gRes.error) { setErro('Falha ao carregar estados do dia: ' + gRes.error.message); setLoading(false); return; }
       setLeute((lRes.data || []).filter(function(p) { return p.aktiv !== false; }));
       setTasks((tRes.data || []).map(wpNormalizarTarefa));
       setTagRows(gRes.data || []);
+      // Pensum: sem ele o Soll cai no Grundwert antigo (std_tag/arbeitstage), por isso avisa em vez de falhar calado
+      if (pRes.error) { setErro('Pensum konnte nicht geladen werden: ' + pRes.error.message); setPensum([]); }
+      else setPensum(pRes.data || []);
       setLoading(false);
     }).catch(function(e) {
       setErro('Falha ao carregar: ' + (e && e.message ? e.message : e));
@@ -31695,12 +31823,62 @@ function WochenplanApp(props) {
       setEditPersonErro('Falha ao guardar: ' + (e2 && e2.message ? e2.message : e2));
     });
   }
+  // ── Pensum verwalten (só admin; o RLS da tabela também só deixa admin) ──
+  function abrirPensum(pe) { setPensumErro(''); setPensumDraft(null); setPensumPessoa(pe); }
+  function fecharPensum() { setPensumPessoa(null); setPensumDraft(null); setPensumErro(''); }
+  function pensumDe(pe) { return pensum.filter(function(r) { return String(r.leute_id) === String(pe.id); }); }
+  function novoPensum() {
+    var pe = pensumPessoa, l = pensumDe(pe).sort(function(a, b) { return a.gueltig_ab < b.gueltig_ab ? 1 : -1; })[0];
+    var hoje = wpTodayIso().slice(0, 7);
+    setPensumErro('');
+    setPensumDraft({ id: null, gueltig_ab: hoje, vollzeit_h: l ? l.vollzeit_h : WP_VOLLZEIT_H, pensum_prozent: l ? l.pensum_prozent : 100,
+      arbeitstage: l ? l.arbeitstage.map(Number) : [1, 1, 1, 1, 1, 0, 0], zuschlag_min: l ? l.zuschlag_min : 0, kategorie: l ? (l.kategorie || '') : '', position: l ? (l.position || '') : '' });
+  }
+  function editarPensum(r) {
+    setPensumErro('');
+    setPensumDraft({ id: r.id, gueltig_ab: String(r.gueltig_ab).slice(0, 7), vollzeit_h: r.vollzeit_h, pensum_prozent: r.pensum_prozent,
+      arbeitstage: r.arbeitstage.map(Number), zuschlag_min: r.zuschlag_min, kategorie: r.kategorie || '', position: r.position || '' });
+  }
+  function mudarCampoPensum(k, v) { setPensumDraft(function(prev) { var n = Object.assign({}, prev); n[k] = v; return n; }); }
+  function alternarDiaPensum(i) { setPensumDraft(function(prev) { var t = prev.arbeitstage.slice(); t[i] = t[i] ? 0 : 1; return Object.assign({}, prev, { arbeitstage: t }); }); }
+  function guardarPensum() {
+    var d = pensumDraft, pe = pensumPessoa;
+    if (!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(d.gueltig_ab || '')) { setPensumErro('Monat wählen.'); return; }
+    var pr = parseFloat(d.pensum_prozent);
+    if (!(pr > 0 && pr <= 100)) { setPensumErro('Pensum zwischen 1 und 100 % eingeben.'); return; }
+    if (!wpNDias(d.arbeitstage)) { setPensumErro('Mindestens ein Arbeitstag.'); return; }
+    var zu = parseInt(d.zuschlag_min, 10); if (isNaN(zu)) zu = 0;
+    if (zu < 0 || zu > 240) { setPensumErro('Zuschlag zwischen 0 und 240 Minuten.'); return; }
+    if (WP_KATEGORIEN.indexOf(d.kategorie) < 0) { setPensumErro('Kategorie wählen.'); return; }
+    setGuardandoPensum(true); setPensumErro('');
+    var payload = { leute_id: pe.id, gueltig_ab: d.gueltig_ab + '-01', vollzeit_h: +d.vollzeit_h || WP_VOLLZEIT_H, pensum_prozent: pr,
+      arbeitstage: d.arbeitstage.map(Number), zuschlag_min: zu, kategorie: d.kategorie, position: (d.position || '').trim() };
+    var chain = d.id ? db.from('wplan_pensum').update(payload).eq('id', d.id).select() : db.from('wplan_pensum').insert(payload).select();
+    chain.then(function(res) {
+      if (res.error) throw res.error;
+      var linha = (res.data && res.data[0]) || Object.assign({ id: 'tmp-' + Date.now() }, payload);
+      setPensum(function(prev) { return d.id ? prev.map(function(r) { return r.id === d.id ? linha : r; }) : prev.concat([linha]); });
+      setGuardandoPensum(false); setPensumDraft(null);
+    }).catch(function(e) {
+      setGuardandoPensum(false);
+      setPensumErro(e && e.code === '23505' ? 'Für diesen Monat gibt es schon einen Eintrag.' : 'Speichern fehlgeschlagen: ' + (e && e.message ? e.message : e));
+    });
+  }
+  function apagarPensum(r) {
+    if (!confirm('Pensum ab ' + wpPensumMes(r.gueltig_ab) + ' löschen?')) return;
+    setPensumErro('');
+    db.from('wplan_pensum').delete().eq('id', r.id).then(function(res) {
+      if (res.error) throw res.error;
+      setPensum(function(prev) { return prev.filter(function(x) { return x.id !== r.id; }); });
+    }).catch(function(e) { setPensumErro('Löschen fehlgeschlagen: ' + (e && e.message ? e.message : e)); });
+  }
   function apagarPersonagem(pe) {
     var c = tasks.filter(function(t) { return t.wer === pe.name; }).length;
     if (c && !confirm(pe.name + ' hat ' + c + ' Aufträge. Sie bleiben ohne Name. Löschen?')) return;
     db.from('wplan_leute').delete().eq('id', pe.id).then(function(res) {
       if (res.error) throw res.error;
       setLeute(function(prev) { return prev.filter(function(p) { return p.id !== pe.id; }); });
+      setPensum(function(prev) { return prev.filter(function(r) { return String(r.leute_id) !== String(pe.id); }); });
       setTasks(function(prev) { return prev.map(function(t) { return t.wer === pe.name ? Object.assign({}, t, { wer: null }) : t; }); });
       if (who === pe.name) setWho('alle');
     }).catch(function(e) { setErro('Falha ao apagar mitarbeiter: ' + (e && e.message ? e.message : e)); });
@@ -31859,7 +32037,8 @@ function WochenplanApp(props) {
   var mostrarBalanco = false;
   if (pessoaBalanco) {
     var ultimoDiaAtivo = -1;
-    for (var di = 0; di < 7; di++) if (pessoaBalanco.arbeitstage[di]) ultimoDiaAtivo = di;
+    var atBalanco = wpArbeitstageAm(pessoaBalanco, wpTodayIso());
+    for (var di = 0; di < 7; di++) if (+atBalanco[di]) ultimoDiaAtivo = di;
     var agora = new Date();
     var diaHoje = wpDi(new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate())));
     if (ultimoDiaAtivo >= 0 && diaHoje === ultimoDiaAtivo && agora.getHours() >= 15) {
@@ -31931,8 +32110,14 @@ function WochenplanApp(props) {
       id: editTaskId, draft: editTaskDraft, leute: leute, cur: cur, erro: editTaskErro, guardando: guardandoTask,
       onChange: mudarCampoTarefa, onSemData: mudarSemData, onFechar: fecharTarefa, onGuardar: guardarTarefa, onApagar: apagarTarefa
     }),
-    teamModalAberto && !editPerson && React.createElement(WpTeamListModal, {
+    teamModalAberto && !editPerson && !pensumPessoa && React.createElement(WpTeamListModal, {
+      podePensum: rolle === 'bauleiter', onPensum: abrirPensum,
       leute: leute, tasks: tasks, onFechar: function() { setTeamModalAberto(false); }, onNovo: abrirNovoPersonagem, onEditar: abrirEditarPersonagem, onApagar: apagarPersonagem
+    }),
+    pensumPessoa && rolle === 'bauleiter' && React.createElement(WpPensumModal, {
+      pessoa: pensumPessoa, eintraege: pensumDe(pensumPessoa), draft: pensumDraft, erro: pensumErro, guardando: guardandoPensum,
+      onNovo: novoPensum, onEditar: editarPensum, onApagar: apagarPensum, onChange: mudarCampoPensum, onToggleDia: alternarDiaPensum,
+      onGuardar: guardarPensum, onCancelar: function() { setPensumDraft(null); setPensumErro(''); }, onFechar: fecharPensum
     }),
     editPerson && React.createElement(WpPersonModal, {
       draft: editPerson, erro: editPersonErro, guardando: guardandoPerson,
