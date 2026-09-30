@@ -29,16 +29,29 @@ var WP_LUNCH_KEY = 'wplan_lunch';
 var WP_ULTIMO_TRABALHO_KEY = 'wplan_ultimo_trabalho';
 // Painel "Wie drucken": só se lembram Inhalt e Format de cada folha. Nunca a folha
 // escolhida nem "Nicht erledigt mitdrucken" (cada impressão começa com isso desligado).
-// ✓ em "Nicht erledigt": guarda o estado anterior de cada tarefa marcada (por dispositivo, sem mexer no esquema da base)
+// ✓ em "Nicht erledigt": o estado anterior e a data do ✓ ficam na base (wplan_tasks.status_vor_haken / gehakt_am).
+// WP_HAKEN_KEY só serve para migrar as marcas antigas (antes guardadas por dispositivo) — ver wpMigrarHaken.
 var WP_HAKEN_KEY = 'wplan_haken';
-function wpLoadHaken() {
-  try {
-    var o = JSON.parse(localStorage.getItem(WP_HAKEN_KEY) || '{}') || {}, r = {}, lim = wpIso(wpAddD(wpMk(wpTodayIso()), -40));
-    Object.keys(o).forEach(function(id) { if (o[id] && o[id].am >= lim) r[id] = o[id]; }); // limpa o que tem mais de 40 dias
-    return r;
-  } catch (e) { return {}; }
+var WP_HAKEN_VOR = ['offen', 'laeuft', 'gebaut_nio'];
+function wpMigrarHaken(db, rows) {
+  var alt;
+  try { alt = JSON.parse(localStorage.getItem(WP_HAKEN_KEY) || 'null'); } catch (e) { return Promise.resolve([]); }
+  if (!alt || typeof alt !== 'object') { try { localStorage.removeItem(WP_HAKEN_KEY); } catch (e) {} return Promise.resolve([]); }
+  var jobs = [];
+  Object.keys(alt).forEach(function(id) {
+    var h = alt[id], t = rows.filter(function(r) { return String(r.id) === id; })[0];
+    if (t && h && t.status === 'erledigt' && !t.status_vor_haken && WP_HAKEN_VOR.indexOf(h.vor) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(h.am || '')) {
+      jobs.push(db.from('wplan_tasks').update({ status_vor_haken: h.vor, gehakt_am: h.am }).eq('id', t.id).eq('status', 'erledigt').select().then(function(res) {
+        if (res.error) throw res.error;
+        return { id: t.id, status_vor_haken: h.vor, gehakt_am: h.am };
+      }));
+    }
+  });
+  return Promise.all(jobs).then(function(feitos) {
+    try { localStorage.removeItem(WP_HAKEN_KEY); } catch (e) {}
+    return feitos;
+  });
 }
-function wpSaveHaken(h) { try { localStorage.setItem(WP_HAKEN_KEY, JSON.stringify(h)); } catch (e) {} }
 var WP_DRUCK_KEY = 'wplan_druck';
 var WP_NEU = { team: 1, pers: 1, admin: 1 };
 var WP_DRUCK_DEF = {
@@ -531,12 +544,11 @@ function WpAlarm(p) {
   // Admin vê o de todos (com as tarefas sem nome); Monteur filtrado por uma pessoa vê só o dela.
   var basis = p.rolle === 'bauleiter' ? 'alle' : (p.who !== 'alle' ? p.who : null);
   if (!basis) return null;
-  var hoje = wpTodayIso(), haken = p.haken || {}, segunda = wpWeekDays(hoje)[0];
+  var hoje = wpTodayIso(), segunda = wpWeekDays(hoje)[0];
   var offen = wpSpaet(p.tasks, hoje, basis);
-  // linhas marcadas com ✓ ficam visíveis até ao fim da semana em que foram marcadas, para poderem ser desmarcadas
+  // linhas marcadas com ✓ ficam visíveis (e riscadas) enquanto gehakt_am estiver na semana visível, para poderem ser desmarcadas
   var marcadas = p.tasks.filter(function(a) {
-    var h = haken[String(a.id)];
-    return a.status === 'erledigt' && h && wpWeekDays(h.am)[0] === segunda && wpMine(a, basis);
+    return a.status === 'erledigt' && a.gehakt_am && wpWeekDays(a.gehakt_am)[0] === segunda && wpMine(a, basis);
   });
   var l = offen.concat(marcadas).sort(function(x, y) { return x.datum < y.datum ? -1 : x.datum > y.datum ? 1 : 0; });
   if (!l.length) return null;
@@ -1616,7 +1628,6 @@ function WochenplanApp(props) {
   var notaBlobRef = React.useRef(null);
 
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
-  var _h1 = React.useState(function() { return wpLoadHaken(); }); var haken = _h1[0], setHaken = _h1[1];
   var _s30 = React.useState(function() { return { nur: false, spaet: false, pro: false, person: undefined, excl: [], tage: [true, true, true, true, true, true, true], ohne: [], druck: wpLoadDruck() }; }); var printOpt = _s30[0], setPrintOpt = _s30[1];
   var printInnerRef = React.useRef(null);
   var printAreaRef = React.useRef(null);
@@ -1652,7 +1663,14 @@ function WochenplanApp(props) {
       if (tRes.error) { setErro('Falha ao carregar tarefas: ' + tRes.error.message); setLoading(false); return; }
       if (gRes.error) { setErro('Falha ao carregar estados do dia: ' + gRes.error.message); setLoading(false); return; }
       setLeute((lRes.data || []).filter(function(p) { return p.aktiv !== false; }));
-      setTasks((tRes.data || []).map(wpNormalizarTarefa));
+      var linhasT = (tRes.data || []).map(wpNormalizarTarefa);
+      setTasks(linhasT);
+      // marcas ✓ antigas (localStorage) → base; se falhar, a app continua e a chave fica para a próxima vez
+      try {
+        wpMigrarHaken(db, linhasT).then(function(feitos) {
+          if (feitos.length) setTasks(function(prev) { return prev.map(function(t) { var f = feitos.filter(function(x) { return x.id === t.id; })[0]; return f ? Object.assign({}, t, { status_vor_haken: f.status_vor_haken, gehakt_am: f.gehakt_am }) : t; }); });
+        }).catch(function() {});
+      } catch (e) {}
       setTagRows(gRes.data || []);
       // Pensum: sem ele o Soll cai no Grundwert antigo (std_tag/arbeitstage), por isso avisa em vez de falhar calado
       if (pRes.error) { setErro('Pensum konnte nicht geladen werden: ' + pRes.error.message); setPensum([]); }
@@ -1831,13 +1849,13 @@ function WochenplanApp(props) {
   }
   // ── ✓ em "Nicht erledigt": marca erledigt (grava em wplan_tasks) e guarda o estado anterior; desmarcar repõe-o ──
   function alternarHaken(a) {
-    var id = String(a.id), h = Object.assign({}, haken), desfazer = !!h[id] && a.status === 'erledigt';
-    var novo = desfazer ? (h[id].vor || 'offen') : 'erledigt';
-    if (desfazer) delete h[id]; else h[id] = { vor: a.status, am: wpTodayIso() };
-    db.from('wplan_tasks').update({ status: novo, updated_at: new Date().toISOString() }).eq('id', a.id).select().then(function(res) {
+    var desfazer = !!a.gehakt_am && a.status === 'erledigt';
+    var campos = desfazer
+      ? { status: a.status_vor_haken || 'offen', status_vor_haken: null, gehakt_am: null }
+      : { status: 'erledigt', status_vor_haken: WP_HAKEN_VOR.indexOf(a.status) >= 0 ? a.status : 'offen', gehakt_am: wpTodayIso() };
+    db.from('wplan_tasks').update(Object.assign({}, campos, { updated_at: new Date().toISOString() })).eq('id', a.id).select().then(function(res) {
       if (res.error) throw res.error;
-      setTasks(function(prev) { return prev.map(function(t) { return t.id === a.id ? Object.assign({}, t, { status: novo }) : t; }); });
-      setHaken(h); wpSaveHaken(h);
+      setTasks(function(prev) { return prev.map(function(t) { return t.id === a.id ? Object.assign({}, t, campos) : t; }); });
     }).catch(function(e) { setErro('Falha ao guardar: ' + (e && e.message ? e.message : e)); });
   }
   // ── Pensum verwalten (só admin; o RLS da tabela também só deixa admin) ──
@@ -2099,7 +2117,7 @@ function WochenplanApp(props) {
         onVorschau: acionarVorschau
       }),
       React.createElement(WpKpis, { mode: mode, rolle: rolle, tasks: tasks, leute: leute, cur: cur, who: who }),
-      React.createElement(WpAlarm, { tasks: tasks, who: who, rolle: rolle, haken: haken, onHaken: alternarHaken, onOpen: abrirTarefa }),
+      React.createElement(WpAlarm, { tasks: tasks, who: who, rolle: rolle, onHaken: alternarHaken, onOpen: abrirTarefa }),
       mostrarBalanco && React.createElement(WpBalancoBanner, { quem: pessoaBalanco.name, onAbrir: function() { setMode('tag'); setCur(wpTodayIso()); abrirNota(wpTodayIso()); } }),
       React.createElement('div', null,
         mode === 'tag' && React.createElement(WpTagView, Object.assign({}, diaAtualObj, {
