@@ -1286,7 +1286,7 @@ var WP_ST_TXT = { offen: 'Offen', laeuft: 'Läuft', gebaut_nio: 'Gebaut n.i.o', 
 function WpPrintAdmin(p) {
   var sp = p.spaet ? wpSpaet(p.tasks, wpTodayIso(), 'alle') : [];
   var nomes = p.leute.map(function(pe) { return pe.name; });
-  // um grupo por conjunto de pessoas ("Patricio, Roger Ryseer" = tarefa partilhada, aparece uma vez); "ohne Name" no fim
+  // um grupo por conjunto de pessoas ("Patricio, Roger Ryser" = tarefa partilhada, aparece uma vez); "ohne Name" no fim
   var chaves = [];
   sp.forEach(function(a) { var k = wpNamen(a); if (chaves.indexOf(k) < 0) chaves.push(k); });
   function ordemG(k) { return k === '' ? 9999 : nomes.indexOf(k.split(', ')[0]); }
