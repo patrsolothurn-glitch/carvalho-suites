@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-30T15:25:13.963Z
+  Gerado em: 2026-09-30T15:46:35.472Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-366";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-367";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -16966,17 +16966,8 @@ function EscolarApp(_ref31) {
             };
           }
           next[key] = updated;
-          // Proteção: se um aluno protegido (com dados reais conhecidos)
-          // aparecer com a tabela completamente vazia — por um DELETE
-          // a mais, SQL errado, etc. — repomos a cópia de segurança
-          // guardada no código de volta para o Supabase, sem precisar
-          // de intervenção manual.
-          var PROTEGIDOS = ['lucas'];
-          if (PROTEGIDOS.indexOf(key) !== -1 && discRows.length === 0 && horRows.length === 0 && ALUNOS_DEF[key] && (ALUNOS_DEF[key].disciplinas || []).length > 0) {
-            console.warn('[escolar] ' + key + ' apareceu sem disciplinas/horario — a repor a copia de seguranca automaticamente.');
-            saveAlunoSnapshot(key, ALUNOS_DEF[key]);
-            next[key] = _objectSpread({}, ALUNOS_DEF[key]);
-          }
+          // (Removida a auto-reposição de ALUNOS_DEF para o Lucas: uma leitura falhada ou parcial contava como "vazio" e a app
+          // gravava os dados de exemplo por cima dos dados reais. Nunca se escreve na base a partir de uma leitura.)
         });
         return next;
       });
