@@ -281,6 +281,68 @@ function polMedicaoRecente(m) {
   return idade >= 0 && idade <= POL_MEDICAO_VALIDA_MS;
 }
 
+// ── Navegação de dias na aba Hoje (±7 dias). Datas e horas SEMPRE em Europe/Zurich ──
+var POL_DIA_MAX = 7;
+var POL_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+function polPartesZurich(d) {
+  var partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Zurich', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(d);
+  var o = {};
+  partes.forEach(function (p) { o[p.type] = p.value; });
+  if (o.hour === '24') o.hour = '00';
+  return o;
+}
+function polHojeZurich() { var o = polPartesZurich(new Date()); return o.year + '-' + o.month + '-' + o.day; }
+function polSomarDiasIso(dataIso, n) {
+  var p = dataIso.split('-');
+  return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)).toISOString().slice(0, 10);
+}
+function polDiaDoOffset(offset) { return polSomarDiasIso(polHojeZurich(), offset); }
+function polLimitarOffset(n) { return Math.max(-POL_DIA_MAX, Math.min(POL_DIA_MAX, n)); }
+// "Hoje" ou "Qua 23.09"
+function polEtiquetaDia(offset) {
+  if (offset === 0) return 'Hoje';
+  var p = polDiaDoOffset(offset).split('-');
+  var dow = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+  return POL_DIAS_SEMANA[dow] + ' ' + p[2] + '.' + p[1];
+}
+// Instante UTC em que, em Zurique, são hh:00 da data (aguenta dias de 23/25 h na mudança de hora)
+function polInstanteZurich(dataIso, hh) {
+  var p = dataIso.split('-');
+  var alvo = Date.UTC(+p[0], +p[1] - 1, +p[2], hh, 0, 0), t = alvo;
+  for (var i = 0; i < 3; i++) {
+    var o = polPartesZurich(new Date(t));
+    t += alvo - Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour, +o.minute, +o.second);
+  }
+  return new Date(t);
+}
+// [início, fim) do dia em Zurique, em ISO UTC (para filtrar pollen_medicoes.ts)
+function polIntervaloDiaZurich(dataIso) {
+  return [polInstanteZurich(dataIso, 0).toISOString(), polInstanteZurich(polSomarDiasIso(dataIso, 1), 0).toISOString()];
+}
+// Máximo do dia por tipo — medições da estação (linhas de pollen_medicoes) e previsão horária Open-Meteo.
+// Sem valor para um tipo = sem chave (nunca se inventa um valor).
+function polMaxDiaMedicoes(linhas) {
+  var out = {};
+  (linhas || []).forEach(function (m) { if (m.valor != null && (out[m.tipo] == null || m.valor > out[m.tipo])) out[m.tipo] = m.valor; });
+  return out;
+}
+function polMaxDiaPrevisao(previsao, dataIso) {
+  var out = {};
+  if (!previsao || !previsao.hourly || !previsao.hourly.time) return out;
+  previsao.hourly.time.forEach(function (ts, i) {
+    if (ts.slice(0, 10) !== dataIso) return;
+    POL_TIPOS.forEach(function (t) {
+      if (!t.omVar) return;
+      var arr = previsao.hourly[t.omVar];
+      var v = arr ? arr[i] : null;
+      if (v != null && (out[t.id] == null || v > out[t.id])) out[t.id] = v;
+    });
+  });
+  return out;
+}
+
 // ── Id local para elementos de listas jsonb (medicamentos do perfil,
 // "outros" medicamentos do dia) — nunca vão à base de dados como linha
 // própria, por isso precisam de um id gerado no cliente (mesmo padrão
@@ -316,6 +378,11 @@ var POL_CSS = '' +
   '.pol-chip.pol-chip-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde)}' +
   '.pol-tab{flex:1;background:var(--pol-cartao);color:var(--pol-texto);border:1px solid var(--pol-borda);border-radius:10px;padding:9px 0;font-weight:800;font-size:12px;cursor:pointer}' +
   '.pol-tab.pol-tab-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde)}' +
+  '.pol-diabar{display:flex;align-items:center;gap:8px}' +
+  '.pol-dia-btn{flex:none;width:56px;height:52px;border-radius:14px;border:2px solid var(--pol-texto);background:var(--pol-cartao);color:var(--pol-texto);font-size:28px;font-weight:900;line-height:1;cursor:pointer}' +
+  '.pol-dia-btn:disabled{opacity:.3;cursor:default;border-color:var(--pol-borda)}' +
+  '.pol-dia-label{flex:1;min-width:0;text-align:center;font-size:20px;font-weight:900;padding:12px 6px;border-radius:14px;background:var(--pol-verde);color:var(--pol-verde-texto)}' +
+  '.pol-dia-label.pol-dia-outro{background:var(--pol-cartao);color:var(--pol-texto);border:2px solid var(--pol-verde);padding:10px 6px}' +
   '.pol-nivel-pill{display:inline-flex;align-items:center;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;white-space:nowrap}' +
   '.pol-input{width:100%;box-sizing:border-box;background:var(--pol-cartao);border:1px solid var(--pol-borda);color:var(--pol-texto);border-radius:10px;padding:10px 12px;font-size:14px}' +
   '.pol-btn{background:var(--pol-cartao);color:var(--pol-texto);border:1px solid var(--pol-borda);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer}' +
@@ -455,6 +522,27 @@ function PollenApp(props) {
     }).catch(function (e) { console.error('[pollen] medições recentes:', e); window.mostrarErro('Pólen', e); });
   }, [estacaoInfo && estacaoInfo.estacao.codigo]);
 
+  // ── Navegação de dias (aba Hoje): 0 = hoje; volta a 0 ao sair da aba Hoje e ao reabrir a app ──
+  var _sd1 = React.useState(0); var diaOffset = _sd1[0], setDiaOffset = _sd1[1];
+  var _sd2 = React.useState({}); var medicoesPorDia = _sd2[0], setMedicoesPorDia = _sd2[1]; // { 'estacao|YYYY-MM-DD': linhas | 'erro' }
+  var pedidosDiaRef = React.useRef({});
+  var swipeRef = React.useRef(null);
+  var estacaoCodigoSel = estacaoInfo ? estacaoInfo.estacao.codigo : null;
+  React.useEffect(function () { if (tab !== 'hoje') setDiaOffset(0); }, [tab]);
+  // Dias passados: medições desse dia (uma consulta por dia, ~24 h × nº de tipos, cabe no limite de linhas por pedido)
+  React.useEffect(function () {
+    if (!db || !estacaoCodigoSel || diaOffset >= 0) return;
+    var dia = polDiaDoOffset(diaOffset), chave = estacaoCodigoSel + '|' + dia;
+    if (medicoesPorDia[chave] !== undefined || pedidosDiaRef.current[chave]) return;
+    pedidosDiaRef.current[chave] = true;
+    var iv = polIntervaloDiaZurich(dia);
+    function guardar(v) { delete pedidosDiaRef.current[chave]; setMedicoesPorDia(function (prev) { var n = Object.assign({}, prev); n[chave] = v; return n; }); }
+    db.from('pollen_medicoes').select('*').eq('estacao', estacaoCodigoSel).gte('ts', iv[0]).lt('ts', iv[1]).then(function (res) {
+      if (res.error) { console.error('[pollen] medições do dia:', res.error); window.mostrarErro('Pólen', res.error); guardar('erro'); return; }
+      guardar(res.data || []);
+    }).catch(function (e) { console.error('[pollen] medições do dia:', e); window.mostrarErro('Pólen', e); guardar('erro'); });
+  }, [diaOffset, estacaoCodigoSel, medicoesPorDia]);
+
   // Último valor por tipo (a medição mais recente dentro das 48h)
   var ultimoPorTipo = {};
   medicoesHoje.forEach(function (m) {
@@ -467,12 +555,16 @@ function PollenApp(props) {
     if (!perfilAtivo) { setPrevisao(null); return; }
     setPrevisaoErro(null);
     var vars = POL_TIPOS.filter(function (t) { return t.omVar; }).map(function (t) { return t.omVar; }).join(',');
-    var url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + perfilAtivo.lat + '&longitude=' + perfilAtivo.lon +
-      '&hourly=' + vars + '&timezone=Europe%2FZurich&forecast_days=4';
-    fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    }).then(function (data) {
+    var urlBase = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + perfilAtivo.lat + '&longitude=' + perfilAtivo.lon +
+      '&hourly=' + vars + '&timezone=Europe%2FZurich&forecast_days=';
+    function pedir(dias) {
+      return fetch(urlBase + dias).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+    }
+    // 7 dias (navegação no ecrã Hoje); se a API recusar, recua para os 4 de sempre. A aba Previsão continua a mostrar só 4 (slice abaixo).
+    pedir(7).catch(function () { return pedir(4); }).then(function (data) {
       setPrevisao(data);
     }).catch(function (e) {
       console.error('[pollen] previsão Open-Meteo:', e);
@@ -755,11 +847,30 @@ function PollenApp(props) {
     var alergiaIds = perfilAtivo.alergias || [];
     var tiposAlergia = POL_TIPOS.filter(function (t) { return alergiaIds.indexOf(t.id) !== -1; });
     var outrosTipos = POL_TIPOS.filter(function (t) { return alergiaIds.indexOf(t.id) === -1; });
+    // Outro dia (±7): passado = máximo do dia medido na estação; futuro = máximo do dia da previsão Open-Meteo.
+    // Sem valor na fonte → "Sem dados" (nunca se inventa um valor).
+    var ehHoje = diaOffset === 0, futuro = diaOffset > 0, diaIso = polDiaDoOffset(diaOffset);
+    var valoresDia = null, diaEstado = 'ok';
+    if (!ehHoje) {
+      if (futuro) {
+        if (!previsao && !previsaoErro) diaEstado = 'a-carregar';
+        else valoresDia = polMaxDiaPrevisao(previsao, diaIso);
+      } else {
+        var linhasDia = estacaoCodigoSel ? medicoesPorDia[estacaoCodigoSel + '|' + diaIso] : [];
+        if (linhasDia === undefined) diaEstado = 'a-carregar';
+        else if (linhasDia === 'erro') diaEstado = 'erro';
+        else valoresDia = polMaxDiaMedicoes(linhasDia);
+      }
+    }
+    var semDadosDia = !ehHoje && diaEstado === 'ok' && (!valoresDia || Object.keys(valoresDia).length === 0);
     function linhaTipo(t) {
       var m = ultimoPorTipo[t.id];
       var medicaoValida = polMedicaoRecente(m);
       var valor, fonteLabel;
-      if (medicaoValida) {
+      if (!ehHoje) {
+        valor = valoresDia && valoresDia[t.id] != null ? valoresDia[t.id] : null;
+        fonteLabel = valor == null ? null : (futuro ? 'previsão · máx. do dia' : 'medido · ' + (estacaoInfo ? estacaoInfo.estacao.nome : 'estação') + ' · máx. do dia');
+      } else if (medicaoValida) {
         valor = m.valor;
         fonteLabel = 'medido · ' + estacaoInfo.estacao.nome + ' ' + polFmtHora(m.ts);
       } else {
@@ -778,16 +889,44 @@ function PollenApp(props) {
         )
       );
     }
-    return React.createElement('div', { style: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12 } },
+    var limiteAtras = diaOffset <= -POL_DIA_MAX, limiteFrente = diaOffset >= POL_DIA_MAX;
+    var barraDia = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+      React.createElement('div', { className: 'pol-diabar' },
+        React.createElement('button', { className: 'pol-dia-btn', 'aria-label': 'Dia anterior', disabled: limiteAtras, onClick: function () { setDiaOffset(polLimitarOffset(diaOffset - 1)); } }, '‹'),
+        React.createElement('div', { className: 'pol-dia-label' + (ehHoje ? '' : ' pol-dia-outro'), 'aria-live': 'polite' }, polEtiquetaDia(diaOffset)),
+        React.createElement('button', { className: 'pol-dia-btn', 'aria-label': 'Dia seguinte', disabled: limiteFrente, onClick: function () { setDiaOffset(polLimitarOffset(diaOffset + 1)); } }, '›')
+      ),
+      !ehHoje && React.createElement('button', { className: 'pol-btn pol-btn-ativo', style: { width: '100%', padding: '12px 0', fontSize: 14 }, onClick: function () { setDiaOffset(0); } }, 'Voltar a hoje')
+    );
+    var swipeProps = {
+      onTouchStart: function (e) { var t = e.touches && e.touches[0]; swipeRef.current = t ? { x: t.clientX, y: t.clientY } : null; },
+      onTouchEnd: function (e) {
+        var ini = swipeRef.current; swipeRef.current = null;
+        var t = e.changedTouches && e.changedTouches[0];
+        if (!ini || !t) return;
+        var dx = t.clientX - ini.x, dy = t.clientY - ini.y;
+        // só um gesto claramente horizontal muda de dia; o scroll vertical fica intacto
+        if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) setDiaOffset(function (o) { return polLimitarOffset(o + (dx < 0 ? 1 : -1)); });
+      }
+    };
+    return React.createElement('div', { style: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12, touchAction: 'pan-y' }, onTouchStart: swipeProps.onTouchStart, onTouchEnd: swipeProps.onTouchEnd },
+      barraDia,
       React.createElement(PolCard, null,
         React.createElement('div', { style: { fontWeight: 800, fontSize: 15, marginBottom: 4 } }, perfilAtivo.cidade + (perfilAtivo.kanton ? ' · ' + perfilAtivo.kanton : '')),
-        estacaoInfo
+        !ehHoje
+          ? React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } },
+              futuro ? 'Previsão Open-Meteo para ' + polEtiquetaDia(diaOffset) + ' (máximo do dia)'
+                : (estacaoInfo ? 'Estação mais próxima: ' + estacaoInfo.estacao.nome + ' (' + estacaoInfo.distanciaKm.toFixed(1) + ' km) · valores medidos em ' + polEtiquetaDia(diaOffset) + ' (máximo do dia)' : 'Estações ainda não carregadas.'))
+          : estacaoInfo
           ? React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } },
               'Estação mais próxima: ' + estacaoInfo.estacao.nome + ' (' + estacaoInfo.distanciaKm.toFixed(1) + ' km)' +
               (horaUltimaMedicao ? ' · última medição às ' + polFmtHora(horaUltimaMedicao) : ' · sem medições ainda')
             )
           : React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, 'Estações ainda não carregadas.')
       ),
+      !ehHoje && diaEstado === 'a-carregar' && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 14, fontWeight: 700, textAlign: 'center' } }, 'A carregar…')),
+      !ehHoje && diaEstado === 'erro' && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 14, fontWeight: 700, textAlign: 'center', color: '#DC2626' } }, '⚠️ Não foi possível obter as medições deste dia.')),
+      semDadosDia && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 15, fontWeight: 800, textAlign: 'center' } }, 'Sem dados para este dia')),
       React.createElement(PolCard, null,
         React.createElement('div', { style: { fontWeight: 800, fontSize: 13, marginBottom: 4, textTransform: 'uppercase', color: 'var(--pol-texto2)' } }, 'Os teus pólens'),
         tiposAlergia.length ? tiposAlergia.map(linhaTipo) : React.createElement('p', { style: { fontSize: 13, color: 'var(--pol-texto2)' } }, 'Este perfil ainda não tem alergias escolhidas.')
