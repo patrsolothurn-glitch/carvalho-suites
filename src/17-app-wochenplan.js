@@ -32,6 +32,7 @@ var WP_ULTIMO_TRABALHO_KEY = 'wplan_ultimo_trabalho';
 // ✓ em "Nicht erledigt": o estado anterior e a data do ✓ ficam na base (wplan_tasks.status_vor_haken / gehakt_am).
 // WP_HAKEN_KEY só serve para migrar as marcas antigas (antes guardadas por dispositivo) — ver wpMigrarHaken.
 var WP_HAKEN_KEY = 'wplan_haken';
+var WP_ERLEDIGT_KEY = 'wplan_erledigt_offen'; // só a preferência de interface (secção "Erledigt" aberta/fechada), nunca dados de tarefas
 var WP_HAKEN_VOR = ['offen', 'laeuft', 'gebaut_nio'];
 function wpMigrarHaken(db, rows) {
   var alt;
@@ -265,6 +266,14 @@ var WP_CSS = '\
 .wp-alarm .wp-job{margin-bottom:6px}\
 .wp-alarm .wp-job h3{display:flex;align-items:baseline;color:#fff}\
 .wp-alarm .wp-job .wp-aldata{margin-left:auto;flex:none;color:#BE2318;font-weight:600;font-size:13px}\
+.wp-erl{margin-top:10px}\
+.wp-app .wp-erl-kopf{display:flex;align-items:center;width:100%;min-height:44px;font-size:15px;font-weight:700;padding:0 12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);color:var(--ink);cursor:pointer;text-align:left;font-family:inherit}\
+.wp-app .wp-erl .wp-job{margin-top:6px}\
+.wp-app .wp-erl .wp-job h3{font-size:15px;flex-wrap:wrap;overflow-wrap:anywhere}\
+.wp-app .wp-erl .wp-job p{font-size:15px;overflow-wrap:anywhere}\
+.wp-app .wp-erl .wp-job p.wp-erl-am{color:var(--ink2)}\
+.wp-app .wp-erl-btn{min-height:44px;font-size:15px;padding:0 16px;margin-top:8px;border:2px solid var(--ink);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;font-family:inherit}\
+.wp-app .wp-erl-leer{padding:12px;font-size:15px;color:var(--ink2)}\
 .wp-cols{display:grid;grid-template-columns:1fr;gap:13px}\
 @media(min-width:860px){.wp-cols{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr)}}\
 .wp-slot{display:flex;gap:9px;margin-bottom:6px}\
@@ -544,28 +553,33 @@ function WpAlarm(p) {
   // Admin vê o de todos (com as tarefas sem nome); Monteur filtrado por uma pessoa vê só o dela.
   var basis = p.rolle === 'bauleiter' ? 'alle' : (p.who !== 'alle' ? p.who : null);
   if (!basis) return null;
-  var hoje = wpTodayIso(), segunda = wpWeekDays(hoje)[0];
+  var E = React.createElement, hoje = wpTodayIso(), aberto = !!p.erledigtOffen;
   var offen = wpSpaet(p.tasks, hoje, basis);
-  // linhas marcadas com ✓ ficam visíveis (e riscadas) enquanto gehakt_am estiver na semana visível, para poderem ser desmarcadas
-  var marcadas = p.tasks.filter(function(a) {
-    return a.status === 'erledigt' && a.gehakt_am && wpWeekDays(a.gehakt_am)[0] === segunda && wpMine(a, basis);
-  });
-  var l = offen.concat(marcadas).sort(function(x, y) { return x.datum < y.datum ? -1 : x.datum > y.datum ? 1 : 0; });
-  if (!l.length) return null;
-  return React.createElement('div', { className: 'wp-alarm' },
-    React.createElement('h3', null, '⚠ Nicht erledigt · ' + offen.length),
-    l.map(function(a) {
-      var d = wpMk(a.datum), feito = a.status === 'erledigt';
-      return React.createElement('div', {
-        key: a.id, className: 'wp-job' + (feito ? ' wp-done' : ''), onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: feito ? 'var(--ok)' : '#BE2318' }
-      },
-        React.createElement('h3', null,
-          React.createElement('input', { type: 'checkbox', checked: feito, 'aria-label': 'erledigt', style: { marginRight: 8 }, onClick: function(e) { e.stopPropagation(); }, onChange: function() { p.onHaken(a); } }),
-          React.createElement('span', { style: feito ? { textDecoration: 'line-through', color: 'var(--ink3)' } : null }, a.titel),
-          React.createElement('span', { className: 'wp-aldata' }, WP_DAY[wpDi(d)] + ' ' + wpFmt(d))),
-        React.createElement('p', { style: feito ? { textDecoration: 'line-through', color: 'var(--ink3)' } : null }, a.arbeit + (a.wer ? ' · ' + a.wer : ''))
-      );
-    })
+  // Erledigt: só as tarefas marcadas com ✓ (gehakt_am preenchido), as mais recentes primeiro. Nunca aparecem em "Nicht erledigt".
+  var feitas = p.tasks.filter(function(a) { return a.status === 'erledigt' && a.gehakt_am && wpMine(a, basis); })
+    .sort(function(x, y) { return x.gehakt_am < y.gehakt_am ? 1 : x.gehakt_am > y.gehakt_am ? -1 : 0; });
+  var riscado = { textDecoration: 'line-through', color: 'var(--ink3)' };
+  return E('div', { className: 'wp-alarm' },
+    offen.length > 0 && E('h3', null, '⚠ Nicht erledigt · ' + offen.length),
+    offen.map(function(a) {
+      var d = wpMk(a.datum);
+      return E('div', { key: a.id, className: 'wp-job', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: '#BE2318' } },
+        E('h3', null,
+          E('input', { type: 'checkbox', checked: false, 'aria-label': 'erledigt', style: { marginRight: 8 }, onClick: function(e) { e.stopPropagation(); }, onChange: function() { p.onHaken(a); } }),
+          E('span', null, a.titel),
+          E('span', { className: 'wp-aldata' }, WP_DAY[wpDi(d)] + ' ' + wpFmt(d))),
+        E('p', null, a.arbeit + (a.wer ? ' · ' + a.wer : '')));
+    }),
+    E('div', { className: 'wp-erl' },
+      E('button', { type: 'button', className: 'wp-erl-kopf', 'aria-expanded': aberto, onClick: p.onErledigtToggle }, (aberto ? '▾ ' : '▸ ') + 'Erledigt (' + feitas.length + ')'),
+      aberto && (feitas.length === 0 ? E('div', { className: 'wp-erl-leer' }, 'Nichts erledigt') : feitas.map(function(a) {
+        var dg = wpMk(a.gehakt_am);
+        return E('div', { key: a.id, className: 'wp-job wp-done', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: 'var(--ok)' } },
+          E('h3', { style: riscado }, E('span', { style: riscado }, a.titel)),
+          E('p', { style: riscado }, a.arbeit + (a.wer ? ' · ' + a.wer : '')),
+          E('p', { className: 'wp-erl-am' }, 'erledigt am ' + WP_DAY[wpDi(dg)] + ' ' + wpFmt(dg)),
+          E('button', { type: 'button', className: 'wp-erl-btn', onClick: function(e) { e.stopPropagation(); p.onHaken(a); } }, 'Rückgängig'));
+      })))
   );
 }
 function WpLegend() {
@@ -1634,6 +1648,11 @@ function WochenplanApp(props) {
   var printOutRef = React.useRef(null);
   var vorschauOutRef = React.useRef(null);
   var _s28 = React.useState(null); var previewJob = _s28[0], setPreviewJob = _s28[1];
+  var _e1 = React.useState(function() { try { return localStorage.getItem(WP_ERLEDIGT_KEY) === '1'; } catch (e) { return false; } }); var erledigtOffen = _e1[0], setErledigtOffen = _e1[1];
+  function alternarErledigt() {
+    var novo = !erledigtOffen; setErledigtOffen(novo);
+    try { localStorage.setItem(WP_ERLEDIGT_KEY, novo ? '1' : '0'); } catch (e) {}
+  }
   var vorschauWrapRef = React.useRef(null);
   var vorschauInnerRef = React.useRef(null);
 
@@ -2128,7 +2147,7 @@ function WochenplanApp(props) {
         onVorschau: acionarVorschau
       }),
       React.createElement(WpKpis, { mode: mode, rolle: rolle, tasks: tasks, leute: leute, cur: cur, who: who }),
-      React.createElement(WpAlarm, { tasks: tasks, who: who, rolle: rolle, onHaken: alternarHaken, onOpen: abrirTarefa }),
+      React.createElement(WpAlarm, { tasks: tasks, who: who, rolle: rolle, onHaken: alternarHaken, onOpen: abrirTarefa, erledigtOffen: erledigtOffen, onErledigtToggle: alternarErledigt }),
       mostrarBalanco && React.createElement(WpBalancoBanner, { quem: pessoaBalanco.name, onAbrir: function() { setMode('tag'); setCur(wpTodayIso()); abrirNota(wpTodayIso()); } }),
       React.createElement('div', null,
         mode === 'tag' && React.createElement(WpTagView, Object.assign({}, diaAtualObj, {
