@@ -39,6 +39,17 @@ var STATUS = {
     icon: '⚠️'
   }
 };
+// Categorias do Patricio Work (app de trabalho): só Trabalho, Família e Pessoal. Independentes da lista de categorias da Família Carvalho.
+var CATEGORIAS_WORK = {
+  trabalho: { label: 'Trabalho', emoji: '💼', color: '#F59458' },
+  familia: { label: 'Família', emoji: '🏠', color: '#D43C3C' },
+  pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
+};
+// Só para a vista: uma categoria que não está na lista (p.ex. 'escola' em marcações antigas) conta como 'trabalho' no gráfico por categoria e fica sempre visível nos filtros. Não altera a base de dados.
+function apCatVista(a) {
+  var c = a.categoria || 'trabalho';
+  return CATEGORIAS_WORK[c] ? c : 'trabalho';
+}
 function AgendaProApp(_ref13) {
   var onBack = _ref13.onBack,
     _ref13$sharedDias = _ref13.sharedDias,
@@ -683,7 +694,7 @@ function AgendaProApp(_ref13) {
   };
 
   // Filtered list
-  var _useStateFiltrosAP = (0, _react.useState)(Object.keys(CATEGORIAS)),
+  var _useStateFiltrosAP = (0, _react.useState)(Object.keys(CATEGORIAS_WORK)),
     _useStateFiltrosAP2 = _slicedToArray(_useStateFiltrosAP, 2),
     filtrosAtivos = _useStateFiltrosAP2[0],
     setFiltrosAtivos = _useStateFiltrosAP2[1];
@@ -717,7 +728,7 @@ function AgendaProApp(_ref13) {
   var filtered = appts.filter(function (a) {
     var matchSearch = !search || a.morada.toLowerCase().includes(search.toLowerCase()) || a.proj.toLowerCase().includes(search.toLowerCase()) || a.monteur.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-    var catMatch = filtrosAtivos.indexOf(a.categoria || 'trabalho') !== -1;
+    var catMatch = !CATEGORIAS_WORK[a.categoria || 'trabalho'] || filtrosAtivos.indexOf(a.categoria || 'trabalho') !== -1; // categoria fora da lista (p.ex. 'escola'): sempre visível
     var familiaMatch = a.partilhado && filtrosAtivos.indexOf('familia') !== -1;
     if (!catMatch && !familiaMatch) return false;
     if (filter === 'Hoje') return a.date === todayStr;
@@ -829,7 +840,7 @@ function AgendaProApp(_ref13) {
           chf: Number(row.chf) || 0,
           status: row.status || 'aberto',
           nota: row.note || '',
-          categoria: row.categoria || (row.source === 'escolar' ? 'escola' : 'trabalho'),
+          categoria: row.categoria || 'trabalho',
           partilhado: !!row.partilhado,
           partilhadoCom: row.partilhado_com || 'todos'
         };
@@ -1577,8 +1588,8 @@ function AgendaProApp(_ref13) {
       gap: 6,
       flexWrap: 'wrap'
     }
-  }, Object.keys(CATEGORIAS).map(function (catKey) {
-    var cat = CATEGORIAS[catKey];
+  }, Object.keys(CATEGORIAS_WORK).map(function (catKey) {
+    var cat = CATEGORIAS_WORK[catKey];
     var ativo = filtrosAtivos.indexOf(catKey) !== -1;
     return /*#__PURE__*/React.createElement("button", {
       key: catKey,
@@ -3336,8 +3347,8 @@ function AgendaProApp(_ref13) {
       marginBottom: 14,
       flexWrap: 'wrap'
     }
-  }, Object.keys(CATEGORIAS).map(function (catKey) {
-    var cat = CATEGORIAS[catKey];
+  }, Object.keys(CATEGORIAS_WORK).map(function (catKey) {
+    var cat = CATEGORIAS_WORK[catKey];
     var isSel = form.categoria === catKey;
     return /*#__PURE__*/React.createElement("button", {
       key: catKey,
@@ -3762,21 +3773,14 @@ function AgendaProApp(_ref13) {
       return a.date && a.date.indexOf(prefix) === 0;
     });
     var porCategoria = {};
-    Object.keys(CATEGORIAS).forEach(function (c) {
+    Object.keys(CATEGORIAS_WORK).forEach(function (c) {
       porCategoria[c] = 0;
     });
     doMes.forEach(function (a) {
-      var c = a.categoria || 'trabalho';
+      var c = apCatVista(a);
       porCategoria[c] = (porCategoria[c] || 0) + 1;
     });
-    var escolaSemana = [0, 0, 0, 0, 0];
-    doMes.forEach(function (a) {
-      var dia = parseInt(a.date.slice(8, 10));
-      var w = Math.min(4, Math.floor((dia - 1) / 7));
-      if ((a.categoria || 'trabalho') === 'escola') escolaSemana[w]++;
-    });
     var maxCat = Math.max.apply(Math, Object.values(porCategoria).concat([1]));
-    var maxEscola = Math.max.apply(Math, escolaSemana.concat([1]));
     var dayRangeHoras = function () {
       var todayKey0 = new Date();
       todayKey0.setHours(0, 0, 0, 0);
@@ -3821,8 +3825,8 @@ function AgendaProApp(_ref13) {
       style: { color: A.muted, fontSize: 11, marginBottom: 14 }
     }, curDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }), " \xB7 ", doMes.length, " no total"), /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', alignItems: 'flex-end', gap: 12, height: 100 }
-    }, Object.keys(CATEGORIAS).map(function (catKey) {
-      var cat = CATEGORIAS[catKey];
+    }, Object.keys(CATEGORIAS_WORK).map(function (catKey) {
+      var cat = CATEGORIAS_WORK[catKey];
       var val = porCategoria[catKey] || 0;
       var h = Math.max(4, val / maxCat * 80);
       return /*#__PURE__*/React.createElement("div", {
@@ -3885,32 +3889,12 @@ function AgendaProApp(_ref13) {
         key: wi,
         style: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
       }, /*#__PURE__*/React.createElement("p", {
-        style: { fontSize: 11, fontWeight: 800, color: w.isToday ? A.orange : CATEGORIAS.trabalho.color }
+        style: { fontSize: 11, fontWeight: 800, color: w.isToday ? A.orange : CATEGORIAS_WORK.trabalho.color }
       }, w.horas > 0 ? w.horas.toFixed(1) + 'h' : '\u2013'), /*#__PURE__*/React.createElement("div", {
-        style: { width: '100%', maxWidth: 30, height: h, background: w.isToday ? A.orange : CATEGORIAS.trabalho.color, borderRadius: '6px 6px 0 0' }
+        style: { width: '100%', maxWidth: 30, height: h, background: w.isToday ? A.orange : CATEGORIAS_WORK.trabalho.color, borderRadius: '6px 6px 0 0' }
       }), /*#__PURE__*/React.createElement("span", {
         style: { fontSize: 10, color: w.isToday ? A.orange : A.muted, fontWeight: w.isToday ? 800 : 700 }
       }, label));
-    }))), /*#__PURE__*/React.createElement(ACard, {
-      style: { padding: '16px' }
-    }, /*#__PURE__*/React.createElement("p", {
-      style: { color: A.text, fontWeight: 800, fontSize: 14, marginBottom: 4 }
-    }, "\uD83D\uDCDA Eventos escolares por semana"), /*#__PURE__*/React.createElement("p", {
-      style: { color: A.muted, fontSize: 11, marginBottom: 14 }
-    }, "Testes enviados pela Vida Escolar"), /*#__PURE__*/React.createElement("div", {
-      style: { display: 'flex', alignItems: 'flex-end', gap: 10, height: 90 }
-    }, escolaSemana.map(function (val, wi) {
-      var h = Math.max(4, val / maxEscola * 70);
-      return /*#__PURE__*/React.createElement("div", {
-        key: wi,
-        style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }
-      }, /*#__PURE__*/React.createElement("p", {
-        style: { fontSize: 11, fontWeight: 800, color: CATEGORIAS.escola.color }
-      }, val), /*#__PURE__*/React.createElement("div", {
-        style: { width: '100%', maxWidth: 30, height: h, background: CATEGORIAS.escola.color, borderRadius: '6px 6px 0 0' }
-      }), /*#__PURE__*/React.createElement("span", {
-        style: { fontSize: 10, color: A.muted, fontWeight: 700 }
-      }, "S", wi + 1));
     }))));
   })(),
 
