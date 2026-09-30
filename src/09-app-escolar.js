@@ -633,7 +633,7 @@ var EventoRow = function EventoRow(_ref33) {
   }, "📢"), /*#__PURE__*/React.createElement("div", {
     style: { flex: 1 }
   }, /*#__PURE__*/React.createElement("p", {
-    style: { fontWeight: 700, fontSize: 14, color: E.text }
+    style: { fontWeight: 700, fontSize: 14, color: E.text, textDecoration: isPast ? 'line-through' : 'none' }
   }, evento.nome), /*#__PURE__*/React.createElement("p", {
     style: { color: E.muted, fontSize: 11, marginTop: 1 }
   }, periodo, " \xB7 ", alunosLabel), evento.nota && /*#__PURE__*/React.createElement("p", {
@@ -4557,7 +4557,9 @@ function EscolarApp(_ref31) {
   }, "📢"), /*#__PURE__*/React.createElement("p", {
     style: { color: E.muted, fontSize: 13, marginTop: 8 }
   }, "Sem eventos escolares marcados")), eventosDoAluno.map(function (ev) {
-    var _todayStrEv = new Date().toISOString().slice(0, 10);
+    // data LOCAL (não UTC): o evento passa a "passado" à meia-noite da Suíça
+    var _dEv = new Date();
+    var _todayStrEv = _dEv.getFullYear() + '-' + String(_dEv.getMonth() + 1).padStart(2, '0') + '-' + String(_dEv.getDate()).padStart(2, '0');
     var isPast = (ev.dataFim || ev.dataInicio) < _todayStrEv;
     return /*#__PURE__*/React.createElement(EventoRow, {
       key: ev.id,

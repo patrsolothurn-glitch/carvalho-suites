@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-30T15:46:35.472Z
+  Gerado em: 2026-09-30T16:06:39.768Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-367";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-368";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -15750,7 +15750,7 @@ var EventoRow = function EventoRow(_ref33) {
   }, "📢"), /*#__PURE__*/React.createElement("div", {
     style: { flex: 1 }
   }, /*#__PURE__*/React.createElement("p", {
-    style: { fontWeight: 700, fontSize: 14, color: E.text }
+    style: { fontWeight: 700, fontSize: 14, color: E.text, textDecoration: isPast ? 'line-through' : 'none' }
   }, evento.nome), /*#__PURE__*/React.createElement("p", {
     style: { color: E.muted, fontSize: 11, marginTop: 1 }
   }, periodo, " \xB7 ", alunosLabel), evento.nota && /*#__PURE__*/React.createElement("p", {
@@ -19674,7 +19674,9 @@ function EscolarApp(_ref31) {
   }, "📢"), /*#__PURE__*/React.createElement("p", {
     style: { color: E.muted, fontSize: 13, marginTop: 8 }
   }, "Sem eventos escolares marcados")), eventosDoAluno.map(function (ev) {
-    var _todayStrEv = new Date().toISOString().slice(0, 10);
+    // data LOCAL (não UTC): o evento passa a "passado" à meia-noite da Suíça
+    var _dEv = new Date();
+    var _todayStrEv = _dEv.getFullYear() + '-' + String(_dEv.getMonth() + 1).padStart(2, '0') + '-' + String(_dEv.getDate()).padStart(2, '0');
     var isPast = (ev.dataFim || ev.dataInicio) < _todayStrEv;
     return /*#__PURE__*/React.createElement(EventoRow, {
       key: ev.id,
