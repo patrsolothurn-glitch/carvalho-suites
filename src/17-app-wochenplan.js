@@ -21,7 +21,7 @@ var WP_DST = {
   ferien: ['Ferien', '#FAF0DA', '#A96700'],
   schule: ['Schule', '#E1F2EC', '#0B7550']
 };
-function wpDst(st) { return WP_DST[st] || [String(st), '#F7F7F4', '#585C62']; }
+function wpDst(st) { return WP_DST[st] || [(st === undefined || st === null || st === '') ? '–' : String(st), '#F7F7F4', '#585C62']; }
 var WP_H0 = 7, WP_H1 = 18, WP_PPM = 0.6;
 var WP_MM = 3.7795;
 var WP_WL_KEY = 'wplan_view_layout';
@@ -1122,7 +1122,7 @@ function WpPrintPlan(p) {
           var s = 0; L.forEach(function(a) { s += wpDur(a); }); wk += s; dias[k] = (dias[k] || 0) + s;
           return React.createElement('td', { key: k },
             // Team-Tabelle (folha partilhada): dado de saúde/ausência de um colega sai como "Abwesend"
-            st && React.createElement('b', null, p.team && (st === 'krank' || st === 'ferien') ? 'Abwesend' : WP_DST[st][0]),
+            st && React.createElement('b', null, p.team && (st === 'krank' || st === 'ferien') ? 'Abwesend' : wpDst(st)[0]),
             L.map(function(a) {
               // Team-Tabelle: hora, morada, tipo de trabalho; ☐ neutro, sem estado nem Bemerkungen
               if (p.team) return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), '☐ ' + a.titel + (a.arbeit ? ' · ' + a.arbeit : ''));
@@ -1179,7 +1179,7 @@ function WpPrintUebersicht(p) {
       if (!L.length && !st && !notas.length) return null;
       var s = 0; L.forEach(function(a) { if (a.status === 'erledigt') s += wpDur(a); });
       return React.createElement('div', wpDiaProps(p, k, L.length),
-        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(wpMk(k)) + (st ? ' — ' + WP_DST[st][0] : '') + ' · ' + wpDez(s) + ' h geleistet'),
+        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(wpMk(k)) + (st ? ' — ' + wpDst(st)[0] : '') + ' · ' + wpDez(s) + ' h geleistet'),
         L.map(function(a) {
           return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
@@ -1204,7 +1204,7 @@ function WpPrintListe(p) {
       if (!L.length && !st && !notas.length) return null;
       var g = 0; L.forEach(function(a) { if (a.status === 'erledigt') g += wpDur(a); });
       return React.createElement('div', wpDiaProps(p, k, L.length),
-        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + WP_DST[st][0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
+        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + wpDst(st)[0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
         L.map(function(a) {
           return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
