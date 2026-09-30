@@ -1057,24 +1057,42 @@ function EscolarApp(_ref31) {
           return false;
         });
       }
-      var apagarEInserir = function apagarEInserir() {
-        return sb.from('escolar_disciplinas').delete().eq('aluno', key).then(function (delRes) {
-          if (delRes && delRes.error) {
-            console.warn('[escolar] DELETE disciplinas falhou — NAO inserindo (preservar dados existentes):', delRes.error.message);
-            window.mostrarErro('Vida Escolar', delRes.error);
+      // Atualização cirúrgica (NUNCA apagar tudo): 1) ler os ids atuais do aluno no servidor; 2) upsert das linhas novas
+      // (onConflict 'id' — ids únicos entre alunos: Lucas 1..19, Liam 101+, novos = Date.now()); 3) só depois apagar SÓ os ids
+      // que existem no servidor e já não estão na lista nova. As FK têm ON DELETE CASCADE (notas) e SET NULL (horário, TPC):
+      // apagar e reinserir tudo apagava as notas do aluno e punha disc_id a NULL em todo o horário/TPC.
+      // Se o upsert falhar, não se apaga nada. Sem removidos, não há DELETE.
+      var atualizarCirurgico = function atualizarCirurgico() {
+        return sb.from('escolar_disciplinas').select('id').eq('aluno', key).then(function (selRes) {
+          if (selRes && selRes.error) {
+            console.warn('[escolar] SELECT disciplinas falhou — a não gravar (preservar dados existentes):', selRes.error.message);
+            window.mostrarErro('Vida Escolar', selRes.error);
             return false;
           }
-          if (rows.length > 0) {
-            return sb.from('escolar_disciplinas').insert(rows).then(function (insRes) {
-              logIns('disciplinas')(insRes);
-              if (insRes && insRes.error) {
-                window.mostrarErro('Vida Escolar', insRes.error);
+          var idsServidor = ((selRes && selRes.data) || []).map(function (r) { return r.id; });
+          var removidos = idsServidor.filter(function (id) { return !idsNovos[id]; });
+          var upsertar = rows.length > 0
+            ? sb.from('escolar_disciplinas').upsert(rows, { onConflict: 'id' }).then(function (upRes) {
+                logIns('disciplinas')(upRes);
+                if (upRes && upRes.error) {
+                  window.mostrarErro('Vida Escolar', upRes.error);
+                  return false;
+                }
+                return true;
+              })
+            : Promise.resolve(true);
+          return upsertar.then(function (ok) {
+            if (!ok) return false; // upsert falhou: nada é apagado
+            if (removidos.length === 0) return true;
+            return sb.from('escolar_disciplinas').delete().eq('aluno', key).in('id', removidos).then(function (delRes) {
+              if (delRes && delRes.error) {
+                console.warn('[escolar] DELETE dos removidos falhou:', delRes.error.message);
+                window.mostrarErro('Vida Escolar', delRes.error);
                 return false;
               }
               return true;
             });
-          }
-          return true;
+          });
         }).catch(function (e) {
           console.warn('[escolar] erro disciplinas:', e);
           window.mostrarErro('Vida Escolar', e);
@@ -1089,14 +1107,14 @@ function EscolarApp(_ref31) {
             window.mostrarErro('Vida Escolar', { message: 'Gravação de disciplinas cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
             return false;
           }
-          return apagarEInserir();
+          return atualizarCirurgico();
         }).catch(function (e) {
           console.warn('[escolar] erro contagem disciplinas:', e);
           window.mostrarErro('Vida Escolar', e);
           return false;
         });
       }
-      return apagarEInserir();
+      return atualizarCirurgico();
     };
     var gravarHorario = function gravarHorario() {
       var rows = [];
