@@ -21,6 +21,7 @@ var WP_DST = {
   ferien: ['Ferien', '#FAF0DA', '#A96700'],
   schule: ['Schule', '#E1F2EC', '#0B7550']
 };
+function wpDst(st) { return WP_DST[st] || [(st === undefined || st === null || st === '') ? '–' : String(st), '#F7F7F4', '#585C62']; }
 var WP_H0 = 7, WP_H1 = 18, WP_PPM = 0.6;
 var WP_MM = 3.7795;
 var WP_WL_KEY = 'wplan_view_layout';
@@ -624,7 +625,7 @@ function WpTagView(p) {
   if (!put && !st) slots.push(mitH());
   return React.createElement('div', { className: 'wp-cols' },
     React.createElement('div', null,
-      st && React.createElement('div', { className: 'wp-frei', style: { background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
+      st && React.createElement('div', { className: 'wp-frei', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
       (!all.length && !st) && React.createElement('div', { className: 'wp-frei' }, 'Nichts geplant'),
       slots,
       React.createElement('button', { className: 'wp-add', onClick: function() { p.onNovo({ datum: d }); } }, '+ Auftrag'),
@@ -648,7 +649,7 @@ function WpWocheKarten(p) {
     var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
     dias.push(React.createElement('div', { key: k, className: 'wp-wd' + (k === p.cur ? ' wp-sel' : ''), onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('h4', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_DAY[i] + ' ' + wpFmt(dd), soma > 0 && React.createElement('em', null, wpDez(soma) + 'h')),
-      st && React.createElement('div', { className: 'wp-tg', style: { background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
+      st && React.createElement('div', { className: 'wp-tg', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
       L.map(function(a) {
         return React.createElement('div', { key: a.id, className: 'wp-wc', style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
           React.createElement('b', null, wpStIcon(a.status), a.von + '–' + a.bis),
@@ -675,7 +676,7 @@ function WpWocheRaster(p) {
       React.createElement('div', { className: 'wp-gbox' + (k === p.cur ? ' wp-sel' : ''), style: { height: tot } },
         linhas,
         React.createElement('div', { className: 'wp-gm', style: { top: ((wpMn(p.mVon) - WP_H0 * 60) * WP_PPM) + 'px', height: ((wpMn(p.mBis) - wpMn(p.mVon)) * WP_PPM) + 'px' } }),
-        st && React.createElement('div', { style: { position: 'absolute', inset: 0, background: WP_DST[st][1], color: WP_DST[st][2], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5 } }, WP_DST[st][0]),
+        st && React.createElement('div', { style: { position: 'absolute', inset: 0, background: wpDst(st)[1], color: wpDst(st)[2], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5 } }, wpDst(st)[0]),
         L.map(function(a) {
           var tp = (wpMn(a.von) - WP_H0 * 60) * WP_PPM, hg = Math.max(wpDur(a) * WP_PPM, 17);
           return React.createElement('div', { key: a.id, className: 'wp-gj', style: { top: tp, height: hg, borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
@@ -697,7 +698,7 @@ function WpWocheListe(p) {
     dias.push(React.createElement('div', { key: k, className: 'wp-ld', onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
         React.createElement('h4', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(dd)),
-        st && React.createElement('span', { className: 'wp-tg', style: { margin: 0, background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
+        st && React.createElement('span', { className: 'wp-tg', style: { margin: 0, background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
         React.createElement('span', { style: { marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink3)' } }, L.length + ' · ' + wpDez(soma) + 'h')
       ),
       (!L.length && !st) && React.createElement('div', { style: { fontSize: 12.5, color: 'var(--ink3)', paddingLeft: 6 } }, '–'),
@@ -745,7 +746,7 @@ function WpTeamNarrow(p, W, m) {
       var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
       return React.createElement('div', { key: pe.name, className: 'wp-tmp' },
         React.createElement('div', { className: 'wp-tmp-h' }, pe.name, soma > 0 && React.createElement('span', null, wpDez(soma) + 'h')),
-        st && React.createElement('div', { className: 'wp-tg', style: { background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
+        st && React.createElement('div', { className: 'wp-tg', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
         L.map(function(a) {
           return React.createElement('div', { key: a.id, className: 'wp-pc', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
             React.createElement('b', null, wpStIcon(a.status), a.von + '–' + a.bis),
@@ -781,7 +782,7 @@ function WpTeamView(p) {
           var soma = 0; L.forEach(function(a) { soma += wpDur(a); }); wk += soma;
           var sT = nm ? wpSollTag(P, k) * 60 : 0;
           return React.createElement('td', { key: k, className: st ? 'wp-off' : '' },
-            st && React.createElement('div', { className: 'wp-tg', style: { background: WP_DST[st][1], color: WP_DST[st][2] } }, WP_DST[st][0]),
+            st && React.createElement('div', { className: 'wp-tg', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
             L.map(function(a) {
               return React.createElement('div', { key: a.id, className: 'wp-pc', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
                 React.createElement('b', null, wpStIcon(a.status), a.von + '–' + a.bis),
@@ -1121,7 +1122,7 @@ function WpPrintPlan(p) {
           var s = 0; L.forEach(function(a) { s += wpDur(a); }); wk += s; dias[k] = (dias[k] || 0) + s;
           return React.createElement('td', { key: k },
             // Team-Tabelle (folha partilhada): dado de saúde/ausência de um colega sai como "Abwesend"
-            st && React.createElement('b', null, p.team && (st === 'krank' || st === 'ferien') ? 'Abwesend' : WP_DST[st][0]),
+            st && React.createElement('b', null, p.team && (st === 'krank' || st === 'ferien') ? 'Abwesend' : wpDst(st)[0]),
             L.map(function(a) {
               // Team-Tabelle: hora, morada, tipo de trabalho; ☐ neutro, sem estado nem Bemerkungen
               if (p.team) return React.createElement('div', { key: a.id, className: 'wp-pj' }, React.createElement('b', null, a.von + '–' + a.bis), '☐ ' + a.titel + (a.arbeit ? ' · ' + a.arbeit : ''));
@@ -1178,7 +1179,7 @@ function WpPrintUebersicht(p) {
       if (!L.length && !st && !notas.length) return null;
       var s = 0; L.forEach(function(a) { if (a.status === 'erledigt') s += wpDur(a); });
       return React.createElement('div', wpDiaProps(p, k, L.length),
-        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(wpMk(k)) + (st ? ' — ' + WP_DST[st][0] : '') + ' · ' + wpDez(s) + ' h geleistet'),
+        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(wpMk(k)) + (st ? ' — ' + wpDst(st)[0] : '') + ' · ' + wpDez(s) + ' h geleistet'),
         L.map(function(a) {
           return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1 } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
@@ -1203,7 +1204,7 @@ function WpPrintListe(p) {
       if (!L.length && !st && !notas.length) return null;
       var g = 0; L.forEach(function(a) { if (a.status === 'erledigt') g += wpDur(a); });
       return React.createElement('div', wpDiaProps(p, k, L.length),
-        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + WP_DST[st][0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
+        React.createElement('div', { className: 'wp-pd' }, WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d) + (st ? ' — ' + wpDst(st)[0] : '') + (g ? ' · ' + wpDez(g) + ' h' : '')),
         L.map(function(a) {
           return React.createElement('div', { key: a.id, className: 'wp-pl' }, React.createElement('span', { className: 'wp-b' }, a.status === 'erledigt' ? '☒' : a.status === 'laeuft' ? '◐' : a.status === 'gebaut_nio' ? '⚠' : '☐'), React.createElement('span', { className: 'wp-t' }, a.von + '–' + a.bis), React.createElement('span', { style: { flex: 1, minWidth: 0, overflowWrap: 'break-word' } }, a.titel + ' · ' + a.arbeit + (a.auftrag_nr ? ' · ' + a.auftrag_nr : '') + (a.bemerkungen ? ' · ' + a.bemerkungen : '')), React.createElement('span', { className: 'wp-n' }, a.wer || ''));
         }),
