@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-30T13:47:41.276Z
+  Gerado em: 2026-09-30T14:07:18.646Z
 -->
 <html lang="pt">
 <head>
@@ -28,7 +28,7 @@
     #root{min-height:100vh}
     input,textarea,select{font-size:16px!important}
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-360";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-361";</script>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;background:#09090E"><div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#C9A847,#E8C96C);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#09090E">C</div><p style="color:#C9A847;font-family:system-ui;font-size:16px;font-weight:600">A carregar...</p></div></div>
@@ -30616,9 +30616,11 @@ function WpAlarm(p) {
   if (!basis) return null;
   var E = React.createElement, hoje = wpTodayIso(), aberto = !!p.erledigtOffen;
   var offen = wpSpaet(p.tasks, hoje, basis);
-  // Erledigt: só as tarefas marcadas com ✓ (gehakt_am preenchido), as mais recentes primeiro. Nunca aparecem em "Nicht erledigt".
-  var feitas = p.tasks.filter(function(a) { return a.status === 'erledigt' && a.gehakt_am && wpMine(a, basis); })
-    .sort(function(x, y) { return x.gehakt_am < y.gehakt_am ? 1 : x.gehakt_am > y.gehakt_am ? -1 : 0; });
+  // Erledigt: TODAS as tarefas com status erledigt (com ou sem ✓), as mais recentes primeiro (gehakt_am; sem ele, o datum da tarefa).
+  // Nunca aparecem em "Nicht erledigt" (wpSpaet exclui erledigt).
+  function chaveEr(a) { return a.gehakt_am || a.datum || ''; }
+  var feitas = p.tasks.filter(function(a) { return a.status === 'erledigt' && wpMine(a, basis); })
+    .sort(function(x, y) { return chaveEr(x) < chaveEr(y) ? 1 : chaveEr(x) > chaveEr(y) ? -1 : 0; });
   var riscado = { textDecoration: 'line-through', color: 'var(--ink3)' };
   return E('div', { className: 'wp-alarm' },
     offen.length > 0 && E('h3', null, '⚠ Nicht erledigt · ' + offen.length),
@@ -30634,11 +30636,11 @@ function WpAlarm(p) {
     E('div', { className: 'wp-erl' },
       E('button', { type: 'button', className: 'wp-erl-kopf', 'aria-expanded': aberto, onClick: p.onErledigtToggle }, (aberto ? '▾ ' : '▸ ') + 'Erledigt (' + feitas.length + ')'),
       aberto && (feitas.length === 0 ? E('div', { className: 'wp-erl-leer' }, 'Nichts erledigt') : feitas.map(function(a) {
-        var dg = wpMk(a.gehakt_am);
+        var dg = a.gehakt_am ? wpMk(a.gehakt_am) : (a.datum ? wpMk(a.datum) : null);
         return E('div', { key: a.id, className: 'wp-job wp-done', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: 'var(--ok)' } },
           E('h3', { style: riscado }, E('span', { style: riscado }, a.titel)),
           E('p', { style: riscado }, a.arbeit + (a.wer ? ' · ' + a.wer : '')),
-          E('p', { className: 'wp-erl-am' }, 'erledigt am ' + WP_DAY[wpDi(dg)] + ' ' + wpFmt(dg)),
+          dg && E('p', { className: 'wp-erl-am' }, (a.gehakt_am ? 'erledigt am ' : '') + WP_DAY[wpDi(dg)] + ' ' + wpFmt(dg)),
           E('button', { type: 'button', className: 'wp-erl-btn', onClick: function(e) { e.stopPropagation(); p.onHaken(a); } }, 'Rückgängig'));
       })))
   );
@@ -31930,14 +31932,14 @@ function WochenplanApp(props) {
   // ── ✓ em "Nicht erledigt": marca erledigt (grava em wplan_tasks) e guarda o estado anterior; desmarcar repõe-o ──
   // ✓ em "Nicht erledigt": o estado vem SEMPRE da linha lida agora na base (não do estado local nem do localStorage).
   function alternarHaken(a) {
-    var querDesfazer = !!a.gehakt_am && a.status === 'erledigt'; // o que o utilizador vê e quer fazer
+    var querDesfazer = a.status === 'erledigt'; // o que o utilizador vê e quer fazer (linha na secção Erledigt, com ou sem ✓)
     db.from('wplan_tasks').select('id,status,status_vor_haken,gehakt_am').eq('id', a.id).then(function(lr) {
       if (lr.error) throw lr.error;
       var d = lr.data && lr.data[0];
       if (!d) throw new Error('Auftrag nicht gefunden.');
-      var feitoNaBase = d.status === 'erledigt' && !!d.gehakt_am;
+      var feitoNaBase = d.status === 'erledigt';
       var campos = null;
-      if (querDesfazer) { if (feitoNaBase) campos = { status: d.status_vor_haken || 'offen', status_vor_haken: null, gehakt_am: null }; }
+      if (querDesfazer) { if (feitoNaBase) campos = { status: WP_HAKEN_VOR.indexOf(d.status_vor_haken) >= 0 ? d.status_vor_haken : 'offen', status_vor_haken: null, gehakt_am: null }; }
       else if (d.status !== 'erledigt') campos = { status: 'erledigt', status_vor_haken: WP_HAKEN_VOR.indexOf(d.status) >= 0 ? d.status : 'offen', gehakt_am: wpTodayIso() };
       if (!campos) return { status: d.status, status_vor_haken: d.status_vor_haken, gehakt_am: d.gehakt_am }; // outro aparelho já fez / já estava erledigt: não grava nada
       return db.from('wplan_tasks').update(Object.assign({}, campos, { updated_at: new Date().toISOString() })).eq('id', a.id).eq('status', d.status).select().then(function(res) {
