@@ -1831,17 +1831,8 @@ function EscolarApp(_ref31) {
             };
           }
           next[key] = updated;
-          // Proteção: se um aluno protegido (com dados reais conhecidos)
-          // aparecer com a tabela completamente vazia — por um DELETE
-          // a mais, SQL errado, etc. — repomos a cópia de segurança
-          // guardada no código de volta para o Supabase, sem precisar
-          // de intervenção manual.
-          var PROTEGIDOS = ['lucas'];
-          if (PROTEGIDOS.indexOf(key) !== -1 && discRows.length === 0 && horRows.length === 0 && ALUNOS_DEF[key] && (ALUNOS_DEF[key].disciplinas || []).length > 0) {
-            console.warn('[escolar] ' + key + ' apareceu sem disciplinas/horario — a repor a copia de seguranca automaticamente.');
-            saveAlunoSnapshot(key, ALUNOS_DEF[key]);
-            next[key] = _objectSpread({}, ALUNOS_DEF[key]);
-          }
+          // (Removida a auto-reposição de ALUNOS_DEF para o Lucas: uma leitura falhada ou parcial contava como "vazio" e a app
+          // gravava os dados de exemplo por cima dos dados reais. Nunca se escreve na base a partir de uma leitura.)
         });
         return next;
       });
