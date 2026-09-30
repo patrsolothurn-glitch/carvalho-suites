@@ -41,15 +41,15 @@ function wpMigrarHaken(db, rows) {
   Object.keys(alt).forEach(function(id) {
     var h = alt[id], t = rows.filter(function(r) { return String(r.id) === id; })[0];
     if (t && h && t.status === 'erledigt' && !t.status_vor_haken && WP_HAKEN_VOR.indexOf(h.vor) >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(h.am || '')) {
-      jobs.push(db.from('wplan_tasks').update({ status_vor_haken: h.vor, gehakt_am: h.am }).eq('id', t.id).eq('status', 'erledigt').select().then(function(res) {
+      jobs.push(db.from('wplan_tasks').update({ status_vor_haken: h.vor, gehakt_am: h.am }).eq('id', t.id).eq('status', 'erledigt').is('status_vor_haken', null).is('gehakt_am', null).select().then(function(res) {
         if (res.error) throw res.error;
-        return { id: t.id, status_vor_haken: h.vor, gehakt_am: h.am };
+        return (res.data && res.data.length) ? { id: t.id, status_vor_haken: h.vor, gehakt_am: h.am } : null; // 0 linhas: outro aparelho já preencheu → não sobrescreve
       }));
     }
   });
   return Promise.all(jobs).then(function(feitos) {
     try { localStorage.removeItem(WP_HAKEN_KEY); } catch (e) {}
-    return feitos;
+    return feitos.filter(Boolean);
   });
 }
 var WP_DRUCK_KEY = 'wplan_druck';
@@ -1848,15 +1848,26 @@ function WochenplanApp(props) {
     });
   }
   // ── ✓ em "Nicht erledigt": marca erledigt (grava em wplan_tasks) e guarda o estado anterior; desmarcar repõe-o ──
+  // ✓ em "Nicht erledigt": o estado vem SEMPRE da linha lida agora na base (não do estado local nem do localStorage).
   function alternarHaken(a) {
-    var desfazer = !!a.gehakt_am && a.status === 'erledigt';
-    var campos = desfazer
-      ? { status: a.status_vor_haken || 'offen', status_vor_haken: null, gehakt_am: null }
-      : { status: 'erledigt', status_vor_haken: WP_HAKEN_VOR.indexOf(a.status) >= 0 ? a.status : 'offen', gehakt_am: wpTodayIso() };
-    db.from('wplan_tasks').update(Object.assign({}, campos, { updated_at: new Date().toISOString() })).eq('id', a.id).select().then(function(res) {
-      if (res.error) throw res.error;
+    var querDesfazer = !!a.gehakt_am && a.status === 'erledigt'; // o que o utilizador vê e quer fazer
+    db.from('wplan_tasks').select('id,status,status_vor_haken,gehakt_am').eq('id', a.id).then(function(lr) {
+      if (lr.error) throw lr.error;
+      var d = lr.data && lr.data[0];
+      if (!d) throw new Error('Auftrag nicht gefunden.');
+      var feitoNaBase = d.status === 'erledigt' && !!d.gehakt_am;
+      var campos = null;
+      if (querDesfazer) { if (feitoNaBase) campos = { status: d.status_vor_haken || 'offen', status_vor_haken: null, gehakt_am: null }; }
+      else if (d.status !== 'erledigt') campos = { status: 'erledigt', status_vor_haken: WP_HAKEN_VOR.indexOf(d.status) >= 0 ? d.status : 'offen', gehakt_am: wpTodayIso() };
+      if (!campos) return { status: d.status, status_vor_haken: d.status_vor_haken, gehakt_am: d.gehakt_am }; // outro aparelho já fez / já estava erledigt: não grava nada
+      return db.from('wplan_tasks').update(Object.assign({}, campos, { updated_at: new Date().toISOString() })).eq('id', a.id).eq('status', d.status).select().then(function(res) {
+        if (res.error) throw res.error;
+        if (!res.data || !res.data.length) throw new Error('Auftrag wurde inzwischen geändert – bitte neu laden.'); // 0 linhas: o estado mudou entre a leitura e a escrita
+        return campos;
+      });
+    }).then(function(campos) {
       setTasks(function(prev) { return prev.map(function(t) { return t.id === a.id ? Object.assign({}, t, campos) : t; }); });
-    }).catch(function(e) { setErro('Falha ao guardar: ' + (e && e.message ? e.message : e)); });
+    }).catch(function(e) { setErro('Speichern fehlgeschlagen: ' + (e && e.message ? e.message : e)); });
   }
   // ── Pensum verwalten (só admin; o RLS da tabela também só deixa admin) ──
   function abrirPensum(pe) { setPensumErro(''); setPensumDraft(null); setPensumPessoa(pe); }
