@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-09-30T23:02:10.894Z
+  Gerado em: 2026-10-01T14:35:37.096Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-372";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-373";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -35331,6 +35331,87 @@ function polMedicaoRecente(m) {
   return idade >= 0 && idade <= POL_MEDICAO_VALIDA_MS;
 }
 
+// ── Navegação de dias na aba Hoje (±7 dias). Datas e horas SEMPRE em Europe/Zurich ──
+// Passado: 7 dias (pollen_medicoes guarda 14, e agora também a previsão
+// arquivada da Open-Meteo com past_days=7). Futuro: 3 dias além de hoje —
+// a Open-Meteo pede forecast_days=4 (hoje + 3), que é o que a aba Previsão
+// já mostrava; o modelo CAMS do pólen não prevê mais do que isso.
+var POL_DIA_MAX_PASSADO = 7;
+var POL_DIA_MAX_FUTURO = 3;
+var POL_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+function polPartesZurich(d) {
+  var partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Zurich', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(d);
+  var o = {};
+  partes.forEach(function (p) { o[p.type] = p.value; });
+  if (o.hour === '24') o.hour = '00';
+  return o;
+}
+function polHojeZurich() { var o = polPartesZurich(new Date()); return o.year + '-' + o.month + '-' + o.day; }
+function polSomarDiasIso(dataIso, n) {
+  var p = dataIso.split('-');
+  return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)).toISOString().slice(0, 10);
+}
+function polDiaDoOffset(offset) { return polSomarDiasIso(polHojeZurich(), offset); }
+function polLimitarOffset(n) { return Math.max(-POL_DIA_MAX_PASSADO, Math.min(POL_DIA_MAX_FUTURO, n)); }
+// "Hoje" ou "Qua 23.09" — usado nos textos descritivos (ecrã Hoje)
+function polEtiquetaDia(offset) {
+  if (offset === 0) return 'Hoje';
+  var p = polDiaDoOffset(offset).split('-');
+  var dow = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+  return POL_DIAS_SEMANA[dow] + ' ' + p[2] + '.' + p[1];
+}
+// "Hoje" ou "Qui 25" (sem mês) — usado nos chips curtos da barra de dias e no gráfico de detalhe
+function polEtiquetaDiaChip(offset) {
+  if (offset === 0) return 'Hoje';
+  var p = polDiaDoOffset(offset).split('-');
+  var dow = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+  return POL_DIAS_SEMANA[dow] + ' ' + p[2];
+}
+// "YYYY-MM-DDTHH:00" na hora local de Zurique a partir de um timestamp de
+// pollen_medicoes.ts — mesmo formato do hourly.time da Open-Meteo, para
+// alinhar uma medição real com a hora certa no gráfico de detalhe.
+function polTsParaHoraZurich(ts) {
+  var o = polPartesZurich(new Date(ts));
+  return o.year + '-' + o.month + '-' + o.day + 'T' + o.hour + ':00';
+}
+// Instante UTC em que, em Zurique, são hh:00 da data (aguenta dias de 23/25 h na mudança de hora)
+function polInstanteZurich(dataIso, hh) {
+  var p = dataIso.split('-');
+  var alvo = Date.UTC(+p[0], +p[1] - 1, +p[2], hh, 0, 0), t = alvo;
+  for (var i = 0; i < 3; i++) {
+    var o = polPartesZurich(new Date(t));
+    t += alvo - Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour, +o.minute, +o.second);
+  }
+  return new Date(t);
+}
+// [início, fim) do dia em Zurique, em ISO UTC (para filtrar pollen_medicoes.ts)
+function polIntervaloDiaZurich(dataIso) {
+  return [polInstanteZurich(dataIso, 0).toISOString(), polInstanteZurich(polSomarDiasIso(dataIso, 1), 0).toISOString()];
+}
+// Máximo do dia por tipo — medições da estação (linhas de pollen_medicoes) e previsão horária Open-Meteo.
+// Sem valor para um tipo = sem chave (nunca se inventa um valor).
+function polMaxDiaMedicoes(linhas) {
+  var out = {};
+  (linhas || []).forEach(function (m) { if (m.valor != null && (out[m.tipo] == null || m.valor > out[m.tipo])) out[m.tipo] = m.valor; });
+  return out;
+}
+function polMaxDiaPrevisao(previsao, dataIso) {
+  var out = {};
+  if (!previsao || !previsao.hourly || !previsao.hourly.time) return out;
+  previsao.hourly.time.forEach(function (ts, i) {
+    if (ts.slice(0, 10) !== dataIso) return;
+    POL_TIPOS.forEach(function (t) {
+      if (!t.omVar) return;
+      var arr = previsao.hourly[t.omVar];
+      var v = arr ? arr[i] : null;
+      if (v != null && (out[t.id] == null || v > out[t.id])) out[t.id] = v;
+    });
+  });
+  return out;
+}
+
 // ── Id local para elementos de listas jsonb (medicamentos do perfil,
 // "outros" medicamentos do dia) — nunca vão à base de dados como linha
 // própria, por isso precisam de um id gerado no cliente (mesmo padrão
@@ -35366,6 +35447,11 @@ var POL_CSS = '' +
   '.pol-chip.pol-chip-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde)}' +
   '.pol-tab{flex:1;background:var(--pol-cartao);color:var(--pol-texto);border:1px solid var(--pol-borda);border-radius:10px;padding:9px 0;font-weight:800;font-size:12px;cursor:pointer}' +
   '.pol-tab.pol-tab-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde)}' +
+  '.pol-diabar{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}' +
+  '.pol-diabar::-webkit-scrollbar{display:none}' +
+  '.pol-chip-dia{flex:none;min-width:58px;text-align:center;padding:10px 6px;border-radius:12px;border:2px solid var(--pol-borda);background:var(--pol-cartao);color:var(--pol-texto);font-size:13px;font-weight:800;cursor:pointer}' +
+  '.pol-chip-dia-hoje{border-color:var(--pol-verde);text-decoration:underline;text-decoration-color:var(--pol-verde);text-decoration-thickness:3px;text-underline-offset:3px}' +
+  '.pol-chip-dia-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde);text-decoration:none}' +
   '.pol-nivel-pill{display:inline-flex;align-items:center;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;white-space:nowrap}' +
   '.pol-input{width:100%;box-sizing:border-box;background:var(--pol-cartao);border:1px solid var(--pol-borda);color:var(--pol-texto);border-radius:10px;padding:10px 12px;font-size:14px}' +
   '.pol-btn{background:var(--pol-cartao);color:var(--pol-texto);border:1px solid var(--pol-borda);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer}' +
@@ -35452,6 +35538,7 @@ function PollenApp(props) {
   var _s44 = React.useState(null); var confirmApagarMedPerfil = _s44[0], setConfirmApagarMedPerfil = _s44[1];
   var _s45 = React.useState([]); var fMedsChecked = _s45[0], setFMedsChecked = _s45[1];
   var _s46 = React.useState([]); var fMedsOutros = _s46[0], setFMedsOutros = _s46[1];
+  var _s47 = React.useState(null); var tipoDetalheId = _s47[0], setTipoDetalheId = _s47[1]; // id de POL_TIPOS, ou null = fechado
 
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
@@ -35505,6 +35592,45 @@ function PollenApp(props) {
     }).catch(function (e) { console.error('[pollen] medições recentes:', e); window.mostrarErro('Pólen', e); });
   }, [estacaoInfo && estacaoInfo.estacao.codigo]);
 
+  // ── Navegação de dias (aba Hoje): 0 = hoje; volta a 0 ao sair da aba Hoje e ao reabrir a app ──
+  var _sd1 = React.useState(0); var diaOffset = _sd1[0], setDiaOffset = _sd1[1];
+  var _sd2 = React.useState({}); var medicoesPorDia = _sd2[0], setMedicoesPorDia = _sd2[1]; // { 'estacao|YYYY-MM-DD': linhas | 'erro' }
+  var pedidosDiaRef = React.useRef({});
+  var swipeRef = React.useRef(null);
+  var diaBarRef = React.useRef(null);
+  React.useEffect(function () {
+    if (!diaBarRef.current) return;
+    var el = diaBarRef.current.querySelector('[data-dia-offset="' + diaOffset + '"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [diaOffset, tab]);
+  var estacaoCodigoSel = estacaoInfo ? estacaoInfo.estacao.codigo : null;
+  React.useEffect(function () { if (tab !== 'hoje') setDiaOffset(0); }, [tab]);
+  // Pede (e guarda em cache, por estação+dia) as medições de um dia passado —
+  // uma consulta por dia, ~24h × nº de tipos, cabe no limite de linhas por
+  // pedido. Chamado para o dia navegado (abaixo) e, quando o detalhe de um
+  // pólen está aberto, para os 7 dias passados de uma vez (garantirJanelaPassada).
+  function polPedirMedicoesDoDia(offset) {
+    if (!db || !estacaoCodigoSel) return;
+    var dia = polDiaDoOffset(offset), chave = estacaoCodigoSel + '|' + dia;
+    if (medicoesPorDia[chave] !== undefined || pedidosDiaRef.current[chave]) return;
+    pedidosDiaRef.current[chave] = true;
+    var iv = polIntervaloDiaZurich(dia);
+    function guardar(v) { delete pedidosDiaRef.current[chave]; setMedicoesPorDia(function (prev) { var n = Object.assign({}, prev); n[chave] = v; return n; }); }
+    db.from('pollen_medicoes').select('*').eq('estacao', estacaoCodigoSel).gte('ts', iv[0]).lt('ts', iv[1]).then(function (res) {
+      if (res.error) { console.error('[pollen] medições do dia:', res.error); window.mostrarErro('Pólen', res.error); guardar('erro'); return; }
+      guardar(res.data || []);
+    }).catch(function (e) { console.error('[pollen] medições do dia:', e); window.mostrarErro('Pólen', e); guardar('erro'); });
+  }
+  // Dia navegado na aba Hoje
+  React.useEffect(function () {
+    if (diaOffset < 0) polPedirMedicoesDoDia(diaOffset);
+  }, [diaOffset, estacaoCodigoSel, medicoesPorDia]);
+  // Detalhe de um pólen aberto: janela passada toda, para o gráfico (−7 a −1)
+  React.useEffect(function () {
+    if (!tipoDetalheId) return;
+    for (var o = -POL_DIA_MAX_PASSADO; o <= -1; o++) polPedirMedicoesDoDia(o);
+  }, [tipoDetalheId, estacaoCodigoSel, medicoesPorDia]);
+
   // Último valor por tipo (a medição mais recente dentro das 48h)
   var ultimoPorTipo = {};
   medicoesHoje.forEach(function (m) {
@@ -35513,12 +35639,19 @@ function PollenApp(props) {
   var horaUltimaMedicao = medicoesHoje.length ? medicoesHoje[0].ts : null;
 
   // ── Previsão Open-Meteo (chamada direta do browser) ──
+  // forecast_days=4 (hoje + 3) é o máximo que o modelo CAMS do pólen cobre —
+  // pedir mais só devolveria null nesses dias extra. past_days=7 traz,
+  // no mesmo pedido e sem custo extra, a previsão ARQUIVADA dos últimos 7
+  // dias (hourly.time passa a começar 7 dias antes de hoje): serve de
+  // "previsão" nos dias passados sem medição da estação (ex.: Beifuss/
+  // Ambrosia, que a MeteoSwiss não mede), e de valor secundário nos dias
+  // passados que TÊM medição.
   React.useEffect(function () {
     if (!perfilAtivo) { setPrevisao(null); return; }
     setPrevisaoErro(null);
     var vars = POL_TIPOS.filter(function (t) { return t.omVar; }).map(function (t) { return t.omVar; }).join(',');
     var url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + perfilAtivo.lat + '&longitude=' + perfilAtivo.lon +
-      '&hourly=' + vars + '&timezone=Europe%2FZurich&forecast_days=4';
+      '&hourly=' + vars + '&timezone=Europe%2FZurich&forecast_days=4&past_days=7';
     fetch(url).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -35531,13 +35664,17 @@ function PollenApp(props) {
     });
   }, [perfilAtivo && perfilAtivo.id]);
 
-  // Agrupa a previsão horária em máximos diários por tipo
+  // Agrupa a previsão horária em máximos diários por tipo — só hoje e os
+  // dias seguintes (com past_days=7, hourly.time agora também contém os 7
+  // dias passados; a aba Previsão nunca deve mostrar dias passados).
   var previsaoDias = React.useMemo(function () {
     if (!previsao || !previsao.hourly || !previsao.hourly.time) return [];
     var porDia = {}; // { 'YYYY-MM-DD': { tipoId: max } }
     var ordemDias = [];
+    var hoje = polHojeZurich();
     previsao.hourly.time.forEach(function (tsStr, i) {
       var dia = tsStr.slice(0, 10);
+      if (dia < hoje) return;
       if (!porDia[dia]) { porDia[dia] = {}; ordemDias.push(dia); }
       POL_TIPOS.forEach(function (t) {
         if (!t.omVar) return;
@@ -35805,11 +35942,47 @@ function PollenApp(props) {
     var alergiaIds = perfilAtivo.alergias || [];
     var tiposAlergia = POL_TIPOS.filter(function (t) { return alergiaIds.indexOf(t.id) !== -1; });
     var outrosTipos = POL_TIPOS.filter(function (t) { return alergiaIds.indexOf(t.id) === -1; });
+    // Outro dia: futuro = máximo do dia da previsão Open-Meteo (até +3, forecast_days=4).
+    // Passado (até −7) = máximo do dia medido na estação; se não houver medição
+    // nesse dia, cai na previsão ARQUIVADA da Open-Meteo (past_days=7), marcada
+    // como "previsão" em vez de "medido". Sem valor em nenhuma fonte → "Sem dados"
+    // (nunca se inventa um valor).
+    var ehHoje = diaOffset === 0, futuro = diaOffset > 0, diaIso = polDiaDoOffset(diaOffset);
+    var valoresDiaMedicoes = null, valoresDiaPrevisao = null, diaEstado = 'ok';
+    if (!ehHoje) {
+      if (!previsao && !previsaoErro) diaEstado = 'a-carregar';
+      else valoresDiaPrevisao = polMaxDiaPrevisao(previsao, diaIso);
+      if (!futuro && diaEstado === 'ok') {
+        var linhasDia = estacaoCodigoSel ? medicoesPorDia[estacaoCodigoSel + '|' + diaIso] : [];
+        if (linhasDia === undefined) diaEstado = 'a-carregar';
+        else if (linhasDia === 'erro') diaEstado = 'erro';
+        else valoresDiaMedicoes = polMaxDiaMedicoes(linhasDia);
+      }
+    }
+    var semDadosDia = !ehHoje && diaEstado === 'ok' &&
+      (!valoresDiaMedicoes || !Object.keys(valoresDiaMedicoes).length) &&
+      (!valoresDiaPrevisao || !Object.keys(valoresDiaPrevisao).length);
     function linhaTipo(t) {
       var m = ultimoPorTipo[t.id];
       var medicaoValida = polMedicaoRecente(m);
-      var valor, fonteLabel;
-      if (medicaoValida) {
+      var valor, fonteLabel, valorSecundario = null, fonteSecundaria = null;
+      if (futuro) {
+        valor = valoresDiaPrevisao && valoresDiaPrevisao[t.id] != null ? valoresDiaPrevisao[t.id] : null;
+        fonteLabel = valor == null ? null : 'previsão · máx. do dia';
+      } else if (!ehHoje) {
+        var vMed = valoresDiaMedicoes && valoresDiaMedicoes[t.id] != null ? valoresDiaMedicoes[t.id] : null;
+        var vArq = valoresDiaPrevisao && valoresDiaPrevisao[t.id] != null ? valoresDiaPrevisao[t.id] : null;
+        if (vMed != null) {
+          valor = vMed;
+          fonteLabel = 'medido · ' + (estacaoInfo ? estacaoInfo.estacao.nome : 'estação') + ' · máx. do dia';
+          if (vArq != null) { valorSecundario = vArq; fonteSecundaria = 'previsão arquivada · ' + Math.round(vArq) + ' /m³'; }
+        } else if (vArq != null) {
+          valor = vArq;
+          fonteLabel = 'previsão · máx. do dia';
+        } else {
+          valor = null; fonteLabel = null;
+        }
+      } else if (medicaoValida) {
         valor = m.valor;
         fonteLabel = 'medido · ' + estacaoInfo.estacao.nome + ' ' + polFmtHora(m.ts);
       } else {
@@ -35817,27 +35990,72 @@ function PollenApp(props) {
         fonteLabel = valor != null ? 'previsão' : null;
       }
       var nivel = polClassificarNivel(t.id, valor);
-      return React.createElement('div', { key: t.id, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--pol-borda)' } },
+      return React.createElement('div', { key: t.id, 'data-pol-tipo': t.id, onClick: function () { setTipoDetalheId(t.id); }, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--pol-borda)', cursor: 'pointer' } },
         React.createElement('div', null,
           React.createElement(PolTipoNome, { tipo: t }),
-          fonteLabel && React.createElement('div', { style: { fontSize: 10, color: 'var(--pol-texto2)', marginTop: 1 } }, fonteLabel)
+          fonteLabel && React.createElement('div', { style: { fontSize: 10, color: 'var(--pol-texto2)', marginTop: 1 } }, fonteLabel),
+          valorSecundario != null && React.createElement('div', { style: { fontSize: 10, color: 'var(--pol-texto2)', opacity: .75 } }, fonteSecundaria)
         ),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
           valor != null && React.createElement('span', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, Math.round(valor) + ' /m³'),
-          React.createElement(PolNivelPill, { valor: valor, nivel: nivel })
+          React.createElement(PolNivelPill, { valor: valor, nivel: nivel }),
+          React.createElement('span', { style: { color: 'var(--pol-texto2)', fontSize: 13 } }, '›')
         )
       );
     }
-    return React.createElement('div', { style: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12 } },
+    var offsetsBarra = [];
+    for (var _ob = -POL_DIA_MAX_PASSADO; _ob <= POL_DIA_MAX_FUTURO; _ob++) offsetsBarra.push(_ob);
+    var barraDia = React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } },
+      React.createElement('div', { className: 'pol-diabar', ref: diaBarRef },
+        offsetsBarra.map(function (o) {
+          var ativo = o === diaOffset, ehHojeChip = o === 0;
+          return React.createElement('button', {
+            key: o,
+            'data-dia-offset': o,
+            className: 'pol-chip-dia' + (ehHojeChip ? ' pol-chip-dia-hoje' : '') + (ativo ? ' pol-chip-dia-ativo' : ''),
+            'aria-current': ativo ? 'true' : undefined,
+            onClick: function () { setDiaOffset(o); }
+          }, polEtiquetaDiaChip(o));
+        })
+      ),
+      !ehHoje && React.createElement('button', { className: 'pol-btn pol-btn-ativo', style: { width: '100%', padding: '12px 0', fontSize: 14 }, onClick: function () { setDiaOffset(0); } }, 'Voltar a hoje')
+    );
+    var swipeProps = {
+      onTouchStart: function (e) { var t = e.touches && e.touches[0]; swipeRef.current = t ? { x: t.clientX, y: t.clientY } : null; },
+      onTouchEnd: function (e) {
+        var ini = swipeRef.current; swipeRef.current = null;
+        var t = e.changedTouches && e.changedTouches[0];
+        if (!ini || !t) return;
+        var dx = t.clientX - ini.x, dy = t.clientY - ini.y;
+        // só um gesto claramente horizontal muda de dia; o scroll vertical fica intacto
+        if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) setDiaOffset(function (o) { return polLimitarOffset(o + (dx < 0 ? 1 : -1)); });
+      }
+    };
+    // Texto descritivo por baixo do nome da cidade, calculado à parte para não encadear ternários no JSX
+    var textoDiaDescricao;
+    if (futuro) {
+      textoDiaDescricao = 'Previsão Open-Meteo para ' + polEtiquetaDia(diaOffset) + ' (máximo do dia)';
+    } else if (!ehHoje && valoresDiaMedicoes && Object.keys(valoresDiaMedicoes).length) {
+      textoDiaDescricao = estacaoInfo ? 'Estação mais próxima: ' + estacaoInfo.estacao.nome + ' (' + estacaoInfo.distanciaKm.toFixed(1) + ' km) · valores medidos em ' + polEtiquetaDia(diaOffset) + ' (máximo do dia)' : 'Estações ainda não carregadas.';
+    } else if (!ehHoje && valoresDiaPrevisao && Object.keys(valoresDiaPrevisao).length) {
+      textoDiaDescricao = 'Sem medições da estação em ' + polEtiquetaDia(diaOffset) + ' — a mostrar a previsão arquivada da Open-Meteo (máximo do dia).';
+    } else if (!ehHoje) {
+      textoDiaDescricao = estacaoInfo ? 'Estação mais próxima: ' + estacaoInfo.estacao.nome + ' (' + estacaoInfo.distanciaKm.toFixed(1) + ' km)' : 'Estações ainda não carregadas.';
+    } else if (estacaoInfo) {
+      textoDiaDescricao = 'Estação mais próxima: ' + estacaoInfo.estacao.nome + ' (' + estacaoInfo.distanciaKm.toFixed(1) + ' km)' +
+        (horaUltimaMedicao ? ' · última medição às ' + polFmtHora(horaUltimaMedicao) : ' · sem medições ainda');
+    } else {
+      textoDiaDescricao = 'Estações ainda não carregadas.';
+    }
+    return React.createElement('div', { style: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12, touchAction: 'pan-y' }, onTouchStart: swipeProps.onTouchStart, onTouchEnd: swipeProps.onTouchEnd },
+      barraDia,
       React.createElement(PolCard, null,
         React.createElement('div', { style: { fontWeight: 800, fontSize: 15, marginBottom: 4 } }, perfilAtivo.cidade + (perfilAtivo.kanton ? ' · ' + perfilAtivo.kanton : '')),
-        estacaoInfo
-          ? React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } },
-              'Estação mais próxima: ' + estacaoInfo.estacao.nome + ' (' + estacaoInfo.distanciaKm.toFixed(1) + ' km)' +
-              (horaUltimaMedicao ? ' · última medição às ' + polFmtHora(horaUltimaMedicao) : ' · sem medições ainda')
-            )
-          : React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, 'Estações ainda não carregadas.')
+        React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, textoDiaDescricao)
       ),
+      !ehHoje && diaEstado === 'a-carregar' && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 14, fontWeight: 700, textAlign: 'center' } }, 'A carregar…')),
+      !ehHoje && diaEstado === 'erro' && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 14, fontWeight: 700, textAlign: 'center', color: '#DC2626' } }, '⚠️ Não foi possível obter as medições deste dia.')),
+      semDadosDia && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 15, fontWeight: 800, textAlign: 'center' } }, 'Sem dados para este dia')),
       React.createElement(PolCard, null,
         React.createElement('div', { style: { fontWeight: 800, fontSize: 13, marginBottom: 4, textTransform: 'uppercase', color: 'var(--pol-texto2)' } }, 'Os teus pólens'),
         tiposAlergia.length ? tiposAlergia.map(linhaTipo) : React.createElement('p', { style: { fontSize: 13, color: 'var(--pol-texto2)' } }, 'Este perfil ainda não tem alergias escolhidas.')
@@ -35864,7 +36082,7 @@ function PollenApp(props) {
           React.createElement('tbody', null,
             POL_TIPOS.map(function (t) {
               return React.createElement('tr', { key: t.id, style: { borderTop: '1px solid var(--pol-borda)' } },
-                React.createElement('td', { style: { padding: '8px 12px', fontWeight: 700 } }, React.createElement(PolTipoNome, { tipo: t })),
+                React.createElement('td', { style: { padding: '8px 12px', fontWeight: 700, cursor: 'pointer' }, onClick: function () { setTipoDetalheId(t.id); } }, React.createElement(PolTipoNome, { tipo: t })),
                 t.omVar
                   ? previsaoDias.map(function (d) {
                       var v = d.valores[t.id];
@@ -35881,6 +36099,107 @@ function PollenApp(props) {
         )
       ),
       React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', marginTop: 10 } }, 'Hasel, Esche, Buche e Eiche não têm previsão — só medição real na aba Hoje.')
+    );
+  }
+
+  // ── Detalhe de um pólen: gráfico horário de toda a janela (−7 a +3) ──
+  // Linha = previsão/arquivo Open-Meteo (um só pedido cobre toda a janela,
+  // ver efeito acima). Pontos = medição real da estação, só nos dias em que
+  // já temos essas linhas em cache (medicoesHoje para hoje, medicoesPorDia
+  // para os dias passados, pedidos quando este painel abre). Faixas
+  // alternadas separam os dias; a linha tracejada marca a hora atual.
+  function renderDetalheTipo() {
+    if (!tipoDetalheId) return null;
+    var t = polTipoInfo(tipoDetalheId);
+    if (!t) return null;
+    var horas = (previsao && previsao.hourly && previsao.hourly.time) || [];
+    var arrPrevisao = (t.omVar && previsao && previsao.hourly) ? previsao.hourly[t.omVar] : null;
+
+    // hora Zurique (YYYY-MM-DDTHH:00) → valor medido, juntando hoje (medicoesHoje) e os dias passados em cache
+    var medidoPorHora = {};
+    if (estacaoCodigoSel) {
+      for (var o = -POL_DIA_MAX_PASSADO; o <= -1; o++) {
+        var linhas = medicoesPorDia[estacaoCodigoSel + '|' + polDiaDoOffset(o)];
+        if (linhas && linhas !== 'erro') {
+          linhas.forEach(function (m) { if (m.tipo === t.id && m.valor != null) medidoPorHora[polTsParaHoraZurich(m.ts)] = m.valor; });
+        }
+      }
+    }
+    var inicioHoje = polInstanteZurich(polHojeZurich(), 0).toISOString();
+    medicoesHoje.forEach(function (m) { if (m.tipo === t.id && m.valor != null && m.ts >= inicioHoje) medidoPorHora[polTsParaHoraZurich(m.ts)] = m.valor; });
+
+    var N = horas.length;
+    var maxVal = 1;
+    horas.forEach(function (h, i) { var v = arrPrevisao ? arrPrevisao[i] : null; if (v != null && v > maxVal) maxVal = v; });
+    Object.keys(medidoPorHora).forEach(function (h) { if (medidoPorHora[h] > maxVal) maxVal = medidoPorHora[h]; });
+    function xDe(i) { return i + 0.5; }
+    function yDe(v) { return 97 - (v / maxVal) * 90; }
+
+    // faixas por dia (alternadas) — um bloco por cada data distinta em horas, em ordem
+    var bandas = [], diaAtual = null, inicioIdx = 0;
+    horas.forEach(function (h, i) {
+      var dia = h.slice(0, 10);
+      if (dia !== diaAtual) {
+        if (diaAtual !== null) bandas.push({ dia: diaAtual, ini: inicioIdx, fim: i });
+        diaAtual = dia; inicioIdx = i;
+      }
+    });
+    if (diaAtual !== null) bandas.push({ dia: diaAtual, ini: inicioIdx, fim: N });
+
+    var idxAgora = horas.indexOf(polHoraAtualZurich());
+
+    // segmentos da linha de previsão/arquivo — corta onde o valor é null, nunca liga por cima de um buraco
+    var segmentos = [], segAtual = [];
+    horas.forEach(function (h, i) {
+      var v = arrPrevisao ? arrPrevisao[i] : null;
+      if (v == null) { if (segAtual.length > 1) segmentos.push(segAtual.join(' ')); segAtual = []; return; }
+      segAtual.push(xDe(i) + ',' + yDe(v).toFixed(1));
+    });
+    if (segAtual.length > 1) segmentos.push(segAtual.join(' '));
+
+    var pontosMedidos = [];
+    horas.forEach(function (h, i) { if (medidoPorHora[h] != null) pontosMedidos.push({ x: xDe(i), y: yDe(medidoPorHora[h]), v: medidoPorHora[h] }); });
+
+    return React.createElement('div', {
+      style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16 },
+      onClick: function (e) { if (e.target === e.currentTarget) setTipoDetalheId(null); }
+    },
+      React.createElement(PolCard, { style: { maxWidth: 480, width: '100%', maxHeight: '88vh', overflowY: 'auto' } },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 } },
+          React.createElement('div', { style: { fontWeight: 800, fontSize: 15 } }, React.createElement(PolTipoNome, { tipo: t })),
+          React.createElement('button', { onClick: function () { setTipoDetalheId(null); }, style: { background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--pol-texto)' } }, '✕')
+        ),
+        !t.omVar && React.createElement('p', { style: { fontSize: 11, color: 'var(--pol-texto2)', marginBottom: 8 } }, 'Sem previsão Open-Meteo para este tipo — o gráfico só mostra as medições reais da estação.'),
+        N
+          ? React.createElement('div', null,
+              React.createElement('svg', { viewBox: '0 0 ' + N + ' 100', preserveAspectRatio: 'none', style: { width: '100%', height: 160, display: 'block' } },
+                bandas.map(function (b, i) {
+                  return React.createElement('rect', { key: b.dia, x: b.ini, y: 0, width: Math.max(0, b.fim - b.ini), height: 100, fill: (i % 2 === 0) ? 'rgba(148,163,184,.10)' : 'transparent' });
+                }),
+                idxAgora !== -1 && React.createElement('line', { x1: xDe(idxAgora), x2: xDe(idxAgora), y1: 0, y2: 100, stroke: 'var(--pol-amarelo)', strokeWidth: 0.6, strokeDasharray: '2,1.5' }),
+                segmentos.map(function (pontos, i) {
+                  return React.createElement('polyline', { key: i, points: pontos, fill: 'none', stroke: 'var(--pol-verde)', strokeWidth: 1.2, opacity: .85 });
+                }),
+                pontosMedidos.map(function (p, i) {
+                  var nivel = polClassificarNivel(t.id, p.v);
+                  var cor = nivel ? POL_NIVEL_INFO[nivel].cor : '#94A3B8';
+                  return React.createElement('circle', { key: i, cx: p.x, cy: p.y, r: 1.5, fill: cor, stroke: 'var(--pol-cartao)', strokeWidth: 0.3 });
+                })
+              ),
+              React.createElement('div', { style: { display: 'flex', marginTop: 2 } },
+                bandas.map(function (b, i) {
+                  var offset = i - POL_DIA_MAX_PASSADO;
+                  return React.createElement('div', { key: b.dia, style: { flex: Math.max(1, b.fim - b.ini), textAlign: 'center', fontSize: 9, fontWeight: offset === 0 ? 800 : 400, color: offset === 0 ? 'var(--pol-texto)' : 'var(--pol-texto2)' } }, polEtiquetaDiaChip(offset));
+                })
+              ),
+              React.createElement('div', { style: { display: 'flex', gap: 14, fontSize: 10, color: 'var(--pol-texto2)', marginTop: 10, flexWrap: 'wrap' } },
+                React.createElement('span', null, '— previsão / arquivo Open-Meteo'),
+                React.createElement('span', null, '● medição real da estação'),
+                React.createElement('span', null, '┊ agora')
+              )
+            )
+          : React.createElement('p', { style: { fontSize: 13, color: 'var(--pol-texto2)', padding: '8px 0' } }, 'A carregar…')
+      )
     );
   }
 
@@ -36161,7 +36480,8 @@ function PollenApp(props) {
     React.createElement('p', { style: { textAlign: 'center', fontSize: 11, color: 'var(--pol-texto2)', padding: '8px 16px 24px' } }, 'Informação indicativa — não substitui o médico.'),
     modalConfirmApagarPerfil,
     modalConfirmApagarDiario,
-    modalConfirmApagarMedPerfil
+    modalConfirmApagarMedPerfil,
+    renderDetalheTipo()
   );
 }
 
