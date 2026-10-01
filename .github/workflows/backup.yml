@@ -10,12 +10,29 @@ permissions:
 on:
   schedule:
     - cron: '0 3 * * *'   # Todos os dias às 03:00 UTC (04:00/05:00 na Suíça)
-  workflow_dispatch: {}    # Permite correr manualmente em qualquer altura
+  workflow_dispatch:       # Permite correr manualmente em qualquer altura
+    inputs:
+      simular_queda:
+        description: 'Teste do alerta: finge (só em memória) que escolar_notas tinha 8 linhas ontem e 0 hoje'
+        type: boolean
+        default: false
 
 jobs:
   backup:
     runs-on: ubuntu-latest
+    outputs:
+      has_alertas: ${{ steps.comparar.outputs.has_alertas }}
+      data: ${{ steps.comparar.outputs.data }}
+      simulado: ${{ steps.comparar.outputs.simulado }}
+      corpo: ${{ steps.comparar.outputs.corpo }}
     steps:
+      - name: Obter o script de comparação (só scripts/ deste repositório)
+        uses: actions/checkout@v4
+        with:
+          path: carvalho-suites
+          sparse-checkout: scripts
+          persist-credentials: false
+
       - name: Clonar carvalho-backups (repositório privado)
         env:
           BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
@@ -95,6 +112,21 @@ jobs:
           echo "**Total: $N tabelas exportadas com sucesso.**" >> "$GITHUB_STEP_SUMMARY"
           echo "Total: $N tabelas exportadas com sucesso."
 
+      # Só leitura: compara com a pasta de backup anterior e prepara o alerta.
+      # Nunca falha o backup (o script sai sempre com 0; continue-on-error é cinto e
+      # suspensórios). Se houver alertas, o backup é comitado na mesma (a cópia é a
+      # prova) e o job 'alerta-issue' abre UMA issue.
+      - name: Comparar com o backup anterior (só leitura)
+        id: comparar
+        continue-on-error: true
+        env:
+          # Tabelas a ignorar na comparação (separadas por espaço) — para afinar falsos positivos
+          IGNORAR: ""
+          SIMULAR: ${{ github.event.inputs.simular_queda == 'true' }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          BACKUPS_DIR=carvalho-backups/backups DATE="$DATE" bash carvalho-suites/scripts/backup-comparar.sh
+
       - name: Apagar backups com mais de 90 dias (pela data no nome da pasta)
         run: |
           set -euo pipefail
@@ -115,3 +147,32 @@ jobs:
           git add backups/
           git diff --staged --quiet && echo "Nada novo para comitar" || git commit -m "🗄️ Backup automático $(date -u +%Y-%m-%d)"
           git push origin HEAD:main
+
+  # Abre a issue de alerta. Só este job tem issues: write; corre depois de o
+  # backup ter sido exportado, comparado e comitado com sucesso.
+  alerta-issue:
+    needs: backup
+    if: needs.backup.outputs.has_alertas == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Abrir issue de alerta (sem conteúdo de linhas)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DATA: ${{ needs.backup.outputs.data }}
+          SIMULADO: ${{ needs.backup.outputs.simulado }}
+          CORPO: ${{ needs.backup.outputs.corpo }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          TITULO="⚠️ Backup ${DATA}: tabelas com perda de dados"
+          [ "$SIMULADO" = "true" ] && TITULO="[TESTE] $TITULO"
+          {
+            printf '%s\n' "$CORPO"
+            echo
+            echo "Run: $RUN_URL"
+          } > corpo.md
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "$TITULO" --body-file corpo.md --assignee patrsolothurn-glitch
