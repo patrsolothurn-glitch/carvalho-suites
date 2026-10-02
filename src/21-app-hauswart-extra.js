@@ -580,6 +580,27 @@
       );
     }
 
+    // Interruptor (ligado = verde): botão de 44 px de altura
+    function HxToggle(props) {
+      var on = !!props.value;
+      return React.createElement('button', {
+        type: 'button', role: 'switch', 'aria-checked': on, 'aria-label': props.aria || 'ativo', disabled: !!props.disabled,
+        onClick: function () { if (!props.disabled) props.onChange(!on); },
+        style: { minWidth: 56, minHeight: 44, background: 'transparent', border: 'none', padding: 0, cursor: props.disabled ? 'not-allowed' : 'pointer', opacity: props.disabled ? 0.5 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
+      },
+        React.createElement('span', { style: { width: 48, height: 28, borderRadius: 14, background: on ? HX.ok : '#525252', position: 'relative', display: 'block', border: '1px solid ' + (on ? HX.ok : HX.borderStrong) } },
+          React.createElement('span', { style: { position: 'absolute', top: 2, left: on ? 22 : 2, width: 22, height: 22, borderRadius: 11, background: on ? '#000' : '#fff', display: 'block' } })
+        )
+      );
+    }
+
+    function HxFormToggle(props) {
+      return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 44, marginBottom: 12 } },
+        React.createElement('span', { style: { fontSize: 15, fontWeight: 600 } }, props.label),
+        React.createElement(HxToggle, { value: props.value, onChange: props.onChange, aria: props.label })
+      );
+    }
+
     function HxHead(props) {
       return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, minHeight: 44 } },
         props.back && React.createElement(HxBtn, { label: '←', onClick: props.back, aria: 'Voltar' }),
@@ -1593,6 +1614,8 @@
       var limite = _lim[0], setLimite = _lim[1];
       var _bs = React.useState(row && row.preco_base_hora != null ? String(row.preco_base_hora) : '35');
       var base = _bs[0], setBase = _bs[1];
+      var _mw = React.useState(rem0.mwst_nota !== false);
+      var mwst = _mw[0], setMwst = _mw[1];
       var _rm = React.useState({ nome: rem0.nome || '', rua: rem0.rua || '', plz: plz0 || '', ort: ort0 || '', telefone: rem0.telefone || '', email: rem0.email || '' });
       var rem = _rm[0], setRem = _rm[1];
       var _er = React.useState({}); var errs = _er[0], setErrs = _er[1];
@@ -1623,7 +1646,7 @@
         var payload = {
           limite_anual: hwxFromRappen(hwxToRappen(lim)),
           preco_base_hora: hwxFromRappen(hwxToRappen(pb)),
-          remetente: { nome: t('nome'), rua: t('rua'), plz: t('plz'), ort: t('ort'), plz_ort: [t('plz'), t('ort')].filter(Boolean).join(' '), telefone: t('telefone'), email: t('email') }
+          remetente: { nome: t('nome'), rua: t('rua'), plz: t('plz'), ort: t('ort'), plz_ort: [t('plz'), t('ort')].filter(Boolean).join(' '), telefone: t('telefone'), email: t('email'), mwst_nota: !!mwst }
         };
         if (aliveRef.current) setStatus('saving');
         props.saveCfg(payload, function () {
@@ -1644,7 +1667,7 @@
         setStatus('pending');
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(function () { timerRef.current = null; saveRef.current(); }, 1200);
-      }, [limite, rem, base]);
+      }, [limite, rem, base, mwst]);
       React.useEffect(function () {
         aliveRef.current = true;
         return function () {
@@ -1761,6 +1784,10 @@
               React.createElement(HxField, { label: 'Telefone', value: rem.telefone, type: 'tel', inputMode: 'tel', onChange: function (v) { updRem('telefone', v); } }),
               React.createElement(HxField, { label: 'E-mail', value: rem.email, type: 'email', inputMode: 'email', onChange: function (v) { updRem('email', v); }, error: errs.email })
             )
+          ),
+          React.createElement(HxSection, { title: 'Offerte (impressão)' },
+            React.createElement(HxFormToggle, { label: "Mostrar 'Nicht MWST-pflichtig' na Offerte", value: mwst, onChange: setMwst }),
+            React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Ligado: a linha aparece pequena por baixo do TOTAL na impressão.')
           ),
           React.createElement(HxBtn, { label: '✓ Guardar agora', big: true, full: true, kind: 'primary', onClick: function () { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; } doSave(); } })
         ),
@@ -2295,6 +2322,7 @@
         '.hwx-sheet .totals .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:8px;border-top:2px solid #111;}' +
         '.hwx-sheet .totals .grand .lbl{font-size:9pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}' +
         '.hwx-sheet .totals .grand .val{font-size:15pt;font-weight:700;font-variant-numeric:tabular-nums;}' +
+        '.hwx-sheet .mwst{margin-top:6px;font-size:7.5pt;color:#666;text-align:right;}' +
         '.hwx-sheet .valid{margin-top:16px;font-size:10pt;font-weight:600;}' +
         '.hwx-sheet .notes{margin-top:10px;font-size:9.5pt;line-height:1.5;white-space:pre-wrap;color:#222;}' +
         '.hwx-sheet footer{margin-top:auto;padding-top:12px;border-top:1px solid #ddd;font-size:8pt;color:#555;display:flex;justify-content:space-between;}' +
@@ -2362,7 +2390,8 @@
                 React.createElement('div', { className: 'box' },
                   React.createElement('div', { className: 'row' }, React.createElement('span', null, 'Zwischensumme'), React.createElement('span', null, hwxMoneyDe(hwxFromRappen(tot.sub)))),
                   tot.desc > 0 && React.createElement('div', { className: 'row' }, React.createElement('span', null, o.desconto_tipo === 'pct' ? 'Rabatt ' + hwxQty(o.desconto_valor) + ' %' : 'Rabatt'), React.createElement('span', null, '− ' + hwxMoneyDe(hwxFromRappen(tot.desc)))),
-                  React.createElement('div', { className: 'grand' }, React.createElement('span', { className: 'lbl' }, 'Total CHF'), React.createElement('span', { className: 'val' }, hwxMoneyDe(hwxFromRappen(tot.total))))
+                  React.createElement('div', { className: 'grand' }, React.createElement('span', { className: 'lbl' }, 'Total CHF'), React.createElement('span', { className: 'val' }, hwxMoneyDe(hwxFromRappen(tot.total)))),
+                  rem.mwst_nota !== false && React.createElement('div', { className: 'mwst' }, 'Nicht MWST-pflichtig')
                 )
               ),
               o.valida_ate && React.createElement('div', { className: 'valid' }, 'Gültig bis ' + hwxFmtDate(o.valida_ate)),
