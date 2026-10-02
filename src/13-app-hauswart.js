@@ -276,6 +276,9 @@ var HauswartApp = function(props) {
   // Guarda o updated_at que veio do servidor, para o hwSync poder detetar
   // se outro aparelho gravou entretanto (ver hwSync abaixo).
   var lastUpdatedAtRef = React.useRef(null);
+  // Hauswart Extra (src/21-app-hauswart-extra.js): só alterna o ecrã, não toca nos dados acima.
+  var _useStateExtra = React.useState(false);
+  var showExtra = _useStateExtra[0], setShowExtra = _useStateExtra[1];
 
   var loadHauswartData = function() {
     if (!window.supabaseClient) return;
@@ -458,6 +461,8 @@ var HauswartApp = function(props) {
     });
   }
 
+  if (showExtra && typeof HwxApp === 'function') return React.createElement(HwxApp, { profile: profile, onBack: function () { setShowExtra(false); } });
+
   var unreadArchive = archive.filter(function(a) { return !a.paid; }).length;
 
   var TABS = [
@@ -479,7 +484,10 @@ var HauswartApp = function(props) {
           React.createElement('div', { style: { fontSize: 11, color: '#64748b' } }, referenz + ' · ' + hwChf(total))
         )
       ),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+      React.createElement('button', { onClick: function() { setShowExtra(true); }, style: { background: '#334155', color: '#e2e8f0', border: '1px solid #475569', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 600 } }, '➕ Extra'),
       (works.length > 0 || mats.length > 0) && React.createElement('button', { onClick: function() { setTab('invoice'); }, style: { background: '#3b82f622', color: '#93c5fd', border: '1px solid #3b82f644', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 600 } }, '🧾 Rechnung')
+      )
     ),
     // Content
     React.createElement('div', { style: S.content },
