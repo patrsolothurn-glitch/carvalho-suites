@@ -36,6 +36,7 @@ const JS_SECTIONS = [
   '11-app-subby.js', // app Subby — gestor de subscrições (independente, só Patricio)
   '12-app-lucas.js', // app Escola Grenchen — gestão admin do transporte escolar
   '13-app-hauswart.js', // app Hauswart — faturação trimestral pessoal (admin only)
+  '21-app-hauswart-extra.js', // Hauswart Extra — trabalhos leves às sextas (aberta pelo botão "➕ Extra" da Hauswart)
   '14-app-rapport.js', // app Arnold Rapport — Wochen Planung, Tages- e Wochenrapport
   '15-app-viagens.js', // app Viagens Família
   '16-app-voz.js', // app Voz (gravador + tradutor)
