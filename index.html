@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-01T14:35:37.096Z
+  Gerado em: 2026-10-02T08:12:40.560Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-373";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-374";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -35337,7 +35337,32 @@ function polMedicaoRecente(m) {
 // a Open-Meteo pede forecast_days=4 (hoje + 3), que é o que a aba Previsão
 // já mostrava; o modelo CAMS do pólen não prevê mais do que isso.
 var POL_DIA_MAX_PASSADO = 7;
-var POL_DIA_MAX_FUTURO = 3;
+var POL_DIA_MAX_FUTURO = 7; // a barra mostra sempre −7…+7 (15 chips)
+var POL_PREV_DIAS = 3;      // forecast_days=4 → o modelo CAMS só cobre hoje + 3; +4…+7 não têm dados (não aumentar o pedido)
+// Última medição conhecida ainda aceite como "medido" (até 24 h) quando não há medição fresca (≤ 6 h) nem previsão.
+var POL_MEDICAO_ANTIGA_MS = 24 * 60 * 60 * 1000;
+function polMedicaoUltimas24h(m) {
+  if (!m) return false;
+  var idade = Date.now() - new Date(m.ts).getTime();
+  return idade >= 0 && idade <= POL_MEDICAO_ANTIGA_MS;
+}
+// "(há 5 h)" — vazio se for há menos de 1 h
+function polHaHoras(ts) {
+  var h = Math.floor((Date.now() - new Date(ts).getTime()) / 3600000);
+  return h >= 1 ? ' (há ' + h + ' h)' : '';
+}
+// Período de floração por tipo (meses 1–12, intervalo fechado; valores aproximados para a Suíça).
+// Fora destes meses, um tipo sem dados mostra "Fora de época" em vez de "Sem dados".
+var FLORACAO = {
+  erle: [1, 4], hasel: [1, 4], esche: [3, 5], birke: [3, 5], buche: [4, 5], eiche: [4, 5],
+  graeser: [5, 8], beifuss: [7, 9], ambrosia: [8, 10], olive: [3, 6]
+};
+function polForaDeEpoca(tipoId, dataIso) {
+  var f = FLORACAO[tipoId];
+  if (!f) return false;
+  var mes = +dataIso.slice(5, 7);
+  return mes < f[0] || mes > f[1];
+}
 var POL_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 function polPartesZurich(d) {
   var partes = new Intl.DateTimeFormat('en-CA', {
@@ -35450,6 +35475,8 @@ var POL_CSS = '' +
   '.pol-diabar{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}' +
   '.pol-diabar::-webkit-scrollbar{display:none}' +
   '.pol-chip-dia{flex:none;min-width:58px;text-align:center;padding:10px 6px;border-radius:12px;border:2px solid var(--pol-borda);background:var(--pol-cartao);color:var(--pol-texto);font-size:13px;font-weight:800;cursor:pointer}' +
+  '.pol-chip-dia-vazio{opacity:.45;color:var(--pol-texto2)}' +
+  '.pol-chip-dia-vazio.pol-chip-dia-ativo{opacity:.85;background:var(--pol-texto2);color:var(--pol-cartao);border-color:var(--pol-texto2)}' +
   '.pol-chip-dia-hoje{border-color:var(--pol-verde);text-decoration:underline;text-decoration-color:var(--pol-verde);text-decoration-thickness:3px;text-underline-offset:3px}' +
   '.pol-chip-dia-ativo{background:var(--pol-verde);color:var(--pol-verde-texto);border-color:var(--pol-verde);text-decoration:none}' +
   '.pol-nivel-pill{display:inline-flex;align-items:center;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:800;white-space:nowrap}' +
@@ -35471,6 +35498,7 @@ function PolCard(p) { return React.createElement('div', { className: 'pol-card',
 // arredondado a 1 casa (ex.: "Fraco · 4.2").
 function PolNivelPill(p) {
   var cinzento = { background: 'var(--pol-borda)', color: 'var(--pol-texto2)' };
+  if (p.valor == null && p.foraEpoca) return React.createElement('span', { className: 'pol-nivel-pill', style: cinzento }, 'Fora de época');
   if (p.valor == null) return React.createElement('span', { className: 'pol-nivel-pill', style: cinzento }, '⚠︎ Sem dados');
   if (p.valor <= 0) return React.createElement('span', { className: 'pol-nivel-pill', style: cinzento }, 'Fora de época');
   var info = p.nivel ? POL_NIVEL_INFO[p.nivel] : null;
@@ -35948,6 +35976,7 @@ function PollenApp(props) {
     // como "previsão" em vez de "medido". Sem valor em nenhuma fonte → "Sem dados"
     // (nunca se inventa um valor).
     var ehHoje = diaOffset === 0, futuro = diaOffset > 0, diaIso = polDiaDoOffset(diaOffset);
+    var semPrevisao = diaOffset > POL_PREV_DIAS; // +4…+7: fora do alcance do modelo → um único cartão, sem lista de pólens
     var valoresDiaMedicoes = null, valoresDiaPrevisao = null, diaEstado = 'ok';
     if (!ehHoje) {
       if (!previsao && !previsaoErro) diaEstado = 'a-carregar';
@@ -35959,7 +35988,7 @@ function PollenApp(props) {
         else valoresDiaMedicoes = polMaxDiaMedicoes(linhasDia);
       }
     }
-    var semDadosDia = !ehHoje && diaEstado === 'ok' &&
+    var semDadosDia = !ehHoje && !semPrevisao && diaEstado === 'ok' &&
       (!valoresDiaMedicoes || !Object.keys(valoresDiaMedicoes).length) &&
       (!valoresDiaPrevisao || !Object.keys(valoresDiaPrevisao).length);
     function linhaTipo(t) {
@@ -35984,10 +36013,15 @@ function PollenApp(props) {
         }
       } else if (medicaoValida) {
         valor = m.valor;
-        fonteLabel = 'medido · ' + estacaoInfo.estacao.nome + ' ' + polFmtHora(m.ts);
+        fonteLabel = 'medido · ' + estacaoInfo.estacao.nome + ' ' + polFmtHora(m.ts) + polHaHoras(m.ts);
       } else {
         valor = polValorHoraAtual(previsao, t.omVar);
         fonteLabel = valor != null ? 'previsão' : null;
+        // sem previsão (Hasel/Esche/Buche/Eiche, ou a previsão falhou): última medição conhecida das últimas 24 h, com a hora
+        if (valor == null && polMedicaoUltimas24h(m) && m.valor != null) {
+          valor = m.valor;
+          fonteLabel = 'medido · ' + estacaoInfo.estacao.nome + ' ' + polFmtHora(m.ts) + polHaHoras(m.ts);
+        }
       }
       var nivel = polClassificarNivel(t.id, valor);
       return React.createElement('div', { key: t.id, 'data-pol-tipo': t.id, onClick: function () { setTipoDetalheId(t.id); }, style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--pol-borda)', cursor: 'pointer' } },
@@ -35998,7 +36032,7 @@ function PollenApp(props) {
         ),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
           valor != null && React.createElement('span', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, Math.round(valor) + ' /m³'),
-          React.createElement(PolNivelPill, { valor: valor, nivel: nivel }),
+          React.createElement(PolNivelPill, { valor: valor, nivel: nivel, foraEpoca: valor == null && polForaDeEpoca(t.id, diaIso) }),
           React.createElement('span', { style: { color: 'var(--pol-texto2)', fontSize: 13 } }, '›')
         )
       );
@@ -36012,7 +36046,7 @@ function PollenApp(props) {
           return React.createElement('button', {
             key: o,
             'data-dia-offset': o,
-            className: 'pol-chip-dia' + (ehHojeChip ? ' pol-chip-dia-hoje' : '') + (ativo ? ' pol-chip-dia-ativo' : ''),
+            className: 'pol-chip-dia' + (ehHojeChip ? ' pol-chip-dia-hoje' : '') + (ativo ? ' pol-chip-dia-ativo' : '') + (o > POL_PREV_DIAS ? ' pol-chip-dia-vazio' : ''),
             'aria-current': ativo ? 'true' : undefined,
             onClick: function () { setDiaOffset(o); }
           }, polEtiquetaDiaChip(o));
@@ -36049,18 +36083,20 @@ function PollenApp(props) {
     }
     return React.createElement('div', { style: { padding: 16, display: 'flex', flexDirection: 'column', gap: 12, touchAction: 'pan-y' }, onTouchStart: swipeProps.onTouchStart, onTouchEnd: swipeProps.onTouchEnd },
       barraDia,
-      React.createElement(PolCard, null,
+      semPrevisao && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 15, fontWeight: 800, textAlign: 'center', lineHeight: 1.4 } },
+        'Sem previsão para este dia — a previsão de pólen só vai até ' + polEtiquetaDia(POL_PREV_DIAS) + '. Volta a ver mais perto do dia.')),
+      !semPrevisao && React.createElement(PolCard, null,
         React.createElement('div', { style: { fontWeight: 800, fontSize: 15, marginBottom: 4 } }, perfilAtivo.cidade + (perfilAtivo.kanton ? ' · ' + perfilAtivo.kanton : '')),
         React.createElement('div', { style: { fontSize: 12, color: 'var(--pol-texto2)' } }, textoDiaDescricao)
       ),
       !ehHoje && diaEstado === 'a-carregar' && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 14, fontWeight: 700, textAlign: 'center' } }, 'A carregar…')),
       !ehHoje && diaEstado === 'erro' && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 14, fontWeight: 700, textAlign: 'center', color: '#DC2626' } }, '⚠️ Não foi possível obter as medições deste dia.')),
       semDadosDia && React.createElement(PolCard, null, React.createElement('p', { style: { fontSize: 15, fontWeight: 800, textAlign: 'center' } }, 'Sem dados para este dia')),
-      React.createElement(PolCard, null,
+      !semPrevisao && React.createElement(PolCard, null,
         React.createElement('div', { style: { fontWeight: 800, fontSize: 13, marginBottom: 4, textTransform: 'uppercase', color: 'var(--pol-texto2)' } }, 'Os teus pólens'),
         tiposAlergia.length ? tiposAlergia.map(linhaTipo) : React.createElement('p', { style: { fontSize: 13, color: 'var(--pol-texto2)' } }, 'Este perfil ainda não tem alergias escolhidas.')
       ),
-      React.createElement('div', null,
+      !semPrevisao && React.createElement('div', null,
         React.createElement('button', { className: 'pol-btn', style: { width: '100%' }, onClick: function () { setOutrosAbertos(!outrosAbertos); } }, (outrosAbertos ? '▾' : '▸') + ' Outros pólens'),
         outrosAbertos && React.createElement(PolCard, { style: { marginTop: 8 } }, outrosTipos.map(linhaTipo))
       )
