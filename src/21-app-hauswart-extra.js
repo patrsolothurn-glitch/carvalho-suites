@@ -102,6 +102,25 @@
       if (d.indexOf('410') === 0 && d.length === 12) d = '41' + d.slice(3);
       return d.length >= 8 ? d : '';
     }
+    // Chave para comparar números (dedup): mesmo número escrito de formas diferentes
+    function hwxPhoneKey(raw) {
+      var d = hwxPhone(raw);
+      return d || String(raw == null ? '' : raw).replace(/\D/g, '');
+    }
+    // Só para MOSTRAR (o que está gravado não muda): +41 79 597 22 62 / 079 597 22 62
+    function hwxFmtPhone(raw) {
+      var s = String(raw == null ? '' : raw).trim();
+      if (!s) return '';
+      var d = s.replace(/\D/g, '');
+      if (/^(\+|00)/.test(s.replace(/\s/g, ''))) {
+        if (d.indexOf('00') === 0) d = d.slice(2);
+        if (d.indexOf('410') === 0 && d.length === 12) d = '41' + d.slice(3);
+        if (/^41\d{9}$/.test(d)) return '+41 ' + d.slice(2, 4) + ' ' + d.slice(4, 7) + ' ' + d.slice(7, 9) + ' ' + d.slice(9, 11);
+        return s;
+      }
+      if (/^0[1-9]\d{8}$/.test(d)) return d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6, 8) + ' ' + d.slice(8, 10);
+      return s;
+    }
     // PLZ suíço = 4 dígitos. Avisa (não bloqueia).
     function hwxPlzWarn(v) {
       var s = String(v == null ? '' : v).trim();
@@ -556,31 +575,121 @@
       });
     }
 
-    function HxLink(props) {
-      var st = { minHeight: 44, minWidth: 44, borderRadius: 8, padding: '0 16px', fontSize: 15, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', boxSizing: 'border-box', background: HX.surface2, color: HX.text, border: '1px solid ' + HX.borderStrong };
-      return React.createElement('a', { href: props.href, target: props.blank ? '_blank' : undefined, rel: props.blank ? 'noopener noreferrer' : undefined, style: st }, props.label);
+    // Bloco de um cartão: título pequeno, maiúsculas, cinzento; linha fina por cima; texto indentado
+    function HxBlock(props) {
+      return React.createElement('div', { style: { borderTop: '1px solid ' + HX.border, marginTop: 10, paddingTop: 10 } },
+        React.createElement('div', { style: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: HX.muted, marginBottom: 6 } }, props.title),
+        React.createElement('div', { style: { paddingLeft: 20, minWidth: 0 } }, props.children)
+      );
     }
 
-    // Ligar: com um número liga direto; com dois, escolher Telemóvel/Fixo. WhatsApp: SÓ telemóvel.
-    function HxCallRow(props) {
+    // Notas fechadas por defeito; abrem ao tocar
+    function HxNotes(props) {
       var _o = React.useState(false);
       var open = _o[0], setOpen = _o[1];
-      var m = hwxPhone(props.mobile), f = hwxPhone(props.fixed);
-      if (!m && !f) return null;
-      var items = [];
-      if (m && f) {
-        items.push(React.createElement(HxBtn, { key: 'call', label: '📞 Ligar' + (open ? ' ▲' : ' ▼'), onClick: function () { setOpen(!open); } }));
-        if (open) {
-          items.push(React.createElement(HxLink, { key: 'cm', label: 'Telemóvel', href: 'tel:+' + m }));
-          items.push(React.createElement(HxLink, { key: 'cf', label: 'Fixo', href: 'tel:+' + f }));
-        }
-      } else {
-        items.push(React.createElement(HxLink, { key: 'call', label: '📞 Ligar', href: 'tel:+' + (m || f) }));
+      return React.createElement('div', { style: { borderTop: '1px solid ' + HX.border, marginTop: 10, paddingTop: 2 } },
+        React.createElement('button', {
+          type: 'button', 'aria-expanded': open, onClick: function () { setOpen(!open); },
+          style: { minHeight: 44, width: '100%', background: 'transparent', border: 'none', color: HX.muted, fontSize: 14, fontWeight: 700, textAlign: 'left', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }
+        }, '📝 ' + (props.label || 'Notas') + (open ? ' ▾' : ' ▸')),
+        open && React.createElement('div', { style: { fontSize: 14, color: HX.text, paddingLeft: 20, paddingBottom: 6, wordBreak: 'break-word', whiteSpace: 'pre-wrap' } }, props.text)
+      );
+    }
+
+    // Botão/ligação da barra de ações: todos do mesmo tamanho (ícone em cima, nome pequeno por baixo)
+    function HxActBtn(props) {
+      var st = { minHeight: 52, width: '100%', minWidth: 0, borderRadius: 8, padding: '4px 2px', fontFamily: 'inherit', fontWeight: 700, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, textDecoration: 'none', boxSizing: 'border-box', cursor: 'pointer', background: HX.surface2, color: HX.text, border: '1px solid ' + HX.borderStrong };
+      if (props.kind === 'danger') { st.background = 'transparent'; st.color = HX.badText; st.border = '1px solid ' + HX.bad; }
+      if (props.disabled) { st.opacity = 0.4; st.cursor = 'not-allowed'; }
+      var kids = [
+        React.createElement('span', { key: 'i', style: { fontSize: 18, lineHeight: 1 } }, props.icon),
+        React.createElement('span', { key: 'l', style: { fontSize: 12, lineHeight: 1.2 } }, props.label)
+      ];
+      if (props.href && !props.disabled) {
+        return React.createElement('a', { href: props.href, target: props.blank ? '_blank' : undefined, rel: props.blank ? 'noopener noreferrer' : undefined, style: st, 'aria-label': props.aria }, kids);
       }
-      if (m) items.push(React.createElement(HxLink, { key: 'wa', label: '💬 WhatsApp', href: 'https://wa.me/' + m, blank: true }));
-      return React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' } },
-        props.label && React.createElement('span', { style: { fontSize: 13, color: HX.muted, fontWeight: 700 } }, props.label),
-        items
+      return React.createElement('button', { type: 'button', onClick: props.disabled ? undefined : props.onClick, disabled: !!props.disabled, 'aria-label': props.aria, 'aria-expanded': props.expanded, title: props.title, style: st }, kids);
+    }
+
+    // Números do cliente e do contacto para "Ligar"/"WhatsApp", sem repetir números iguais
+    function hwxCallEntries(c) {
+      var out = [], seen = {};
+      var add = function (label, raw, mobile) {
+        var d = hwxPhone(raw);
+        if (!d || seen[d]) return;
+        seen[d] = true;
+        out.push({ label: label, raw: raw, digits: d, mobile: mobile });
+      };
+      add('Telemóvel', c.telemovel, true);
+      add('Fixo', c.telefone_fixo, false);
+      add('Contacto · telemóvel', c.contacto_telemovel, true);
+      add('Contacto · fixo', c.contacto_telefone, false);
+      return out;
+    }
+
+    // Dados do bloco CONTACTO (cliente + contacto, sem repetições)
+    function hwxContactoDados(c) {
+      var nums = [], seen = {}, emails = [], seenM = {};
+      var addN = function (kind, raw) {
+        var v = String(raw == null ? '' : raw).trim();
+        if (!v) return;
+        var k = hwxPhoneKey(v);
+        if (seen[k]) return;
+        seen[k] = true;
+        nums.push({ kind: kind, raw: v });
+      };
+      var addM = function (raw) {
+        var v = String(raw == null ? '' : raw).trim();
+        if (!v || seenM[v.toLowerCase()]) return;
+        seenM[v.toLowerCase()] = true;
+        emails.push(v);
+      };
+      addN('mob', c.contacto_telemovel); addN('fix', c.contacto_telefone); addN('mob', c.telemovel); addN('fix', c.telefone_fixo);
+      addM(c.contacto_email); addM(c.email);
+      return { nome: String(c.contacto_nome || '').trim(), nums: nums, emails: emails };
+    }
+
+    // Um local como "1.1  rua" e, por baixo, "PLZ localidade" + zona
+    function hwxLocalLines(c, l) {
+      var rua = l.rua || l.nome || '';
+      var zona = l.zona || c.zona || '';
+      var cp = [l.plz, l.ort].filter(Boolean).join(' ');
+      return React.createElement('div', { style: { minWidth: 0 } },
+        React.createElement('div', { style: { display: 'flex', gap: 8, fontSize: 15, alignItems: 'baseline' } },
+          React.createElement('span', { style: { fontWeight: 800, minWidth: 34, flexShrink: 0 } }, c.numero + '.' + l.sub_numero),
+          React.createElement('span', { style: { wordBreak: 'break-word', minWidth: 0 } }, rua,
+            l.rua && l.nome && l.nome !== l.rua ? React.createElement('span', { style: { color: HX.muted } }, ' · ' + l.nome) : null)
+        ),
+        (cp || zona) && React.createElement('div', { style: { paddingLeft: 42, fontSize: 14, color: HX.muted } }, cp, zona ? React.createElement(HxPill, { text: zona }) : null)
+      );
+    }
+
+    // Barra de ações do cartão de cliente, numa só linha: [📞 Ligar] [💬 WhatsApp] [✏️] [🗑]
+    function HxCardActions(props) {
+      var _o = React.useState(null);
+      var open = _o[0], setOpen = _o[1];
+      var phones = props.entries, was = phones.filter(function (e) { return e.mobile; });
+      var btns = [];
+      if (phones.length === 1) btns.push(React.createElement(HxActBtn, { key: 'call', icon: '📞', label: 'Ligar', href: 'tel:+' + phones[0].digits, aria: 'Ligar a ' + props.name }));
+      else if (phones.length > 1) btns.push(React.createElement(HxActBtn, { key: 'call', icon: '📞', label: 'Ligar ' + (open === 'call' ? '▲' : '▼'), expanded: open === 'call', aria: 'Ligar a ' + props.name, onClick: function () { setOpen(open === 'call' ? null : 'call'); } }));
+      if (was.length === 1) btns.push(React.createElement(HxActBtn, { key: 'wa', icon: '💬', label: 'WhatsApp', href: 'https://wa.me/' + was[0].digits, blank: true, aria: 'WhatsApp para ' + props.name }));
+      else if (was.length > 1) btns.push(React.createElement(HxActBtn, { key: 'wa', icon: '💬', label: 'WhatsApp ' + (open === 'wa' ? '▲' : '▼'), expanded: open === 'wa', aria: 'WhatsApp para ' + props.name, onClick: function () { setOpen(open === 'wa' ? null : 'wa'); } }));
+      btns.push(React.createElement(HxActBtn, { key: 'ed', icon: '✏️', label: 'Editar', aria: 'Editar ' + props.name, onClick: props.onEdit, disabled: props.disabled }));
+      btns.push(React.createElement(HxActBtn, { key: 'del', icon: '🗑️', label: 'Apagar', kind: 'danger', aria: 'Apagar ' + props.name, onClick: props.onDel, disabled: props.disabled }));
+      var lista = open === 'call' ? phones : open === 'wa' ? was : [];
+      return React.createElement('div', { style: { marginTop: 12 } },
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + btns.length + ', minmax(0, 1fr))', gap: 8 } }, btns),
+        lista.length > 0 && React.createElement('div', { style: { display: 'grid', gap: 6, marginTop: 8 } },
+          lista.map(function (e) {
+            return React.createElement('a', {
+              key: e.digits, href: (open === 'wa' ? 'https://wa.me/' : 'tel:+') + e.digits, target: open === 'wa' ? '_blank' : undefined, rel: open === 'wa' ? 'noopener noreferrer' : undefined,
+              style: { minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 12px', borderRadius: 8, textDecoration: 'none', boxSizing: 'border-box', background: HX.surface2, color: HX.text, border: '1px solid ' + HX.borderStrong, fontSize: 15, fontWeight: 700 }
+            },
+              React.createElement('span', null, e.label),
+              React.createElement('span', { style: { color: HX.muted, fontWeight: 600 } }, hwxFmtPhone(e.raw))
+            );
+          })
+        )
       );
     }
 
@@ -808,57 +917,64 @@
         list.rows !== null && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, shown.length + ' de ' + rows.length + ' serviço(s)' + (canOrder ? '' : ' · ordenar à mão só em "A minha ordem"')),
         list.rows !== null && rows.length === 0 && React.createElement(HxEmpty, { icon: '🏷️', text: 'Ainda não há serviços', sub: 'Toca em "+ Novo serviço" para criar o primeiro.' }),
         list.rows !== null && rows.length > 0 && shown.length === 0 && React.createElement(HxEmpty, { icon: '🔎', text: 'Nenhum serviço com estes filtros' }),
-        shown.map(function (r, idx) {
-          var wait = !!pending[r.id];
-          var ef = hwxEfEstado(r), fora = hwxForaEpoca(r);
-          var canDrag = canOrder && ctx.wide && !wait;
-          return React.createElement('div', {
-            key: r.id,
-            draggable: canDrag,
-            onDragStart: canDrag ? function () { dragRef.current = r.id; } : undefined,
-            onDragOver: canDrag ? function (e) { e.preventDefault(); } : undefined,
-            onDrop: canDrag ? function (e) { e.preventDefault(); dropOn(r.id); } : undefined,
-            style: Object.assign({}, HXS.card, { opacity: (r.estado === 'arquivado' || fora) ? 0.6 : 1, cursor: canDrag ? 'grab' : 'default' })
-          },
-            React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontWeight: 700, fontSize: 16, wordBreak: 'break-word' } }, r.nome),
-                React.createElement('div', { style: { fontWeight: 700, fontSize: 16, marginTop: 2, color: fora ? HX.muted : HX.text } }, hwxPriceText(r)),
-                React.createElement('div', null,
-                  React.createElement(HxPill, { text: hwxCatName(cats, r.categoria) }),
-                  React.createElement(HxPill, { text: hwxLabel(HWX_SERV_ESTADOS, ef) + (ef === 'pausado' && r.pausado_ate ? ' até ' + hwxFmtDate(r.pausado_ate) : ''), color: HWX_ESTADO_COR[ef] }),
-                  r.estado === 'sazonal' && React.createElement(HxPill, { text: (fora ? 'Fora de época · ' : '') + hwxMesesText(r.meses), color: fora ? '#737373' : HWX_ESTADO_COR.sazonal })
-                ),
-                r.nota && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6, wordBreak: 'break-word' } }, r.nota)
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: ctx.wide ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 12, alignItems: 'start' } },
+          shown.map(function (r, idx) {
+            var wait = !!pending[r.id];
+            var ef = hwxEfEstado(r), fora = hwxForaEpoca(r);
+            var cor = HWX_ESTADO_COR[ef] || HX.muted;
+            var canDrag = canOrder && ctx.wide && !wait;
+            return React.createElement('div', {
+              key: r.id,
+              draggable: canDrag,
+              onDragStart: canDrag ? function () { dragRef.current = r.id; } : undefined,
+              onDragOver: canDrag ? function (e) { e.preventDefault(); } : undefined,
+              onDrop: canDrag ? function (e) { e.preventDefault(); dropOn(r.id); } : undefined,
+              style: Object.assign({}, HXS.card, { marginBottom: 0, opacity: (r.estado === 'arquivado' || fora) ? 0.6 : 1, cursor: canDrag ? 'grab' : 'default' })
+            },
+              React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
+                React.createElement('div', { style: { flex: 1, minWidth: 0, fontWeight: 800, fontSize: 18, wordBreak: 'break-word', paddingTop: 8 } }, r.nome),
+                // a etiqueta do estado é também a escolha do estado (toca para mudar)
+                React.createElement('select', {
+                  value: ef, autoComplete: 'off', disabled: wait, 'aria-label': 'Estado de ' + r.nome,
+                  onChange: function (e) { onChangeEstado(r, e.target.value); },
+                  style: { minHeight: 44, borderRadius: 22, background: HX.field, color: cor, border: '1px solid ' + cor, fontWeight: 700, fontSize: 14, padding: '0 10px', fontFamily: 'inherit', colorScheme: 'dark', accentColor: '#a3a3a3', maxWidth: 150 }
+                }, HWX_SERV_ESTADOS.map(function (o) { return React.createElement('option', { key: o.v, value: o.v }, o.l); }))
               ),
-              React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 6 } },
-                React.createElement(HxBtn, { label: '↑', aria: 'Subir ' + r.nome, title: canOrder ? 'Subir' : 'Muda para "A minha ordem" para ordenar', disabled: !canOrder || wait || idx === 0, onClick: function () { moveBy(r.id, -1, visibleIds); } }),
-                React.createElement(HxBtn, { label: '↓', aria: 'Descer ' + r.nome, title: canOrder ? 'Descer' : 'Muda para "A minha ordem" para ordenar', disabled: !canOrder || wait || idx === shown.length - 1, onClick: function () { moveBy(r.id, 1, visibleIds); } })
+              React.createElement('div', { style: { fontWeight: 800, fontSize: 21, marginTop: 4, color: fora ? HX.muted : HX.text, wordBreak: 'break-word' } }, hwxPriceText(r)),
+              React.createElement('div', null,
+                React.createElement(HxPill, { text: hwxCatName(cats, r.categoria) }),
+                ef === 'pausado' && r.pausado_ate && React.createElement(HxPill, { text: 'Pausado até ' + hwxFmtDate(r.pausado_ate), color: HWX_ESTADO_COR.pausado }),
+                r.estado === 'pausado' && ef === 'ativo' && React.createElement(HxPill, { text: 'Pausa terminou em ' + hwxFmtDate(r.pausado_ate), color: HX.muted }),
+                r.estado === 'sazonal' && React.createElement(HxPill, { text: (fora ? 'Fora de época · ' : '') + hwxMesesText(r.meses), color: fora ? '#737373' : HWX_ESTADO_COR.sazonal })
+              ),
+              r.nota && React.createElement(HxNotes, { text: r.nota, label: 'Nota' }),
+              React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
+                React.createElement(HxActBtn, { icon: '↑', label: 'Subir', aria: 'Subir ' + r.nome, title: canOrder ? 'Subir' : 'Muda para "A minha ordem" para ordenar', disabled: !canOrder || wait || idx === 0, onClick: function () { moveBy(r.id, -1, visibleIds); } }),
+                React.createElement(HxActBtn, { icon: '↓', label: 'Descer', aria: 'Descer ' + r.nome, title: canOrder ? 'Descer' : 'Muda para "A minha ordem" para ordenar', disabled: !canOrder || wait || idx === shown.length - 1, onClick: function () { moveBy(r.id, 1, visibleIds); } }),
+                React.createElement(HxActBtn, { icon: '✏️', label: 'Editar', aria: 'Editar ' + r.nome, disabled: wait, onClick: function () { setForm({ editing: r, preset: null }); } }),
+                React.createElement(HxActBtn, { icon: '🗑️', label: 'Apagar', kind: 'danger', aria: 'Apagar ' + r.nome, disabled: wait, onClick: function () { onDel(r); } })
               )
-            ),
-            React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 10, alignItems: 'flex-end' } },
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement(HxSelect, { label: 'Estado', tight: true, value: r.estado || 'ativo', options: HWX_SERV_ESTADOS, onChange: function (v) { onChangeEstado(r, v); } })
-              ),
-              React.createElement(HxBtn, { label: '✏️ Editar', onClick: function () { setForm({ editing: r, preset: null }); }, disabled: wait }),
-              React.createElement(HxBtn, { label: '🗑️', kind: 'danger', aria: 'Apagar ' + r.nome, onClick: function () { onDel(r); }, disabled: wait })
-            )
-          );
-        })
+            );
+          })
+        )
       );
     }
 
     // ── CLIENTES (hwx_clientes + hwx_locais) ──
+    // Estado inicial do formulário de cliente. O bloco CONTACTO mostra o contacto; se a coluna do contacto
+    // estiver vazia, mostra o valor da coluna do cliente (nada fica escondido).
     function hwxCli0(r) {
       var s = function (k) { return r && r[k] != null ? String(r[k]) : ''; };
       return {
-        numero: r ? String(r.numero) : '', firma: s('firma'), nome: s('nome'),
-        telemovel: s('telemovel'), telefone_fixo: s('telefone_fixo'), email: s('email'), lingua: (r && r.lingua) || 'de',
-        contacto_nome: s('contacto_nome'), contacto_telemovel: s('contacto_telemovel'), contacto_telefone: s('contacto_telefone'), contacto_email: s('contacto_email'),
-        rua: s('rua'), plz: s('plz'), ort: s('ort'), zona: s('zona'),
-        estado: (r && r.estado) || 'ativo', pausado_ate: s('pausado_ate'), notas: s('notas')
+        numero: r ? String(r.numero) : '', nome: s('nome'), estado: (r && r.estado) || 'ativo', pausado_ate: s('pausado_ate'),
+        lingua: (r && r.lingua) || 'de', zona: s('zona'),
+        firma: s('firma'), rua: s('rua'), plz: s('plz'), ort: s('ort'),
+        c_nome: s('contacto_nome'), c_tel: s('contacto_telemovel') || s('telemovel'), c_fixo: s('contacto_telefone') || s('telefone_fixo'), c_email: s('contacto_email') || s('email'),
+        notas: s('notas')
       };
     }
+    function hwxSamePhone(a, b) { return hwxPhoneKey(a) === hwxPhoneKey(b); }
+    function hwxSameMail(a, b) { return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase(); }
     function hwxZonaOpts(zonas, atual, vazio) {
       var opts = [{ v: '', l: vazio }].concat(zonas.map(function (z) { return { v: z.nome, l: z.nome + ' (' + hwxChf(z.valor) + ')' }; }));
       if (atual && !zonas.some(function (z) { return z.nome === atual; })) opts.push({ v: atual, l: atual + ' (já não existe nos Ajustes)' });
@@ -951,20 +1067,31 @@
           if (num === null || num <= 0 || Math.round(num) !== num || num > 2147483647) e.numero = 'O número tem de ser um inteiro maior que 0.';
           else {
             var uso = clientes.filter(function (c) { return c.numero === num && (!editing || c.id !== editing.id); })[0];
-            if (uso) e.numero = 'O número ' + num + ' já é do cliente "' + (uso.firma || uso.nome) + '".';
+            if (uso) e.numero = 'O número ' + num + ' já é do cliente "' + (uso.nome || uso.firma) + '".';
           }
         }
-        if (hwxEmailBad(f.email)) e.email = 'E-mail inválido.';
-        if (hwxEmailBad(f.contacto_email)) e.contacto_email = 'E-mail inválido.';
+        if (hwxEmailBad(f.c_email)) e.c_email = 'E-mail inválido.';
         setErrs(e);
         if (Object.keys(e).length) { if (fail) fail(); return; }
         var t = function (k) { return String(f[k] || '').trim(); };
         var payload = {
-          firma: t('firma'), nome: nome, telemovel: t('telemovel'), telefone_fixo: t('telefone_fixo'), email: t('email'), lingua: f.lingua,
-          contacto_nome: t('contacto_nome'), contacto_telemovel: t('contacto_telemovel'), contacto_telefone: t('contacto_telefone'), contacto_email: t('contacto_email'),
-          rua: t('rua'), plz: t('plz'), ort: t('ort'), zona: f.zona || '', estado: f.estado,
-          pausado_ate: f.estado === 'pausado' && f.pausado_ate ? f.pausado_ate : null, notas: t('notas')
+          nome: nome, lingua: f.lingua, zona: f.zona || '', estado: f.estado,
+          pausado_ate: f.estado === 'pausado' && f.pausado_ate ? f.pausado_ate : null,
+          firma: t('firma'), rua: t('rua'), plz: t('plz'), ort: t('ort'),
+          contacto_nome: t('c_nome'), contacto_telemovel: t('c_tel'), contacto_telefone: t('c_fixo'), contacto_email: t('c_email'),
+          notas: t('notas')
         };
+        if (editing) {
+          // Se o que vias no CONTACTO vinha da coluna do cliente e o mudaste ou apagaste, limpa-a também
+          // (senão o valor antigo continuava a aparecer no cartão).
+          var limpa = function (col, key, same) {
+            var old = String(editing[col] || '').trim();
+            if (old && same(old, snap[key]) && !same(t(key), snap[key])) payload[col] = '';
+          };
+          limpa('telemovel', 'c_tel', hwxSamePhone);
+          limpa('telefone_fixo', 'c_fixo', hwxSamePhone);
+          limpa('email', 'c_email', hwxSameMail);
+        }
         if (num !== null) payload.numero = num;
         busyRef.current = true; setBusy(true);
         hwxWrite('hwx_clientes', editing ? editing.id : null, payload, notify, function (row) {
@@ -982,62 +1109,54 @@
 
       var meusLocais = props.locais.slice().sort(function (a, b) { return a.sub_numero - b.sub_numero; });
       var enter = function () { doSave(); };
+      var zonaOpts = hwxZonaOpts(zonas, f.zona, '— sem zona —');
 
       return React.createElement(HxFormShell, { title: editing ? 'Editar cliente' : 'Novo cliente', onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
         React.createElement(HxSection, { title: 'Cliente' },
           React.createElement(HxField, { label: 'Número de cliente', value: f.numero, inputMode: 'numeric', onChange: function (v) { upd('numero', v); }, error: errs.numero, placeholder: 'automático (próximo: ' + proximo + ')', hint: editing ? undefined : 'Deixa vazio para a base atribuir o próximo.', onEnter: enter }),
-          React.createElement(HxField, { label: 'Firma (opcional)', value: f.firma, onChange: function (v) { upd('firma', v); }, onEnter: enter }),
           React.createElement(HxField, { label: 'Nome', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxField, { label: 'Telemóvel', value: f.telemovel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('telemovel', v); }, placeholder: '079 123 45 67', onEnter: enter }),
-            React.createElement(HxField, { label: 'Telefone fixo', value: f.telefone_fixo, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('telefone_fixo', v); }, placeholder: '032 123 45 67', onEnter: enter })
+            React.createElement(HxSelect, { label: 'Estado', value: f.estado, options: HWX_CLI_ESTADOS, onChange: function (v) { upd('estado', v); } }),
+            f.estado === 'pausado' ? React.createElement(HxDate, { label: 'Pausado até (opcional)', value: f.pausado_ate, onChange: function (v) { upd('pausado_ate', v); } }) : null
           ),
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxField, { label: 'E-mail', value: f.email, type: 'email', inputMode: 'email', onChange: function (v) { upd('email', v); }, error: errs.email, onEnter: enter }),
-            React.createElement(HxSelect, { label: 'Língua', value: f.lingua, options: HWX_LANGS, onChange: function (v) { upd('lingua', v); } })
-          )
-        ),
-        React.createElement(HxSection, { title: 'Pessoa de contacto' },
-          React.createElement(HxField, { label: 'Nome', value: f.contacto_nome, onChange: function (v) { upd('contacto_nome', v); }, onEnter: enter }),
-          React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxField, { label: 'Telemóvel', value: f.contacto_telemovel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('contacto_telemovel', v); }, onEnter: enter }),
-            React.createElement(HxField, { label: 'Telefone fixo', value: f.contacto_telefone, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('contacto_telefone', v); }, onEnter: enter })
+            React.createElement(HxSelect, { label: 'Língua', value: f.lingua, options: HWX_LANGS, onChange: function (v) { upd('lingua', v); } }),
+            React.createElement(HxSelect, { label: 'Zona por defeito', value: f.zona, options: zonaOpts, onChange: function (v) { upd('zona', v); } })
           ),
-          React.createElement(HxField, { label: 'E-mail', value: f.contacto_email, type: 'email', inputMode: 'email', onChange: function (v) { upd('contacto_email', v); }, error: errs.contacto_email, onEnter: enter })
+          zonas.length === 0 && React.createElement('div', { style: { fontSize: 13, color: HX.warnText, marginTop: -6 } }, 'Ainda não há zonas — cria-as em Ajustes.')
         ),
-        React.createElement(HxSection, { title: 'Morada de faturação (quem paga)' },
+        React.createElement(HxSection, { title: '💰 QUEM PAGA' },
+          React.createElement(HxField, { label: 'Firma (opcional)', value: f.firma, onChange: function (v) { upd('firma', v); }, onEnter: enter }),
           React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: function (v) { upd('rua', v); }, onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
             React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: function (v) { upd('plz', v); }, warn: hwxPlzWarn(f.plz), onEnter: enter }),
             React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: function (v) { upd('ort', v); }, onEnter: enter })
           )
         ),
-        React.createElement(HxSection, { title: 'Zona, estado e notas' },
-          React.createElement(HxSelect, { label: 'Zona por defeito', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— sem zona —'), onChange: function (v) { upd('zona', v); } }),
-          zonas.length === 0 && React.createElement('div', { style: { fontSize: 13, color: HX.warnText, marginTop: -6, marginBottom: 12 } }, 'Ainda não há zonas — cria-as em Ajustes.'),
+        React.createElement(HxSection, { title: '👤 CONTACTO' },
+          React.createElement(HxField, { label: 'Nome', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxSelect, { label: 'Estado', value: f.estado, options: HWX_CLI_ESTADOS, onChange: function (v) { upd('estado', v); } }),
-            f.estado === 'pausado' ? React.createElement(HxDate, { label: 'Pausado até (opcional)', value: f.pausado_ate, onChange: function (v) { upd('pausado_ate', v); } }) : null
+            React.createElement(HxField, { label: 'Telemóvel', value: f.c_tel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_tel', v); }, placeholder: '079 123 45 67', onEnter: enter }),
+            React.createElement(HxField, { label: 'Telefone fixo', value: f.c_fixo, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_fixo', v); }, placeholder: '032 123 45 67', onEnter: enter })
           ),
-          React.createElement(HxField, { label: 'Notas', value: f.notas, multiline: true, onChange: function (v) { upd('notas', v); } })
+          React.createElement(HxField, { label: 'E-mail', value: f.c_email, type: 'email', inputMode: 'email', onChange: function (v) { upd('c_email', v); }, error: errs.c_email, onEnter: enter })
         ),
-        React.createElement(HxSection, { title: 'Locais de trabalho' },
-          !editing && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Guarda o cliente primeiro; depois podes juntar locais de trabalho.'),
-          editing && meusLocais.length === 0 && React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginBottom: 10 } }, 'Sem locais — o trabalho é na morada de faturação.'),
+        React.createElement(HxSection, { title: '📍 ONDE É O TRABALHO' },
+          meusLocais.length === 0 && React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginBottom: 10 } }, 'Igual à morada de quem paga'),
+          !editing && React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Guarda o cliente primeiro; depois podes juntar locais.'),
           editing && meusLocais.map(function (l) {
             return React.createElement('div', { key: l.id, style: { display: 'flex', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid ' + HX.border } },
-              React.createElement('div', { style: { fontWeight: 800, fontSize: 16, minWidth: 44 } }, editing.numero + '.' + l.sub_numero),
-              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                React.createElement('div', { style: { fontWeight: 700, wordBreak: 'break-word' } }, l.nome),
-                React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, [l.rua, [l.plz, l.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ') + (l.zona ? ' · ' + l.zona : ''))
-              ),
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } }, hwxLocalLines(editing, l)),
               React.createElement(HxBtn, { label: '✏️', aria: 'Editar local ' + l.nome, onClick: function () { props.onEditLocal(l); } }),
               React.createElement(HxBtn, { label: '🗑️', kind: 'danger', aria: 'Apagar local ' + l.nome, onClick: function () { props.onDelLocal(l); } })
             );
           }),
           editing && React.createElement('div', { style: { marginTop: 10 } },
-            React.createElement(HxBtn, { label: '+ Novo local', onClick: function () { props.onNewLocal(); }, full: true })
+            React.createElement(HxBtn, { label: '+ Local', onClick: function () { props.onNewLocal(); }, full: true })
           )
+        ),
+        React.createElement(HxSection, { title: '📝 Notas' },
+          React.createElement(HxField, { label: 'Notas', value: f.notas, multiline: true, onChange: function (v) { upd('notas', v); } })
         )
       );
     }
@@ -1177,48 +1296,42 @@
         clientes.rows !== null && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, shown.length + ' de ' + rows.length + ' cliente(s)'),
         clientes.rows !== null && rows.length === 0 && React.createElement(HxEmpty, { icon: '👥', text: 'Ainda não há clientes', sub: 'Toca em "+ Novo cliente" para criar o primeiro.' }),
         clientes.rows !== null && rows.length > 0 && shown.length === 0 && React.createElement(HxEmpty, { icon: '🔎', text: 'Nenhum cliente com estes filtros' }),
-        shown.map(function (c) {
-          var wait = !!pending[c.id];
-          var ef = hwxEfEstado(c);
-          var mine = locaisDe(c.id).slice().sort(function (a, b) { return a.sub_numero - b.sub_numero; });
-          var morada = [c.rua, [c.plz, c.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-          var temContacto = c.contacto_nome || c.contacto_telemovel || c.contacto_telefone || c.contacto_email;
-          return React.createElement('div', { key: c.id, style: Object.assign({}, HXS.card, { opacity: c.estado === 'arquivado' ? 0.65 : 1 }) },
-            React.createElement('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' } },
-              React.createElement('div', { style: { fontWeight: 800, fontSize: 24 } }, '#' + c.numero),
-              React.createElement('div', { style: { fontWeight: 800, fontSize: 18, wordBreak: 'break-word', flex: 1, minWidth: 0 } }, c.firma || c.nome)
-            ),
-            c.firma && React.createElement('div', { style: { fontSize: 15, color: HX.muted } }, c.nome),
-            React.createElement('div', null,
-              React.createElement(HxPill, { text: hwxLabel(HWX_CLI_ESTADOS, ef) + (ef === 'pausado' && c.pausado_ate ? ' até ' + hwxFmtDate(c.pausado_ate) : ''), color: HWX_ESTADO_COR[ef] }),
-              c.zona && React.createElement(HxPill, { text: c.zona }),
-              React.createElement(HxPill, { text: hwxLabel(HWX_LANGS, c.lingua) })
-            ),
-            morada && React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 6 } }, 'Fatura: ' + morada),
-            (c.telemovel || c.telefone_fixo) && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, [c.telemovel && ('📱 ' + c.telemovel), c.telefone_fixo && ('☎️ ' + c.telefone_fixo)].filter(Boolean).join('  ·  ')),
-            c.email && React.createElement('div', { style: { fontSize: 14, color: HX.muted, wordBreak: 'break-all' } }, c.email),
-            temContacto && React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 4 } }, 'Contacto: ' + [c.contacto_nome, c.contacto_telemovel && ('📱 ' + c.contacto_telemovel), c.contacto_telefone && ('☎️ ' + c.contacto_telefone), c.contacto_email].filter(Boolean).join('  ·  ')),
-            c.notas && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6, wordBreak: 'break-word' } }, c.notas),
-            React.createElement('div', { style: { marginTop: 8 } },
-              mine.length === 0
-                ? React.createElement('div', { style: { fontSize: 13, color: HX.muted, fontStyle: 'italic' } }, 'Sem locais — o trabalho é na morada de faturação.')
-                : mine.map(function (l) {
-                    return React.createElement('div', { key: l.id, style: { display: 'flex', gap: 8, fontSize: 14, padding: '2px 0' } },
-                      React.createElement('span', { style: { fontWeight: 800, minWidth: 40 } }, c.numero + '.' + l.sub_numero),
-                      React.createElement('span', { style: { flex: 1, minWidth: 0, wordBreak: 'break-word' } }, l.nome + ((l.rua || l.ort) ? ' — ' + [l.rua, [l.plz, l.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ') : '') + (l.zona ? ' · ' + l.zona : ''))
-                    );
-                  })
-            ),
-            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 } },
-              React.createElement(HxCallRow, { label: 'Cliente', mobile: c.telemovel, fixed: c.telefone_fixo }),
-              temContacto && React.createElement(HxCallRow, { label: 'Contacto', mobile: c.contacto_telemovel, fixed: c.contacto_telefone }),
-              React.createElement('div', { style: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
-                React.createElement(HxBtn, { label: '✏️ Editar', onClick: function () { setView({ kind: 'cliente', editing: c }); }, disabled: wait }),
-                React.createElement(HxBtn, { label: '🗑️', kind: 'danger', aria: 'Apagar ' + (c.firma || c.nome), onClick: function () { delCliente(c); }, disabled: wait })
-              )
-            )
-          );
-        })
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: ctx.wide ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 12, alignItems: 'start' } },
+          shown.map(function (c) {
+            var wait = !!pending[c.id];
+            var ef = hwxEfEstado(c);
+            var mine = locaisDe(c.id).slice().sort(function (a, b) { return a.sub_numero - b.sub_numero; });
+            var cp = [c.plz, c.ort].filter(Boolean).join(' ');
+            var cont = hwxContactoDados(c);
+            var temCont = !!(cont.nome || cont.nums.length || cont.emails.length);
+            return React.createElement('div', { key: c.id, style: Object.assign({}, HXS.card, { marginBottom: 0, opacity: c.estado === 'arquivado' ? 0.65 : 1 }) },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 10 } },
+                React.createElement('div', { style: { flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' } },
+                  React.createElement('div', { style: { fontWeight: 800, fontSize: 26, lineHeight: 1.1 } }, '#' + c.numero),
+                  React.createElement('div', { style: { fontWeight: 800, fontSize: 18, wordBreak: 'break-word', minWidth: 0 } }, c.nome)
+                ),
+                React.createElement(HxPill, { text: hwxLabel(HWX_CLI_ESTADOS, ef) + (ef === 'pausado' && c.pausado_ate ? ' até ' + hwxFmtDate(c.pausado_ate) : ''), color: HWX_ESTADO_COR[ef] })
+              ),
+              React.createElement(HxBlock, { title: '💰 QUEM PAGA' },
+                React.createElement('div', { style: { fontSize: 15, fontWeight: 700, wordBreak: 'break-word' } }, c.firma || c.nome),
+                c.rua && React.createElement('div', { style: { fontSize: 15, wordBreak: 'break-word' } }, c.rua),
+                cp && React.createElement('div', { style: { fontSize: 15 } }, cp)
+              ),
+              temCont && React.createElement(HxBlock, { title: '👤 CONTACTO' },
+                cont.nome && React.createElement('div', { style: { fontSize: 15, fontWeight: 700, wordBreak: 'break-word' } }, cont.nome),
+                cont.nums.map(function (n) { return React.createElement('div', { key: 'n' + n.raw, style: { fontSize: 15 } }, (n.kind === 'mob' ? '📱 ' : '☎️ ') + hwxFmtPhone(n.raw)); }),
+                cont.emails.map(function (m) { return React.createElement('div', { key: 'm' + m, style: { fontSize: 15, wordBreak: 'break-all' } }, '✉️ ' + m); })
+              ),
+              React.createElement(HxBlock, { title: '📍 ONDE É O TRABALHO' },
+                mine.length === 0
+                  ? React.createElement('div', { style: { fontSize: 15 } }, 'Igual à morada de quem paga', c.zona ? React.createElement(HxPill, { text: c.zona }) : null)
+                  : mine.map(function (l) { return React.createElement('div', { key: l.id, style: { padding: '2px 0' } }, hwxLocalLines(c, l)); })
+              ),
+              c.notas && React.createElement(HxNotes, { text: c.notas }),
+              React.createElement(HxCardActions, { entries: hwxCallEntries(c), name: c.nome, disabled: wait, onEdit: function () { setView({ kind: 'cliente', editing: c }); }, onDel: function () { delCliente(c); } })
+            );
+          })
+        )
       );
     }
 
