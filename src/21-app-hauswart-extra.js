@@ -448,7 +448,9 @@
       var code = err && err.code;
       var msg = (err && (err.message || err.msg)) || String(err);
       var text;
-      if ((code === 'PGRST205' || code === 'PGRST204' || code === '42703' || code === '42P01') && /hwx_trabalhos|hwx_series|ultimo_trab|horas_sexta/.test(msg)) {
+      if ((code === 'PGRST204' || code === '42703') && (/incluido_pauschale/.test(msg) || /(linhas|oferta_id)[\s\S]*hwx_series|hwx_series[\s\S]*(linhas|oferta_id)/.test(msg))) {
+        text = 'Base de dados por atualizar — correr sql/28_hwx_series_oferta.sql';
+      } else if ((code === 'PGRST205' || code === 'PGRST204' || code === '42703' || code === '42P01') && /hwx_trabalhos|hwx_series|ultimo_trab|horas_sexta/.test(msg)) {
         text = 'Base de dados por atualizar — correr sql/27_hwx_agenda.sql';
       } else if ((code === 'PGRST205' || code === 'PGRST204' || code === '42703' || code === '42P01') && /hwx_ofertas|preco_base_hora|ultimo_oferta/.test(msg)) {
         text = 'Base de dados por atualizar — correr sql/26_hwx_ofertas.sql';
@@ -1590,7 +1592,7 @@
       }
 
       if (view && view.kind === 'series') {
-        return React.createElement(HwxSeries, { notify: notify, zonas: zonas, saveCfg: props.saveCfg, precoBase: props.precoBase, clienteId: view.cliente.id, onReloadCfg: props.onReloadCfg, onBack: function () { setView(null); }, onChanged: function () {} });
+        return React.createElement(HwxSeries, { notify: notify, zonas: zonas, cats: props.cats, saveCfg: props.saveCfg, precoBase: props.precoBase, clienteId: view.cliente.id, onReloadCfg: props.onReloadCfg, onBack: function () { setView(null); }, onChanged: function () {} });
       }
       if (view) {
         // O formulário do cliente fica sempre montado (escondido quando se edita um local)
@@ -2092,19 +2094,36 @@
     }
 
     // Validação da oferta (usada pelo Guardar e pelo rascunho automático)
-    function hwxOfValidar(f) {
-      var e = { linhas: {} }, msgs = [];
-      if (!f.cliente_id) { e.cliente = 'Escolhe o cliente.'; msgs.push('Falta: cliente'); }
-      if (!f.data) { e.data = 'Indica a data.'; msgs.push('Falta: data'); }
-      if (f.valida_ate && f.data && f.valida_ate < f.data) { e.valida = 'A validade não pode ser antes da data.'; msgs.push('A validade não pode ser antes da data'); }
-      f.linhas.forEach(function (l, i) {
+    // Valida as linhas do editor (oferta, trabalho, série): { errs: {chave: {descricao, qtd, preco}}, msgs: [...] }
+    function hwxLinhasValidar(linhas) {
+      var errs = {}, msgs = [];
+      (linhas || []).forEach(function (l, i) {
         var le = {}, n = 'Linha #' + (i + 1) + ': ';
         if (!String(l.descricao || '').trim()) { le.descricao = 'Indica a descrição.'; msgs.push(n + 'falta a descrição'); }
         var q = hwxNum(l.qtd), pr = hwxNum(l.preco);
         if (q === null || q <= 0 || q > 99999) { le.qtd = 'Quantidade inválida.'; msgs.push(n + (String(l.qtd || '').trim() === '' ? 'falta a quantidade' : 'quantidade inválida')); }
         if (pr === null || pr < 0 || pr > 99999999.99) { le.preco = 'Indica o preço.'; msgs.push(n + (String(l.preco || '').trim() === '' ? 'falta o preço' : 'preço inválido')); }
-        if (le.descricao || le.qtd || le.preco) e.linhas[l.k] = le;
+        if (le.descricao || le.qtd || le.preco) errs[l.k] = le;
       });
+      return { errs: errs, msgs: msgs };
+    }
+    // Linhas do editor → linhas gravadas (preços congelados, total por linha)
+    function hwxLinhasGravar(linhas) {
+      return (linhas || []).map(function (l) {
+        return {
+          tipo: l.tipo, servico_id: l.servico_id || null, descricao: String(l.descricao).trim(), unidade: l.unidade,
+          qtd: hwxNum(l.qtd), preco: hwxFromRappen(hwxToRappen(hwxNum(l.preco))), acrescimo_hora: Number(l.acrescimo_hora) || 0,
+          total: hwxFromRappen(hwxLinhaTotalR(l))
+        };
+      });
+    }
+    function hwxOfValidar(f) {
+      var e = { linhas: {} }, msgs = [];
+      if (!f.cliente_id) { e.cliente = 'Escolhe o cliente.'; msgs.push('Falta: cliente'); }
+      if (!f.data) { e.data = 'Indica a data.'; msgs.push('Falta: data'); }
+      if (f.valida_ate && f.data && f.valida_ate < f.data) { e.valida = 'A validade não pode ser antes da data.'; msgs.push('A validade não pode ser antes da data'); }
+      var lv = hwxLinhasValidar(f.linhas);
+      e.linhas = lv.errs; msgs = msgs.concat(lv.msgs);
       var dv = f.desconto_valor === '' ? 0 : hwxNum(f.desconto_valor);
       if (dv === null || dv < 0 || (f.desconto_tipo === 'pct' && dv > 100)) { e.desconto = f.desconto_tipo === 'pct' ? 'Desconto entre 0 e 100 %.' : 'Desconto inválido.'; msgs.push('Desconto inválido'); }
       var ok = !(e.cliente || e.data || e.valida || e.desconto || Object.keys(e.linhas).length);
@@ -2744,7 +2763,8 @@
         material: Number(src.material) ? String(src.material) : '', pago: !!(r && r.pago), data_pago: (r && r.data_pago) || '',
         notas_cliente: src.notas_cliente || '', notas_internas: src.notas_internas || '',
         desconto_tipo: 'chf', desconto_valor: '', zona_over: null,
-        oferta_id: src.oferta_id || null, serie_id: src.serie_id || null, data_serie: src.data_serie || null
+        oferta_id: src.oferta_id || null, serie_id: src.serie_id || null, data_serie: src.data_serie || null,
+        incluido: !!src.incluido_pauschale
       };
       if (estado) f.estado = estado;
       if (f.estado === 'feito' && f.horas_reais === '') { var h = hwxHorasTrabalho(f.linhas); if (h > 0) f.horas_reais = String(h); else if (src.horas_previstas) f.horas_reais = String(src.horas_previstas); }
@@ -2762,20 +2782,22 @@
       var sub = 0;
       (f.linhas || []).forEach(function (l) { sub += hwxLinhaTotalR(l); });
       var mat = hwxToRappen(hwxNum(f.material) || 0);
-      return { sub: sub, mat: mat, total: sub + mat };
+      return { sub: sub, mat: mat, total: f.incluido ? 0 : sub + mat };
     }
     // Pré-preenchimento de uma ocorrência de série (linha do serviço da série, se houver)
     function hwxPresetDeSerie(se, data, servicos, cliente) {
       var linhas = [];
       var sv = se.servico_id ? servicos.filter(function (s) { return s.id === se.servico_id; })[0] : null;
-      if (sv) {
+      if (Array.isArray(se.linhas) && se.linhas.length) {
+        linhas = se.linhas.map(function (l) { return Object.assign({}, l); });
+      } else if (sv) {
         var usaMin = HWX_UNITS_MIN.indexOf(sv.unidade) !== -1;
         var q = sv.unidade === 'hora' ? (Number(se.horas_previstas) || (sv.minimo != null ? Number(sv.minimo) : 0) || 1)
           : sv.unidade === '30min' ? (Number(se.horas_previstas) ? Number(se.horas_previstas) * 2 : (sv.minimo != null ? Number(sv.minimo) : 0) || 1)
           : (usaMin && sv.minimo != null && Number(sv.minimo) > 0 ? Number(sv.minimo) : 1);
         linhas.push({ tipo: 'servico', servico_id: sv.id, descricao: sv.nome, unidade: sv.unidade, qtd: q, preco: sv.estado === 'consulta' ? '' : sv.preco, acrescimo_hora: 0 });
       }
-      return { serie_id: se.id, data_serie: data, data: data, hora: se.hora, cliente_id: se.cliente_id, local_id: se.local_id, titulo: se.descricao || '', linhas: linhas, horas_previstas: se.horas_previstas, notas_cliente: '', notas_internas: se.notas || '' };
+      return { serie_id: se.id, data_serie: data, data: data, hora: se.hora, cliente_id: se.cliente_id, local_id: se.local_id, titulo: se.descricao || '', linhas: linhas, horas_previstas: se.horas_previstas, notas_cliente: '', notas_internas: se.notas || '', incluido_pauschale: !!se.incluido_pauschale };
     }
     // Mover/cancelar/concluir UMA data de uma série: uma só linha por (serie_id, data_serie) — atualiza a que existir, senão insere
     function hwxUpsertExcecao(payload, notify, onOk, onEnd) {
@@ -2856,13 +2878,7 @@
         var b = savedRowRef.current;
         var refresh = !b || b.estado === 'planeado' || ff.cliente_id !== (b.cliente_id || '') || ff.local_id !== (b.local_id || '');
         var tt = hwxTrabTotais(ff);
-        var linhas = ff.linhas.map(function (l) {
-          return {
-            tipo: l.tipo, servico_id: l.servico_id || null, descricao: String(l.descricao).trim(), unidade: l.unidade,
-            qtd: hwxNum(l.qtd), preco: hwxFromRappen(hwxToRappen(hwxNum(l.preco))), acrescimo_hora: Number(l.acrescimo_hora) || 0,
-            total: hwxFromRappen(hwxLinhaTotalR(l))
-          };
-        });
+        var linhas = hwxLinhasGravar(ff.linhas);
         var hr = String(ff.horas_reais || '').trim() === '' ? null : hwxNum(ff.horas_reais);
         var payload = {
           cliente_id: ff.cliente_id || null, local_id: ff.local_id || null,
@@ -2870,9 +2886,11 @@
           oferta_id: ff.oferta_id || null, serie_id: ff.serie_id || null, data_serie: ff.serie_id ? ff.data_serie : null,
           data: ff.data, hora: ff.hora || null, estado: ff.estado, titulo: String(ff.titulo || '').trim(), linhas: linhas,
           horas_reais: hr === null ? null : Math.round(hr * 100) / 100, material: hwxFromRappen(hwxToRappen(hwxNum(ff.material) || 0)), total: hwxFromRappen(tt.total),
-          pago: !!ff.pago, data_pago: ff.pago ? (ff.data_pago || hwxToday()) : null,
+          pago: !ff.incluido && !!ff.pago, data_pago: !ff.incluido && ff.pago ? (ff.data_pago || hwxToday()) : null,
           notas_cliente: String(ff.notas_cliente || '').trim(), notas_internas: String(ff.notas_internas || '').trim()
         };
+        // coluna do SQL 28: só vai na gravação quando é preciso (marcada, ou a linha já a tem) — assim nada muda antes do SQL
+        if (ff.incluido || (b && 'incluido_pauschale' in b)) payload.incluido_pauschale = !!ff.incluido;
         busyRef.current = true; setBusy(true);
         var onOk = function (row) {
           savedRowRef.current = row; savedSnapRef.current = ff;
@@ -2965,9 +2983,14 @@
           ),
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '4px 0' } }, React.createElement('span', null, 'Linhas'), React.createElement('span', null, hwxChf(hwxFromRappen(tot.sub)))),
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '4px 0' } }, React.createElement('span', null, 'Material'), React.createElement('span', null, hwxChf(hwxFromRappen(tot.mat)))),
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 22, fontWeight: 800, padding: '8px 0 0', borderTop: '1px solid ' + HX.borderStrong, marginTop: 6 } }, React.createElement('span', null, 'TOTAL'), React.createElement('span', null, hwxChf(hwxFromRappen(tot.total))))
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 22, fontWeight: 800, padding: '8px 0 0', borderTop: '1px solid ' + HX.borderStrong, marginTop: 6 } }, React.createElement('span', null, 'TOTAL'), React.createElement('span', null, (f.incluido ? 'incluído · ' : '') + hwxChf(hwxFromRappen(tot.total)))),
+          f.incluido && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 4 } }, 'Valor das linhas (não cobrado): ' + hwxChf(hwxFromRappen(tot.sub + tot.mat)))
         ),
-        React.createElement(HxSection, { title: 'Pagamento' },
+        React.createElement(HxSection, { title: 'Pauschale Hauswart' },
+          React.createElement(HxFormToggle, { label: '☑ Incluído na Pauschale Hauswart', value: f.incluido, onChange: function (v) { upd('incluido', v); } }),
+          React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Fica CHF 0 e nunca conta nos totais do Extra (a Pauschale já é contada na Hauswart).')
+        ),
+        !f.incluido && React.createElement(HxSection, { title: 'Pagamento' },
           React.createElement(HxFormToggle, { label: 'Pago', value: f.pago, onChange: function (v) { setF(function (p) { return Object.assign({}, p, { pago: v, data_pago: v ? (p.data_pago || hwxToday()) : '' }); }); } }),
           f.pago && React.createElement(HxDate, { label: 'Data de pagamento', value: f.data_pago, onChange: function (v) { upd('data_pago', v); } })
         ),
@@ -2994,8 +3017,44 @@
         inicio: r ? r.inicio : (p && p.inicio) || hwxProximaSexta(hwxToday()), fim: (r && r.fim) || '',
         intervalo_dias: String(src.intervalo_dias || 14), hora: hwxHora(src.hora),
         horas_previstas: src.horas_previstas != null && src.horas_previstas !== '' ? String(src.horas_previstas) : '',
-        ativa: r ? !!r.ativa : true, notas: src.notas || ''
+        ativa: r ? !!r.ativa : true, notas: src.notas || '',
+        linhas: hwxLinhasForm(src.linhas), oferta_id: src.oferta_id || null, incluido: !!src.incluido_pauschale
       };
+    }
+    // Escolher uma oferta para copiar (cliente, local, título e TODAS as linhas) para a série
+    function HwxOfertaPicker(props) {
+      var pctx = React.useContext(HxCtx);
+      var ofertas = hwxUseList('hwx_ofertas', 'data', props.notify);
+      React.useEffect(function () {
+        pctx.ui.formOpen(true);
+        return function () { pctx.ui.formOpen(false); };
+      }, []);
+      var _q = React.useState(''); var q = _q[0], setQ = _q[1];
+      var _t = React.useState(false); var todas = _t[0], setTodas = _t[1];
+      var tokens = hwxNorm(q).split(/\s+/).filter(Boolean);
+      var all = (ofertas.rows || []).filter(function (o) { return o.estado !== 'recusada'; });
+      var items = all.filter(function (o) {
+        if (!todas && o.estado !== 'aceite') return false;
+        if (!tokens.length) return true;
+        var hay = hwxNorm([o.numero, o.titulo, hwxOfertaTituloCliente(o)].join(' '));
+        return tokens.every(function (tk) { return hay.indexOf(tk) !== -1; });
+      }).sort(function (a, b) { return String(b.data).localeCompare(String(a.data)) || String(b.numero).localeCompare(String(a.numero)); });
+      var outras = all.filter(function (o) { return o.estado !== 'aceite'; }).length;
+      return React.createElement('div', null,
+        React.createElement(HxHead, { title: '📄 Usar uma oferta', back: props.onBack }),
+        React.createElement(HxField, { label: 'Pesquisar (número O…, título, cliente)', value: q, onChange: setQ, placeholder: 'ex.: O2026-0001' }),
+        React.createElement(HxLoadState, { list: ofertas }),
+        ofertas.rows !== null && items.length === 0 && React.createElement(HxEmpty, { icon: '📄', text: todas ? 'Nenhuma oferta encontrada' : 'Nenhuma oferta aceite encontrada', sub: todas || outras === 0 ? '' : 'Podes mostrar também as ofertas ainda não aceites.' }),
+        items.map(function (o) {
+          return React.createElement('div', { key: o.id, style: Object.assign({}, HXS.card, { display: 'flex', gap: 10, alignItems: 'center' }) },
+            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { fontWeight: 800 } }, o.numero + ' · ' + hwxChf(o.total)),
+              o.titulo && React.createElement('div', { style: { fontWeight: 700, fontSize: 14, wordBreak: 'break-word' } }, o.titulo),
+              React.createElement('div', { style: { fontSize: 14, color: HX.muted, wordBreak: 'break-word' } }, (hwxOfertaTituloCliente(o) || '(cliente apagado)') + ' · ' + hwxFmtDate(o.data) + ' · ' + hwxLabel(HWX_OF_ESTADOS, o.estado) + ' · ' + (o.linhas || []).length + ' linha(s)')),
+            React.createElement(HxBtn, { label: 'Usar', kind: 'primary', aria: 'Usar a oferta ' + o.numero, onClick: function () { props.onPick(o); } }));
+        }),
+        outras > 0 && React.createElement('div', { style: { marginTop: 8 } }, React.createElement(HxBtn, { label: todas ? 'Mostrar só as aceites' : 'Mostrar também as não aceites (' + outras + ')', full: true, onClick: function () { setTodas(!todas); } }))
+      );
     }
     function HwxSerieForm(props) {
       var notify = props.notify, editing = props.editing, clientes = props.clientes, locais = props.locais, servicos = props.servicos;
@@ -3011,6 +3070,23 @@
       if (cliLista) cliRef.current = cliLista;
       var cli = cliLista || (f.cliente_id && cliRef.current && cliRef.current.id === f.cliente_id ? cliRef.current : null);
       var term = props.preset && props.preset.terminarAnterior ? props.preset.terminarAnterior : null;
+      var _pk = React.useState(false); var picking = _pk[0], setPicking = _pk[1];
+      var _po = React.useState(false); var pickOf = _po[0], setPickOf = _po[1];
+      var zRef = React.useRef(null); // a série não tem zona: a Anfahrt é uma linha como as outras (vem da oferta ou põe-se à mão)
+      var ops = hwxUseLinhasOps(setF, zRef, false, props.precoBase);
+
+      var usarOferta = function (o) {
+        var tem = f.linhas.length > 0;
+        if (tem && !window.confirm('Substituir as ' + f.linhas.length + ' linha(s) atuais pelas da oferta ' + o.numero + '?')) return;
+        if (Number(o.desconto_valor) > 0) notify('warn', 'A oferta tinha desconto; a série não leva desconto — ajusta as linhas se quiseres.');
+        setF(function (p) {
+          return Object.assign({}, p, {
+            cliente_id: o.cliente_id || p.cliente_id, local_id: o.cliente_id ? (o.local_id || '') : p.local_id,
+            descricao: String(o.titulo || '').trim() || p.descricao, linhas: hwxLinhasForm(o.linhas), oferta_id: o.id
+          });
+        });
+        setPickOf(false);
+      };
 
       var doSave = function (ok, fail) {
         if (busyRef.current) return;
@@ -3022,6 +3098,8 @@
         if (iv === null || iv < 1 || iv > 366 || Math.round(iv) !== iv) { e.intervalo = 'Dias entre 1 e 366.'; msgs.push('Intervalo inválido (1 a 366 dias)'); }
         if (f.fim && f.inicio && f.fim < f.inicio) { e.fim = 'O fim não pode ser antes do início.'; msgs.push('O fim não pode ser antes do início'); }
         if (hp !== null && (hp <= 0 || hp > 999.99)) { e.horas = 'Horas maiores que 0 (ex.: 2,5), ou deixa vazio.'; msgs.push('Horas previstas inválidas'); }
+        var lv = hwxLinhasValidar(f.linhas);
+        e.linhas = lv.errs; msgs = msgs.concat(lv.msgs);
         setErrs(e);
         if (msgs.length) { hwxReportErrs(notify, msgs); if (fail) fail(); return; }
         var payload = {
@@ -3029,6 +3107,10 @@
           inicio: f.inicio, fim: f.fim || null, intervalo_dias: Math.round(iv), hora: f.hora || null,
           horas_previstas: hp === null ? null : Math.round(hp * 100) / 100, ativa: !!f.ativa, notas: String(f.notas || '').trim()
         };
+        // colunas do SQL 28: só vão na gravação quando é preciso (há linhas / oferta / marca, ou a linha já as tem) — antes do SQL nada muda
+        var tem28 = editing && ('linhas' in editing);
+        if (f.linhas.length || f.oferta_id || tem28) { payload.linhas = hwxLinhasGravar(f.linhas); payload.oferta_id = f.oferta_id || null; }
+        if (f.incluido || (editing && 'incluido_pauschale' in editing)) payload.incluido_pauschale = !!f.incluido;
         busyRef.current = true; setBusy(true);
         hwxWrite('hwx_series', editing ? editing.id : null, payload, notify, function (row) {
           props.onSaved(row);
@@ -3050,12 +3132,18 @@
       hwxUseDirty('serie', snap, f, doSave);
       var tryClose = function () { if (!busy) props.guard.attempt(props.onClose, ['serie']); };
       hwxUseEsc(tryClose);
+      if (picking) return React.createElement(HwxPicker, { servicos: servicos, cats: props.cats || [], onAdd: ops.addServico, onBack: function () { setPicking(false); } });
+      if (pickOf) return React.createElement(HwxOfertaPicker, { notify: notify, onPick: usarOferta, onBack: function () { setPickOf(false); } });
+      var totLinhas = 0;
+      f.linhas.forEach(function (l) { totLinhas += hwxLinhaTotalR(l); });
       var svOpts = [{ v: '', l: '— sem serviço —' }].concat(servicos.filter(function (s) { return s.estado !== 'arquivado'; }).map(function (s) { return { v: s.id, l: s.nome }; }));
       var meusLocais = f.cliente_id ? locais.filter(function (l) { return l.cliente_id === f.cliente_id; }).sort(function (a, b) { return a.sub_numero - b.sub_numero; }) : [];
       var next = hwxOcorrencias({ ativa: true, inicio: f.inicio || hwxToday(), fim: f.fim || null, intervalo_dias: hwxNum(f.intervalo_dias) || 14 }, hwxToday(), hwxAddDays(hwxToday(), 400)).slice(0, 4);
       return React.createElement(HxFormShell, { title: editing ? 'Editar série' : 'Nova série', onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
         term && React.createElement('div', { style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 10, padding: '8px 12px', marginBottom: 12, fontSize: 14, fontWeight: 600 } },
           'Ao guardar, a série atual termina em ' + hwxFmtDate(term.fim) + ' e esta passa a valer a partir de ' + hwxFmtDate(f.inicio) + '. O passado fica intacto.'),
+        React.createElement('div', { style: { marginBottom: 12 } }, React.createElement(HxBtn, { label: '📄 Usar uma oferta', full: true, onClick: function () { setPickOf(true); } })),
+        f.oferta_id && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 10 } }, '📄 Linhas copiadas de uma oferta' + ' — podes editá-las à vontade.'),
         React.createElement(HxSection, { title: 'Cliente e local' },
           React.createElement(HwxClienteLocal, {
             f: f, cli: cli, clientes: clientes, locais: locais, zonas: props.zonas, comZona: false, errCliente: errs.cliente, notify: notify, saveCfg: props.saveCfg, precoBase: props.precoBase,
@@ -3083,6 +3171,13 @@
           next.length > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, 'Próximas datas: ' + next.map(function (o) { return hwxDiaCurto(o.data); }).join(' · ') + (hwxSerieSemana(f.inicio, hwxNum(f.intervalo_dias)) ? ' · semana ' + hwxSerieSemana(f.inicio, hwxNum(f.intervalo_dias)) : '')),
           React.createElement(HxFormToggle, { label: 'Série ativa', value: f.ativa, onChange: function (v) { upd('ativa', v); } })
         ),
+        hwxRenderLinhas({ linhas: f.linhas, errs: errs, ops: ops, servicos: servicos, precoBase: props.precoBase, precoLabel: 'Preço (CHF, cada ocorrência)', onPick: function () { setPicking(true); } }),
+        f.linhas.length > 0 && React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 800, marginBottom: 12 } },
+          React.createElement('span', null, 'Total por ocorrência'), React.createElement('span', null, (f.incluido ? 'incluído · ' + hwxChf(0) : hwxChf(hwxFromRappen(totLinhas))))),
+        React.createElement(HxSection, { title: 'Pauschale Hauswart' },
+          React.createElement(HxFormToggle, { label: '☑ Incluído na Pauschale Hauswart', value: f.incluido, onChange: function (v) { upd('incluido', v); } }),
+          React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Os trabalhos desta série herdam a marca: ficam CHF 0 e nunca contam nos totais do Extra.')
+        ),
         React.createElement(HxSection, { title: 'Notas' },
           React.createElement(HxField, { label: 'Notas (só para mim)', value: f.notas, multiline: true, onChange: function (v) { upd('notas', v); } })
         )
@@ -3096,16 +3191,17 @@
       var clientes = hwxUseList('hwx_clientes', 'numero', notify);
       var locais = hwxUseList('hwx_locais', 'ordem', notify);
       var servicos = hwxUseList('hwx_servicos', 'ordem', notify);
-      var _v = React.useState(null); var form = _v[0], setForm = _v[1];
+      var _v = React.useState(props.abrirPreset ? { editing: null, preset: props.abrirPreset } : null); var form = _v[0], setForm = _v[1];
       var _p = React.useState({}); var pending = _p[0], setPending = _p[1];
       var _t = React.useState(null); var termDlg = _t[0], setTermDlg = _t[1]; // { serie, kind: 'terminar'|'frente', data, err }
+      React.useEffect(function () { if (props.abrirPreset && props.onPresetUsed) props.onPresetUsed(); }, []);
       var rows = (series.rows || []).filter(function (s) { return !props.clienteId || s.cliente_id === props.clienteId; });
       var cli = function (id) { return (clientes.rows || []).filter(function (c) { return c.id === id; })[0] || null; };
       var hoje = hwxToday();
 
       if (form) {
         return React.createElement(HwxSerieForm, {
-          editing: form.editing, preset: form.preset, clientes: clientes.rows || [], locais: locais.rows || [], servicos: servicos.rows || [], zonas: zonas,
+          editing: form.editing, preset: form.preset, clientes: clientes.rows || [], locais: locais.rows || [], servicos: servicos.rows || [], zonas: zonas, cats: props.cats || [],
           notify: notify, guard: ctx.guard, saveCfg: props.saveCfg, precoBase: props.precoBase,
           onSaved: function (row) { hwxReplaceRow(series, row); if (props.onChanged) props.onChanged(row); },
           onClienteCriado: function (row) { clientes.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== row.id; }).concat([row]); }); clientes.load(); props.onReloadCfg(); },
@@ -3162,6 +3258,9 @@
               ),
               React.createElement('div', { style: { fontSize: 14, marginTop: 6 } }, 'de ' + s.intervalo_dias + ' em ' + s.intervalo_dias + ' dias' + (hwxSerieSemana(s.inicio, s.intervalo_dias) ? ' · semana ' + hwxSerieSemana(s.inicio, s.intervalo_dias) : '') + ' · desde ' + hwxFmtDate(s.inicio) + (s.fim ? ' · até ' + hwxFmtDate(s.fim) : ' · sem fim') + (s.hora ? ' · ' + hwxHora(s.hora) : '') + (s.horas_previstas ? ' · ' + hwxQty(s.horas_previstas) + ' h' : '')),
               (lc || sv) && React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 2 } }, [lc ? '📍 ' + (c ? c.numero + '.' : '') + lc.sub_numero + ' ' + (lc.rua || lc.nome) : '', sv ? '🏷️ ' + sv.nome : ''].filter(Boolean).join(' · ')),
+              Array.isArray(s.linhas) && s.linhas.length > 0 && React.createElement('div', { style: { fontSize: 14, marginTop: 2 } },
+                '🧾 ' + s.linhas.length + ' linha(s) · ' + (s.incluido_pauschale ? 'incluído · ' + hwxChf(0) : hwxChf(hwxFromRappen(s.linhas.reduce(function (a, l) { return a + hwxLinhaTotalR(l); }, 0)))) + (s.oferta_id ? ' · 📄 de uma oferta' : '')),
+              s.incluido_pauschale && !(Array.isArray(s.linhas) && s.linhas.length > 0) && React.createElement('div', { style: { fontSize: 14, marginTop: 2 } }, 'Incluído na Pauschale Hauswart · ' + hwxChf(0)),
               prox.length > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6 } }, 'Próximas: ' + prox.map(function (o) { return hwxDiaCurto(o.data); }).join(' · ')),
               React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
                 React.createElement(HxActBtn, { icon: '✏️', label: 'Editar', aria: 'Editar série ' + (s.descricao || ''), disabled: wait, onClick: function () { setForm({ editing: s }); } }),
@@ -3202,14 +3301,16 @@
       var hoje = hwxToday();
       var _r = React.useState(hwxProximaSexta(hoje)); var ref = _r[0], setRef = _r[1];
       var _fm = React.useState(props.preset ? { editing: null, preset: props.preset } : (props.abrir ? { editing: props.abrir } : null)); var form = _fm[0], setForm = _fm[1];
-      var _sv = React.useState(false); var verSeries = _sv[0], setVerSeries = _sv[1];
+      var _sp = React.useState(props.seriePreset || null); var serPreset = _sp[0], setSerPreset = _sp[1];
+      var _sv = React.useState(!!props.seriePreset); var verSeries = _sv[0], setVerSeries = _sv[1];
+      var _cc = React.useState(false); var verCanc = _cc[0], setVerCanc = _cc[1]; // canceladas escondidas por defeito
       var _p = React.useState({}); var pending = _p[0], setPending = _p[1];
-      React.useEffect(function () { if (props.preset && props.onPresetUsed) props.onPresetUsed(); if (props.abrir && props.onAbrirUsado) props.onAbrirUsado(); }, []);
+      React.useEffect(function () { if (props.preset && props.onPresetUsed) props.onPresetUsed(); if (props.abrir && props.onAbrirUsado) props.onAbrirUsado(); if (props.seriePreset && props.onSerieUsed) props.onSerieUsed(); }, []);
       var setPend = function (id, on) { setPending(function (p) { var n = Object.assign({}, p); if (on) n[id] = true; else delete n[id]; return n; }); };
       var cliRows = clientes.rows || [], locRows = locais.rows || [], serRows = series.rows || [], trabRows = trabalhos.rows || [];
 
       if (verSeries) {
-        return React.createElement(HwxSeries, { notify: notify, zonas: zonas, saveCfg: props.saveCfg, precoBase: props.precoBase, onReloadCfg: props.onReloadCfg, onBack: function () { setVerSeries(false); series.load(); trabalhos.load(); }, onChanged: function () {} });
+        return React.createElement(HwxSeries, { notify: notify, zonas: zonas, cats: props.cats, saveCfg: props.saveCfg, precoBase: props.precoBase, onReloadCfg: props.onReloadCfg, abrirPreset: serPreset, onPresetUsed: function () { setSerPreset(null); }, onBack: function () { setVerSeries(false); series.load(); trabalhos.load(); }, onChanged: function () {} });
       }
       if (form) {
         return React.createElement(HwxTrabalhoForm, {
@@ -3224,6 +3325,7 @@
               data: hwxProximaSexta(hoje), hora: t.hora, estado: 'planeado', titulo: t.titulo, linhas: t.linhas, horas_reais: null, material: t.material, total: t.total,
               pago: false, data_pago: null, notas_cliente: t.notas_cliente, notas_internas: t.notas_internas
             };
+            if ('incluido_pauschale' in t) payload.incluido_pauschale = !!t.incluido_pauschale;
             hwxWrite('hwx_trabalhos', null, payload, notify, function (row) { hwxReplaceRow(trabalhos, row); props.onReloadCfg(); setForm({ editing: row }); }, function () {});
           },
           onClose: function () { setForm(null); }
@@ -3257,22 +3359,26 @@
       items.forEach(function (it) {
         if (it.kind === 'row') {
           var t = it.t, cs = t.cliente_snap || {}, ls = t.local_snap || {};
-          it.cs = cs; it.numero = t.numero; it.titulo = t.titulo; it.estado = t.estado; it.total = Number(t.total) || 0; it.horas = hwxTrabHoras(t);
+          it.cs = cs; it.numero = t.numero; it.titulo = t.titulo; it.estado = t.estado; it.total = Number(t.total) || 0; it.horas = hwxTrabHoras(t); it.incl = !!t.incluido_pauschale;
           it.cliTxt = cs.numero != null ? '#' + cs.numero + ' ' + (cs.firma || cs.nome || '') : '';
           it.locTxt = ls.sub_numero != null ? cs.numero + '.' + ls.sub_numero + ' ' + (ls.rua || ls.nome || '') : '';
         } else {
           var se = it.serie, c = cliDe(se.cliente_id), l = se.local_id ? locDe(se.local_id) : null;
-          it.cs = c ? hwxClienteSnap(c) : {}; it.numero = ''; it.titulo = se.descricao || ''; it.estado = 'planeado'; it.total = 0; it.horas = Number(se.horas_previstas) || 0;
+          it.cs = c ? hwxClienteSnap(c) : {}; it.numero = ''; it.titulo = se.descricao || ''; it.estado = 'planeado'; it.incl = !!se.incluido_pauschale;
+          var sl = Array.isArray(se.linhas) ? se.linhas : [];
+          it.total = sl.reduce(function (a, l) { return a + hwxLinhaTotalR(l); }, 0) / 100; it.horas = Number(se.horas_previstas) || hwxHorasTrabalho(sl);
           it.cliTxt = c ? '#' + c.numero + ' ' + (c.firma || c.nome) : '';
           it.locTxt = l && c ? c.numero + '.' + l.sub_numero + ' ' + (l.rua || l.nome || '') : '';
         }
         it.ab = it.serie ? hwxSemanaAB(it.data) : '';
       });
       var tokens = hwxNorm(flt.q).split(/\s+/).filter(Boolean);
+      var nCanc = 0;
       var shown = items.filter(function (it) {
         if (flt.est !== 'todos' && it.estado !== flt.est) return false;
         if (flt.cli !== 'all' && String(it.cs.numero) !== flt.cli) return false;
         if (tokens.length) { var hay = hwxNorm([it.numero, it.titulo, it.cs.nome, it.cs.firma, it.cliTxt].join(' ')); if (!tokens.every(function (tk) { return hay.indexOf(hwxNorm(tk)) !== -1; })) return false; }
+        if (it.estado === 'cancelado' && flt.est !== 'cancelado') { nCanc++; if (!verCanc) return false; }
         return true;
       }).sort(function (a, b) { return String(a.data).localeCompare(String(b.data)) || String(a.hora || '99').localeCompare(String(b.hora || '99')); });
       var cliSeen = {}, cliOpts = [{ v: 'all', l: 'Todos' }];
@@ -3358,7 +3464,9 @@
         ),
         React.createElement(HxLoadState, { list: trabalhos }),
         trabalhos.rows !== null && flt.view !== 'sexta' && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, shown.length + ' trabalho(s)'),
-        trabalhos.rows !== null && shown.length === 0 && React.createElement(HxEmpty, { icon: '📅', text: items.length ? 'Nada com estes filtros' : 'Nada marcado', sub: items.length ? '' : 'Toca em "+ Novo trabalho" ou cria uma série (🔁).' }),
+        trabalhos.rows !== null && nCanc > 0 && flt.est !== 'cancelado' && React.createElement('div', { style: { marginBottom: 8 } },
+          React.createElement(HxBtn, { label: verCanc ? 'Esconder ' + (nCanc === 1 ? 'a cancelada' : 'as ' + nCanc + ' canceladas') : nCanc + (nCanc === 1 ? ' cancelada' : ' canceladas') + ' · mostrar', full: true, aria: verCanc ? 'Esconder canceladas' : 'Mostrar canceladas', onClick: function () { setVerCanc(!verCanc); } })),
+        trabalhos.rows !== null && shown.length === 0 && React.createElement(HxEmpty, { icon: '📅', text: items.length ? (nCanc > 0 && !verCanc && shown.length === 0 && nCanc === items.length ? 'Só há datas canceladas' : 'Nada com estes filtros') : 'Nada marcado', sub: items.length ? '' : 'Toca em "+ Novo trabalho" ou cria uma série (🔁).' }),
         hoje < de && de > limite && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, 'As séries só se calculam até ' + hwxFmtDate(limite) + ' (12 semanas).'),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: ctx.wide && flt.view !== 'sexta' ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 12, alignItems: 'start' } },
           shown.map(function (it) {
@@ -3370,15 +3478,16 @@
             var nome = cs.contacto_nome || cs.firma || cs.nome || '';
             var aviso = wa && it.estado === 'planeado' ? 'https://wa.me/' + wa + '?text=' + encodeURIComponent(hwxAvisoTexto(cs.lingua, nome, it.data, it.hora, meuNome)) : '';
             var isSerie = !!it.serie;
-            var cancelLabel = it.kind === 'virt' ? 'Cancelar' : (isSerie && it.t.estado === 'cancelado') ? 'Repor' : (isSerie && it.t.estado === 'planeado') ? 'Cancelar' : 'Apagar';
+            var cancelLabel = it.kind === 'virt' ? 'Cancelar esta data' : (isSerie && it.t.estado === 'cancelado') ? 'Repor' : (isSerie && it.t.estado === 'planeado') ? 'Cancelar esta data' : 'Apagar';
             var cancelIcon = cancelLabel === 'Repor' ? '↩' : '🗑️';
+            var cancelLongo = cancelLabel === 'Cancelar esta data'; // nome comprido: botão em linha própria, não cabe na grelha de 5
             var btns = [
               React.createElement(HxActBtn, { key: 'ab', icon: '✏️', label: 'Abrir', aria: 'Abrir ' + (it.numero || it.titulo || 'trabalho'), disabled: wait, onClick: function () { abrir(it); } }),
               React.createElement(HxActBtn, { key: 'fe', icon: '✓', label: 'Feito', aria: 'Feito ' + (it.numero || it.titulo || 'trabalho'), disabled: wait || it.estado === 'feito' || it.estado === 'cancelado', onClick: function () { abrir(it, 'feito'); } }),
               React.createElement(HxActBtn, { key: 'tel', icon: '📞', label: 'Ligar', aria: 'Ligar ' + (it.numero || it.titulo || 'cliente'), href: tel ? 'tel:+' + tel : undefined, disabled: !tel }),
               React.createElement(HxActBtn, { key: 'wa', icon: '💬', label: 'Aviso', aria: 'WhatsApp aviso ' + (it.numero || it.titulo || 'cliente'), href: aviso || undefined, blank: true, disabled: !aviso }),
-              React.createElement(HxActBtn, { key: 'dl', icon: cancelIcon, label: cancelLabel, kind: cancelLabel === 'Repor' ? undefined : 'danger', aria: cancelLabel + ' ' + (it.numero || it.titulo || 'trabalho'), disabled: wait, onClick: function () { cancelar(it); } })
-            ];
+              !cancelLongo && React.createElement(HxActBtn, { key: 'dl', icon: cancelIcon, label: cancelLabel, kind: cancelLabel === 'Repor' ? undefined : 'danger', aria: cancelLabel + ' ' + (it.numero || it.titulo || 'trabalho'), disabled: wait, onClick: function () { cancelar(it); } })
+            ].filter(Boolean);
             var card = React.createElement('div', { key: it.key, 'data-hwx-trab': it.kind, style: Object.assign({}, HXS.card, { marginBottom: 0, opacity: it.estado === 'cancelado' ? 0.65 : 1 }) },
               React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
                 React.createElement('div', { style: { flex: 1, minWidth: 0 } },
@@ -3391,9 +3500,11 @@
               React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 6, wordBreak: 'break-word' } }, it.cliTxt || '(cliente apagado)', it.locTxt ? ' · ' + it.locTxt : ''),
               React.createElement('div', { style: { fontSize: 14, marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' } },
                 it.horas > 0 && React.createElement('span', null, '⏱ ' + hwxQty(it.horas) + ' h'),
-                it.total > 0 && React.createElement('span', { style: { fontWeight: 800 } }, hwxChf(it.total)),
-                it.kind === 'row' && it.t.pago && React.createElement('span', { style: { color: HX.okText, fontWeight: 700 } }, '✓ pago' + (it.t.data_pago ? ' ' + hwxFmtDate(it.t.data_pago) : ''))),
-              React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + btns.length + ', minmax(0, 1fr))', gap: 8, marginTop: 12 } }, btns)
+                it.incl && React.createElement('span', { style: { fontWeight: 800 } }, 'incluído · ' + hwxChf(0)),
+                !it.incl && it.total > 0 && React.createElement('span', { style: { fontWeight: 800 } }, hwxChf(it.total)),
+                !it.incl && it.kind === 'row' && it.t.pago && React.createElement('span', { style: { color: HX.okText, fontWeight: 700 } }, '✓ pago' + (it.t.data_pago ? ' ' + hwxFmtDate(it.t.data_pago) : ''))),
+              React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + btns.length + ', minmax(0, 1fr))', gap: 8, marginTop: 12 } }, btns),
+              cancelLongo && React.createElement('div', { style: { marginTop: 8 } }, React.createElement(HxBtn, { label: '🗑️ Cancelar esta data', kind: 'danger', full: true, aria: 'Cancelar esta data ' + hwxFmtDate(it.data) + ' ' + (it.titulo || 'série'), disabled: wait, onClick: function () { cancelar(it); } }))
             );
             return head ? [head, card] : card;
           })
@@ -3415,10 +3526,11 @@
     // Trabalhos do Extra com estado "feito", pelo ano da data do trabalho (tudo em Rappen inteiros)
     function hwxTotaisExtra(trabs, ano, servicos, cats) {
       var out = { n: 0, total: 0, mat: 0, rec: { n: 0, total: 0, mat: 0 }, por: { n: 0, total: 0, mat: 0 }, porLista: [],
-        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [] };
+        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [], incl: 0 };
       for (var m = 0; m < 12; m++) out.meses.push({ n: 0, sem: 0, mat: 0 });
       (trabs || []).forEach(function (t) {
         if (t.estado !== 'feito' || String(t.data).slice(0, 4) !== ano) return;
+        if (t.incluido_pauschale) { out.incl++; return; } // incluído na Pauschale Hauswart: nunca conta (evita contar 2×)
         var tot = hwxToRappen(Number(t.total) || 0), mat = hwxToRappen(Number(t.material) || 0), sem = tot - mat;
         out.n++; out.total += tot; out.mat += mat; out.jobs.push(t);
         var grp = t.pago ? out.rec : out.por;
@@ -3589,6 +3701,7 @@
         // ── Extra ──
         React.createElement(HxSection, { title: 'Extra · ' + ano },
           ex.n === 0 && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Nenhum trabalho feito em ' + ano + '.'),
+          ex.incl > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, ex.incl + ' trabalho(s) feito(s) incluído(s) na Pauschale Hauswart — não contam aqui.'),
           ex.n > 0 && React.createElement('div', null,
             React.createElement(HxLinhaVal, { l: ex.n + ' trabalho(s) feito(s) — total', v: R(ex.total) }),
             React.createElement(HxLinhaVal, { l: 'Material (reembolso)', v: R(ex.mat), muted: true }),
@@ -3669,6 +3782,7 @@
       var locais = hwxUseList('hwx_locais', 'ordem', notify);
       var servicos = hwxUseList('hwx_servicos', 'ordem', notify);
       var trabalhos = hwxUseList('hwx_trabalhos', 'data', notify);
+      var series = hwxUseList('hwx_series', 'inicio', notify);
       var F0 = { q: '', est: 'todos', cli: 'all', ano: 'all', open: false };
       var _fl = React.useState(function () { return Object.assign({}, F0, hwxStoreGet('hwx_f_ofertas', notify) || {}); });
       var flt = _fl[0], setFlt = _fl[1];
@@ -3718,6 +3832,10 @@
       var criarTrabalho = function (o) {
         if (Number(o.desconto_valor) > 0) notify('warn', 'A oferta tinha desconto; o trabalho não leva desconto — ajusta as linhas se quiseres.');
         props.onCriarTrabalho({ oferta_id: o.id, cliente_id: o.cliente_id, local_id: o.local_id, titulo: o.titulo, linhas: o.linhas, notas_cliente: o.notas_cliente, notas_internas: o.notas_internas });
+      };
+      var criarSerie = function (o) {
+        if (Number(o.desconto_valor) > 0) notify('warn', 'A oferta tinha desconto; a série não leva desconto — ajusta as linhas se quiseres.');
+        props.onCriarSerie({ oferta_id: o.id, cliente_id: o.cliente_id, local_id: o.local_id, descricao: o.titulo, linhas: o.linhas });
       };
       var apagar = function (o) {
         if (pending[o.id]) return;
@@ -3782,8 +3900,10 @@
             ];
             if (wa) btns.push(React.createElement(HxActBtn, { key: 'wa', icon: '💬', label: 'WhatsApp', aria: 'WhatsApp ' + o.numero, href: wa, blank: true }));
             if (o.estado === 'aceite') btns.push(React.createElement(HxActBtn, { key: 'tr', icon: '📅', label: 'Trabalho', aria: 'Criar trabalho ' + o.numero, disabled: wait, onClick: function () { criarTrabalho(o); } }));
+            if (o.estado === 'aceite') btns.push(React.createElement(HxActBtn, { key: 'se', icon: '🔁', label: 'Série', aria: 'Criar série ' + o.numero, disabled: wait, onClick: function () { criarSerie(o); } }));
             btns.push(React.createElement(HxActBtn, { key: 'dl', icon: '🗑️', label: 'Apagar', kind: 'danger', aria: 'Apagar ' + o.numero, disabled: wait, onClick: function () { apagar(o); } }));
             var trs = (trabalhos.rows || []).filter(function (t) { return t.oferta_id === o.id; });
+            var srs = (series.rows || []).filter(function (se) { return se.oferta_id === o.id; });
             return React.createElement('div', { key: o.id, style: Object.assign({}, HXS.card, { marginBottom: 0, opacity: o.estado === 'recusada' ? 0.7 : 1 }) },
               React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
                 React.createElement('div', { style: { flex: 1, minWidth: 0 } },
@@ -3797,7 +3917,8 @@
               expirada && React.createElement('div', null, React.createElement(HxPill, { text: 'Validade expirada em ' + hwxFmtDate(o.valida_ate) + ' — ainda sem resposta', color: HX.warn })),
               React.createElement('div', { style: { fontWeight: 800, fontSize: 26, marginTop: 8 } }, hwxChf(o.total)),
               trs.length > 0 && React.createElement('div', { style: { fontSize: 14, color: HX.okText, fontWeight: 700, marginTop: 2 } }, trs.map(function (t) { return '→ ' + t.numero; }).join(' · ')),
-              React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + btns.length + ', minmax(0, 1fr))', gap: 8, marginTop: 12 } }, btns)
+              srs.length > 0 && React.createElement('div', { style: { fontSize: 14, color: HX.okText, fontWeight: 700, marginTop: 2 } }, srs.map(function (se) { return '→ 🔁 ' + (se.descricao || 'série'); }).join(' · ')),
+              React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + (btns.length <= 5 ? btns.length : btns.length === 6 ? 3 : 4) + ', minmax(0, 1fr))', gap: 8, marginTop: 12 } }, btns)
             );
           })
         )
@@ -3956,6 +4077,7 @@
       var wide = hwxUseWide();
       var _t = React.useState('agenda'); var tab = _t[0], setTab = _t[1];
       var _tp = React.useState(null); var trabPreset = _tp[0], setTrabPreset = _tp[1];
+      var _sp = React.useState(null); var serPreset = _sp[0], setSerPreset = _sp[1];
       var _ta = React.useState(null); var trabAbrir = _ta[0], setTrabAbrir = _ta[1];
       var _po = React.useState(null); var printOf = _po[0], setPrintOf = _po[1];
       var _n = React.useState(null); var notice = _n[0], setNotice = _n[1];
@@ -4132,11 +4254,11 @@
       hwxSetRefA(cfg.row && cfg.row.remetente && cfg.row.remetente.semana_a_ref);
       var horasSexta = cfg.row && cfg.row.horas_sexta != null && Number(cfg.row.horas_sexta) > 0 ? Number(cfg.row.horas_sexta) : 8;
       var body;
-      if (tab === 'agenda') body = cfg.loaded ? React.createElement(HwxAgenda, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, horasSexta: horasSexta, onReloadCfg: loadCfg, preset: trabPreset, onPresetUsed: function () { setTrabPreset(null); }, abrir: trabAbrir, onAbrirUsado: function () { setTrabAbrir(null); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
-      else if (tab === 'ofertas') body = cfg.loaded ? React.createElement(HwxOfertas, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, onPrint: setPrintOf, onReloadCfg: loadCfg, onCriarTrabalho: function (pr) { setTrabPreset(pr); setTab('agenda'); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
+      if (tab === 'agenda') body = cfg.loaded ? React.createElement(HwxAgenda, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, horasSexta: horasSexta, onReloadCfg: loadCfg, preset: trabPreset, onPresetUsed: function () { setTrabPreset(null); }, seriePreset: serPreset, onSerieUsed: function () { setSerPreset(null); }, abrir: trabAbrir, onAbrirUsado: function () { setTrabAbrir(null); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
+      else if (tab === 'ofertas') body = cfg.loaded ? React.createElement(HwxOfertas, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, onPrint: setPrintOf, onReloadCfg: loadCfg, onCriarTrabalho: function (pr) { setTrabPreset(pr); setTab('agenda'); }, onCriarSerie: function (pr) { setSerPreset(pr); setTab('agenda'); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
       else if (tab === 'totais') body = cfg.loaded ? React.createElement(HwxTotais, { notify: notify, cats: cats, cfg: cfg, profile: props.profile, onAbrirTrabalho: function (t) { setTrabAbrir(t); setTab('agenda'); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
       else if (tab === 'precos') body = React.createElement(HwxPrecos, { notify: notify, cats: cats, precoBase: precoBase });
-      else if (tab === 'clientes') body = React.createElement(HwxClientes, { notify: notify, zonas: zonas, saveCfg: saveCfg, precoBase: precoBase, contador: cfg.row ? cfg.row.ultimo_numero_cliente : 0, onReloadCfg: loadCfg });
+      else if (tab === 'clientes') body = React.createElement(HwxClientes, { notify: notify, cats: cats, zonas: zonas, saveCfg: saveCfg, precoBase: precoBase, contador: cfg.row ? cfg.row.ultimo_numero_cliente : 0, onReloadCfg: loadCfg });
       else if (!cfg.loaded) body = React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
       else body = React.createElement(HwxAjustes, { notify: notify, cfg: cfg, cats: cats, zonas: zonas, saveCfg: saveCfg, onReload: loadCfg });
 
