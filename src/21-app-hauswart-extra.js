@@ -298,7 +298,7 @@
     var hwxRefA = HWX_REF_A_DEFAULT;
     function hwxSetRefA(v) { hwxRefA = /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : HWX_REF_A_DEFAULT; }
     function hwxSemanaAB(data) {
-      var semanas = Math.floor((hwxPD(hwxSegunda(data)) - hwxPD(hwxSegunda(hwxRefA))) / (7 * HWX_DAY));
+      var semanas = Math.round((hwxPD(hwxSegunda(data)) - hwxPD(hwxSegunda(hwxRefA))) / (7 * HWX_DAY));
       return ((semanas % 2) + 2) % 2 === 0 ? 'A' : 'B';
     }
     // Letra de uma série: só se o intervalo for múltiplo de 14 dias (fica sempre A ou sempre B); senão, nenhuma
