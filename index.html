@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-05T10:08:03.761Z
+  Gerado em: 2026-10-05T14:41:25.816Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-379";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-380";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -27554,6 +27554,22 @@ function HwZahlteil(props) {
       }
       return p;
     }
+    // A zona só serve para a deslocação: NUNCA altera rua, PLZ nem localidade.
+    // Se logo depois de mexer na zona chegar uma alteração a esses campos que não foi escrita (sem inputType:
+    // preenchimento automático do navegador), é ignorada e avisada. Escrever, colar e ditar passam sempre.
+    function hwxUseAddrGuard(notify) {
+      var t = React.useRef(0);
+      return {
+        zona: function () { t.current = Date.now(); },
+        bloqueia: function (e) {
+          var escrito = e && e.nativeEvent && e.nativeEvent.inputType;
+          if (escrito || Date.now() - t.current > 2500) return false;
+          console.error('[hwx] alteração de morada ignorada: não foi escrita por ti (preenchimento automático do navegador depois de mexeres na zona)');
+          notify('warn', 'A zona não altera a morada: ignorei um preenchimento automático do navegador.');
+          return true;
+        }
+      };
+    }
     // Erros de formulário: nunca em silêncio — aviso em cima + salta até ao primeiro campo marcado
     function hwxScrollErr() {
       setTimeout(function () {
@@ -27868,7 +27884,7 @@ function HwZahlteil(props) {
       var inStyle = props.error ? Object.assign({}, HXS.input, { borderColor: HX.bad }) : HXS.input;
       var inputProps = {
         value: props.value == null ? '' : props.value,
-        onChange: function (e) { props.onChange(e.target.value); },
+        onChange: function (e) { props.onChange(e.target.value, e); },
         placeholder: props.placeholder || '',
         autoComplete: 'off',
         style: inStyle
@@ -28546,6 +28562,8 @@ function HwZahlteil(props) {
       var busyRef = React.useRef(false);
       var snap = React.useRef(f0(editing)).current;
       var upd = function (k, v) { setF(function (p) { var n = Object.assign({}, p); n[k] = v; return n; }); };
+      var ag = hwxUseAddrGuard(notify);
+      var updA = function (k) { return function (v, ev) { if (ag.bloqueia(ev)) return; upd(k, v); }; };
 
       var doSave = function (ok, fail) {
         if (busyRef.current) return;
@@ -28589,12 +28607,12 @@ function HwZahlteil(props) {
       return React.createElement(HxFormShell, { title: (editing ? 'Editar local' : 'Novo local') + ' · #' + cli.numero + ' ' + (cli.firma || cli.nome), onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
         React.createElement(HxField, { label: 'Subnúmero', value: f.sub_numero, inputMode: 'numeric', onChange: function (v) { upd('sub_numero', v); }, error: errs.sub_numero, placeholder: 'automático (próximo: ' + cli.numero + '.' + next + ')', hint: editing ? 'Local ' + cli.numero + '.' + editing.sub_numero : undefined, onEnter: function () { doSave(); } }),
         React.createElement(HxField, { label: 'Nome do local', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Passionsstrasse 6', onEnter: function () { doSave(); } }),
-        React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: function (v) { upd('rua', v); }, onEnter: function () { doSave(); } }),
+        React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: updA('rua'), onEnter: function () { doSave(); } }),
         React.createElement(HxRow, { cols: 2 },
-          React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: function (v) { upd('plz', v); }, warn: hwxPlzWarn(f.plz), onEnter: function () { doSave(); } }),
-          React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: function (v) { upd('ort', v); }, onEnter: function () { doSave(); } })
+          React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: updA('plz'), warn: hwxPlzWarn(f.plz), onEnter: function () { doSave(); } }),
+          React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: updA('ort'), onEnter: function () { doSave(); } })
         ),
-        React.createElement(HxSelect, { label: 'Zona', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— a do cliente —'), onChange: function (v) { upd('zona', v); } }),
+        React.createElement(HxSelect, { label: 'Zona', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— a do cliente —'), onChange: function (v) { ag.zona(); upd('zona', v); } }),
         React.createElement(HxField, { label: 'Notas', value: f.notas, multiline: true, onChange: function (v) { upd('notas', v); } })
       );
     }
@@ -28608,6 +28626,8 @@ function HwZahlteil(props) {
       var busyRef = React.useRef(false);
       var snap = React.useRef(hwxCli0(editing)).current;
       var upd = function (k, v) { setF(function (p) { var n = Object.assign({}, p); n[k] = v; return n; }); };
+      var ag = hwxUseAddrGuard(notify);
+      var updA = function (k) { return function (v, ev) { if (ag.bloqueia(ev)) return; upd(k, v); }; };
 
       var maxNum = 0;
       clientes.forEach(function (c) { if (c.numero > maxNum) maxNum = c.numero; });
@@ -28685,16 +28705,16 @@ function HwZahlteil(props) {
           ),
           React.createElement(HxRow, { cols: 2 },
             React.createElement(HxSelect, { label: 'Língua', value: f.lingua, options: HWX_LANGS, onChange: function (v) { upd('lingua', v); } }),
-            React.createElement(HxSelect, { label: 'Zona por defeito', value: f.zona, options: zonaOpts, onChange: function (v) { upd('zona', v); } })
+            React.createElement(HxSelect, { label: 'Zona por defeito', value: f.zona, options: zonaOpts, onChange: function (v) { ag.zona(); upd('zona', v); } })
           ),
           zonas.length === 0 && React.createElement('div', { style: { fontSize: 13, color: HX.warnText, marginTop: -6 } }, 'Ainda não há zonas — cria-as em Ajustes.')
         ),
         React.createElement(HxSection, { title: '💰 QUEM PAGA' },
           React.createElement(HxField, { label: 'Firma (opcional)', value: f.firma, onChange: function (v) { upd('firma', v); }, onEnter: enter }),
-          React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: function (v) { upd('rua', v); }, onEnter: enter }),
+          React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: updA('rua'), onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: function (v) { upd('plz', v); }, warn: hwxPlzWarn(f.plz), onEnter: enter }),
-            React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: function (v) { upd('ort', v); }, onEnter: enter })
+            React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: updA('plz'), warn: hwxPlzWarn(f.plz), onEnter: enter }),
+            React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: updA('ort'), onEnter: enter })
           )
         ),
         React.createElement(HxSection, { title: '👤 CONTACTO' },
@@ -29324,6 +29344,8 @@ function HwZahlteil(props) {
       var alive = React.useRef(true);
       React.useEffect(function () { alive.current = true; return function () { alive.current = false; }; }, []);
       var upd = function (k, v) { setF(function (p) { var n = Object.assign({}, p); n[k] = v; return n; }); };
+      var ag = hwxUseAddrGuard(notify);
+      var updA = function (k) { return function (v, ev) { if (ag.bloqueia(ev)) return; upd(k, v); }; };
       hwxUseEsc(function () { if (!busyRef.current) props.onCancel(); });
       var save = function () {
         if (busyRef.current) return;
@@ -29353,13 +29375,13 @@ function HwZahlteil(props) {
         msg && React.createElement('div', { role: 'alert', style: { background: HX.badBg, border: '1px solid ' + HX.bad, color: HX.badText, borderRadius: 8, padding: '8px 10px', marginBottom: 12, fontSize: 14, fontWeight: 600 } }, '⚠️ ' + msg),
         React.createElement(HxField, { label: 'Nome', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, onEnter: save }),
         React.createElement(HxField, { label: 'Telemóvel', value: f.tel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('tel', v); }, placeholder: '079 123 45 67', onEnter: save }),
-        React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: function (v) { upd('rua', v); }, onEnter: save }),
+        React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: updA('rua'), onEnter: save }),
         React.createElement(HxRow, { cols: 2 },
-          React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: function (v) { upd('plz', v); }, warn: hwxPlzWarn(f.plz), onEnter: save }),
-          React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: function (v) { upd('ort', v); }, onEnter: save })
+          React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: updA('plz'), warn: hwxPlzWarn(f.plz), onEnter: save }),
+          React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: updA('ort'), onEnter: save })
         ),
         React.createElement(HxRow, { cols: 2 },
-          React.createElement(HxSelect, { label: 'Zona', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— sem zona —'), onChange: function (v) { upd('zona', v); } }),
+          React.createElement(HxSelect, { label: 'Zona', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— sem zona —'), onChange: function (v) { ag.zona(); upd('zona', v); } }),
           React.createElement(HxSelect, { label: 'Língua', value: f.lingua, options: HWX_LANGS, onChange: function (v) { upd('lingua', v); } })
         ),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 } },
@@ -29435,6 +29457,7 @@ function HwZahlteil(props) {
       var _zm = React.useState(false); var zonaModal = _zm[0], setZonaModal = _zm[1];
       var _gv = React.useState(''); var gravadoTxt = _gv[0], setGravadoTxt = _gv[1];
       var _kk = React.useState(0); var kick = _kk[0], setKick = _kk[1];
+      var _au = React.useState(false); var atualizando = _au[0], setAtualizando = _au[1];
       var busyRef = React.useRef(false);
       var pendingRef = React.useRef(null);
       var fRef = React.useRef(f); fRef.current = f;
@@ -29649,6 +29672,50 @@ function HwZahlteil(props) {
         hwxRemove('hwx_ofertas', b.id, notify, function () { props.onDeleted(b.id); props.onClose(); }, function () {});
       };
 
+      // ↻ Atualizar dados do cliente (só rascunhos): volta a copiar os dados ATUAIS do cliente, do local e da zona
+      // para cliente_snap, local_snap e zona_snap. Lê sempre da base (a lista do ecrã pode estar desatualizada).
+      var atualizarDados = function () {
+        if (atualizando || busyRef.current || !f.cliente_id) return;
+        if (!window.supabaseClient) { hwxFail(notify, 'atualizar dados do cliente', { message: 'Sem ligação à base de dados.' }, false); return; }
+        var cid = f.cliente_id, lid = f.local_id, over0 = f.zona_over;
+        setAtualizando(true);
+        var fim = function () { if (alive.current) setAtualizando(false); };
+        var falha = function (e) { hwxFail(notify, 'atualizar dados do cliente', e, false); fim(); };
+        var aplicar = function (cRow, lRow, zs) {
+          var zi = hwxZonaDe(cRow, lRow, zs);
+          var zsnap = over0 ? { nome: over0.nome, tipo: over0.tipo, valor: over0.valor, manual: true }
+            : (zi.info ? { nome: zi.nome, tipo: zi.info.tipo, valor: zi.info.valor } : {});
+          props.reloadLists();
+          var b = savedRowRef.current;
+          if (!b) { fim(); notify('ok', 'Dados atualizados ✓'); return; }
+          var quiet = function (kind, text) { if (kind !== 'ok') notify(kind, text); };
+          hwxWrite('hwx_ofertas', b.id, { cliente_snap: hwxClienteSnap(cRow), local_snap: hwxLocalSnap(lRow), zona_snap: zsnap }, quiet, function (row) {
+            savedRowRef.current = row;
+            if (alive.current) setSavedRow(row);
+            props.onSaved(row, false);
+            notify('ok', 'Dados atualizados ✓');
+          }, fim);
+        };
+        var comLocal = function (cRow, lRow) {
+          window.supabaseClient.from('hwx_config').select('zonas').order('created_at', { ascending: true }).limit(1).then(function (r3) {
+            if (r3.error) { falha(r3.error); return; }
+            var cfgRow = r3.data && r3.data[0];
+            aplicar(cRow, lRow, cfgRow && Array.isArray(cfgRow.zonas) ? cfgRow.zonas : zonas);
+          }).catch(falha);
+        };
+        window.supabaseClient.from('hwx_clientes').select('*').eq('id', cid).then(function (r1) {
+          if (r1.error) { falha(r1.error); return; }
+          var cRow = r1.data && r1.data[0];
+          if (!cRow) { falha({ message: 'o cliente já não existe.' }); return; }
+          if (!lid) { comLocal(cRow, null); return; }
+          window.supabaseClient.from('hwx_locais').select('*').eq('id', lid).then(function (r2) {
+            if (r2.error) { falha(r2.error); return; }
+            comLocal(cRow, r2.data && r2.data[0] ? r2.data[0] : null);
+          }).catch(falha);
+        }).catch(falha);
+      };
+      var podeAtualizar = f.estado === 'rascunho' && (!savedRow || savedRow.estado === 'rascunho');
+
       if (picking) {
         return React.createElement(HwxPicker, { servicos: servicos, cats: props.cats, onAdd: addServico, onBack: function () { setPicking(false); } });
       }
@@ -29688,12 +29755,17 @@ function HwZahlteil(props) {
             cqTxt && matches.length === 0 && React.createElement(HxBtn, { label: '+ Criar cliente "' + cqTxt + '"', full: true, onClick: function () { setNovoCli({ nome: cqTxt }); } }),
             f.cliente_id && React.createElement('div', { style: { marginTop: 6 } }, React.createElement(HxBtn, { label: 'Manter o cliente atual', onClick: function () { setCliPick(false); setCq(''); } }))
           )
-        : React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'center', background: HX.surface2, border: '1px solid ' + HX.borderStrong, borderRadius: 10, padding: '8px 12px', marginBottom: 12 } },
-            React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-              React.createElement('div', { style: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: HX.muted } }, 'Cliente'),
-              React.createElement('div', { style: { fontWeight: 800, fontSize: 17, wordBreak: 'break-word' } }, cli ? cliNome(cli) : '…')
+        : React.createElement('div', { style: { marginBottom: 12 } },
+            React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'center', background: HX.surface2, border: '1px solid ' + HX.borderStrong, borderRadius: 10, padding: '8px 12px' } },
+              React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                React.createElement('div', { style: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: HX.muted } }, 'Cliente'),
+                React.createElement('div', { style: { fontWeight: 800, fontSize: 17, wordBreak: 'break-word' } }, cli ? cliNome(cli) : '…')
+              ),
+              React.createElement(HxBtn, { label: 'Mudar', aria: 'Mudar de cliente', onClick: function () { setCliPick(true); } })
             ),
-            React.createElement(HxBtn, { label: 'Mudar', aria: 'Mudar de cliente', onClick: function () { setCliPick(true); } })
+            podeAtualizar && React.createElement('div', { style: { marginTop: 8 } },
+              React.createElement(HxBtn, { label: atualizando ? 'A atualizar…' : '↻ Atualizar dados do cliente', full: true, disabled: atualizando, onClick: atualizarDados })
+            )
           );
 
       var meusLocais = f.cliente_id ? locais.filter(function (l) { return l.cliente_id === f.cliente_id; }).sort(function (a, b) { return a.sub_numero - b.sub_numero; }) : [];
@@ -29704,6 +29776,7 @@ function HwZahlteil(props) {
       var estadoInfo = f.estado === 'enviada' && f.enviada_em ? 'Enviada em ' + new Date(f.enviada_em).toLocaleString('de-CH')
         : (f.estado === 'aceite' || f.estado === 'recusada') && f.respondida_em ? hwxLabel(HWX_OF_ESTADOS, f.estado) + ' em ' + new Date(f.respondida_em).toLocaleString('de-CH') : hwxLabel(HWX_OF_ESTADOS, f.estado);
       var lineBox = { background: HX.surface2, border: '1px solid ' + HX.border, borderRadius: 10, padding: 10, marginBottom: 10 };
+      var anfBox = Object.assign({}, lineBox, { background: '#2b2b2b', borderLeft: '4px solid ' + HX.muted });
       var lineHead = { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: HX.muted, marginBottom: 6 };
       var lineFoot = function (l, idx, totalR) {
         return React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
@@ -29743,14 +29816,17 @@ function HwZahlteil(props) {
             var totalR = hwxLinhaTotalR(l);
             if (l.tipo === 'anfahrt') {
               var porHora = l.unidade === 'hora';
-              return React.createElement('div', { key: l.k, style: lineBox },
-                React.createElement('div', { style: lineHead }, '#' + (idx + 1) + ' · Anfahrt' + (l.auto ? ' · sugerida pela zona' : '')),
+              var prAnf = hwxNum(l.preco);
+              var pareceTrabalho = prAnf !== null && props.precoBase > 0 && prAnf >= props.precoBase;
+              return React.createElement('div', { key: l.k, style: anfBox },
+                React.createElement('div', { style: lineHead }, '#' + (idx + 1) + ' · 🚗 Anfahrt' + (l.auto ? ' · sugerida pela zona' : '')),
                 React.createElement(HxField, { label: 'Descrição', value: l.descricao, onChange: function (v) { updLinha(l.k, 'descricao', v); }, error: le.descricao }),
                 React.createElement(HxRow, { cols: porHora ? 3 : 2 },
                   React.createElement(HxSelect, { label: 'Tipo', value: porHora ? 'hora' : 'fixo', options: [{ v: 'hora', l: 'Por hora' }, { v: 'fixo', l: 'Valor fixo (pauschal)' }], onChange: function (v) { setModoAnf(l.k, v); } }),
                   porHora && React.createElement(HxField, { label: 'Horas', value: l.qtd, inputMode: 'decimal', onChange: function (v) { updLinha(l.k, 'qtd', v); }, error: le.qtd }),
                   React.createElement(HxField, { label: porHora ? 'Preço por hora (CHF)' : 'Valor (CHF)', value: l.preco, inputMode: 'decimal', onChange: function (v) { updLinha(l.k, 'preco', v); }, error: le.preco, placeholder: '0.00' })
                 ),
+                pareceTrabalho && React.createElement('div', { style: Object.assign({}, HXS.warn, { marginBottom: 8 }) }, "⚠️ Isto parece trabalho, não deslocação — para o trabalho usa '+ Linha livre' ou '+ Da tabela de preços'"),
                 porHora && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, 'Horas do trabalho (linhas por hora e por 30 min): ' + hwxQty(horasTrab)),
                 lineFoot(l, idx, totalR)
               );
@@ -29858,6 +29934,7 @@ function HwZahlteil(props) {
           notify: notify, guard: ctx.guard, precoBase: props.precoBase, saveCfg: props.saveCfg,
           onSaved: function (row, inserted) { replaceRow(row); if (inserted) props.onReloadCfg(); },
           onDeleted: function (id) { ofertas.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== id; }); }); },
+          reloadLists: function () { clientes.load(); locais.load(); },
           onClienteCriado: function (row) {
             clientes.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== row.id; }).concat([row]); });
             clientes.load();
