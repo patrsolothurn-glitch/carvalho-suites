@@ -4,7 +4,7 @@
 // botão "➕ Extra" do HauswartApp). Agenda (trabalhos e séries), Ofertas, Clientes (com locais), Preços e Ajustes.
 // Tabelas hwx_clientes, hwx_servicos, hwx_locais, hwx_config, hwx_ofertas, hwx_trabalhos, hwx_series
 // (sql/24_hwx_base.sql … sql/27_hwx_agenda.sql).
-// Nunca lê nem escreve hauswart_data. localStorage só para lembrar filtros (hwx_f_*).
+// hauswart_data: SÓ LIDA (separador Totais: select + maybeSingle); nunca escrita. localStorage só para lembrar filtros (hwx_f_*).
 // Única exportação: window.HwxApp. Tudo o resto fica dentro desta IIFE.
 // ─────────────────────────────────────────────────────────────────────
 (function () {
@@ -292,6 +292,20 @@
       }
       return out;
     }
+    // Semana A/B = semana do CALENDÁRIO, igual para todas as sextas (UTC puro, também antes da referência).
+    // Referência: a sexta 9.10.2026 é semana A (configurável em Ajustes: remetente.semana_a_ref).
+    var HWX_REF_A_DEFAULT = '2026-10-09';
+    var hwxRefA = HWX_REF_A_DEFAULT;
+    function hwxSetRefA(v) { hwxRefA = /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : HWX_REF_A_DEFAULT; }
+    function hwxSemanaAB(data) {
+      var semanas = Math.round((hwxPD(hwxSegunda(data)) - hwxPD(hwxSegunda(hwxRefA))) / (7 * HWX_DAY));
+      return ((semanas % 2) + 2) % 2 === 0 ? 'A' : 'B';
+    }
+    // Letra de uma série: só se o intervalo for múltiplo de 14 dias (fica sempre A ou sempre B); senão, nenhuma
+    function hwxSerieSemana(inicio, intervalo) {
+      var iv = Number(intervalo);
+      return iv > 0 && iv % 14 === 0 && inicio ? hwxSemanaAB(inicio) : '';
+    }
     var HWX_DIAS = {
       de: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'],
       fr: ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'],
@@ -315,7 +329,7 @@
       else if (lg === 'it') linha = 'Vengo ' + dia + ' ' + dm + (hh ? ' alle ' + hh : '') + '.';
       else if (lg === 'en') linha = 'I will come on ' + dia + ', ' + dm + (hh ? ', at ' + hh : '') + '.';
       else linha = 'Vou no dia ' + dm + ' (' + dia + ')' + (hh ? ' às ' + hh : '') + '.';
-      var out = [L.hi + (nome ? ' ' + nome : '') + ',', '', linha, '', L.bye];
+      var out = [L.hi + (nome ? ' ' + nome : ''), '', linha, '', L.bye];
       if (meuNome) out.push(meuNome);
       return out.join('\n');
     }
@@ -345,13 +359,13 @@
     function hwxWaTexto(o, meuNome) {
       var L = HWX_WA[o.lingua] || HWX_WA.de, cs = o.cliente_snap || {};
       var nome = cs.contacto_nome || cs.firma || cs.nome || '';
-      var out = [L.hi + (nome ? ' ' + nome : '') + ',', '', L.word + ' ' + o.numero];
-      if (o.titulo) out.push(o.titulo);
-      var ls = (o.linhas || []).map(function (l) { return '• ' + l.descricao + ': ' + hwxChf(hwxFromRappen(hwxLinhaTotalR(l))); });
-      if (ls.length) { out.push(''); ls.forEach(function (x) { out.push(x); }); out.push(''); }
-      out.push(L.total + ': ' + hwxChf(o.total));
-      if (o.valida_ate) out.push(L.valid + ': ' + hwxFmtDate(o.valida_ate));
-      out.push('', L.bye);
+      // saudação, linha em branco, texto (sem linhas em branco), linha em branco, despedida e, na linha seguinte, o meu nome
+      var corpo = [L.word + ' ' + o.numero];
+      if (o.titulo) corpo.push(o.titulo);
+      (o.linhas || []).forEach(function (l) { corpo.push('• ' + l.descricao + ': ' + hwxChf(hwxFromRappen(hwxLinhaTotalR(l)))); });
+      corpo.push(L.total + ': ' + hwxChf(o.total));
+      if (o.valida_ate) corpo.push(L.valid + ': ' + hwxFmtDate(o.valida_ate));
+      var out = [L.hi + (nome ? ' ' + nome : ''), ''].concat(corpo, ['', L.bye]);
       if (meuNome) out.push(meuNome);
       return out.join('\n');
     }
@@ -635,6 +649,7 @@
         autoComplete: 'off',
         style: inStyle
       };
+      if (props.onBlur) inputProps.onBlur = props.onBlur;
       var el;
       if (props.multiline) {
         inputProps.rows = props.rows || 3;
@@ -1790,6 +1805,7 @@
       var temHoras = !!(row && row.horas_sexta != null);
       var _hs = React.useState(temHoras ? String(row.horas_sexta) : '8');
       var horasSex = _hs[0], setHorasSex = _hs[1];
+      var _ra = React.useState(rem0.semana_a_ref || HWX_REF_A_DEFAULT); var refA = _ra[0], setRefA = _ra[1];
       var _mw = React.useState(rem0.mwst_nota !== false);
       var mwst = _mw[0], setMwst = _mw[1];
       var _rm = React.useState({ nome: rem0.nome || '', rua: rem0.rua || '', plz: plz0 || '', ort: ort0 || '', telefone: rem0.telefone || '', email: rem0.email || '' });
@@ -1816,15 +1832,16 @@
         var pb = hwxNum(base);
         if (pb === null || pb < 0 || pb > 99999999.99) e.base = 'Indica um valor válido (ex.: 35 ou 35,00).';
         if (hwxEmailBad(rem.email)) e.email = 'E-mail inválido.';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(refA || '') || hwxDow(refA) !== 5) e.refA = 'Tem de ser uma sexta-feira.';
         var hs = hwxNum(horasSex);
         if (hs === null || hs <= 0 || hs > 24) e.horas = 'Horas entre 0 e 24 (ex.: 8).';
         if (aliveRef.current) setErrs(e);
-        if (e.limite || e.email || e.base || e.horas) { if (aliveRef.current) setStatus('invalid'); if (fail) fail(); return; }
+        if (e.limite || e.email || e.base || e.horas || e.refA) { if (aliveRef.current) setStatus('invalid'); if (fail) fail(); return; }
         var t = function (k) { return String(rem[k] || '').trim(); };
         var payload = {
           limite_anual: hwxFromRappen(hwxToRappen(lim)),
           preco_base_hora: hwxFromRappen(hwxToRappen(pb)),
-          remetente: { nome: t('nome'), rua: t('rua'), plz: t('plz'), ort: t('ort'), plz_ort: [t('plz'), t('ort')].filter(Boolean).join(' '), telefone: t('telefone'), email: t('email'), mwst_nota: !!mwst }
+          remetente: { nome: t('nome'), rua: t('rua'), plz: t('plz'), ort: t('ort'), plz_ort: [t('plz'), t('ort')].filter(Boolean).join(' '), telefone: t('telefone'), email: t('email'), mwst_nota: !!mwst, semana_a_ref: refA }
         };
         if (temHoras) payload.horas_sexta = Math.round(hs * 10) / 10;
         if (aliveRef.current) setStatus('saving');
@@ -1846,7 +1863,7 @@
         setStatus('pending');
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(function () { timerRef.current = null; saveRef.current(); }, 1200);
-      }, [limite, rem, base, mwst, horasSex]);
+      }, [limite, rem, base, mwst, horasSex, refA]);
       React.useEffect(function () {
         aliveRef.current = true;
         return function () {
@@ -1923,6 +1940,9 @@
             React.createElement(HxField, { label: 'Preço base por hora (CHF)', value: base, inputMode: 'decimal', onChange: setBase, error: errs.base, hint: 'Usado para sugerir preços a partir das horas de referência. Nunca aparece em ofertas, impressões nem WhatsApp.' })
           ),
           React.createElement(HxSection, { title: 'Agenda' },
+            React.createElement(HxDate, { label: 'Sexta de referência da semana A', value: refA, error: errs.refA, onChange: setRefA }),
+            errs.refA && React.createElement('div', { style: Object.assign({}, HXS.err, { marginTop: -8, marginBottom: 12 }) }, errs.refA),
+            React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: -6, marginBottom: 12 } }, 'A letra A/B é a da semana do calendário, igual para todas as sextas: A se o número de semanas desde esta sexta for par, B se for ímpar.'),
             React.createElement(HxField, { label: 'Horas que quero trabalhar por sexta', value: horasSex, inputMode: 'decimal', onChange: setHorasSex, error: errs.horas, hint: temHoras ? 'Usado na barra "X de N h ocupadas" da Agenda.' : 'Só grava depois de correres sql/27_hwx_agenda.sql (até lá a Agenda usa 8 h).' })
           ),
           React.createElement(HxSection, { title: 'Zonas de deslocação' },
@@ -2198,10 +2218,15 @@
       );
     }
 
+    // Se o cliente tem exatamente UM local de trabalho, esse local vem escolhido por defeito (vários ou nenhum: não)
+    function hwxLocalUnico(locais, clienteId) {
+      var ls = locais.filter(function (l) { return l.cliente_id === clienteId; });
+      return ls.length === 1 ? ls[0] : null;
+    }
     // ── Linhas (tabela de preços, linha livre, Anfahrt) — partilhado pela oferta e pelo trabalho ──
     // A Anfahrt é SEMPRE uma linha própria; a zona só sugere. Linhas abertas para edição (syncOn = false) só mudam
     // quando mudas a zona (cliente/local/Mudar), nunca ao editar linhas.
-    function hwxUseLinhasOps(setF, zRef, syncOn) {
+    function hwxUseLinhasOps(setF, zRef, syncOn, precoBase) {
       var dismissedRef = React.useRef(false);
       var withSync = function (n) { return syncOn ? hwxSyncAnfahrt(n, zRef.current, dismissedRef.current) : n; };
       var zonaMudou = function (n, zi) { dismissedRef.current = false; return hwxSyncAnfahrt(n, zi, false); };
@@ -2211,6 +2236,11 @@
             if (l.k !== k) return l;
             var n = Object.assign({}, l); n[campo] = v;
             if (l.tipo === 'anfahrt') n.auto = false;
+            // linha livre "por hora" / "por 30 min" com o preço vazio: sugere o preço base dos Ajustes (nunca escreve por cima)
+            if (campo === 'unidade' && l.tipo === 'livre' && String(l.preco == null ? '' : l.preco).trim() === '' && precoBase > 0) {
+              if (v === 'hora') n.preco = hwxFromRappen(hwxToRappen(precoBase)).toFixed(2);
+              else if (v === '30min') n.preco = hwxFromRappen(Math.round(hwxToRappen(precoBase) / 2)).toFixed(2);
+            }
             return n;
           }) }));
         });
@@ -2315,7 +2345,7 @@
             React.createElement(HxRow, { cols: 3 },
               React.createElement(HxField, { label: 'Quantidade', value: l.qtd, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'qtd', v); }, error: le.qtd }),
               React.createElement(HxSelect, { label: 'Unidade', value: l.unidade, options: HWX_UNITS.map(function (u) { return { v: u.v, l: u.l }; }), onChange: function (v) { ops.updLinha(l.k, 'unidade', v); } }),
-              React.createElement(HxField, { label: 'Preço (CHF, só nesta oferta)', value: l.preco, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'preco', v); }, error: le.preco, placeholder: sv && sv.estado === 'consulta' ? 'sob consulta: indica o preço' : '0.00' })
+              React.createElement(HxField, { label: o.precoLabel || 'Preço (CHF, só nesta oferta)', value: l.preco, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'preco', v); }, error: le.preco, placeholder: sv && sv.estado === 'consulta' ? 'sob consulta: indica o preço' : '0.00' })
             ),
             abaixo && React.createElement('div', { style: Object.assign({}, HXS.warn, { marginBottom: 8 }) },
               '⚠️ Abaixo do mínimo deste serviço (' + hwxQty(minimo) + '). ',
@@ -2444,13 +2474,14 @@
       var zonaNome = over ? over.nome : (congelada ? base.zona_snap.nome : zonaLive.nome);
       zRef.current = zonaInfo;
 
-      var ops = hwxUseLinhasOps(setF, zRef, !editing);
+      var ops = hwxUseLinhasOps(setF, zRef, !editing, props.precoBase);
       var onCliente = function (id, row) {
         setF(function (p) {
           var c2 = row || clientes.filter(function (c) { return c.id === id; })[0];
-          var n = Object.assign({}, p, { cliente_id: id, local_id: '', zona_over: null });
+          var l1 = hwxLocalUnico(locais, id);
+          var n = Object.assign({}, p, { cliente_id: id, local_id: l1 ? l1.id : '', zona_over: null });
           if (c2 && !editing) n.lingua = c2.lingua || 'de';
-          return ops.zonaMudou(n, hwxZonaDe(c2 || null, null, zonas).info);
+          return ops.zonaMudou(n, hwxZonaDe(c2 || null, l1, zonas).info);
         });
       };
       var onLocal = function (id) {
@@ -2779,6 +2810,8 @@
       var _er = React.useState({}); var errs = _er[0], setErrs = _er[1];
       var _b = React.useState(false); var busy = _b[0], setBusy = _b[1];
       var _pk = React.useState(false); var picking = _pk[0], setPicking = _pk[1];
+      var _as = React.useState(null); var ask = _as[0], setAsk = _as[1];
+      var askedRef = React.useRef('');
       var busyRef = React.useRef(false);
       var savedRowRef = React.useRef(editing || null);
       var savedSnapRef = React.useRef(snap);
@@ -2797,7 +2830,7 @@
       var zonaInfo = over ? hwxZonaNorm(over) : zonaLive.info;
       var zonaNome = over ? over.nome : zonaLive.nome;
       zRef.current = zonaInfo;
-      var ops = hwxUseLinhasOps(setF, zRef, !editing);
+      var ops = hwxUseLinhasOps(setF, zRef, !editing, props.precoBase);
       // trabalho novo com cliente já escolhido (oferta aceite, série): a zona sugere a Anfahrt à entrada
       React.useEffect(function () {
         if (editing || !f.cliente_id) return;
@@ -2806,7 +2839,8 @@
       var onCliente = function (id, row) {
         setF(function (p) {
           var c2 = row || clientes.filter(function (c) { return c.id === id; })[0];
-          return ops.zonaMudou(Object.assign({}, p, { cliente_id: id, local_id: '', zona_over: null }), hwxZonaDe(c2 || null, null, zonas).info);
+          var l1 = hwxLocalUnico(locais, id);
+          return ops.zonaMudou(Object.assign({}, p, { cliente_id: id, local_id: l1 ? l1.id : '', zona_over: null }), hwxZonaDe(c2 || null, l1, zonas).info);
         });
       };
       var onLocal = function (id) {
@@ -2880,6 +2914,18 @@
           return n;
         });
       };
+      // Ao pôr as horas reais de um trabalho "Feito" com UMA linha por hora (ou por 30 min) que não bate certo: pergunta se atualiza
+      var onHorasBlur = function () {
+        if (f.estado !== 'feito') return;
+        var h = String(f.horas_reais || '').trim() === '' ? null : hwxNum(f.horas_reais);
+        if (h === null || h <= 0 || askedRef.current === String(f.horas_reais)) return;
+        var el = f.linhas.filter(function (l) { return l.tipo !== 'anfahrt' && (l.unidade === 'hora' || l.unidade === '30min'); });
+        if (el.length !== 1) return;
+        var l = el[0], q = hwxNum(l.qtd), cur = q === null ? null : (l.unidade === 'hora' ? q : q / 2);
+        if (cur !== null && Math.abs(cur - h) < 0.005) return;
+        askedRef.current = String(f.horas_reais);
+        setAsk({ k: l.k, desc: l.descricao || '(sem descrição)', h: h, unidade: l.unidade });
+      };
       var duplicar = function () {
         var b = savedRowRef.current;
         if (!b || busyRef.current) return;
@@ -2911,10 +2957,10 @@
           React.createElement('label', { style: HXS.label }, 'Estado'),
           React.createElement(HxSeg, { aria: 'Estado do trabalho', items: [{ v: 'planeado', l: 'Planeado' }, { v: 'feito', l: '✓ Feito' }, { v: 'cancelado', l: 'Cancelado' }], value: f.estado, onChange: setEstado })
         ),
-        hwxRenderLinhas({ linhas: f.linhas, errs: errs, ops: ops, servicos: servicos, precoBase: props.precoBase, onPick: function () { setPicking(true); } }),
+        hwxRenderLinhas({ linhas: f.linhas, errs: errs, ops: ops, servicos: servicos, precoBase: props.precoBase, precoLabel: 'Preço (CHF, só neste trabalho)', onPick: function () { setPicking(true); } }),
         React.createElement(HxSection, { title: 'Horas, material e total' },
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxField, { label: 'Horas reais', value: f.horas_reais, inputMode: 'decimal', onChange: function (v) { upd('horas_reais', v); }, error: errs.horas, hint: 'Horas das linhas: ' + hwxQty(horasLinhas), placeholder: 'quando estiver feito' }),
+            React.createElement(HxField, { label: 'Horas reais', value: f.horas_reais, inputMode: 'decimal', onChange: function (v) { upd('horas_reais', v); }, onBlur: onHorasBlur, error: errs.horas, hint: 'Horas das linhas: ' + hwxQty(horasLinhas), placeholder: 'quando estiver feito' }),
             React.createElement(HxField, { label: 'Material (CHF)', value: f.material, inputMode: 'decimal', onChange: function (v) { upd('material', v); }, error: errs.material, placeholder: '0.00' })
           ),
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '4px 0' } }, React.createElement('span', null, 'Linhas'), React.createElement('span', null, hwxChf(hwxFromRappen(tot.sub)))),
@@ -2929,7 +2975,14 @@
           React.createElement(HxField, { label: 'Notas para o cliente', value: f.notas_cliente, multiline: true, onChange: function (v) { upd('notas_cliente', v); } }),
           React.createElement(HxField, { label: 'Notas internas (só para mim)', value: f.notas_internas, multiline: true, onChange: function (v) { upd('notas_internas', v); } })
         ),
-        savedRow && React.createElement('div', { style: { marginBottom: 12 } }, React.createElement(HxBtn, { label: '⧉ Duplicar este trabalho', full: true, onClick: duplicar }))
+        savedRow && React.createElement('div', { style: { marginBottom: 12 } }, React.createElement(HxBtn, { label: '⧉ Duplicar este trabalho', full: true, onClick: duplicar })),
+        ask && React.createElement(HxModal, { title: 'Atualizar a linha?' },
+          React.createElement('div', { style: { fontSize: 15, marginBottom: 14 } }, "Atualizar a linha '" + ask.desc + "' para " + hwxQty(ask.h) + ' h?'),
+          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 } },
+            React.createElement(HxBtn, { label: 'Não', onClick: function () { setAsk(null); } }),
+            React.createElement(HxBtn, { label: 'Sim', kind: 'primary', onClick: function () { ops.updLinha(ask.k, 'qtd', String(ask.unidade === 'hora' ? ask.h : Math.round(ask.h * 200) / 100)); setAsk(null); } })
+          )
+        )
       );
     }
 
@@ -3027,7 +3080,7 @@
             React.createElement(HxField, { label: 'Hora', value: f.hora, type: 'time', onChange: function (v) { upd('hora', v); } }),
             React.createElement(HxField, { label: 'Horas previstas', value: f.horas_previstas, inputMode: 'decimal', onChange: function (v) { upd('horas_previstas', v); }, error: errs.horas, placeholder: 'ex.: 2,5' })
           ),
-          next.length > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, 'Próximas datas: ' + next.map(function (o) { return hwxDiaCurto(o.data) + ' (' + (o.k % 2 === 0 ? 'A' : 'B') + ')'; }).join(' · ')),
+          next.length > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, 'Próximas datas: ' + next.map(function (o) { return hwxDiaCurto(o.data); }).join(' · ') + (hwxSerieSemana(f.inicio, hwxNum(f.intervalo_dias)) ? ' · semana ' + hwxSerieSemana(f.inicio, hwxNum(f.intervalo_dias)) : '')),
           React.createElement(HxFormToggle, { label: 'Série ativa', value: f.ativa, onChange: function (v) { upd('ativa', v); } })
         ),
         React.createElement(HxSection, { title: 'Notas' },
@@ -3107,9 +3160,9 @@
                   React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 2 } }, c ? '#' + c.numero + ' ' + (c.firma || c.nome) : '(cliente)') ),
                 React.createElement(HxPill, { text: estado, color: estado === 'ativa' ? HX.ok : HX.borderStrong })
               ),
-              React.createElement('div', { style: { fontSize: 14, marginTop: 6 } }, 'de ' + s.intervalo_dias + ' em ' + s.intervalo_dias + ' dias · desde ' + hwxFmtDate(s.inicio) + (s.fim ? ' · até ' + hwxFmtDate(s.fim) : ' · sem fim') + (s.hora ? ' · ' + hwxHora(s.hora) : '') + (s.horas_previstas ? ' · ' + hwxQty(s.horas_previstas) + ' h' : '')),
+              React.createElement('div', { style: { fontSize: 14, marginTop: 6 } }, 'de ' + s.intervalo_dias + ' em ' + s.intervalo_dias + ' dias' + (hwxSerieSemana(s.inicio, s.intervalo_dias) ? ' · semana ' + hwxSerieSemana(s.inicio, s.intervalo_dias) : '') + ' · desde ' + hwxFmtDate(s.inicio) + (s.fim ? ' · até ' + hwxFmtDate(s.fim) : ' · sem fim') + (s.hora ? ' · ' + hwxHora(s.hora) : '') + (s.horas_previstas ? ' · ' + hwxQty(s.horas_previstas) + ' h' : '')),
               (lc || sv) && React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 2 } }, [lc ? '📍 ' + (c ? c.numero + '.' : '') + lc.sub_numero + ' ' + (lc.rua || lc.nome) : '', sv ? '🏷️ ' + sv.nome : ''].filter(Boolean).join(' · ')),
-              prox.length > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6 } }, 'Próximas: ' + prox.map(function (o) { return hwxDiaCurto(o.data) + ' (' + (o.k % 2 === 0 ? 'A' : 'B') + ')'; }).join(' · ')),
+              prox.length > 0 && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6 } }, 'Próximas: ' + prox.map(function (o) { return hwxDiaCurto(o.data); }).join(' · ')),
               React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 12 } },
                 React.createElement(HxActBtn, { icon: '✏️', label: 'Editar', aria: 'Editar série ' + (s.descricao || ''), disabled: wait, onClick: function () { setForm({ editing: s }); } }),
                 React.createElement(HxActBtn, { icon: '↪', label: 'Daqui p/ a frente', aria: 'Mudar a série daqui para a frente ' + (s.descricao || ''), disabled: wait || !s.ativa, onClick: function () { var n = prox[0] ? prox[0].data : hwxProximaSexta(hoje); setTermDlg({ serie: s, kind: 'frente', data: n, err: '' }); } }),
@@ -3148,10 +3201,10 @@
       React.useEffect(function () { hwxStoreSet('hwx_f_agenda', flt, notify); }, [flt]);
       var hoje = hwxToday();
       var _r = React.useState(hwxProximaSexta(hoje)); var ref = _r[0], setRef = _r[1];
-      var _fm = React.useState(props.preset ? { editing: null, preset: props.preset } : null); var form = _fm[0], setForm = _fm[1];
+      var _fm = React.useState(props.preset ? { editing: null, preset: props.preset } : (props.abrir ? { editing: props.abrir } : null)); var form = _fm[0], setForm = _fm[1];
       var _sv = React.useState(false); var verSeries = _sv[0], setVerSeries = _sv[1];
       var _p = React.useState({}); var pending = _p[0], setPending = _p[1];
-      React.useEffect(function () { if (props.preset && props.onPresetUsed) props.onPresetUsed(); }, []);
+      React.useEffect(function () { if (props.preset && props.onPresetUsed) props.onPresetUsed(); if (props.abrir && props.onAbrirUsado) props.onAbrirUsado(); }, []);
       var setPend = function (id, on) { setPending(function (p) { var n = Object.assign({}, p); if (on) n[id] = true; else delete n[id]; return n; }); };
       var cliRows = clientes.rows || [], locRows = locais.rows || [], serRows = series.rows || [], trabRows = trabalhos.rows || [];
 
@@ -3213,7 +3266,7 @@
           it.cliTxt = c ? '#' + c.numero + ' ' + (c.firma || c.nome) : '';
           it.locTxt = l && c ? c.numero + '.' + l.sub_numero + ' ' + (l.rua || l.nome || '') : '';
         }
-        it.ab = it.serie && it.k != null ? (it.k % 2 === 0 ? 'A' : 'B') : '';
+        it.ab = it.serie ? hwxSemanaAB(it.data) : '';
       });
       var tokens = hwxNorm(flt.q).split(/\s+/).filter(Boolean);
       var shown = items.filter(function (it) {
@@ -3266,7 +3319,7 @@
         if (flt.view === 'mes') { var p = ref.split('-'); setRef(hwxFD(Date.UTC(+p[0], +p[1] - 1 + dir, 1))); }
         else setRef(hwxAddDays(ref, 7 * dir));
       };
-      var titulo = flt.view === 'sexta' ? 'Sexta ' + hwxFmtDate(ref) : flt.view === 'semana' ? 'Semana ' + hwxFmtDate(de) + ' – ' + hwxFmtDate(ate) : HWX_MESES_PT[+ref.slice(5, 7) - 1] + ' ' + ref.slice(0, 4);
+      var titulo = flt.view === 'sexta' ? 'Sexta ' + hwxFmtDate(ref) + ' · semana ' + hwxSemanaAB(ref) : flt.view === 'semana' ? 'Semana ' + hwxFmtDate(de) + ' – ' + hwxFmtDate(ate) : HWX_MESES_PT[+ref.slice(5, 7) - 1] + ' ' + ref.slice(0, 4);
       var navLabel = flt.view === 'sexta' ? ['← Sexta anterior', 'Sexta seguinte →'] : flt.view === 'semana' ? ['← Semana anterior', 'Semana seguinte →'] : ['← Mês anterior', 'Mês seguinte →'];
       var pct = Math.min(100, Math.round(ocupadas / horasSexta * 100));
       var cheia = ocupadas > horasSexta;
@@ -3310,7 +3363,7 @@
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: ctx.wide && flt.view !== 'sexta' ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 12, alignItems: 'start' } },
           shown.map(function (it) {
             var wait = !!pending[it.key];
-            var head = flt.view !== 'sexta' && it.data !== lastDate ? React.createElement('div', { key: 'h' + it.data, style: { gridColumn: '1 / -1', fontWeight: 800, fontSize: 15, color: HX.muted, marginTop: 6 } }, hwxDiaCurto(it.data)) : null;
+            var head = flt.view !== 'sexta' && it.data !== lastDate ? React.createElement('div', { key: 'h' + it.data, style: { gridColumn: '1 / -1', fontWeight: 800, fontSize: 15, color: HX.muted, marginTop: 6 } }, hwxDiaCurto(it.data) + (hwxDow(it.data) === 5 ? ' · semana ' + hwxSemanaAB(it.data) : '')) : null;
             lastDate = it.data;
             var cs = it.cs, tel = hwxPhone(cs.contacto_telemovel) || hwxPhone(cs.telemovel) || hwxPhone(cs.contacto_telefone) || hwxPhone(cs.telefone_fixo);
             var wa = hwxPhone(cs.contacto_telemovel) || hwxPhone(cs.telemovel);
@@ -3345,6 +3398,267 @@
             return head ? [head, card] : card;
           })
         )
+      );
+    }
+
+    // ══════════════ FASE 4: TOTAIS (Extra + Hauswart só LEITURA) ══════════════
+    function hwxCsvField(v) {
+      var s = String(v == null ? '' : v);
+      return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    function hwxCsvNum(r) { return (r / 100).toFixed(2).replace('.', ','); }
+    function hwxClienteTxt(cs) {
+      cs = cs || {};
+      var nome = cs.firma || cs.nome || '';
+      return cs.numero != null ? '#' + cs.numero + (nome ? ' ' + nome : '') : (nome || '(sem cliente)');
+    }
+    // Trabalhos do Extra com estado "feito", pelo ano da data do trabalho (tudo em Rappen inteiros)
+    function hwxTotaisExtra(trabs, ano, servicos, cats) {
+      var out = { n: 0, total: 0, mat: 0, rec: { n: 0, total: 0, mat: 0 }, por: { n: 0, total: 0, mat: 0 }, porLista: [],
+        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [] };
+      for (var m = 0; m < 12; m++) out.meses.push({ n: 0, sem: 0, mat: 0 });
+      (trabs || []).forEach(function (t) {
+        if (t.estado !== 'feito' || String(t.data).slice(0, 4) !== ano) return;
+        var tot = hwxToRappen(Number(t.total) || 0), mat = hwxToRappen(Number(t.material) || 0), sem = tot - mat;
+        out.n++; out.total += tot; out.mat += mat; out.jobs.push(t);
+        var grp = t.pago ? out.rec : out.por;
+        grp.n++; grp.total += tot; grp.mat += mat;
+        if (!t.pago) out.porLista.push(t);
+        var mi = +String(t.data).slice(5, 7) - 1;
+        if (mi >= 0 && mi < 12) { out.meses[mi].n++; out.meses[mi].sem += sem; out.meses[mi].mat += mat; }
+        var ck = hwxClienteTxt(t.cliente_snap), c = out.clientes[ck] || (out.clientes[ck] = { n: 0, sem: 0 });
+        c.n++; c.sem += sem;
+        (t.linhas || []).forEach(function (l) {
+          var nome;
+          if (l.tipo === 'anfahrt') nome = 'Deslocação';
+          else if (l.tipo === 'servico' && l.servico_id) {
+            var sv = (servicos || []).filter(function (x) { return x.id === l.servico_id; })[0];
+            nome = sv ? hwxCatName(cats, sv.categoria) : 'Outro';
+          } else nome = 'Outro';
+          out.cats[nome] = (out.cats[nome] || 0) + hwxLinhaTotalR(l);
+        });
+        var hr = t.horas_reais != null && t.horas_reais !== '' ? Number(t.horas_reais) : 0;
+        if (hr > 0) { out.horas += hr; out.comHoras += sem; }
+      });
+      out.porLista.sort(function (a, b) { return String(a.data).localeCompare(String(b.data)); });
+      return out;
+    }
+    // Lê o que a app Hauswart guardou (hauswart_data: archive, works, mats, cfg). NUNCA escreve.
+    function hwxTotaisHw(row, ano) {
+      var out = { itens: [], ignoradas: 0, total: 0, mat: 0, emCurso: null };
+      if (!row) return out;
+      var arch = Array.isArray(row.archive) ? row.archive : [], arquivados = {};
+      arch.forEach(function (a) {
+        var tot = a && a.total != null ? hwxNum(a.total) : null;
+        if (tot === null) { out.ignoradas++; return; }
+        var semData = !(a.invoiceDate && String(a.invoiceDate).length >= 4);
+        var y = semData ? String(a.year == null ? '' : a.year) : String(a.invoiceDate).slice(0, 4);
+        arquivados[String(a.year == null ? y : a.year) + '|' + (a.quarter || '')] = true;
+        if (y !== ano) return;
+        var mat;
+        var tm = a.totalMats != null ? hwxNum(a.totalMats) : null;
+        if (tm !== null) mat = hwxToRappen(tm);
+        else { mat = 0; (Array.isArray(a.mats) ? a.mats : []).forEach(function (mm) { mat += hwxToRappen(hwxNum(mm && mm.price) || 0); }); }
+        var t = hwxToRappen(tot);
+        out.itens.push({ a: a, total: t, mat: mat, quarter: a.quarter || '', semData: semData, pago: !!a.paid, data: a.invoiceDate || '', num: a.invNum || a.invLabel || a.referenz || '' });
+        out.total += t; out.mat += mat;
+      });
+      out.itens.sort(function (x, y) { return String(x.quarter).localeCompare(String(y.quarter)) || String(x.data).localeCompare(String(y.data)); });
+      // trimestre em curso: ainda não arquivado (pauschale + trabalhos + materiais da linha viva)
+      var cfg = row.cfg && typeof row.cfg === 'object' ? row.cfg : {};
+      var cy = String(cfg.year == null ? '' : cfg.year);
+      if (cy && cy === ano && !arquivados[cy + '|' + (cfg.quarter || '')]) {
+        var t2 = hwxToRappen(hwxNum(cfg.pauschale) || 0), m2 = 0;
+        (Array.isArray(row.works) ? row.works : []).forEach(function (w) { t2 += Math.round((hwxNum(w && w.hours) || 0) * (hwxNum(w && w.rate) || 0) * 100); });
+        (Array.isArray(row.mats) ? row.mats : []).forEach(function (mm) { var v = hwxToRappen(hwxNum(mm && mm.price) || 0); t2 += v; m2 += v; });
+        out.emCurso = { quarter: cfg.quarter || '', total: t2, mat: m2 };
+      }
+      return out;
+    }
+
+    function HxBarra(props) {
+      return React.createElement('div', { role: 'progressbar', 'aria-valuenow': Math.round(props.pct), 'aria-valuemin': 0, 'aria-valuemax': 100, style: { height: props.h || 12, background: HX.field, border: '1px solid ' + HX.borderStrong, borderRadius: 6, overflow: 'hidden' } },
+        React.createElement('div', { style: { width: Math.max(0, Math.min(100, props.pct)) + '%', height: '100%', background: props.cor || '#e5e5e5' } }));
+    }
+    function HxLinhaVal(props) {
+      return React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: props.big ? 17 : 15, padding: '4px 0', fontWeight: props.bold ? 800 : 400, color: props.muted ? HX.muted : HX.text } },
+        React.createElement('span', { style: { minWidth: 0, wordBreak: 'break-word' } }, props.l), React.createElement('span', { style: { whiteSpace: 'nowrap' } }, props.v));
+    }
+
+    function HwxTotais(props) {
+      var notify = props.notify, ctx = React.useContext(HxCtx);
+      var trabalhos = hwxUseList('hwx_trabalhos', 'data', notify);
+      var servicos = hwxUseList('hwx_servicos', 'ordem', notify);
+      var owner = (props.profile && props.profile.member_id) || 'patricio'; // o mesmo owner que a app Hauswart usa
+      var _hw = React.useState({ s: 'carregar', row: null }); var hw = _hw[0], setHw = _hw[1];
+      var alive = React.useRef(true);
+      var csvUrl = React.useRef('');
+      var _a = React.useState(hwxToday().slice(0, 4)); var ano = _a[0], setAno = _a[1];
+      var loadHw = function () {
+        if (!window.supabaseClient) { console.error('[hwx] ler hauswart_data: sem ligação à base de dados'); setHw({ s: 'erro', row: null }); return; }
+        // SÓ LEITURA: select + maybeSingle (nunca .single(), upsert nem update)
+        window.supabaseClient.from('hauswart_data').select('archive, works, mats, cfg').eq('member_id', owner).maybeSingle().then(function (res) {
+          if (!alive.current) return;
+          if (res.error) { console.error('[hwx] ler hauswart_data (só leitura)', res.error); setHw({ s: 'erro', row: null }); return; }
+          setHw({ s: 'ok', row: res.data || null });
+        }).catch(function (e) {
+          if (!alive.current) return;
+          console.error('[hwx] ler hauswart_data (só leitura)', e);
+          setHw({ s: 'erro', row: null });
+        });
+      };
+      React.useEffect(function () {
+        alive.current = true;
+        loadHw();
+        var off = window.csAoVoltarRede(function () { loadHw(); });
+        return function () { alive.current = false; off(); if (csvUrl.current) { URL.revokeObjectURL(csvUrl.current); csvUrl.current = ''; } };
+      }, []);
+
+      var trabRows = trabalhos.rows || [], svRows = servicos.rows || [];
+      var ex = hwxTotaisExtra(trabRows, ano, svRows, props.cats);
+      var hx = hwxTotaisHw(hw.row, ano);
+      var hwOk = hw.s === 'ok';
+      // anos disponíveis
+      var anos = {}; anos[hwxToday().slice(0, 4)] = true;
+      trabRows.forEach(function (t) { if (t.estado === 'feito') anos[String(t.data).slice(0, 4)] = true; });
+      if (hw.row && Array.isArray(hw.row.archive)) hw.row.archive.forEach(function (a) { var y = a && a.invoiceDate ? String(a.invoiceDate).slice(0, 4) : String(a && a.year || ''); if (/^\d{4}$/.test(y)) anos[y] = true; });
+      var anoOpts = Object.keys(anos).sort().reverse().map(function (y) { return { v: y, l: y }; });
+      if (!anos[ano]) anoOpts.unshift({ v: ano, l: ano });
+
+      // JUNTO: Extra + Hauswart arquivada; "incluindo em curso" à parte
+      var junto = { total: ex.total + (hwOk ? hx.total : 0), mat: ex.mat + (hwOk ? hx.mat : 0) };
+      var curso = hwOk && hx.emCurso ? hx.emCurso : null;
+      var juntoCurso = { total: junto.total + (curso ? curso.total : 0), mat: junto.mat + (curso ? curso.mat : 0) };
+      var baseLimite = juntoCurso.total - juntoCurso.mat; // sem material, incluindo o em curso
+      var limiteR = hwxToRappen(props.cfg && props.cfg.row && props.cfg.row.limite_anual != null ? Number(props.cfg.row.limite_anual) : 0);
+      var pctLim = limiteR > 0 ? baseLimite / limiteR * 100 : 0;
+      var corLim = pctLim > 100 ? HX.bad : pctLim >= 80 ? HX.warn : HX.ok;
+      var faltam = limiteR - baseLimite;
+
+      // CSV do ano (uma linha por trabalho do Extra e por fatura da Hauswart), gerado no aparelho
+      var linhasCsv = [['data', 'origem', 'numero', 'cliente', 'total', 'material', 'pago']];
+      ex.jobs.slice().sort(function (a, b) { return String(a.data).localeCompare(String(b.data)); }).forEach(function (t) {
+        linhasCsv.push([hwxFmtDate(t.data), 'Extra', t.numero, hwxClienteTxt(t.cliente_snap), hwxCsvNum(hwxToRappen(Number(t.total) || 0)), hwxCsvNum(hwxToRappen(Number(t.material) || 0)), t.pago ? 'sim' : 'não']);
+      });
+      if (hwOk) hx.itens.forEach(function (i) {
+        var cn = i.a.cfg && i.a.cfg.clientName ? i.a.cfg.clientName : '';
+        linhasCsv.push([i.data ? hwxFmtDate(i.data) : '', 'Hauswart', i.num, cn, hwxCsvNum(i.total), hwxCsvNum(i.mat), i.pago ? 'sim' : 'não']);
+      });
+      var csvTexto = '﻿' + linhasCsv.map(function (r) { return r.map(hwxCsvField).join(';'); }).join('\r\n') + '\r\n';
+      var csvHref = '';
+      try {
+        if (csvUrl.current) URL.revokeObjectURL(csvUrl.current);
+        csvUrl.current = URL.createObjectURL(new Blob([csvTexto], { type: 'text/csv;charset=utf-8' }));
+        csvHref = csvUrl.current;
+      } catch (e) { console.error('[hwx] gerar CSV', e); }
+      var maxMes = 1; ex.meses.forEach(function (m) { if (m.sem > maxMes) maxMes = m.sem; });
+      var clientesOrd = Object.keys(ex.clientes).sort(function (a, b) { return ex.clientes[b].sem - ex.clientes[a].sem; });
+      var catsOrd = Object.keys(ex.cats).sort(function (a, b) { return ex.cats[b] - ex.cats[a]; });
+      var precoMedio = ex.horas > 0 ? ex.comHoras / ex.horas : 0;
+      var R = function (r) { return hwxChf(hwxFromRappen(r)); };
+      var trimOrd = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+      return React.createElement('div', null,
+        React.createElement(HxHead, { title: '📊 Totais' }),
+        React.createElement(HxSelect, { label: 'Ano', value: ano, options: anoOpts, onChange: setAno }),
+        React.createElement(HxLoadState, { list: trabalhos }),
+        hw.s === 'erro' && React.createElement('div', { role: 'alert', style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 14, fontWeight: 600, display: 'flex', gap: 10, alignItems: 'center' } },
+          React.createElement('span', { style: { flex: 1 } }, '⚠️ Hauswart não pôde ser lida — os totais do Extra aparecem na mesma.'),
+          React.createElement(HxBtn, { label: 'Tentar de novo', onClick: loadHw })),
+        hwOk && hx.ignoradas > 0 && React.createElement('div', { role: 'status', style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 10, padding: '8px 12px', marginBottom: 12, fontSize: 14 } },
+          '⚠️ ' + hx.ignoradas + ' entrada(s) do arquivo da Hauswart sem total numérico foram ignoradas.'),
+        // ── limite anual ──
+        React.createElement(HxSection, { title: 'Limite anual ' + ano },
+          limiteR > 0
+            ? React.createElement('div', null,
+                React.createElement(HxBarra, { pct: pctLim, cor: corLim, h: 16 }),
+                React.createElement('div', { style: { marginTop: 8, fontWeight: 700, color: pctLim > 100 ? HX.badText : pctLim >= 80 ? HX.warnText : HX.okText } },
+                  'CHF ' + hwxMoneyDe(hwxFromRappen(baseLimite)) + ' de CHF ' + hwxMoneyDe(hwxFromRappen(limiteR)) + ' (' + Math.round(pctLim) + '%) — ' + (faltam >= 0 ? 'faltam CHF ' + hwxMoneyDe(hwxFromRappen(faltam)) : 'acima por CHF ' + hwxMoneyDe(hwxFromRappen(-faltam)))),
+                React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 4 } }, 'Extra + Hauswart, sem material, incluindo o trimestre em curso.'))
+            : React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Define o limite anual em Ajustes.')
+        ),
+        // ── junto ──
+        React.createElement(HxSection, { title: 'Extra + Hauswart · ' + ano },
+          React.createElement(HxLinhaVal, { l: 'Total (com material)', v: R(junto.total) }),
+          React.createElement(HxLinhaVal, { l: 'Material (reembolso)', v: R(junto.mat), muted: true }),
+          React.createElement(HxLinhaVal, { l: 'Total sem material', v: R(junto.total - junto.mat), bold: true, big: true }),
+          curso && React.createElement('div', { style: { borderTop: '1px solid ' + HX.border, marginTop: 6, paddingTop: 6 } },
+            React.createElement(HxLinhaVal, { l: 'Total incluindo em curso (com material)', v: R(juntoCurso.total) }),
+            React.createElement(HxLinhaVal, { l: 'Total incluindo em curso, sem material', v: R(juntoCurso.total - juntoCurso.mat), bold: true }))
+        ),
+        // ── Extra ──
+        React.createElement(HxSection, { title: 'Extra · ' + ano },
+          ex.n === 0 && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Nenhum trabalho feito em ' + ano + '.'),
+          ex.n > 0 && React.createElement('div', null,
+            React.createElement(HxLinhaVal, { l: ex.n + ' trabalho(s) feito(s) — total', v: R(ex.total) }),
+            React.createElement(HxLinhaVal, { l: 'Material (reembolso)', v: R(ex.mat), muted: true }),
+            React.createElement(HxLinhaVal, { l: 'Sem material', v: R(ex.total - ex.mat), bold: true }),
+            React.createElement('div', { style: { borderTop: '1px solid ' + HX.border, marginTop: 8, paddingTop: 6 } },
+              React.createElement(HxLinhaVal, { l: 'Recebido (' + ex.rec.n + ')', v: R(ex.rec.total) + ' · sem mat. ' + R(ex.rec.total - ex.rec.mat) }),
+              React.createElement(HxLinhaVal, { l: 'Por receber (' + ex.por.n + ')', v: R(ex.por.total) + ' · sem mat. ' + R(ex.por.total - ex.por.mat), bold: ex.por.n > 0 })),
+            ex.porLista.length > 0 && React.createElement('div', { style: { marginTop: 8 } },
+              React.createElement('div', { style: HXS.sec }, 'Por receber'),
+              ex.porLista.map(function (t) {
+                return React.createElement('button', {
+                  key: t.id, type: 'button', 'aria-label': 'Abrir ' + t.numero, onClick: function () { props.onAbrirTrabalho(t); },
+                  style: { display: 'flex', width: '100%', minHeight: 44, textAlign: 'left', justifyContent: 'space-between', gap: 8, alignItems: 'center', background: HX.surface2, border: '1px solid ' + HX.borderStrong, borderRadius: 8, padding: '8px 12px', marginBottom: 6, color: HX.text, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }
+                },
+                  React.createElement('span', { style: { minWidth: 0 } }, React.createElement('b', null, t.numero), ' · ' + hwxClienteTxt(t.cliente_snap) + ' · ' + hwxFmtDate(t.data)),
+                  React.createElement('b', { style: { whiteSpace: 'nowrap' } }, R(hwxToRappen(Number(t.total) || 0))));
+              })),
+            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por mês (sem material)'),
+            ex.meses.map(function (m, i) {
+              return React.createElement('div', { key: i, style: { display: 'grid', gridTemplateColumns: '38px 1fr auto', gap: 8, alignItems: 'center', minHeight: 28 } },
+                React.createElement('span', { style: { fontSize: 13, color: HX.muted } }, HWX_MONTHS[i]),
+                React.createElement(HxBarra, { pct: m.sem / maxMes * 100, h: 10 }),
+                React.createElement('span', { style: { fontSize: 13, whiteSpace: 'nowrap', minWidth: 78, textAlign: 'right' } }, m.n ? R(m.sem) : '—'));
+            }),
+            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por cliente (sem material)'),
+            clientesOrd.map(function (k) { return React.createElement(HxLinhaVal, { key: k, l: k + ' (' + ex.clientes[k].n + ')', v: R(ex.clientes[k].sem) }); }),
+            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por categoria (linhas)'),
+            catsOrd.map(function (k) { return React.createElement(HxLinhaVal, { key: k, l: k, v: R(ex.cats[k]) }); }),
+            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Horas'),
+            React.createElement(HxLinhaVal, { l: 'Horas reais do ano', v: hwxQty(ex.horas) + ' h' }),
+            React.createElement(HxLinhaVal, { l: 'Preço real médio por hora', v: ex.horas > 0 ? R(Math.round(precoMedio)) + ' / h' : '—', bold: true }),
+            React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Total sem material ÷ horas reais, só nos trabalhos com horas reais.'))
+        ),
+        // ── Hauswart ──
+        React.createElement(HxSection, { title: 'Hauswart (só leitura) · ' + ano },
+          hw.s === 'carregar' && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'A ler a Hauswart…'),
+          hw.s === 'erro' && React.createElement('div', { style: { fontSize: 14, color: HX.warnText } }, 'Hauswart não pôde ser lida.'),
+          hwOk && !hw.row && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Sem dados da Hauswart.'),
+          hwOk && hw.row && hx.itens.length === 0 && !curso && React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Nenhuma fatura arquivada em ' + ano + '.'),
+          hwOk && hx.itens.length > 0 && React.createElement('div', null,
+            React.createElement(HxLinhaVal, { l: 'Faturas arquivadas — total', v: R(hx.total) }),
+            React.createElement(HxLinhaVal, { l: 'Material (reembolso)', v: R(hx.mat), muted: true }),
+            React.createElement(HxLinhaVal, { l: 'Sem material', v: R(hx.total - hx.mat), bold: true }),
+            trimOrd.concat(['']).map(function (q) {
+              var its = hx.itens.filter(function (i) { return (trimOrd.indexOf(i.quarter) === -1 ? '' : i.quarter) === q; });
+              if (!its.length) return null;
+              return React.createElement('div', { key: q || 'q?', style: { borderTop: '1px solid ' + HX.border, marginTop: 8, paddingTop: 6 } },
+                its.map(function (i, ix) {
+                  return React.createElement('div', { key: ix, style: { marginBottom: 6 } },
+                    React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' } },
+                      React.createElement('span', { style: { fontWeight: 800 } }, (i.quarter || 'Q?') + ' · ' + (i.num || '(sem número)')),
+                      React.createElement('span', { style: { fontWeight: 800, whiteSpace: 'nowrap' } }, R(i.total))),
+                    React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, (i.data ? hwxFmtDate(i.data) : '') + (i.mat ? ' · material ' + R(i.mat) : '')),
+                    React.createElement('div', null,
+                      React.createElement(HxPill, { text: i.pago ? 'Pago' : 'Por receber', color: i.pago ? HX.ok : HX.warn }),
+                      i.semData ? React.createElement(HxPill, { text: '⚠ sem data da fatura', color: HX.warn }) : null));
+                }));
+            })),
+          curso && React.createElement('div', { style: { borderTop: '1px dashed ' + HX.borderStrong, marginTop: 10, paddingTop: 8 } },
+            React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' } },
+              React.createElement('span', { style: { fontWeight: 800 } }, (curso.quarter || 'Q?') + ' · em curso'),
+              React.createElement('span', { style: { fontWeight: 800 } }, R(curso.total))),
+            React.createElement('div', null, React.createElement(HxPill, { text: 'em curso', color: HX.warn })),
+            React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Pauschale + trabalhos + material da fatura ainda não arquivada' + (curso.mat ? ' · material ' + R(curso.mat) : '') + '. Não entra no total arquivado.'))
+        ),
+        // ── exportar ──
+        React.createElement('div', { style: { marginBottom: 12 } },
+          csvHref
+            ? React.createElement('a', { href: csvHref, download: 'hwx-totais-' + ano + '.csv', style: { minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, textDecoration: 'none', background: HX.surface2, color: HX.text, border: '1px solid ' + HX.borderStrong, fontWeight: 700, fontSize: 16, boxSizing: 'border-box' } }, '⬇ CSV do ano ' + ano)
+            : React.createElement('div', { style: { fontSize: 14, color: HX.warnText } }, 'Não consegui gerar o CSV neste aparelho.'))
       );
     }
 
@@ -3642,6 +3956,7 @@
       var wide = hwxUseWide();
       var _t = React.useState('agenda'); var tab = _t[0], setTab = _t[1];
       var _tp = React.useState(null); var trabPreset = _tp[0], setTrabPreset = _tp[1];
+      var _ta = React.useState(null); var trabAbrir = _ta[0], setTrabAbrir = _ta[1];
       var _po = React.useState(null); var printOf = _po[0], setPrintOf = _po[1];
       var _n = React.useState(null); var notice = _n[0], setNotice = _n[1];
       var _fo = React.useState(0); var formCount = _fo[0], setFormCount = _fo[1];
@@ -3797,6 +4112,7 @@
         { id: 'ofertas', icon: '📄', label: 'Ofertas' },
         { id: 'clientes', icon: '👥', label: 'Clientes' },
         { id: 'precos', icon: '🏷️', label: 'Preços' },
+        { id: 'totais', icon: '📊', label: 'Totais' },
         { id: 'ajustes', icon: '⚙️', label: 'Ajustes' }
       ];
 
@@ -3813,10 +4129,12 @@
         return React.createElement(HwxOfertaPrint, { oferta: printOf, cfg: cfg, onBack: function () { setPrintOf(null); } });
       }
 
+      hwxSetRefA(cfg.row && cfg.row.remetente && cfg.row.remetente.semana_a_ref);
       var horasSexta = cfg.row && cfg.row.horas_sexta != null && Number(cfg.row.horas_sexta) > 0 ? Number(cfg.row.horas_sexta) : 8;
       var body;
-      if (tab === 'agenda') body = cfg.loaded ? React.createElement(HwxAgenda, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, horasSexta: horasSexta, onReloadCfg: loadCfg, preset: trabPreset, onPresetUsed: function () { setTrabPreset(null); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
+      if (tab === 'agenda') body = cfg.loaded ? React.createElement(HwxAgenda, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, horasSexta: horasSexta, onReloadCfg: loadCfg, preset: trabPreset, onPresetUsed: function () { setTrabPreset(null); }, abrir: trabAbrir, onAbrirUsado: function () { setTrabAbrir(null); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
       else if (tab === 'ofertas') body = cfg.loaded ? React.createElement(HwxOfertas, { notify: notify, cats: cats, zonas: zonas, meuNome: meuNome, precoBase: precoBase, saveCfg: saveCfg, onPrint: setPrintOf, onReloadCfg: loadCfg, onCriarTrabalho: function (pr) { setTrabPreset(pr); setTab('agenda'); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
+      else if (tab === 'totais') body = cfg.loaded ? React.createElement(HwxTotais, { notify: notify, cats: cats, cfg: cfg, profile: props.profile, onAbrirTrabalho: function (t) { setTrabAbrir(t); setTab('agenda'); } }) : React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
       else if (tab === 'precos') body = React.createElement(HwxPrecos, { notify: notify, cats: cats, precoBase: precoBase });
       else if (tab === 'clientes') body = React.createElement(HwxClientes, { notify: notify, zonas: zonas, saveCfg: saveCfg, precoBase: precoBase, contador: cfg.row ? cfg.row.ultimo_numero_cliente : 0, onReloadCfg: loadCfg });
       else if (!cfg.loaded) body = React.createElement(HxEmpty, { icon: '⏳', text: 'A carregar…' });
