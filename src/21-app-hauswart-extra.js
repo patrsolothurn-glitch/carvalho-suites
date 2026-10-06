@@ -127,6 +127,93 @@
       if (s && !/^\d{4}$/.test(s)) return 'O PLZ suíço tem 4 dígitos (podes gravar na mesma).';
       return '';
     }
+    // ⓘ + exemplo em cinzento de cada campo, pelo rótulo. Um campo pode trazer o seu próprio `info`/`placeholder`.
+    var HWX_AJUDA = {
+      'Nome': ['Nome da pessoa ou da entrada. Aparece nas listas e nos documentos.', 'ex.: Hans Müller'],
+      'Firma (opcional)': ['Nome da empresa ou administração, se o cliente for uma firma. Aparece à frente do nome.', 'ex.: Verwaltung Müller AG'],
+      'Rua': ['Rua e número da morada.', 'ex.: Gartenstrasse 12'],
+      'PLZ': ['Código postal suíço: 4 dígitos.', '2545'],
+      'Localidade': ['Localidade (Ort) da morada.', 'Selzach'],
+      'Telemóvel': ['Número para ligar e para o WhatsApp. Podes escrevê-lo com espaços.', '079 123 45 67'],
+      'Telefone fixo': ['Número fixo, se houver.', '032 123 45 67'],
+      'Telefone': ['Número de telefone para os documentos.', '032 123 45 67'],
+      'E-mail': ['Endereço de e-mail.', 'nome@exemplo.ch'],
+      'Notas': ['Notas só para ti: não saem nas ofertas nem nos trabalhos.', 'ex.: a chave está com o vizinho'],
+      'Nota': ['Nota curta sobre o serviço (por exemplo como se cobra).', 'ex.: preço por visita'],
+      'Número de cliente': ['Número do cliente. Se deixares vazio, a base dá o próximo.', 'automático'],
+      'Subnúmero': ['Número do local dentro do cliente (1.1, 1.2…). Vazio = o próximo.', 'automático'],
+      'Nome do local': ['Nome curto para reconheceres este local de trabalho.', 'ex.: Passionsstrasse 6'],
+      'Limite anual (CHF)': ['Máximo de rendimento anual (Extra + Hauswart, sem material). A barra dos Totais usa este valor.', 'ex.: 2500'],
+      'Preço base por hora (CHF)': ['Preço por hora das linhas livres. Também serve para avisar quando uma taxa parece preço de trabalho.', 'ex.: 35,00'],
+      'Horas que quero trabalhar por sexta': ['Limite de horas de uma sexta. A Agenda avisa quando o dia passa deste valor.', 'ex.: 8'],
+      'Horas de referência (só para mim)': ['Quantas horas costuma levar este serviço. Serve só para planear; não aparece nas ofertas.', 'ex.: 3'],
+      'Preço (CHF)': ['Preço do serviço na unidade escolhida.', 'ex.: 35,00'],
+      'Mínimo (ex.: 1)': ['Quantidade mínima que se cobra (por exemplo 2 horas).', 'ex.: 2'],
+      'Pesquisar por nome': ['Escreve parte do nome para filtrar a lista.', 'nome do serviço'],
+      'Procurar cliente': ['Escreve o número, o nome ou a firma para encontrar o cliente.', 'nº, nome ou firma'],
+      'Título': ['Título curto, para reconheceres a oferta ou o trabalho na lista.', 'ex.: Gartenpflege Frühling'],
+      'Descrição': ['O que se faz. Aparece na linha da oferta/trabalho e na lista das séries.', 'ex.: Rasen mähen'],
+      'Horas': ['Horas de deslocação cobradas (só na Anfahrt por hora).', 'ex.: 1'],
+      'Quantidade': ['Quantidade na unidade escolhida (horas, peças…). Usa vírgula para decimais.', 'ex.: 3'],
+      'Valor (%)': ['Percentagem de desconto sobre o total das linhas.', 'ex.: 10'],
+      'Valor (CHF)': ['Valor fixo em francos.', 'ex.: 20,00'],
+      'Notas para o cliente (impressas)': ['Texto que vai impresso na oferta, para o cliente ler.', 'ex.: Pagamento a 30 dias.'],
+      'Notas internas (só para mim — nunca impressas nem enviadas)': ['Notas só para ti: nunca saem na impressão nem nas mensagens.', 'ex.: portão com código'],
+      'Hora': ['Hora de início prevista.', ''],
+      'Horas reais': ['Horas que realmente demoraste. Servem para o preço real médio por hora nos Totais.', 'ex.: 2,5'],
+      'Material (CHF)': ['Material comprado para o cliente (reembolso). Soma ao total e conta à parte nos Totais.', 'ex.: 12,50'],
+      'Notas para o cliente': ['Texto para o cliente, se for preciso.', 'ex.: Levo as ferramentas.'],
+      'Notas internas (só para mim)': ['Notas só para ti.', 'ex.: confirmar a chave antes'],
+      'De quantos em quantos dias': ['Intervalo entre ocorrências. 14 = de duas em duas semanas; 7 = todas as semanas.', 'ex.: 14'],
+      'Horas previstas': ['Horas previstas por ocorrência. Servem para a barra de horas da sexta.', 'ex.: 2,5'],
+      'Notas (só para mim)': ['Notas só para ti.', 'ex.: cliente prefere de manhã'],
+      'Nome (escrever)': ['Nome da zona, normalmente a localidade.', 'ex.: Grenchen'],
+      'Valor (CHF por hora)': ['Quanto se acrescenta por hora de trabalho nesta zona (só deslocação).', 'ex.: 10,00'],
+      'Valor (CHF por ida)': ['Taxa fixa de deslocação por ida nesta zona.', 'ex.: 25,00'],
+      'Preço por hora (CHF)': ['Preço por hora da deslocação.', 'ex.: 10,00'],
+      'Pesquisar (nº': ['Escreve um número ou parte do nome para filtrar.', 'ex.: 2, 2.2 ou nome'],
+      // selects e datas (só ⓘ)
+      'Ano': ['Ano a mostrar.', ''],
+      'Categoria': ['Grupo do serviço na tabela de preços.', ''],
+      'Cliente': ['Filtra por cliente.', ''],
+      'Desconto': ['Desconto em francos ou em percentagem sobre o total das linhas.', ''],
+      'Estado': ['Em que ponto está: rascunho, enviada, aceite… ou planeado, feito, cancelado.', ''],
+      'Local de trabalho': ['Onde se trabalha. Se o cliente só tiver um local, vem escolhido.', ''],
+      'Língua': ['Língua das mensagens e da oferta deste cliente.', ''],
+      'Mover os serviços para': ['Categoria que recebe os serviços da que vais apagar.', ''],
+      'Nome da zona': ['Zona de deslocação. Escolhe uma habitual ou "Outra".', ''],
+      'Ordenar por': ['Ordem da lista.', ''],
+      'Serviço (tabela de preços)': ['Serviço da tabela de preços que esta série repete.', ''],
+      'Tipo de deslocação': ['Como se cobra a deslocação desta zona: incluída, por hora ou taxa por ida.', ''],
+      'Tipo de deslocação (só esta oferta)': ['Como se cobra a deslocação só nesta oferta.', ''],
+      'Tipo': ['Tipo de cobrança.', ''],
+      'Unidade': ['Como se conta: por hora, por 30 min, valor fixo, por mês…', ''],
+      'Zona por defeito': ['Zona usada quando o local não tem uma.', ''],
+      'Zona': ['Zona de deslocação: decide a Anfahrt sugerida.', ''],
+      'Data de pagamento': ['Dia em que o cliente pagou.', ''],
+      'Data': ['Dia do trabalho. As séries e a Agenda usam sextas-feiras.', ''],
+      'Fim (vazio = sem fim)': ['Última data da série. Vazio = continua para sempre.', ''],
+      'Pausado até (opcional)': ['Enquanto durar a pausa o serviço não aparece nas ofertas.', ''],
+      'Primeira data': ['Primeira data da série. As seguintes contam a partir daqui.', ''],
+      'Sexta de referência da semana A': ['Uma sexta que seja semana A. As outras alternam A/B a partir dela.', ''],
+      'Válida até': ['Data até à qual a oferta vale.', ''],
+      'Última data (fim)': ['Última data em que a série ainda gera trabalhos.', ''],
+      'A partir de': ['Data em que a nova série começa; a atual acaba na véspera.', '']
+    };
+    function hwxAjuda(label) {
+      var l = String(label == null ? '' : label);
+      if (HWX_AJUDA[l]) return { info: HWX_AJUDA[l][0], ph: HWX_AJUDA[l][1] };
+      var pre = ['Pesquisar (nº', 'Valor (CHF por', 'Preço (CHF,', 'Pesquisar (número'];
+      for (var i = 0; i < pre.length; i++) {
+        if (l.indexOf(pre[i]) === 0) {
+          if (pre[i] === 'Preço (CHF,') return { info: 'Preço desta linha. Fica congelado: mudar a tabela de preços depois não o altera.', ph: 'ex.: 35,00' };
+          if (pre[i] === 'Pesquisar (número') return { info: 'Escreve o número (O… ou T…), o título ou o cliente.', ph: 'ex.: O2026-0001' };
+          if (pre[i] === 'Valor (CHF por') return { info: 'Valor da deslocação desta zona.', ph: 'ex.: 10,00' };
+          return { info: HWX_AJUDA['Pesquisar (nº'][0], ph: HWX_AJUDA['Pesquisar (nº'][1] };
+        }
+      }
+      return { info: '', ph: '' };
+    }
     function hwxEmailBad(v) {
       var s = String(v == null ? '' : v).trim();
       return !!s && !/^[^\s@]+@[^\s@]+$/.test(s);
@@ -338,6 +425,36 @@
       if (t.horas_reais != null && t.horas_reais !== '') return Number(t.horas_reais) || 0;
       var h = hwxHorasTrabalho(t.linhas || []);
       return h > 0 ? h : (Number(t.horas_previstas) || 0);
+    }
+    // ── Avisos âmbar (informam, nunca bloqueiam a gravação) ──
+    var HWX_TAXA_AVISO = 35; // CHF: uma taxa de deslocação a partir daqui parece preço de trabalho
+    function hwxLimiteTaxa(precoBase) { return precoBase > 0 && precoBase < HWX_TAXA_AVISO ? precoBase : HWX_TAXA_AVISO; }
+    var HWX_DIAS_LONGOS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+    function hwxNaoSexta(data) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data || ''))) return '';
+      var d = hwxDow(data);
+      return d === 5 ? '' : 'A data ' + hwxFmtDate(data) + ' é ' + HWX_DIAS_LONGOS[d] + ', não é sexta-feira (podes gravar na mesma).';
+    }
+    function hwxZonaLocalAviso(zona, ort) {
+      var z = String(zona || '').trim(), o = String(ort || '').trim();
+      if (!z || !o || hwxNorm(z) === hwxNorm(o)) return '';
+      return 'A zona «' + z + '» não é a localidade deste local («' + o + '»). Confirma que é a zona certa (podes gravar na mesma).';
+    }
+    // Trabalhos (linhas gravadas e ocorrências calculadas de séries ainda sem linha) de um dia, sem contar o que se está a editar
+    function hwxItensDoDia(data, trabs, series, ignoreId, ignoreSerie) {
+      var out = [], hoje = hwxToday();
+      (trabs || []).forEach(function (t) {
+        if (t.data !== data || t.estado === 'cancelado' || t.id === ignoreId) return;
+        out.push({ cliente_id: t.cliente_id, nome: t.numero, horas: hwxTrabHoras(t) });
+      });
+      if (data >= hoje) (series || []).forEach(function (se) {
+        hwxOcorrencias(se, data, data).forEach(function (o) {
+          if ((trabs || []).some(function (t) { return t.serie_id === se.id && t.data_serie === o.data; })) return;
+          if (ignoreSerie && ignoreSerie.serie_id === se.id && ignoreSerie.data_serie === o.data) return;
+          out.push({ cliente_id: se.cliente_id, nome: '🔁 ' + (se.descricao || 'série'), horas: Number(se.horas_previstas) || hwxHorasTrabalho(se.linhas || []) });
+        });
+      });
+      return out;
     }
     var HWX_TRAB_ESTADOS = [{ v: 'planeado', l: 'Planeado' }, { v: 'feito', l: 'Feito' }, { v: 'cancelado', l: 'Cancelado' }];
     var HWX_TRAB_COR = { planeado: '#e5e5e5', feito: '#22c55e', cancelado: '#737373' };
@@ -642,12 +759,27 @@
       return React.createElement('button', { type: 'button', onClick: props.disabled ? undefined : props.onClick, disabled: !!props.disabled, 'aria-label': props.aria, title: props.title, style: st }, props.label);
     }
 
+    // Faixa âmbar (avisa, nunca bloqueia)
+    function HxAviso(props) {
+      return React.createElement('div', { role: 'status', 'data-hwx-aviso': '1', style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 8, padding: '8px 10px', marginTop: 6, marginBottom: props.mb == null ? 8 : props.mb, fontSize: 14, fontWeight: 600, wordBreak: 'break-word' } }, '⚠️ ' + props.text);
+    }
+    // ⓘ ao lado do rótulo (alvo 44 px) e a explicação curta por baixo (texto simples)
+    function hwxUseInfo(label, info) {
+      var _o = React.useState(false); var open = _o[0], setOpen = _o[1];
+      var btn = info ? React.createElement('button', {
+        type: 'button', 'aria-label': 'Ajuda: ' + label, 'aria-expanded': open, onClick: function () { setOpen(!open); },
+        style: { position: 'absolute', top: -14, right: -8, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: open ? HX.text : HX.muted, fontSize: 18, cursor: 'pointer', fontFamily: 'inherit', padding: 0, zIndex: 1 }
+      }, 'ⓘ') : null;
+      var note = info && open ? React.createElement('div', { role: 'note', style: { background: HX.surface2, border: '1px solid ' + HX.border, borderRadius: 8, padding: '8px 10px', marginBottom: 6, fontSize: 13, color: HX.text } }, info) : null;
+      return { btn: btn, note: note, labelStyle: info ? Object.assign({}, HXS.label, { paddingRight: 36 }) : HXS.label };
+    }
     function HxField(props) {
+      var aj = hwxAjuda(props.label), ui = hwxUseInfo(props.label, props.info || aj.info);
       var inStyle = props.error ? Object.assign({}, HXS.input, { borderColor: HX.bad }) : HXS.input;
       var inputProps = {
         value: props.value == null ? '' : props.value,
         onChange: function (e) { props.onChange(e.target.value, e); },
-        placeholder: props.placeholder || '',
+        placeholder: props.placeholder || (props.type === 'time' || props.type === 'date' ? '' : aj.ph) || '',
         autoComplete: 'off',
         style: inStyle
       };
@@ -668,29 +800,37 @@
         }
         el = React.createElement('input', inputProps);
       }
-      return React.createElement('div', { style: { marginBottom: props.tight ? 0 : 12, minWidth: 0 }, 'data-hwx-err': props.error ? '1' : undefined },
-        props.label && React.createElement('label', { style: HXS.label }, props.label),
+      return React.createElement('div', { style: { marginBottom: props.tight ? 0 : 12, minWidth: 0, position: 'relative' }, 'data-hwx-err': props.error ? '1' : undefined },
+        ui.btn,
+        props.label && React.createElement('label', { style: ui.labelStyle }, props.label),
         el,
+        ui.note,
         props.hint && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 4 } }, props.hint),
-        props.warn && React.createElement('div', { style: HXS.warn }, '⚠️ ' + props.warn),
+        props.warn && React.createElement(HxAviso, { text: props.warn }),
         props.error && React.createElement('div', { style: HXS.err }, props.error)
       );
     }
 
     function HxDate(props) {
-      return React.createElement('div', { style: { marginBottom: 12, minWidth: 0 }, 'data-hwx-err': props.error ? '1' : undefined },
-        React.createElement('label', { style: HXS.label }, props.label),
+      var ui = hwxUseInfo(props.label, props.info || hwxAjuda(props.label).info);
+      return React.createElement('div', { style: { marginBottom: 12, minWidth: 0, position: 'relative' }, 'data-hwx-err': props.error ? '1' : undefined },
+        ui.btn,
+        React.createElement('label', { style: ui.labelStyle }, props.label),
         React.createElement('input', {
           type: 'date', value: props.value || '', autoComplete: 'off',
           onChange: function (e) { props.onChange(e.target.value); },
           style: props.error ? Object.assign({}, HXS.input, { borderColor: HX.bad }) : HXS.input
-        })
+        }),
+        ui.note,
+        props.warn && React.createElement(HxAviso, { text: props.warn })
       );
     }
 
     function HxSelect(props) {
-      return React.createElement('div', { style: { marginBottom: props.tight ? 0 : 12, minWidth: 0 }, 'data-hwx-err': props.error ? '1' : undefined },
-        props.label && React.createElement('label', { style: HXS.label }, props.label),
+      var ui = hwxUseInfo(props.label, props.info || hwxAjuda(props.label).info);
+      return React.createElement('div', { style: { marginBottom: props.tight ? 0 : 12, minWidth: 0, position: 'relative' }, 'data-hwx-err': props.error ? '1' : undefined },
+        ui.btn,
+        props.label && React.createElement('label', { style: ui.labelStyle }, props.label),
         React.createElement('select', {
           value: props.value, autoComplete: 'off',
           onChange: function (e) { props.onChange(e.target.value); },
@@ -698,6 +838,8 @@
         }, props.options.map(function (o) {
           return React.createElement('option', { key: o.v, value: o.v }, o.l);
         })),
+        ui.note,
+        props.warn && React.createElement(HxAviso, { text: props.warn }),
         props.error && React.createElement('div', { style: HXS.err }, props.error)
       );
     }
@@ -797,6 +939,20 @@
         React.createElement('div', { style: { background: HX.surface, border: '1px solid ' + HX.borderStrong, borderRadius: 14, padding: 18, width: '100%', maxWidth: 440, maxHeight: '100%', overflowY: 'auto', boxSizing: 'border-box', color: HX.text } },
           React.createElement('div', { style: { fontWeight: 800, fontSize: 18, marginBottom: 8 } }, props.title),
           props.children
+        )
+      );
+    }
+
+    // Apagar: faixa vermelha com o que será afetado e dois botões bem separados. d = { titulo, aviso, linhas[], bloqueio, forte, busy }
+    function HwxApagarDlg(props) {
+      var d = props.d;
+      return React.createElement(HxModal, { title: d.titulo },
+        React.createElement('div', { role: 'alert', 'data-hwx-apagar': d.forte ? 'forte' : '1', style: { background: HX.badBg, border: (d.forte ? '2px' : '1px') + ' solid ' + HX.bad, color: HX.badText, borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 14, fontWeight: d.forte ? 800 : 600 } }, '⚠️ ' + d.aviso),
+        d.linhas && d.linhas.length > 0 && React.createElement('div', { style: { marginBottom: 12, fontSize: 14 } }, d.linhas.map(function (li, i) { return React.createElement('div', { key: i, style: { padding: '3px 0' } }, '• ' + li); })),
+        d.bloqueio && React.createElement('div', { style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 8, padding: '8px 10px', marginBottom: 12, fontSize: 14, fontWeight: 600 } }, d.bloqueio),
+        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 } },
+          React.createElement(HxBtn, { label: 'Cancelar', onClick: props.onCancel, disabled: !!d.busy }),
+          React.createElement(HxBtn, { label: d.busy ? 'A apagar…' : '🗑️ Apagar', kind: 'danger', aria: 'Apagar', onClick: props.onConfirm, disabled: !!d.busy || !!d.bloqueio })
         )
       );
     }
@@ -1085,13 +1241,13 @@
       if (f.categoria && !cats.some(function (c) { return c.id === f.categoria; })) catOpts.push({ v: f.categoria, l: f.categoria + ' (já não existe)' });
 
       return React.createElement(HxFormShell, { title: editing ? 'Editar serviço' : 'Novo serviço', onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
-        React.createElement(HxField, { label: 'Nome', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Ajuda com telemóvel', onEnter: function () { doSave(); } }),
+        React.createElement(HxField, { label: 'Nome', info: 'Nome do serviço, como aparece na tabela de preços e nas ofertas.', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Ajuda com telemóvel', onEnter: function () { doSave(); } }),
         React.createElement(HxSelect, { label: 'Categoria', value: f.categoria, options: catOpts, onChange: function (v) { upd('categoria', v); } }),
         React.createElement(HxRow, { cols: 2 },
-          React.createElement(HxField, { label: 'Preço (CHF)', value: f.preco, inputMode: 'decimal', onChange: function (v) { upd('preco', v); }, error: errs.preco, placeholder: '0.00', onEnter: function () { doSave(); } }),
+          React.createElement(HxField, { label: 'Preço (CHF)', value: f.preco, inputMode: 'decimal', onChange: function (v) { upd('preco', v); }, error: errs.preco, onEnter: function () { doSave(); } }),
           React.createElement(HxSelect, { label: 'Unidade', value: f.unidade, options: HWX_UNITS.map(function (u) { return { v: u.v, l: u.l }; }), onChange: function (v) { upd('unidade', v); } })
         ),
-        usaMin && React.createElement(HxField, { label: 'Mínimo (ex.: 1)', value: f.minimo, inputMode: 'decimal', onChange: function (v) { upd('minimo', v); }, error: errs.minimo, placeholder: 'quantidade mínima', onEnter: function () { doSave(); } }),
+        usaMin && React.createElement(HxField, { label: 'Mínimo (ex.: 1)', value: f.minimo, inputMode: 'decimal', onChange: function (v) { upd('minimo', v); }, error: errs.minimo, placeholder: 'ex.: 2', onEnter: function () { doSave(); } }),
         React.createElement(HxField, { label: 'Horas de referência (só para mim)', value: f.horas_incluidas, inputMode: 'decimal', onChange: function (v) { upd('horas_incluidas', v); }, error: errs.horas_incluidas, placeholder: 'opcional, ex.: 3', hint: 'Não aparece em ofertas, impressões nem WhatsApp.', onEnter: function () { doSave(); } }),
         sugestao && React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement(HxBtn, { label: 'Usar sugestão: ' + hwxQty(sugestao.h) + ' Std. × ' + hwxChf(sugestao.base) + ' = ' + hwxChf(sugestao.val), full: true, onClick: function () { upd('preco', String(sugestao.val)); } })
@@ -1375,7 +1531,7 @@
           React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: updA('plz'), warn: hwxPlzWarn(f.plz), onEnter: function () { doSave(); } }),
           React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: updA('ort'), onEnter: function () { doSave(); } })
         ),
-        React.createElement(HxSelect, { label: 'Zona', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— a do cliente —'), onChange: function (v) { ag.zona(); upd('zona', v); } }),
+        React.createElement(HxSelect, { label: 'Zona', warn: hwxZonaLocalAviso(f.zona, f.ort), value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— a do cliente —'), onChange: function (v) { ag.zona(); upd('zona', v); } }),
         React.createElement(HxField, { label: 'Notas', value: f.notas, multiline: true, onChange: function (v) { upd('notas', v); } })
       );
     }
@@ -1468,7 +1624,7 @@
           ),
           React.createElement(HxRow, { cols: 2 },
             React.createElement(HxSelect, { label: 'Língua', value: f.lingua, options: HWX_LANGS, onChange: function (v) { upd('lingua', v); } }),
-            React.createElement(HxSelect, { label: 'Zona por defeito', value: f.zona, options: zonaOpts, onChange: function (v) { ag.zona(); upd('zona', v); } })
+            React.createElement(HxSelect, { label: 'Zona por defeito', warn: hwxZonaLocalAviso(f.zona, f.ort), value: f.zona, options: zonaOpts, onChange: function (v) { ag.zona(); upd('zona', v); } })
           ),
           zonas.length === 0 && React.createElement('div', { style: { fontSize: 13, color: HX.warnText, marginTop: -6 } }, 'Ainda não há zonas — cria-as em Ajustes.')
         ),
@@ -1481,7 +1637,7 @@
           )
         ),
         React.createElement(HxSection, { title: '👤 CONTACTO' },
-          React.createElement(HxField, { label: 'Nome', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
+          React.createElement(HxField, { label: 'Nome', info: 'Pessoa de contacto (usada na saudação das mensagens de WhatsApp).', placeholder: 'ex.: Roland Aeschbacher', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
             React.createElement(HxField, { label: 'Telemóvel', value: f.c_tel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_tel', v); }, placeholder: '079 123 45 67', onEnter: enter }),
             React.createElement(HxField, { label: 'Telefone fixo', value: f.c_fixo, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_fixo', v); }, placeholder: '032 123 45 67', onEnter: enter })
@@ -1558,17 +1714,48 @@
       };
       var locaisDe = function (id) { return locRows.filter(function (l) { return l.cliente_id === id; }); };
 
-      var delCliente = function (c) {
-        if (pending[c.id]) return;
-        var nl = locaisDe(c.id).length;
-        if (!window.confirm('Apagar o cliente #' + c.numero + ' "' + (c.firma || c.nome) + '"?' + (nl ? '\nIsto apaga também os ' + nl + ' local(is) de trabalho.' : ''))) return;
-        setPending(function (p) { var n = Object.assign({}, p); n[c.id] = true; return n; });
+      var _dd = React.useState(null); var delDlg = _dd[0], setDelDlg = _dd[1];
+      var clearPend = function (id) { setPending(function (p) { var n = Object.assign({}, p); delete n[id]; return n; }); };
+      var removerCliente = function (c) {
+        setDelDlg(function (d) { return d ? Object.assign({}, d, { busy: true }) : d; });
         hwxRemove('hwx_clientes', c.id, notify, function () {
           clientes.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== c.id; }); });
           locais.setRows(function (prev) { return (prev || []).filter(function (x) { return x.cliente_id !== c.id; }); });
-        }, function () {
-          setPending(function (p) { var n = Object.assign({}, p); delete n[c.id]; return n; });
+          setDelDlg(null);
+        }, function (ok) {
+          clearPend(c.id);
+          if (!ok) setDelDlg(null);
         });
+      };
+      // Conta o que depende do cliente (ofertas, trabalhos, séries) ANTES de pedir confirmação; se não conseguir contar, não apaga
+      var delCliente = function (c) {
+        if (pending[c.id]) return;
+        setPending(function (p) { var n = Object.assign({}, p); n[c.id] = true; return n; });
+        var res = {}, falta = 3, falhou = false;
+        var fim = function () {
+          falta -= 1;
+          if (falta > 0) return;
+          if (falhou) { clearPend(c.id); return; }
+          var nl = locaisDe(c.id).length;
+          var linhas = [];
+          linhas.push(res.hwx_ofertas + ' oferta(s): ficam sem cliente (com os dados copiados)');
+          linhas.push(res.hwx_trabalhos + ' trabalho(s): ficam sem cliente (com os dados copiados)');
+          linhas.push(nl + ' local(is) de trabalho: são apagados com o cliente');
+          linhas.push(res.hwx_series + ' série(s)');
+          setDelDlg({
+            c: c, titulo: 'Apagar o cliente #' + c.numero + ' «' + (c.firma || c.nome) + '»?',
+            aviso: 'Isto não se desfaz.' + (res.hwx_ofertas + res.hwx_trabalhos > 0 ? ' O cliente tem ' + res.hwx_ofertas + ' oferta(s) e ' + res.hwx_trabalhos + ' trabalho(s).' : ''),
+            linhas: linhas,
+            bloqueio: res.hwx_series > 0 ? 'A base não deixa apagar um cliente com séries: apaga primeiro as ' + res.hwx_series + ' série(s) (Agenda › Séries).' : ''
+          });
+        };
+        var contar = function (table) {
+          window.supabaseClient.from(table).select('id').eq('cliente_id', c.id).then(function (r) {
+            if (r.error) { falhou = true; hwxFail(notify, 'contar ' + table + ' do cliente', r.error, false); } else res[table] = (r.data || []).length;
+            fim();
+          }).catch(function (e) { falhou = true; hwxFail(notify, 'contar ' + table + ' do cliente', e, false); fim(); });
+        };
+        contar('hwx_ofertas'); contar('hwx_trabalhos'); contar('hwx_series');
       };
       var delLocal = function (l) {
         if (!window.confirm('Apagar o local "' + l.nome + '"?')) return;
@@ -1631,6 +1818,7 @@
 
       return React.createElement('div', null,
         React.createElement(HxHead, { title: 'Clientes' }),
+        delDlg && React.createElement(HwxApagarDlg, { d: delDlg, onCancel: function () { clearPend(delDlg.c.id); setDelDlg(null); }, onConfirm: function () { removerCliente(delDlg.c); } }),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement(HxBtn, { label: '+ Novo cliente', kind: 'primary', big: true, full: true, onClick: function () { setView({ kind: 'cliente', editing: null }); } })
         ),
@@ -1692,7 +1880,7 @@
 
     var HWX_ZONA_AVISO = 'Este valor é só a deslocação — o preço do trabalho vem da tabela de preços';
     function hwxZonaAvisoBase(tipo, valor, precoBase) {
-      return tipo !== 'incluida' && valor !== null && valor > 0 && precoBase > 0 && valor >= precoBase ? HWX_ZONA_AVISO : undefined;
+      return tipo !== 'incluida' && valor !== null && valor > 0 && valor >= hwxLimiteTaxa(precoBase) ? HWX_ZONA_AVISO : undefined;
     }
     function HwxZonaForm(props) {
       var notify = props.notify, editing = props.editing, zonas = props.zonas;
@@ -1743,7 +1931,7 @@
         f.sel === '__outra' && React.createElement(HxField, { label: 'Nome (escrever)', value: f.outra, onChange: function (v) { upd('outra', v); }, error: errs.nome, placeholder: 'ex.: Grenchen', onEnter: function () { doSave(); } }),
         f.sel !== '__outra' && errs.nome && React.createElement('div', { 'data-hwx-err': '1', style: Object.assign({}, HXS.err, { marginTop: -8, marginBottom: 12 }) }, errs.nome),
         React.createElement(HxSelect, { label: 'Tipo de deslocação', value: f.tipo, onChange: function (v) { upd('tipo', v); }, options: HWX_ZONA_TIPOS }),
-        f.tipo !== 'incluida' && React.createElement(HxField, { label: f.tipo === 'acrescimo_hora' ? 'Valor (CHF por hora)' : 'Valor (CHF por ida)', value: f.valor, inputMode: 'decimal', onChange: function (v) { upd('valor', v); }, error: errs.valor, placeholder: '0.00', hint: 'Valor sugerido para a deslocação (podes mudar em cada oferta)', warn: hwxZonaAvisoBase(f.tipo, hwxNum(f.valor), props.precoBase), onEnter: function () { doSave(); } })
+        f.tipo !== 'incluida' && React.createElement(HxField, { label: f.tipo === 'acrescimo_hora' ? 'Valor (CHF por hora)' : 'Valor (CHF por ida)', value: f.valor, inputMode: 'decimal', onChange: function (v) { upd('valor', v); }, error: errs.valor, hint: 'Valor sugerido para a deslocação (podes mudar em cada oferta)', warn: hwxZonaAvisoBase(f.tipo, hwxNum(f.valor), props.precoBase), onEnter: function () { doSave(); } })
       );
     }
 
@@ -1785,7 +1973,7 @@
       hwxUseEsc(tryClose);
 
       return React.createElement(HxFormShell, { title: editing ? 'Editar categoria' : 'Nova categoria', onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
-        React.createElement(HxField, { label: 'Nome', value: nome, onChange: setNome, error: err, placeholder: 'ex.: Jardim', onEnter: function () { doSave(); }, hint: editing ? 'O identificador interno (' + editing.id + ') não muda.' : 'O identificador interno é gerado a partir do nome e não muda depois.' })
+        React.createElement(HxField, { label: 'Nome', info: 'Nome da categoria de serviços.', value: nome, onChange: setNome, error: err, placeholder: 'ex.: Jardim', onEnter: function () { doSave(); }, hint: editing ? 'O identificador interno (' + editing.id + ') não muda.' : 'O identificador interno é gerado a partir do nome e não muda depois.' })
       );
     }
 
@@ -1956,7 +2144,7 @@
                   React.createElement('div', { style: { fontWeight: 700, wordBreak: 'break-word' } }, z.nome),
                   React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, hwxZonaTexto(hwxZonaNorm(z)),
                     hwxZonaNorm(z).confirmar ? React.createElement(HxPill, { text: 'Confirma o tipo', color: HX.warn }) : null),
-                  hwxZonaAvisoBase(hwxZonaNorm(z).tipo, hwxZonaNorm(z).valor, hwxNum(base) || 0) && React.createElement('div', { style: HXS.warn }, '⚠️ ' + HWX_ZONA_AVISO)
+                  hwxZonaAvisoBase(hwxZonaNorm(z).tipo, hwxZonaNorm(z).valor, hwxNum(base) || 0) && React.createElement(HxAviso, { text: HWX_ZONA_AVISO })
                 ),
                 React.createElement(HxBtn, { label: '✏️', aria: 'Editar zona ' + z.nome, onClick: function () { setSub({ kind: 'zona', editing: z }); } }),
                 React.createElement(HxBtn, { label: '🗑️', kind: 'danger', aria: 'Apagar zona ' + z.nome, onClick: function () { delZona(z); } })
@@ -1980,7 +2168,7 @@
             React.createElement('div', { style: { marginTop: 10 } }, React.createElement(HxBtn, { label: '+ Nova categoria', onClick: function () { setSub({ kind: 'cat', editing: null }); }, full: true }))
           ),
           React.createElement(HxSection, { title: 'Os meus dados (quem emite)' },
-            React.createElement(HxField, { label: 'Nome', value: rem.nome, onChange: function (v) { updRem('nome', v); } }),
+            React.createElement(HxField, { label: 'Nome', info: 'O teu nome: aparece nas ofertas e assina as mensagens.', placeholder: 'ex.: Patricio Carvalho', value: rem.nome, onChange: function (v) { updRem('nome', v); } }),
             React.createElement(HxField, { label: 'Rua', value: rem.rua, onChange: function (v) { updRem('rua', v); } }),
             React.createElement(HxRow, { cols: 2 },
               React.createElement(HxField, { label: 'PLZ', value: rem.plz, inputMode: 'numeric', onChange: function (v) { updRem('plz', v); }, warn: hwxPlzWarn(rem.plz) }),
@@ -2179,7 +2367,7 @@
           React.createElement(HxField, { label: 'Localidade', value: f.ort, onChange: updA('ort'), onEnter: save })
         ),
         React.createElement(HxRow, { cols: 2 },
-          React.createElement(HxSelect, { label: 'Zona', value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— sem zona —'), onChange: function (v) { ag.zona(); upd('zona', v); } }),
+          React.createElement(HxSelect, { label: 'Zona', warn: hwxZonaLocalAviso(f.zona, f.ort), value: f.zona, options: hwxZonaOpts(zonas, f.zona, '— sem zona —'), onChange: function (v) { ag.zona(); upd('zona', v); } }),
           React.createElement(HxSelect, { label: 'Língua', value: f.lingua, options: HWX_LANGS, onChange: function (v) { upd('lingua', v); } })
         ),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 } },
@@ -2228,7 +2416,7 @@
         err && React.createElement('div', { role: 'alert', style: { background: HX.badBg, border: '1px solid ' + HX.bad, color: HX.badText, borderRadius: 8, padding: '8px 10px', marginBottom: 12, fontSize: 14, fontWeight: 600 } }, '⚠️ ' + err),
         React.createElement(HxSelect, { label: 'Zona', value: f.nome, options: hwxZonaOpts(zonas, f.nome, '— sem zona —'), onChange: escolher }),
         React.createElement(HxSelect, { label: 'Tipo de deslocação (só esta oferta)', value: f.tipo, options: HWX_ZONA_TIPOS, onChange: function (v) { upd('tipo', v); } }),
-        f.tipo !== 'incluida' && React.createElement(HxField, { label: f.tipo === 'acrescimo_hora' ? 'Valor (CHF por hora)' : 'Valor (CHF por ida)', value: f.valor, inputMode: 'decimal', onChange: function (v) { upd('valor', v); }, placeholder: '0.00', hint: 'Valor sugerido para a deslocação (podes mudar em cada oferta)', warn: hwxZonaAvisoBase(f.tipo, val, props.precoBase), onEnter: apply }),
+        f.tipo !== 'incluida' && React.createElement(HxField, { label: f.tipo === 'acrescimo_hora' ? 'Valor (CHF por hora)' : 'Valor (CHF por ida)', value: f.valor, inputMode: 'decimal', onChange: function (v) { upd('valor', v); }, hint: 'Valor sugerido para a deslocação (podes mudar em cada oferta)', warn: hwxZonaAvisoBase(f.tipo, val, props.precoBase), onEnter: apply }),
         difere && React.createElement(HxFormToggle, { label: 'Guardar também nos Ajustes', value: f.gravar, onChange: function (v) { upd('gravar', v); } }),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 } },
           React.createElement(HxBtn, { label: 'Cancelar', onClick: props.onCancel, disabled: busy }),
@@ -2338,16 +2526,16 @@
           if (l.tipo === 'anfahrt') {
             var porHora = l.unidade === 'hora';
             var prAnf = hwxNum(l.preco);
-            var pareceTrabalho = prAnf !== null && o.precoBase > 0 && prAnf >= o.precoBase;
+            var pareceTrabalho = prAnf !== null && prAnf >= hwxLimiteTaxa(o.precoBase);
             return React.createElement('div', { key: l.k, style: anfBox },
               React.createElement('div', { style: lineHead }, '#' + (idx + 1) + ' · 🚗 Anfahrt' + (l.auto ? ' · sugerida pela zona' : '')),
-              React.createElement(HxField, { label: 'Descrição', value: l.descricao, onChange: function (v) { ops.updLinha(l.k, 'descricao', v); }, error: le.descricao }),
+              React.createElement(HxField, { label: 'Descrição', info: 'Texto da linha de deslocação.', placeholder: 'Anfahrt', value: l.descricao, onChange: function (v) { ops.updLinha(l.k, 'descricao', v); }, error: le.descricao }),
               React.createElement(HxRow, { cols: porHora ? 3 : 2 },
                 React.createElement(HxSelect, { label: 'Tipo', value: porHora ? 'hora' : 'fixo', options: [{ v: 'hora', l: 'Por hora' }, { v: 'fixo', l: 'Valor fixo (pauschal)' }], onChange: function (v) { ops.setModoAnf(l.k, v); } }),
                 porHora && React.createElement(HxField, { label: 'Horas', value: l.qtd, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'qtd', v); }, error: le.qtd }),
-                React.createElement(HxField, { label: porHora ? 'Preço por hora (CHF)' : 'Valor (CHF)', value: l.preco, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'preco', v); }, error: le.preco, placeholder: '0.00' })
+                React.createElement(HxField, { label: porHora ? 'Preço por hora (CHF)' : 'Valor (CHF)', value: l.preco, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'preco', v); }, error: le.preco, })
               ),
-              pareceTrabalho && React.createElement('div', { style: Object.assign({}, HXS.warn, { marginBottom: 8 }) }, "⚠️ Isto parece trabalho, não deslocação — para o trabalho usa '+ Linha livre' ou '+ Da tabela de preços'"),
+              pareceTrabalho && React.createElement(HxAviso, { text: "Isto parece trabalho, não deslocação — para o trabalho usa '+ Linha livre' ou '+ Da tabela de preços' (uma taxa de deslocação a partir de CHF " + HWX_TAXA_AVISO + " parece trabalho)" }),
               porHora && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 8 } }, 'Horas do trabalho (linhas por hora e por 30 min): ' + hwxQty(horasTrab)),
               lineFoot(l, idx, totalR)
             );
@@ -2364,7 +2552,7 @@
             React.createElement(HxRow, { cols: 3 },
               React.createElement(HxField, { label: 'Quantidade', value: l.qtd, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'qtd', v); }, error: le.qtd }),
               React.createElement(HxSelect, { label: 'Unidade', value: l.unidade, options: HWX_UNITS.map(function (u) { return { v: u.v, l: u.l }; }), onChange: function (v) { ops.updLinha(l.k, 'unidade', v); } }),
-              React.createElement(HxField, { label: o.precoLabel || 'Preço (CHF, só nesta oferta)', value: l.preco, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'preco', v); }, error: le.preco, placeholder: sv && sv.estado === 'consulta' ? 'sob consulta: indica o preço' : '0.00' })
+              React.createElement(HxField, { label: o.precoLabel || 'Preço (CHF, só nesta oferta)', value: l.preco, inputMode: 'decimal', onChange: function (v) { ops.updLinha(l.k, 'preco', v); }, error: le.preco, placeholder: sv && sv.estado === 'consulta' ? 'sob consulta: indica o preço' : 'ex.: 35,00' })
             ),
             abaixo && React.createElement('div', { style: Object.assign({}, HXS.warn, { marginBottom: 8 }) },
               '⚠️ Abaixo do mínimo deste serviço (' + hwxQty(minimo) + '). ',
@@ -2428,8 +2616,10 @@
       var meusLocais = f.cliente_id ? locais.filter(function (l) { return l.cliente_id === f.cliente_id; }).sort(function (a, b) { return a.sub_numero - b.sub_numero; }) : [];
       var locOpts = [{ v: '', l: 'Morada de quem paga' }].concat(meusLocais.map(function (l) { return { v: l.id, l: (cli ? cli.numero + '.' : '') + l.sub_numero + ' ' + (l.rua || l.nome) }; }));
       var comZona = props.comZona !== false;
+      var semTel = props.avisoTel !== false && !escolhendo && cli && !(hwxPhone(cli.telemovel) || hwxPhone(cli.contacto_telemovel));
       return React.createElement('div', null,
         clienteBloco,
+        semTel && React.createElement(HxAviso, { text: 'O cliente #' + cli.numero + ' não tem telemóvel: não consigo abrir o WhatsApp. Podes juntá-lo na ficha do cliente.' }),
         f.cliente_id && React.createElement(HxSelect, { label: 'Local de trabalho', value: f.local_id, options: locOpts, onChange: props.onLocal }),
         comZona && f.cliente_id && React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' } },
           React.createElement('div', { style: { flex: 1, minWidth: 0, fontSize: 14, color: HX.muted } },
@@ -2964,6 +3154,17 @@
       };
       var serie = f.serie_id ? (props.series || []).filter(function (s) { return s.id === f.serie_id; })[0] : null;
       var horasLinhas = hwxHorasTrabalho(f.linhas);
+      // avisos do dia: sexta cheia (B6) e cliente já com trabalho nesse dia (B9)
+      var avisoSexta = '', avisoCliente = '';
+      if (f.data && f.estado !== 'cancelado') {
+        var itensDia = hwxItensDoDia(f.data, props.trabalhos, props.series, savedRow ? savedRow.id : null, f.serie_id ? { serie_id: f.serie_id, data_serie: f.data_serie } : null);
+        var hAtual = String(f.horas_reais || '').trim() !== '' && hwxNum(f.horas_reais) > 0 ? hwxNum(f.horas_reais) : horasLinhas;
+        var hDia = Math.round((itensDia.reduce(function (a, i) { return a + (Number(i.horas) || 0); }, 0) + hAtual) * 100) / 100;
+        var limH = Number(props.horasSexta) > 0 ? Number(props.horasSexta) : 8;
+        if (hwxDow(f.data) === 5 && hDia > limH) avisoSexta = 'A sexta ' + hwxFmtDate(f.data) + ' fica com ' + hwxQty(hDia) + ' h marcadas — o limite dos Ajustes é ' + hwxQty(limH) + ' h (podes gravar na mesma).';
+        var mesmo = f.cliente_id ? itensDia.filter(function (i) { return i.cliente_id === f.cliente_id; }) : [];
+        if (mesmo.length) avisoCliente = 'Este cliente já tem trabalho em ' + hwxFmtDate(f.data) + ': ' + mesmo.map(function (i) { return i.nome; }).join(', ') + ' (podes gravar na mesma).';
+      }
       var enter = function () { doSave(); };
 
       return React.createElement(HxFormShell, { title: savedRow ? 'Editar trabalho ' + savedRow.numero : 'Novo trabalho', onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
@@ -2979,10 +3180,12 @@
         ),
         React.createElement(HxSection, { title: 'Quando' },
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxDate, { label: 'Data', value: f.data, error: errs.data, onChange: function (v) { upd('data', v); } }),
+            React.createElement(HxDate, { label: 'Data', warn: hwxNaoSexta(f.data), value: f.data, error: errs.data, onChange: function (v) { upd('data', v); } }),
             React.createElement(HxField, { label: 'Hora', value: f.hora, type: 'time', onChange: function (v) { upd('hora', v); } })
           ),
           errs.data && React.createElement('div', { style: Object.assign({}, HXS.err, { marginTop: -8, marginBottom: 12 }) }, errs.data),
+          avisoSexta && React.createElement(HxAviso, { text: avisoSexta }),
+          avisoCliente && React.createElement(HxAviso, { text: avisoCliente }),
           React.createElement('div', { style: { marginBottom: 12 } }, React.createElement(HxBtn, { label: '📅 Próxima sexta (' + hwxFmtDate(hwxProximaSexta(hwxToday())) + ')', full: true, onClick: function () { upd('data', hwxProximaSexta(hwxToday())); } })),
           React.createElement(HxField, { label: 'Título', value: f.titulo, onChange: function (v) { upd('titulo', v); }, placeholder: 'ex.: Gartenpflege', onEnter: enter }),
           React.createElement('label', { style: HXS.label }, 'Estado'),
@@ -2994,8 +3197,8 @@
         hwxRenderLinhas({ linhas: f.linhas, errs: errs, ops: ops, servicos: servicos, precoBase: props.precoBase, precoLabel: 'Preço (CHF, só neste trabalho)', onPick: function () { setPicking(true); } }),
         React.createElement(HxSection, { title: 'Horas, material e total' },
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxField, { label: 'Horas reais', value: f.horas_reais, inputMode: 'decimal', onChange: function (v) { upd('horas_reais', v); }, onBlur: onHorasBlur, error: errs.horas, hint: 'Horas das linhas: ' + hwxQty(horasLinhas), placeholder: 'quando estiver feito' }),
-            React.createElement(HxField, { label: 'Material (CHF)', value: f.material, inputMode: 'decimal', onChange: function (v) { upd('material', v); }, error: errs.material, placeholder: '0.00' })
+            React.createElement(HxField, { label: 'Horas reais', value: f.horas_reais, inputMode: 'decimal', onChange: function (v) { upd('horas_reais', v); }, onBlur: onHorasBlur, error: errs.horas, hint: 'Horas das linhas: ' + hwxQty(horasLinhas), placeholder: 'ex.: 2,5' }),
+            React.createElement(HxField, { label: 'Material (CHF)', value: f.material, inputMode: 'decimal', onChange: function (v) { upd('material', v); }, error: errs.material, })
           ),
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '4px 0' } }, React.createElement('span', null, 'Linhas'), React.createElement('span', null, hwxChf(hwxFromRappen(tot.sub)))),
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '4px 0' } }, React.createElement('span', null, 'Material'), React.createElement('span', null, hwxChf(hwxFromRappen(tot.mat)))),
@@ -3152,6 +3355,8 @@
       if (pickOf) return React.createElement(HwxOfertaPicker, { notify: notify, onPick: usarOferta, onBack: function () { setPickOf(false); } });
       var totLinhas = 0;
       f.linhas.forEach(function (l) { totLinhas += hwxLinhaTotalR(l); });
+      var svSel = f.servico_id ? servicos.filter(function (x) { return x.id === f.servico_id; })[0] : null;
+      var porMes = (svSel && svSel.unidade === 'mes') || f.linhas.some(function (l) { return l.unidade === 'mes'; });
       var svOpts = [{ v: '', l: '— sem serviço —' }].concat(servicos.filter(function (s) { return s.estado !== 'arquivado'; }).map(function (s) { return { v: s.id, l: s.nome }; }));
       var meusLocais = f.cliente_id ? locais.filter(function (l) { return l.cliente_id === f.cliente_id; }).sort(function (a, b) { return a.sub_numero - b.sub_numero; }) : [];
       var next = hwxOcorrencias({ ativa: true, inicio: f.inicio || hwxToday(), fim: f.fim || null, intervalo_dias: hwxNum(f.intervalo_dias) || 14 }, hwxToday(), hwxAddDays(hwxToday(), 400)).slice(0, 4);
@@ -3162,7 +3367,7 @@
         f.oferta_id && React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 10 } }, '📄 Linhas copiadas de uma oferta' + ' — podes editá-las à vontade.'),
         React.createElement(HxSection, { title: 'Cliente e local' },
           React.createElement(HwxClienteLocal, {
-            f: f, cli: cli, clientes: clientes, locais: locais, zonas: props.zonas, comZona: false, errCliente: errs.cliente, notify: notify, saveCfg: props.saveCfg, precoBase: props.precoBase,
+            f: f, cli: cli, clientes: clientes, locais: locais, zonas: props.zonas, comZona: false, avisoTel: false, errCliente: errs.cliente, notify: notify, saveCfg: props.saveCfg, precoBase: props.precoBase,
             onCliente: function (id, row) { setF(function (p) { return Object.assign({}, p, { cliente_id: id, local_id: '' }); }); },
             onLocal: function (id) { upd('local_id', id); },
             onZonaApply: function () {}, onClienteCriado: function (row) { cliRef.current = row; props.onClienteCriado(row); }
@@ -3170,11 +3375,11 @@
         ),
         React.createElement(HxSection, { title: 'O que se faz' },
           React.createElement(HxField, { label: 'Descrição', value: f.descricao, onChange: function (v) { upd('descricao', v); }, placeholder: 'ex.: Gartenpflege', onEnter: function () { doSave(); } }),
-          React.createElement(HxSelect, { label: 'Serviço (tabela de preços)', value: f.servico_id, options: svOpts, onChange: function (v) { upd('servico_id', v); } })
+          React.createElement(HxSelect, { label: 'Serviço (tabela de preços)', warn: porMes ? 'Este serviço é cobrado «por mês», mas uma série conta horas/ocorrências. Confirma que queres uma série (podes gravar na mesma).' : '', value: f.servico_id, options: svOpts, onChange: function (v) { upd('servico_id', v); } })
         ),
         React.createElement(HxSection, { title: 'Quando' },
           React.createElement(HxRow, { cols: 2 },
-            React.createElement(HxDate, { label: 'Primeira data', value: f.inicio, error: errs.inicio, onChange: function (v) { upd('inicio', v); } }),
+            React.createElement(HxDate, { label: 'Primeira data', warn: hwxNaoSexta(f.inicio), value: f.inicio, error: errs.inicio, onChange: function (v) { upd('inicio', v); } }),
             React.createElement(HxDate, { label: 'Fim (vazio = sem fim)', value: f.fim, error: errs.fim, onChange: function (v) { upd('fim', v); } })
           ),
           (errs.inicio || errs.fim) && React.createElement('div', { style: Object.assign({}, HXS.err, { marginTop: -8, marginBottom: 12 }) }, errs.inicio || errs.fim),
@@ -3210,6 +3415,7 @@
       var _v = React.useState(props.abrirPreset ? { editing: null, preset: props.abrirPreset } : null); var form = _v[0], setForm = _v[1];
       var _p = React.useState({}); var pending = _p[0], setPending = _p[1];
       var _t = React.useState(null); var termDlg = _t[0], setTermDlg = _t[1]; // { serie, kind: 'terminar'|'frente', data, err }
+      var _dd = React.useState(null); var delDlg = _dd[0], setDelDlg = _dd[1]; // diálogo de apagar
       React.useEffect(function () { if (props.abrirPreset && props.onPresetUsed) props.onPresetUsed(); }, []);
       var rows = (series.rows || []).filter(function (s) { return !props.clienteId || s.cliente_id === props.clienteId; });
       var cli = function (id) { return (clientes.rows || []).filter(function (c) { return c.id === id; })[0] || null; };
@@ -3225,14 +3431,34 @@
         });
       }
       var setPend = function (id, on) { setPending(function (p) { var n = Object.assign({}, p); if (on) n[id] = true; else delete n[id]; return n; }); };
-      var apagar = function (s) {
-        if (pending[s.id]) return;
-        if (!window.confirm('Apagar a série "' + (s.descricao || 'sem descrição') + '"?\nOs trabalhos já criados ficam como trabalhos avulsos.')) return;
-        setPend(s.id, true);
+      var removerSerie = function (s) {
+        setDelDlg(function (d) { return d ? Object.assign({}, d, { busy: true }) : d; });
         hwxRemove('hwx_series', s.id, notify, function () {
           series.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== s.id; }); });
           if (props.onChanged) props.onChanged(null);
-        }, function () { setPend(s.id, false); });
+          setDelDlg(null);
+        }, function (ok) { setPend(s.id, false); if (!ok) setDelDlg(null); });
+      };
+      // Conta os trabalhos ligados à série ANTES de pedir confirmação; se não conseguir contar, não apaga
+      var apagar = function (s) {
+        if (pending[s.id]) return;
+        setPend(s.id, true);
+        window.supabaseClient.from('hwx_trabalhos').select('id,data,estado,data_serie').eq('serie_id', s.id).then(function (r) {
+          if (r.error) { hwxFail(notify, 'contar trabalhos da série', r.error, false); setPend(s.id, false); return; }
+          var rows = r.data || [], hj = hwxToday();
+          var futuros = rows.filter(function (t) { return t.data >= hj && t.estado !== 'cancelado'; }).length;
+          var materializadas = {};
+          rows.forEach(function (t) { if (t.data_serie) materializadas[t.data_serie] = true; });
+          var calc = hwxOcorrencias(s, hj, hwxAddDays(hj, HWX_JANELA_DIAS)).filter(function (o) { return !materializadas[o.data]; }).length;
+          setDelDlg({
+            s: s, titulo: 'Apagar a série «' + (s.descricao || 'sem descrição') + '»?',
+            aviso: 'Isto não se desfaz.' + (futuros > 0 ? ' ' + futuros + ' trabalho(s) futuro(s) ficam avulsos (sem série).' : ''),
+            linhas: [
+              rows.length + ' trabalho(s) ligado(s) à série ficam como trabalhos avulsos (' + futuros + ' futuro(s), a partir de hoje)',
+              calc + ' data(s) calculada(s) nas próximas 12 semanas, ainda sem trabalho, deixam de aparecer na Agenda'
+            ]
+          });
+        }).catch(function (e) { hwxFail(notify, 'contar trabalhos da série', e, false); setPend(s.id, false); });
       };
       var confirmarDlg = function () {
         var d = termDlg; if (!d || d.busy) return;
@@ -3252,6 +3478,7 @@
       var ordenadas = rows.slice().sort(function (a, b) { return (a.ativa === b.ativa ? 0 : a.ativa ? -1 : 1) || String(a.inicio).localeCompare(String(b.inicio)); });
       var clienteFiltro = props.clienteId ? cli(props.clienteId) : null;
       return React.createElement('div', null,
+        delDlg && React.createElement(HwxApagarDlg, { d: delDlg, onCancel: function () { setPend(delDlg.s.id, false); setDelDlg(null); }, onConfirm: function () { removerSerie(delDlg.s); } }),
         React.createElement(HxHead, { title: '🔁 Séries' + (clienteFiltro ? ' · #' + clienteFiltro.numero + ' ' + (clienteFiltro.firma || clienteFiltro.nome) : ''), back: props.onBack }),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement(HxBtn, { label: '+ Nova série', kind: 'primary', big: true, full: true, onClick: function () { setForm({ editing: null, preset: props.clienteId ? { cliente_id: props.clienteId } : null }); } })),
@@ -3331,7 +3558,7 @@
       if (form) {
         return React.createElement(HwxTrabalhoForm, {
           key: form.editing ? form.editing.id : 'novo',
-          editing: form.editing, preset: form.preset, estado: form.estado, clientes: cliRows, locais: locRows, servicos: servicos.rows || [], series: serRows, zonas: zonas, cats: props.cats,
+          editing: form.editing, preset: form.preset, estado: form.estado, clientes: cliRows, locais: locRows, servicos: servicos.rows || [], series: serRows, trabalhos: trabRows, horasSexta: props.horasSexta, zonas: zonas, cats: props.cats,
           notify: notify, guard: ctx.guard, precoBase: props.precoBase, saveCfg: props.saveCfg,
           onSaved: function (row) { hwxReplaceRow(trabalhos, row); props.onReloadCfg(); },
           onClienteCriado: function (row) { clientes.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== row.id; }).concat([row]); }); clientes.load(); props.onReloadCfg(); },
@@ -3660,7 +3887,12 @@
       var baseLimite = juntoCurso.total - juntoCurso.mat; // sem material, incluindo o em curso
       var limiteR = hwxToRappen(props.cfg && props.cfg.row && props.cfg.row.limite_anual != null ? Number(props.cfg.row.limite_anual) : 0);
       var pctLim = limiteR > 0 ? baseLimite / limiteR * 100 : 0;
-      var corLim = pctLim > 100 ? HX.bad : pctLim >= 80 ? HX.warn : HX.ok;
+      var corLim = pctLim >= 100 ? HX.bad : pctLim >= 80 ? HX.warn : HX.ok;
+      // Trabalhos do Extra feitos e por pagar há mais de 30 dias (só leitura; os incluídos na Pauschale nunca contam)
+      var hojeT = hwxToday();
+      var atrasados = trabRows.filter(function (t) { return t.estado === 'feito' && !t.pago && !t.incluido_pauschale && t.data && Math.round((hwxPD(hojeT) - hwxPD(t.data)) / HWX_DAY) > 30; })
+        .map(function (t) { var d = Math.round((hwxPD(hojeT) - hwxPD(t.data)) / HWX_DAY); return { t: t, dias: d, atraso: d - 30 }; })
+        .sort(function (a, b) { return b.dias - a.dias; });
       var faltam = limiteR - baseLimite;
 
       // CSV do ano (uma linha por trabalho do Extra e por fatura da Hauswart), gerado no aparelho
@@ -3700,10 +3932,22 @@
           limiteR > 0
             ? React.createElement('div', null,
                 React.createElement(HxBarra, { pct: pctLim, cor: corLim, h: 16 }),
-                React.createElement('div', { style: { marginTop: 8, fontWeight: 700, color: pctLim > 100 ? HX.badText : pctLim >= 80 ? HX.warnText : HX.okText } },
+                React.createElement('div', { style: { marginTop: 8, fontWeight: 700, color: pctLim >= 100 ? HX.badText : pctLim >= 80 ? HX.warnText : HX.okText } },
                   'CHF ' + hwxMoneyDe(hwxFromRappen(baseLimite)) + ' de CHF ' + hwxMoneyDe(hwxFromRappen(limiteR)) + ' (' + Math.round(pctLim) + '%) — ' + (faltam >= 0 ? 'faltam CHF ' + hwxMoneyDe(hwxFromRappen(faltam)) : 'acima por CHF ' + hwxMoneyDe(hwxFromRappen(-faltam)))),
                 React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 4 } }, 'Extra + Hauswart, sem material, incluindo o trimestre em curso.'))
             : React.createElement('div', { style: { fontSize: 14, color: HX.muted } }, 'Define o limite anual em Ajustes.')
+        ),
+        limiteR > 0 && pctLim >= 100 && React.createElement('div', { role: 'alert', 'data-hwx-limite': 'vermelho', style: { background: HX.badBg, border: '1px solid ' + HX.bad, color: HX.badText, borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 14, fontWeight: 700 } },
+          '⛔ Chegaste ao limite anual: ' + Math.round(pctLim) + ' % (CHF ' + hwxMoneyDe(hwxFromRappen(baseLimite)) + ' de CHF ' + hwxMoneyDe(hwxFromRappen(limiteR)) + ', sem material e com o trimestre em curso).'),
+        limiteR > 0 && pctLim >= 80 && pctLim < 100 && React.createElement('div', { role: 'status', 'data-hwx-limite': 'ambar', style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 14, fontWeight: 700 } },
+          '⚠️ Perto do limite anual: ' + Math.round(pctLim) + ' % (faltam CHF ' + hwxMoneyDe(hwxFromRappen(faltam)) + ', sem material e com o trimestre em curso).'),
+        atrasados.length > 0 && React.createElement(HxSection, { title: 'Por pagar há mais de 30 dias' },
+          React.createElement(HxAviso, { text: atrasados.length + ' trabalho(s) feito(s) e por pagar há mais de 30 dias.', mb: 10 }),
+          atrasados.map(function (a) {
+            return React.createElement('div', { key: a.t.id, 'data-hwx-atrasado': a.t.numero, style: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', minHeight: 44, padding: '6px 0', borderBottom: '1px solid ' + HX.border, fontSize: 14 } },
+              React.createElement('span', { style: { minWidth: 0, wordBreak: 'break-word' } }, React.createElement('b', null, a.t.numero), ' · ' + hwxClienteTxt(a.t.cliente_snap) + ' · feito ' + hwxFmtDate(a.t.data)),
+              React.createElement('span', { style: { whiteSpace: 'nowrap', textAlign: 'right', color: HX.warnText, fontWeight: 700 } }, a.atraso + ' dia(s) em atraso', React.createElement('span', { style: { display: 'block', fontSize: 12, color: HX.muted, fontWeight: 400 } }, 'há ' + a.dias + ' dias · ' + hwxChf(Number(a.t.total) || 0))));
+          })
         ),
         // ── junto ──
         React.createElement(HxSection, { title: 'Extra + Hauswart · ' + ano },
@@ -3806,6 +4050,7 @@
       React.useEffect(function () { hwxStoreSet('hwx_f_ofertas', flt, notify); }, [flt]);
       var _v = React.useState(null); var form = _v[0], setForm = _v[1];
       var _p = React.useState({}); var pending = _p[0], setPending = _p[1];
+      var _dd = React.useState(null); var delDlg = _dd[0], setDelDlg = _dd[1]; // diálogo de apagar
       var setPend = function (id, on) { setPending(function (p) { var n = Object.assign({}, p); if (on) n[id] = true; else delete n[id]; return n; }); };
       var rows = ofertas.rows || [];
       var replaceRow = function (row) {
@@ -3853,13 +4098,26 @@
         if (Number(o.desconto_valor) > 0) notify('warn', 'A oferta tinha desconto; a série não leva desconto — ajusta as linhas se quiseres.');
         props.onCriarSerie({ oferta_id: o.id, cliente_id: o.cliente_id, local_id: o.local_id, descricao: o.titulo, linhas: o.linhas });
       };
-      var apagar = function (o) {
-        if (pending[o.id]) return;
-        if (!window.confirm('Apagar a oferta ' + o.numero + '?')) return;
-        setPend(o.id, true);
+      var removerOferta = function (o) {
+        setDelDlg(function (d) { return d ? Object.assign({}, d, { busy: true }) : d; });
         hwxRemove('hwx_ofertas', o.id, notify, function () {
           ofertas.setRows(function (prev) { return (prev || []).filter(function (x) { return x.id !== o.id; }); });
-        }, function () { setPend(o.id, false); });
+          setDelDlg(null);
+        }, function (ok) { setPend(o.id, false); if (!ok) setDelDlg(null); });
+      };
+      var apagar = function (o) {
+        if (pending[o.id]) return;
+        setPend(o.id, true);
+        var nt = (trabalhos.rows || []).filter(function (t) { return t.oferta_id === o.id; }).length;
+        var ns = (series.rows || []).filter(function (se) { return se.oferta_id === o.id; }).length;
+        var forte = o.estado === 'enviada' || o.estado === 'aceite';
+        setDelDlg({
+          o: o, forte: forte, titulo: 'Apagar a oferta ' + o.numero + '?',
+          aviso: forte ? 'ATENÇÃO: esta oferta já foi ' + (o.estado === 'aceite' ? 'ACEITE' : 'ENVIADA') + ' ao cliente. Apagá-la não se desfaz e o número ' + o.numero + ' deixa de existir.' : 'Isto não se desfaz.',
+          linhas: ['Estado: ' + hwxLabel(HWX_OF_ESTADOS, o.estado) + ' · total ' + hwxChf(o.total),
+            nt + ' trabalho(s) criado(s) desta oferta ficam sem ligação à oferta (os trabalhos não são apagados)',
+            ns + ' série(s) criada(s) desta oferta ficam sem ligação à oferta (as séries não são apagadas)']
+        });
       };
 
       var anos = {};
@@ -3886,6 +4144,7 @@
 
       return React.createElement('div', null,
         React.createElement(HxHead, { title: 'Ofertas' }),
+        delDlg && React.createElement(HwxApagarDlg, { d: delDlg, onCancel: function () { setPend(delDlg.o.id, false); setDelDlg(null); }, onConfirm: function () { removerOferta(delDlg.o); } }),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement(HxBtn, { label: '+ Nova oferta', kind: 'primary', big: true, full: true, onClick: function () { setForm({ editing: null }); } })
         ),
