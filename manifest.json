@@ -4,6 +4,7 @@
   "description": "Sistema privado Carvalho — Patricio Time, Patricio Work, Família, Nutriguima, Vida Escolar",
   "start_url": "./",
   "scope": "./",
+  "id": "./",
   "display": "standalone",
   "orientation": "any",
   "theme_color": "#09090E",
