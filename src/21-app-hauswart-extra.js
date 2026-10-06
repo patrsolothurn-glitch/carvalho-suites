@@ -2975,6 +2975,8 @@
       return { sub: sub, mat: mat, total: f.incluido ? 0 : sub + mat };
     }
     // Pré-preenchimento de uma ocorrência de série (linha do serviço da série, se houver)
+    // Mesma semana = segunda a domingo (UTC puro). Um trabalho de série movido dentro da semana da sua ocorrência continua a ser essa ocorrência.
+    function hwxMesmaSemana(a, b) { return !!a && !!b && hwxSegunda(a) === hwxSegunda(b); }
     function hwxPresetDeSerie(se, data, servicos, cliente) {
       var linhas = [];
       var sv = se.servico_id ? servicos.filter(function (s) { return s.id === se.servico_id; })[0] : null;
@@ -3023,6 +3025,7 @@
       var _b = React.useState(false); var busy = _b[0], setBusy = _b[1];
       var _pk = React.useState(false); var picking = _pk[0], setPicking = _pk[1];
       var _as = React.useState(null); var ask = _as[0], setAsk = _as[1];
+      var _mv = React.useState(null); var moveAsk = _mv[0], setMoveAsk = _mv[1]; // pergunta: mover para a sexta de OUTRA semana
       var askedRef = React.useRef('');
       var busyRef = React.useRef(false);
       var savedRowRef = React.useRef(editing || null);
@@ -3077,8 +3080,12 @@
       };
 
       var tot = hwxTrabTotais(f);
-      var persist = function (ff, ok, fail) {
+      // mode (só trabalhos de série movidos para outra semana): 'avulso' = este trabalho fica avulso e a ocorrência original é cancelada,
+      // a série não muda · 'serie' = a série passa a começar nesta data e este trabalho é a primeira ocorrência
+      var persist = function (ff, ok, fail, mode) {
         var b = savedRowRef.current;
+        var serieOrig = mode && ff.serie_id ? ((props.series || []).filter(function (x) { return x.id === ff.serie_id; })[0] || null) : null;
+        var origData = ff.data_serie;
         var refresh = !b || b.estado === 'planeado' || ff.cliente_id !== (b.cliente_id || '') || ff.local_id !== (b.local_id || '');
         var tt = hwxTrabTotais(ff);
         var linhas = hwxLinhasGravar(ff.linhas);
@@ -3094,12 +3101,26 @@
         };
         // coluna do SQL 28: só vai na gravação quando é preciso (marcada, ou a linha já a tem) — assim nada muda antes do SQL
         if (ff.incluido || (b && 'incluido_pauschale' in b)) payload.incluido_pauschale = !!ff.incluido;
+        if (serieOrig && mode === 'avulso') { payload.serie_id = null; payload.data_serie = null; }
+        if (serieOrig && mode === 'serie') payload.data_serie = ff.data;
         busyRef.current = true; setBusy(true);
+        // "Só este trabalho": depois de gravar o trabalho como avulso, cancela a ocorrência original (uma linha cancelada para essa data)
+        var cancelarOriginal = function (row) {
+          var cp = {
+            cliente_id: row.cliente_id, cliente_snap: row.cliente_snap, local_id: row.local_id, local_snap: row.local_snap, oferta_id: null,
+            serie_id: serieOrig.id, data_serie: origData, data: origData, hora: serieOrig.hora || null, estado: 'cancelado',
+            titulo: String(serieOrig.descricao || '').trim(), linhas: [], horas_reais: null, material: 0, total: 0, pago: false, data_pago: null, notas_cliente: '', notas_internas: ''
+          };
+          hwxUpsertExcecao(cp, notify, function (crow) { props.onSaved(crow, false); }, function (okC) {
+            if (!okC) notify('error', 'O trabalho foi gravado como avulso, mas não consegui cancelar a ocorrência de ' + hwxFmtDate(origData) + ' da série. Cancela-a à mão na Agenda.');
+          });
+        };
         var onOk = function (row) {
           savedRowRef.current = row; savedSnapRef.current = ff;
           if (alive.current) setSavedRow(row);
           if (row.estado !== payload.estado) notify('error', 'A base gravou o estado "' + row.estado + '" em vez de "' + payload.estado + '". Confirma o estado e grava outra vez.');
           props.onSaved(row, !b);
+          if (serieOrig && mode === 'avulso') cancelarOriginal(row);
           if (ok) ok(); else props.onClose();
         };
         var onEnd = function (success) {
@@ -3107,14 +3128,29 @@
           if (alive.current) setBusy(false);
           if (!success && fail) fail();
         };
-        if (!b && payload.serie_id) hwxUpsertExcecao(payload, notify, onOk, onEnd);
-        else hwxWrite('hwx_trabalhos', b ? b.id : null, payload, notify, onOk, onEnd);
+        var gravar = function () {
+          if (!b && payload.serie_id) hwxUpsertExcecao(payload, notify, onOk, onEnd);
+          else hwxWrite('hwx_trabalhos', b ? b.id : null, payload, notify, onOk, onEnd);
+        };
+        if (serieOrig && mode === 'serie') {
+          // "Passar a série para esta data": primeiro a série (se falhar, nada mais se grava e dá para repetir), depois o trabalho
+          hwxWrite('hwx_series', serieOrig.id, { inicio: ff.data }, notify, function (srow) {
+            if (props.onSerieChanged) props.onSerieChanged(srow);
+            gravar();
+          }, function (okS) { if (!okS) onEnd(false); });
+        } else gravar();
       };
       var doSave = function (ok, fail) {
         if (busyRef.current) return;
         var v = hwxTrabValidar(f);
         setErrs(v.e);
         if (!v.ok) { hwxReportErrs(notify, v.msgs); if (fail) fail(); return; }
+        // trabalho de série passado para a SEXTA de outra semana: pergunta o que fazer com a série (nunca bloqueia: há sempre "Só este trabalho")
+        var seM = f.serie_id ? (props.series || []).filter(function (x) { return x.id === f.serie_id; })[0] : null;
+        if (seM && f.data_serie && f.data !== snap.data && f.estado !== 'cancelado' && hwxDow(f.data) === 5 && !hwxMesmaSemana(f.data, f.data_serie)) {
+          setMoveAsk({ ok: ok, fail: fail, serie: seM, orig: f.data_serie, nova: f.data });
+          return;
+        }
         persist(f, ok, fail);
       };
       hwxUseDirty('trabalho', savedSnapRef.current, f, doSave);
@@ -3184,6 +3220,10 @@
             React.createElement(HxField, { label: 'Hora', value: f.hora, type: 'time', onChange: function (v) { upd('hora', v); } })
           ),
           errs.data && React.createElement('div', { style: Object.assign({}, HXS.err, { marginTop: -8, marginBottom: 12 }) }, errs.data),
+          f.serie_id && f.data_serie && f.data !== f.data_serie && React.createElement('div', { 'data-hwx-serie-dica': hwxMesmaSemana(f.data, f.data_serie) ? 'mesma' : 'outra', style: { fontSize: 13, color: HX.muted, marginBottom: 10 } },
+            hwxMesmaSemana(f.data, f.data_serie)
+              ? '🔁 Continua a ser a ocorrência desta semana (sexta ' + hwxFmtDate(f.data_serie) + '): a série não gera outro trabalho e as restantes datas ficam iguais.'
+              : (hwxDow(f.data) === 5 ? '🔁 Outra semana: ao guardar pergunto o que fazer com a série.' : '🔁 Outra semana: o trabalho fica ligado à ocorrência de ' + hwxFmtDate(f.data_serie) + ' (a série não gera outra nessa data).')),
           avisoSexta && React.createElement(HxAviso, { text: avisoSexta }),
           avisoCliente && React.createElement(HxAviso, { text: avisoCliente }),
           React.createElement('div', { style: { marginBottom: 12 } }, React.createElement(HxBtn, { label: '📅 Próxima sexta (' + hwxFmtDate(hwxProximaSexta(hwxToday())) + ')', full: true, onClick: function () { upd('data', hwxProximaSexta(hwxToday())); } })),
@@ -3218,6 +3258,27 @@
           React.createElement(HxField, { label: 'Notas internas (só para mim)', value: f.notas_internas, multiline: true, onChange: function (v) { upd('notas_internas', v); } })
         ),
         savedRow && React.createElement('div', { style: { marginBottom: 12 } }, React.createElement(HxBtn, { label: '⧉ Duplicar este trabalho', full: true, onClick: duplicar })),
+        moveAsk && (function () {
+          var se = moveAsk.serie, nova = moveAsk.nova, orig = moveAsk.orig, iv = Number(se.intervalo_dias) || 14;
+          var foraDoFim = !!se.fim && nova > se.fim;
+          var prox = hwxOcorrencias({ ativa: true, inicio: nova, fim: se.fim || null, intervalo_dias: iv }, nova, hwxAddDays(nova, 400)).slice(0, 3);
+          var jaTemOcorr = hwxOcorrencias(se, nova, nova).length > 0;
+          var go = function (mode) { var m = moveAsk; setMoveAsk(null); persist(f, m.ok, m.fail, mode); };
+          return React.createElement(HxModal, { title: 'Mudar para outra semana' },
+            React.createElement('div', { 'data-hwx-mover': '1', style: { fontSize: 14, marginBottom: 14 } },
+              'Este trabalho é da ocorrência de sexta ' + hwxFmtDate(orig) + ' (semana ' + hwxSemanaAB(orig) + ') da série' + (se.descricao ? ' «' + se.descricao + '»' : '') + '. Vais passá-lo para a sexta ' + hwxFmtDate(nova) + ' (semana ' + hwxSemanaAB(nova) + ').'),
+            React.createElement('div', { style: { marginBottom: 18 } },
+              React.createElement(HxBtn, { label: 'Só este trabalho', kind: 'primary', full: true, aria: 'Só este trabalho', onClick: function () { go('avulso'); } }),
+              React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6 } }, 'A ocorrência de ' + hwxFmtDate(orig) + ' fica cancelada, este trabalho fica avulso e a série não muda.'),
+              jaTemOcorr && React.createElement(HxAviso, { text: 'Nessa sexta a série já tem a sua própria ocorrência: ficam dois trabalhos.', mb: 0 })),
+            React.createElement('div', { style: { marginBottom: 18 } },
+              React.createElement(HxBtn, { label: 'Passar a série para esta data', kind: 'primary', full: true, aria: 'Passar a série para esta data', disabled: foraDoFim, onClick: function () { go('serie'); } }),
+              React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginTop: 6 } }, 'A série passa a começar em ' + hwxFmtDate(nova) + ' e as ocorrências seguem de ' + iv + ' em ' + iv + ' dias a partir daí (a semana A/B segue o calendário). As passadas e as já feitas ficam como estão.'),
+              !foraDoFim && React.createElement('div', { 'data-hwx-mover-datas': '1', style: { fontSize: 14, marginTop: 6, fontWeight: 600 } }, 'Próximas datas: ' + prox.map(function (o) { return hwxDiaCurto(o.data) + ' · semana ' + hwxSemanaAB(o.data); }).join(' · ')),
+              foraDoFim && React.createElement(HxAviso, { text: 'A série acaba em ' + hwxFmtDate(se.fim) + ', antes desta data: não dá para a passar para aqui (usa «Só este trabalho»).', mb: 0 })),
+            React.createElement(HxBtn, { label: 'Voltar a editar', full: true, aria: 'Voltar a editar', onClick: function () { var m = moveAsk; setMoveAsk(null); if (m.fail) m.fail(); } })
+          );
+        })(),
         ask && React.createElement(HxModal, { title: 'Atualizar a linha?' },
           React.createElement('div', { style: { fontSize: 15, marginBottom: 14 } }, "Atualizar a linha '" + ask.desc + "' para " + hwxQty(ask.h) + ' h?'),
           React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 } },
@@ -3558,6 +3619,7 @@
       if (form) {
         return React.createElement(HwxTrabalhoForm, {
           key: form.editing ? form.editing.id : 'novo',
+          onSerieChanged: function (row) { hwxReplaceRow(series, row); },
           editing: form.editing, preset: form.preset, estado: form.estado, clientes: cliRows, locais: locRows, servicos: servicos.rows || [], series: serRows, trabalhos: trabRows, horasSexta: props.horasSexta, zonas: zonas, cats: props.cats,
           notify: notify, guard: ctx.guard, precoBase: props.precoBase, saveCfg: props.saveCfg,
           onSaved: function (row) { hwxReplaceRow(trabalhos, row); props.onReloadCfg(); },
