@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Diagnóstico Carvalho</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:#09090E;color:#eee;font-family:system-ui,sans-serif;font-size:22px}
+h1{font-size:26px;color:#E8C96C;margin:0 0 12px}
+.r{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #2a2a35}
+.l{color:#aaa}.v{color:#E8C96C;font-weight:700;text-align:right;word-break:break-all}
+pre{color:#E8C96C;background:#14141c;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-all;font-size:16px}
+button{width:100%;margin-top:16px;padding:22px;font-size:26px;font-weight:800;border:0;border-radius:14px;background:#E8C96C;color:#09090E}
+</style></head><body>
+<h1>Diagnóstico</h1>
+<div id="rows"></div>
+<pre id="mf"></pre>
+<button onclick="atualizar()">Atualizar</button>
+<script>
+function linha(l,v){return '<div class="r"><span class="l">'+l+'</span><span class="v">'+v+'</span></div>';}
+async function atualizar(){
+  var h='',o=screen.orientation;
+  h+=linha('screen.orientation.type',o&&o.type?o.type:'n/d');
+  h+=linha('screen',screen.width+' x '+screen.height);
+  h+=linha('window.inner',window.innerWidth+' x '+window.innerHeight);
+  h+=linha('instalada (standalone)',window.matchMedia('(display-mode: standalone)').matches);
+  var mo='n/d',txt='';
+  try{var j=await (await fetch('manifest.json?nocache='+Date.now(),{cache:'no-store'})).json();mo=j.orientation;txt=JSON.stringify(j,null,2);}catch(e){mo='erro: '+e;}
+  h+=linha('manifest orientation',mo);
+  var n='n/d';
+  try{n=(await navigator.serviceWorker.getRegistrations()).length;}catch(e){n='erro';}
+  h+=linha('Service Workers',n);
+  var c='n/d';
+  try{c=(await caches.keys()).join(', ')||'(nenhuma)';}catch(e){c='erro';}
+  h+=linha('cache ativa',c);
+  document.getElementById('rows').innerHTML=h;
+  document.getElementById('mf').textContent=txt;
+}
+atualizar();
+window.addEventListener('resize',atualizar);
+window.addEventListener('orientationchange',atualizar);
+if(screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener('change',atualizar);
+</script></body></html>

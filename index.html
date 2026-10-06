@@ -4,12 +4,12 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-06T04:20:35.529Z
+  Gerado em: 2026-10-06T10:01:19.931Z
 -->
 <html lang="pt">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#09090E"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -24,9 +24,9 @@
   <title>Carvalho Suite</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    html{height:100%}
+    html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
     body{
-      background:#09090E;font-family:system-ui,sans-serif;overflow-x:hidden;
+      background:#09090E;font-family:system-ui,sans-serif;overflow-x:hidden;max-width:100vw;
       min-height:100vh;min-height:100dvh;
       padding-top:env(safe-area-inset-top);
       padding-bottom:env(safe-area-inset-bottom);
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-383";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-389";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -69,8 +69,13 @@
     // comparar largura/altura em aparelhos com o ecrã quase quadrado).
     (function () {
       function ehTelemovel() {
-        var lado = Math.min(screen.width || 0, screen.height || 0);
-        return lado > 0 && lado <= 500;
+        // Tablets (lado menor >= 560px) NUNCA são bloqueados: adaptam-se
+        // sempre, em vertical ou horizontal. Só telemóveis pequenos.
+        var lado = Math.min(screen.width || 0, screen.height || 0,
+                            window.innerWidth || 9999, window.innerHeight || 9999);
+        var fisico = Math.min(screen.width || 0, screen.height || 0);
+        return fisico > 0 && fisico < 560 && lado < 560 &&
+               !(window.matchMedia && window.matchMedia('(min-width:600px) and (min-height:600px)').matches);
       }
       function estaDeitado() {
         if (screen.orientation && screen.orientation.type) {
@@ -82,6 +87,9 @@
         var deve = ehTelemovel() && estaDeitado();
         document.documentElement.classList.toggle('__cs_rodar', deve);
       }
+      try {
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+      } catch (e) {}
       atualizar();
       window.addEventListener('resize', atualizar);
       window.addEventListener('orientationchange', atualizar);
