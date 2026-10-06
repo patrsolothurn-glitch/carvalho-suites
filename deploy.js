@@ -110,6 +110,7 @@ async function main() {
   await putFile('index.html', path.join(__dirname, 'index.html'), MESSAGE);
   await putFile('sw.js', path.join(__dirname, 'sw.js'), `${MESSAGE} (sw bump)`);
   await putFile('manifest.json', path.join(__dirname, 'manifest.json'), `${MESSAGE} (manifest)`);
+  await putFile('diag.html', path.join(__dirname, 'diag.html'), `${MESSAGE} (diag)`);
   await putFile('build-number.txt', path.join(__dirname, 'build-number.txt'), `${MESSAGE} (build number)`);
 
   console.log('3/4 — A aguardar o GitHub Pages publicar...');
