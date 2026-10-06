@@ -996,6 +996,20 @@ function HwPrintView(props) {
   var _useQr = React.useState(true);
   var qrOn = _useQr[0], setQrOn = _useQr[1];
 
+  // O PDF gravado pelo Android herda o nome do document.title: Hauswart_<ano>_<Qn>_<invNum>
+  React.useEffect(function() {
+    var tituloOriginal = document.title;
+    var lbl = String(props.invLabel || '').trim();
+    var partes = lbl.split(/\s+/).filter(Boolean);
+    var qn = partes.length > 1 ? partes[0] : '';
+    var num = partes.length > 1 ? partes[partes.length - 1] : '';
+    var ano = /^R(\d{4})/.exec(num);
+    var nome = (qn && num && ano) ? 'Hauswart_' + ano[1] + '_' + qn + '_' + num : lbl.replace(/\s+/g, '_');
+    nome = nome.replace(/[^A-Za-z0-9_-]/g, '_');
+    if (nome) document.title = nome;
+    return function() { document.title = tituloOriginal; };
+  }, [props.invLabel]);
+
   React.useEffect(function() {
     var updateScreen = function() {
       var w = window.innerWidth;
