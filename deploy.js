@@ -109,6 +109,7 @@ async function main() {
   console.log('2/4 — A validar e publicar index.html e sw.js no GitHub...');
   await putFile('index.html', path.join(__dirname, 'index.html'), MESSAGE);
   await putFile('sw.js', path.join(__dirname, 'sw.js'), `${MESSAGE} (sw bump)`);
+  await putFile('manifest.json', path.join(__dirname, 'manifest.json'), `${MESSAGE} (manifest)`);
   await putFile('build-number.txt', path.join(__dirname, 'build-number.txt'), `${MESSAGE} (build number)`);
 
   console.log('3/4 — A aguardar o GitHub Pages publicar...');
@@ -119,7 +120,7 @@ async function main() {
     console.error('✗ O deploy do GitHub Pages não terminou com sucesso. Verifica manualmente.');
     process.exit(1);
   }
-  console.log('✓ Deploy concluído com sucesso (src/, index.html e sw.js todos sincronizados).');
+  console.log('✓ Deploy concluído com sucesso (src/, index.html, sw.js e manifest.json todos sincronizados).');
 }
 
 main().catch((err) => {

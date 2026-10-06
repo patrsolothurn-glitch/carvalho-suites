@@ -79,6 +79,9 @@
         var deve = ehTelemovel() && estaDeitado();
         document.documentElement.classList.toggle('__cs_rodar', deve);
       }
+      try {
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+      } catch (e) {}
       atualizar();
       window.addEventListener('resize', atualizar);
       window.addEventListener('orientationchange', atualizar);

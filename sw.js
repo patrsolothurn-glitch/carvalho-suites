@@ -1,9 +1,8 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-vbaa0cec3';
+const CACHE = 'carvalho-v93a51857';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json',
   './icon-192.png',
   './icon-512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
@@ -32,6 +31,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+
+  // manifest.json NUNCA em cache: é daqui que o Android lê a orientação.
+  // Se ficar preso numa versão antiga, a app volta a abrir de lado.
+  if (url.pathname.endsWith('manifest.json')) {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
 
   // Never cache Supabase API calls — always go live (real-time data)
   if (url.hostname.endsWith('supabase.co')) {
