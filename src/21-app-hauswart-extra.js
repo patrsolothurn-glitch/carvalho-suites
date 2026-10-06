@@ -357,6 +357,7 @@
     // ── Datas da Agenda (aritmética em UTC pura: o horário de verão nunca muda o dia) ──
     var HWX_DAY = 86400000;
     var HWX_JANELA_DIAS = 84; // séries: só se calculam as próximas 12 semanas
+    var HWX_PENDENTES_DIAS = 60; // sextas passadas "por tratar": só os últimos 60 dias
     function hwxPD(s) { var p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
     function hwxFD(ms) { var d = new Date(ms); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
     function hwxDow(s) { return new Date(hwxPD(s)).getUTCDay(); } // 0 = domingo … 5 = sexta
@@ -3608,6 +3609,7 @@
       var _sp = React.useState(props.seriePreset || null); var serPreset = _sp[0], setSerPreset = _sp[1];
       var _sv = React.useState(!!props.seriePreset); var verSeries = _sv[0], setVerSeries = _sv[1];
       var _cc = React.useState(false); var verCanc = _cc[0], setVerCanc = _cc[1]; // canceladas escondidas por defeito
+      var _vp = React.useState(false); var verPend = _vp[0], setVerPend = _vp[1]; // lista das sextas por tratar
       var _p = React.useState({}); var pending = _p[0], setPending = _p[1];
       React.useEffect(function () { if (props.preset && props.onPresetUsed) props.onPresetUsed(); if (props.abrir && props.onAbrirUsado) props.onAbrirUsado(); if (props.seriePreset && props.onSerieUsed) props.onSerieUsed(); }, []);
       var setPend = function (id, on) { setPending(function (p) { var n = Object.assign({}, p); if (on) n[id] = true; else delete n[id]; return n; }); };
@@ -3646,20 +3648,33 @@
       var serieDe = function (id) { return serRows.filter(function (s) { return s.id === id; })[0] || null; };
       var cliDe = function (id) { return cliRows.filter(function (c) { return c.id === id; })[0] || null; };
       var locDe = function (id) { return locRows.filter(function (l) { return l.id === id; })[0] || null; };
+      // Sextas passadas por tratar: ocorrência de série ATIVA, entre o início da série e ontem (só os últimos 60 dias), sem linha gravada
+      // (nem Feito, nem Cancelada, nem movida). Só se mostram: nunca se grava nada sozinho.
+      var pendAll = [];
+      serRows.forEach(function (se) {
+        hwxOcorrencias(se, hwxAddDays(hoje, -HWX_PENDENTES_DIAS), hwxAddDays(hoje, -1)).forEach(function (o) {
+          if (trabRows.some(function (t) { return t.serie_id === se.id && t.data_serie === o.data; })) return;
+          pendAll.push({ key: 'p' + se.id + o.data, kind: 'pend', serie: se, data: o.data, hora: hwxHora(se.hora), k: o.k });
+        });
+      });
+      var modoPend = verPend && pendAll.length > 0;
       var items = [];
       trabRows.forEach(function (t) {
+        if (modoPend) return;
         if (t.data < de || t.data > ate) return;
         var se = t.serie_id ? serieDe(t.serie_id) : null;
         var k = se ? Math.round((hwxPD(t.data_serie) - hwxPD(se.inicio)) / (Math.max(1, Number(se.intervalo_dias) || 14) * HWX_DAY)) : null;
         items.push({ key: t.id, kind: 'row', t: t, data: t.data, hora: hwxHora(t.hora), k: k, serie: se });
       });
       serRows.forEach(function (se) {
+        if (modoPend) return;
         var d0 = de > hoje ? de : hoje, d1 = ate < limite ? ate : limite;
         hwxOcorrencias(se, d0, d1).forEach(function (o) {
           if (trabRows.some(function (t) { return t.serie_id === se.id && t.data_serie === o.data; })) return;
           items.push({ key: 's' + se.id + o.data, kind: 'virt', serie: se, data: o.data, hora: hwxHora(se.hora), k: o.k });
         });
       });
+      pendAll.forEach(function (it) { if (modoPend || (it.data >= de && it.data <= ate)) items.push(it); });
       // dados de apresentação
       items.forEach(function (it) {
         if (it.kind === 'row') {
@@ -3702,8 +3717,26 @@
         if (it.kind === 'row') { setForm({ editing: it.t, estado: estado }); return; }
         setForm({ editing: null, estado: estado, preset: hwxPresetDeSerie(it.serie, it.data, servicos.rows || [], it.cs) });
       };
+      // "Feito" numa sexta passada por tratar: grava o trabalho como feito nessa data (só quando o utilizador carrega)
+      var marcarFeitoPend = function (it) {
+        var se = it.serie, c = cliDe(se.cliente_id), l = se.local_id ? locDe(se.local_id) : null;
+        var pr = hwxPresetDeSerie(se, it.data, servicos.rows || [], c);
+        var linhas = hwxLinhasGravar(hwxLinhasForm(pr.linhas));
+        var sub = 0;
+        linhas.forEach(function (x) { sub += hwxToRappen(x.total); });
+        var hr = Number(se.horas_previstas) > 0 ? Number(se.horas_previstas) : (hwxHorasTrabalho(linhas) || null);
+        var payload = {
+          cliente_id: se.cliente_id, cliente_snap: hwxClienteSnap(c), local_id: se.local_id, local_snap: hwxLocalSnap(l), oferta_id: null,
+          serie_id: se.id, data_serie: it.data, data: it.data, hora: se.hora || null, estado: 'feito', titulo: pr.titulo, linhas: linhas,
+          horas_reais: hr, material: 0, total: se.incluido_pauschale ? 0 : hwxFromRappen(sub), pago: false, data_pago: null,
+          notas_cliente: '', notas_internas: pr.notas_internas || ''
+        };
+        if (se.incluido_pauschale) payload.incluido_pauschale = true; // incluído na Pauschale: CHF 0 e fora dos totais do Extra
+        setPend(it.key, true);
+        hwxUpsertExcecao(payload, notify, function (row) { hwxReplaceRow(trabalhos, row); props.onReloadCfg(); }, function () { setPend(it.key, false); });
+      };
       var cancelar = function (it) {
-        if (it.kind === 'virt') {
+        if (it.kind === 'virt' || it.kind === 'pend') {
           if (!window.confirm('Cancelar só a data ' + hwxFmtDate(it.data) + ' desta série?')) return;
           var c = cliDe(it.serie.cliente_id), l = it.serie.local_id ? locDe(it.serie.local_id) : null;
           var pr = hwxPresetDeSerie(it.serie, it.data, servicos.rows || [], c);
@@ -3738,20 +3771,23 @@
 
       return React.createElement('div', null,
         React.createElement(HxHead, { title: 'Agenda' }),
+        pendAll.length > 0 && React.createElement('div', { role: 'status', 'data-hwx-pendentes': String(pendAll.length), style: { display: 'flex', gap: 10, alignItems: 'center', background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 10, padding: '8px 12px', marginBottom: 12, fontSize: 15, fontWeight: 700 } },
+          React.createElement('span', { style: { flex: 1, minWidth: 0 } }, '⚠️ ' + pendAll.length + (pendAll.length === 1 ? ' sexta por tratar' : ' sextas por tratar') + ' (últimos ' + HWX_PENDENTES_DIAS + ' dias)'),
+          React.createElement(HxBtn, { label: modoPend ? 'Voltar à Agenda' : 'Ver', aria: modoPend ? 'Voltar à Agenda' : 'Ver as sextas por tratar', onClick: function () { setVerPend(!modoPend); } })),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, marginBottom: 12 } },
           React.createElement(HxBtn, { label: '+ Novo trabalho', kind: 'primary', big: true, full: true, onClick: function () { setForm({ editing: null, preset: { data: flt.view === 'sexta' ? ref : hwxProximaSexta(hoje) } }); } }),
           React.createElement(HxBtn, { label: '🔁 Séries', big: true, full: true, onClick: function () { setVerSeries(true); } })
         ),
-        React.createElement(HxSeg, { aria: 'Vista', items: [{ v: 'sexta', l: 'Sexta' }, { v: 'semana', l: 'Semana' }, { v: 'mes', l: 'Mês' }], value: flt.view, onChange: function (v) { updF('view', v); } }),
-        React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 } },
+        !modoPend && React.createElement(HxSeg, { aria: 'Vista', items: [{ v: 'sexta', l: 'Sexta' }, { v: 'semana', l: 'Semana' }, { v: 'mes', l: 'Mês' }], value: flt.view, onChange: function (v) { updF('view', v); } }),
+        !modoPend && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 } },
           React.createElement(HxBtn, { label: navLabel[0], onClick: function () { nav(-1); } }),
           React.createElement(HxBtn, { label: navLabel[1], onClick: function () { nav(1); } })
         ),
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 } },
-          React.createElement('div', { style: { flex: 1, fontWeight: 800, fontSize: 20 } }, titulo),
-          React.createElement(HxBtn, { label: 'Próxima sexta', onClick: function () { setRef(hwxProximaSexta(hoje)); } })
+          React.createElement('div', { style: { flex: 1, fontWeight: 800, fontSize: 20 } }, modoPend ? 'Sextas por tratar' : titulo),
+          !modoPend && React.createElement(HxBtn, { label: 'Próxima sexta', onClick: function () { setRef(hwxProximaSexta(hoje)); } })
         ),
-        flt.view === 'sexta' && React.createElement('div', { style: Object.assign({}, HXS.card, { padding: 12 }) },
+        !modoPend && flt.view === 'sexta' && React.createElement('div', { style: Object.assign({}, HXS.card, { padding: 12 }) },
           React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: 6, color: cheia ? HX.warnText : HX.text } },
             React.createElement('span', null, hwxQty(ocupadas) + ' de ' + hwxQty(horasSexta) + ' h ocupadas'), cheia ? React.createElement('span', null, '⚠️ a mais') : null),
           React.createElement('div', { role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100, style: { height: 12, background: HX.field, border: '1px solid ' + HX.borderStrong, borderRadius: 6, overflow: 'hidden' } },
@@ -3776,14 +3812,15 @@
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: ctx.wide && flt.view !== 'sexta' ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 12, alignItems: 'start' } },
           shown.map(function (it) {
             var wait = !!pending[it.key];
-            var head = flt.view !== 'sexta' && it.data !== lastDate ? React.createElement('div', { key: 'h' + it.data, style: { gridColumn: '1 / -1', fontWeight: 800, fontSize: 15, color: HX.muted, marginTop: 6 } }, hwxDiaCurto(it.data) + (hwxDow(it.data) === 5 ? ' · semana ' + hwxSemanaAB(it.data) : '')) : null;
+            var isPend = it.kind === 'pend';
+            var head = (flt.view !== 'sexta' || modoPend) && it.data !== lastDate ? React.createElement('div', { key: 'h' + it.data, style: { gridColumn: '1 / -1', fontWeight: 800, fontSize: 15, color: HX.muted, marginTop: 6 } }, hwxDiaCurto(it.data) + (hwxDow(it.data) === 5 ? ' · semana ' + hwxSemanaAB(it.data) : '')) : null;
             lastDate = it.data;
             var cs = it.cs, tel = hwxPhone(cs.contacto_telemovel) || hwxPhone(cs.telemovel) || hwxPhone(cs.contacto_telefone) || hwxPhone(cs.telefone_fixo);
             var wa = hwxPhone(cs.contacto_telemovel) || hwxPhone(cs.telemovel);
             var nome = cs.contacto_nome || cs.firma || cs.nome || '';
-            var aviso = wa && it.estado === 'planeado' ? 'https://wa.me/' + wa + '?text=' + encodeURIComponent(hwxAvisoTexto(cs.lingua, nome, it.data, it.hora, meuNome)) : '';
+            var aviso = wa && it.estado === 'planeado' && !isPend ? 'https://wa.me/' + wa + '?text=' + encodeURIComponent(hwxAvisoTexto(cs.lingua, nome, it.data, it.hora, meuNome)) : '';
             var isSerie = !!it.serie;
-            var cancelLabel = it.kind === 'virt' ? 'Cancelar esta data' : (isSerie && it.t.estado === 'cancelado') ? 'Repor' : (isSerie && it.t.estado === 'planeado') ? 'Cancelar esta data' : 'Apagar';
+            var cancelLabel = it.kind === 'virt' || isPend ? 'Cancelar esta data' : (isSerie && it.t.estado === 'cancelado') ? 'Repor' : (isSerie && it.t.estado === 'planeado') ? 'Cancelar esta data' : 'Apagar';
             var cancelIcon = cancelLabel === 'Repor' ? '↩' : '🗑️';
             var cancelLongo = cancelLabel === 'Cancelar esta data'; // nome comprido: botão em linha própria, não cabe na grelha de 5
             var btns = [
@@ -3793,7 +3830,11 @@
               React.createElement(HxActBtn, { key: 'wa', icon: '💬', label: 'Aviso', aria: 'WhatsApp aviso ' + (it.numero || it.titulo || 'cliente'), href: aviso || undefined, blank: true, disabled: !aviso }),
               !cancelLongo && React.createElement(HxActBtn, { key: 'dl', icon: cancelIcon, label: cancelLabel, kind: cancelLabel === 'Repor' ? undefined : 'danger', aria: cancelLabel + ' ' + (it.numero || it.titulo || 'trabalho'), disabled: wait, onClick: function () { cancelar(it); } })
             ].filter(Boolean);
-            var card = React.createElement('div', { key: it.key, 'data-hwx-trab': it.kind, style: Object.assign({}, HXS.card, { marginBottom: 0, opacity: it.estado === 'cancelado' ? 0.65 : 1 }) },
+            var pendBtns = isPend ? React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 } },
+              React.createElement(HxBtn, { label: '✓ Feito', kind: 'primary', full: true, aria: 'Feito (por tratar) ' + hwxFmtDate(it.data) + ' ' + (it.titulo || 'série'), disabled: wait, onClick: function () { marcarFeitoPend(it); } }),
+              React.createElement(HxBtn, { label: 'Cancelar esta data', kind: 'danger', full: true, aria: 'Cancelar esta data (por tratar) ' + hwxFmtDate(it.data) + ' ' + (it.titulo || 'série'), disabled: wait, onClick: function () { cancelar(it); } })) : null;
+            var card = React.createElement('div', { key: it.key, 'data-hwx-trab': it.kind, style: Object.assign({}, HXS.card, { marginBottom: 0, opacity: it.estado === 'cancelado' ? 0.65 : 1, borderColor: isPend ? HX.warn : undefined }) },
+              isPend && React.createElement(HxAviso, { text: 'Por tratar: a sexta ' + hwxFmtDate(it.data) + ' passou e não tem registo. Marca Feito ou cancela a data (nada se grava sozinho).', mb: 10 }),
               React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'flex-start' } },
                 React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                   React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' } },
@@ -3801,15 +3842,15 @@
                     isSerie && React.createElement('span', { style: { fontWeight: 700, fontSize: 13, color: HX.muted } }, '🔁 ' + (it.ab ? 'semana ' + it.ab : 'série')),
                     it.numero && React.createElement('span', { style: { fontSize: 13, color: HX.muted } }, it.numero)),
                   React.createElement('div', { style: { fontWeight: 700, fontSize: 16, wordBreak: 'break-word', marginTop: 2 } }, it.titulo || '(sem título)')),
-                React.createElement(HxPill, { text: hwxLabel(HWX_TRAB_ESTADOS, it.estado), color: HWX_TRAB_COR[it.estado] })),
+                React.createElement(HxPill, { text: isPend ? 'Por tratar' : hwxLabel(HWX_TRAB_ESTADOS, it.estado), color: isPend ? HX.warn : HWX_TRAB_COR[it.estado] })),
               React.createElement('div', { style: { fontSize: 14, color: HX.muted, marginTop: 6, wordBreak: 'break-word' } }, it.cliTxt || '(cliente apagado)', it.locTxt ? ' · ' + it.locTxt : ''),
               React.createElement('div', { style: { fontSize: 14, marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' } },
                 it.horas > 0 && React.createElement('span', null, '⏱ ' + hwxQty(it.horas) + ' h'),
                 it.incl && React.createElement('span', { style: { fontWeight: 800 } }, 'incluído · ' + hwxChf(0)),
                 !it.incl && it.total > 0 && React.createElement('span', { style: { fontWeight: 800 } }, hwxChf(it.total)),
                 !it.incl && it.kind === 'row' && it.t.pago && React.createElement('span', { style: { color: HX.okText, fontWeight: 700 } }, '✓ pago' + (it.t.data_pago ? ' ' + hwxFmtDate(it.t.data_pago) : ''))),
-              React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + btns.length + ', minmax(0, 1fr))', gap: 8, marginTop: 12 } }, btns),
-              cancelLongo && React.createElement('div', { style: { marginTop: 8 } }, React.createElement(HxBtn, { label: '🗑️ Cancelar esta data', kind: 'danger', full: true, aria: 'Cancelar esta data ' + hwxFmtDate(it.data) + ' ' + (it.titulo || 'série'), disabled: wait, onClick: function () { cancelar(it); } }))
+              isPend ? pendBtns : React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(' + btns.length + ', minmax(0, 1fr))', gap: 8, marginTop: 12 } }, btns),
+              !isPend && cancelLongo && React.createElement('div', { style: { marginTop: 8 } }, React.createElement(HxBtn, { label: '🗑️ Cancelar esta data', kind: 'danger', full: true, aria: 'Cancelar esta data ' + hwxFmtDate(it.data) + ' ' + (it.titulo || 'série'), disabled: wait, onClick: function () { cancelar(it); } }))
             );
             return head ? [head, card] : card;
           })
