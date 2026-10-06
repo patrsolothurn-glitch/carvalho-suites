@@ -2852,26 +2852,39 @@
       var zonaInfo = over ? hwxZonaNorm(over) : zonaLive.info;
       var zonaNome = over ? over.nome : zonaLive.nome;
       zRef.current = zonaInfo;
-      var ops = hwxUseLinhasOps(setF, zRef, !editing, props.precoBase);
-      // trabalho novo com cliente já escolhido (oferta aceite, série): a zona sugere a Anfahrt à entrada
+      // Trabalho de SÉRIE: a Anfahrt nunca entra sozinha (nem ao abrir, nem ao editar, nem ao mudar de local/zona);
+      // a zona só a sugere e é o utilizador que a aceita. Nos outros trabalhos mantém-se a Anfahrt automática pela zona.
+      var semAuto = !!snap.serie_id;
+      var ops = hwxUseLinhasOps(setF, zRef, !editing && !semAuto, props.precoBase);
+      var zm = function (n, zi) { return semAuto ? n : ops.zonaMudou(n, zi); };
+      // trabalho novo com cliente já escolhido (oferta aceite): a zona sugere a Anfahrt à entrada
       React.useEffect(function () {
-        if (editing || !f.cliente_id) return;
-        setF(function (p) { return ops.zonaMudou(p, zRef.current); });
+        if (editing || semAuto || !f.cliente_id) return;
+        setF(function (p) { return zm(p, zRef.current); });
       }, []);
       var onCliente = function (id, row) {
         setF(function (p) {
           var c2 = row || clientes.filter(function (c) { return c.id === id; })[0];
           var l1 = hwxLocalUnico(locais, id);
-          return ops.zonaMudou(Object.assign({}, p, { cliente_id: id, local_id: l1 ? l1.id : '', zona_over: null }), hwxZonaDe(c2 || null, l1, zonas).info);
+          return zm(Object.assign({}, p, { cliente_id: id, local_id: l1 ? l1.id : '', zona_over: null }), hwxZonaDe(c2 || null, l1, zonas).info);
         });
       };
       var onLocal = function (id) {
         setF(function (p) {
           var l2 = id ? (locais.filter(function (l) { return l.id === id; })[0] || null) : null;
-          return ops.zonaMudou(Object.assign({}, p, { local_id: id, zona_over: null }), hwxZonaDe(cli, l2, zonas).info);
+          return zm(Object.assign({}, p, { local_id: id, zona_over: null }), hwxZonaDe(cli, l2, zonas).info);
         });
       };
-      var onZonaApply = function (res) { setF(function (p) { return ops.zonaMudou(Object.assign({}, p, { zona_over: res }), hwxZonaNorm(res)); }); };
+      var onZonaApply = function (res) { setF(function (p) { return zm(Object.assign({}, p, { zona_over: res }), hwxZonaNorm(res)); }); };
+      // série: sugestão de Anfahrt (nunca acrescentada sozinha)
+      var sugAnf = semAuto && !f.incluido && f.estado !== 'cancelado' && !f.linhas.some(function (l) { return l.tipo === 'anfahrt'; }) ? hwxAnfahrtSug(zonaInfo, f.linhas) : null;
+      var aceitarAnf = function () {
+        if (!sugAnf) return;
+        setF(function (p) {
+          if (p.linhas.some(function (l) { return l.tipo === 'anfahrt'; })) return p;
+          return Object.assign({}, p, { linhas: p.linhas.concat([{ k: hwxNewKey(), tipo: 'anfahrt', servico_id: null, descricao: 'Anfahrt', unidade: sugAnf.unidade, qtd: sugAnf.qtd, preco: sugAnf.preco, acrescimo_hora: 0, auto: false }]) });
+        });
+      };
 
       var tot = hwxTrabTotais(f);
       var persist = function (ff, ok, fail) {
@@ -2975,6 +2988,9 @@
           React.createElement('label', { style: HXS.label }, 'Estado'),
           React.createElement(HxSeg, { aria: 'Estado do trabalho', items: [{ v: 'planeado', l: 'Planeado' }, { v: 'feito', l: '✓ Feito' }, { v: 'cancelado', l: 'Cancelado' }], value: f.estado, onChange: setEstado })
         ),
+        sugAnf && React.createElement('div', { style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 14 } },
+          React.createElement('div', { style: { fontWeight: 600, marginBottom: 8 } }, '🚗 A zona «' + zonaNome + '» sugere Anfahrt: ' + (sugAnf.unidade === 'hora' ? hwxQty(sugAnf.qtd) + ' h × ' + hwxChf(hwxNum(sugAnf.preco)) + ' = ' + hwxChf(hwxFromRappen(Math.round(hwxNum(sugAnf.qtd) * hwxToRappen(hwxNum(sugAnf.preco))))) : hwxChf(hwxNum(sugAnf.preco)) + ' (valor fixo)') + '. Não foi acrescentada: nos trabalhos de série só entra se aceitares.'),
+          React.createElement(HxBtn, { label: '+ Acrescentar Anfahrt sugerida', full: true, onClick: aceitarAnf })),
         hwxRenderLinhas({ linhas: f.linhas, errs: errs, ops: ops, servicos: servicos, precoBase: props.precoBase, precoLabel: 'Preço (CHF, só neste trabalho)', onPick: function () { setPicking(true); } }),
         React.createElement(HxSection, { title: 'Horas, material e total' },
           React.createElement(HxRow, { cols: 2 },

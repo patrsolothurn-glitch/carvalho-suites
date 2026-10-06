@@ -28,7 +28,9 @@ alter table public.hwx_series
 alter table public.hwx_trabalhos
   add column if not exists incluido_pauschale boolean not null default false;
 
--- ══════════════ 3) Verificação (um só resultado: o SQL Editor só mostra o último select) ══════════════
+commit;
+
+-- ══════════════ 3) Verificação (fora da transação, depois do commit; o SQL Editor só mostra o último select) ══════════════
 select * from (
   select 1 as o, 'coluna nova'::text as tipo, (table_name || '.' || column_name)::text as item,
          (data_type || ' default ' || coalesce(column_default, '-'))::text as detalhe
@@ -44,5 +46,3 @@ select * from (
          ((select count(*) from pg_policies pp where pp.schemaname = 'public' and pp.tablename = c.relname)::text || ' políticas, rls=' || c.relrowsecurity::text)::text
   from pg_class c where c.oid in ('public.hwx_series'::regclass, 'public.hwx_trabalhos'::regclass)
 ) v order by o, item;
-
-commit;
