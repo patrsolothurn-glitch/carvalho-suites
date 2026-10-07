@@ -1,5 +1,5 @@
 // ── Carvalho Suite Service Worker ──────────────────────────────────
-const CACHE = 'carvalho-vc78fdc21';
+const CACHE = 'carvalho-vf8cc11b4';
 const ASSETS = [
   './',
   './index.html',
@@ -42,6 +42,12 @@ self.addEventListener('fetch', e => {
   // Never cache Supabase API calls — always go live (real-time data)
   if (url.hostname.endsWith('supabase.co')) {
     return; // let the browser handle it normally
+  }
+
+  // Tempo (Open-Meteo) e nome do local: sempre em direto, nunca servidos da cache do SW
+  // (senão o tempo ficava preso no primeiro valor guardado).
+  if (url.hostname === 'api.open-meteo.com' || url.hostname === 'api.bigdatacloud.net') {
+    return;
   }
 
   // Network-first for fonts (CSS can change)
