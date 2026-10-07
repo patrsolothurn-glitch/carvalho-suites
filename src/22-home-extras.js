@@ -177,7 +177,7 @@ function KotdPopup(props) {
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 800, lineHeight: 1, paddingTop: 6, fontFamily: 'Georgia,serif' }
     }, '”'),
     React.createElement('div', { style: { minWidth: 0 } },
-      React.createElement('p', { style: { color: BLUE, fontSize: 11, fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 6 } }, 'Kompliment des Tages'),
+      React.createElement('p', { style: { color: BLUE, fontSize: 11, fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 6 } }, 'Elogio do Dia'),
       React.createElement('p', { style: { color: '#1F2937', fontSize: 15, fontWeight: 600, lineHeight: 1.4, wordBreak: 'break-word' } }, item.text)
     ),
     React.createElement('button', {
@@ -401,7 +401,7 @@ function KotdAdmin() {
   var btn = function (c) { return { background: 'transparent', border: '1px solid ' + c, color: c, borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }; };
 
   return React.createElement('div', { style: { marginBottom: 14 } },
-    React.createElement('p', { style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 } }, 'Kompliment des Tages'),
+    React.createElement('p', { style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 } }, 'Elogio do Dia'),
     React.createElement(Card, { style: { padding: 16 } },
       React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
         React.createElement('span', { style: { color: T.text, fontSize: 14, fontWeight: 700 } }, 'Mostrar popup diário'),
