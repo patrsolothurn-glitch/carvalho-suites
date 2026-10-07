@@ -373,11 +373,19 @@ function HomeWeather() {
 }
 
 // ── Painel admin (Definições) ──
+var KOTD_LISTA_ABERTA_KEY = 'carvalho_kotd_lista_aberta';
 function KotdAdmin() {
   var _c = React.useState(kotdCachedConfig), cfg = _c[0], setCfg = _c[1];
   var _m = React.useState(''), msg = _m[0], setMsg = _m[1];
   var _n = React.useState(''), novo = _n[0], setNovo = _n[1];
   var _e = React.useState(null), ed = _e[0], setEd = _e[1]; // {i, text}
+  // Lista de textos recolhível: só preferência de interface (fechada na 1.ª vez)
+  var _a = React.useState(function () { return kotdSafeGet(KOTD_LISTA_ABERTA_KEY) === '1'; }), aberto = _a[0], setAberto = _a[1];
+  function alternarLista() {
+    var v = !aberto;
+    setAberto(v);
+    kotdSafeSet(KOTD_LISTA_ABERTA_KEY, v ? '1' : '0');
+  }
   var usingDefault = !cfg.items.some(function (s) { return s && s.trim(); });
   var list = kotdEffectiveItems(cfg.items);
 
@@ -413,6 +421,16 @@ function KotdAdmin() {
       ),
       React.createElement('p', { style: { color: T.muted, fontSize: 11.5, marginBottom: 10 } },
         usingDefault ? 'Lista por defeito (' + list.length + ' textos). Ao adicionar ou editar passa a lista personalizada.' : 'Lista personalizada (' + list.length + ' textos).'),
+      React.createElement('button', {
+        type: 'button', onClick: alternarLista,
+        'aria-expanded': aberto, 'aria-controls': 'kotd-lista',
+        'aria-label': (aberto ? 'Esconder' : 'Mostrar') + ' os textos do Elogio do Dia (' + list.length + ')',
+        style: { width: '100%', minHeight: 44, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', borderTop: '1px solid ' + T.goldBrd, padding: '0 2px', color: T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }
+      },
+        React.createElement('span', null, 'Textos (' + list.length + ')'),
+        React.createElement('span', { 'aria-hidden': true, style: { color: T.gold, fontSize: 16 } }, aberto ? '▾' : '▸')
+      ),
+      aberto && React.createElement('div', { id: 'kotd-lista' },
       list.map(function (t, i) {
         var editing = ed && ed.i === i;
         return React.createElement('div', { key: i, style: { borderTop: '1px solid ' + T.goldBrd, padding: '10px 0' } },
@@ -446,6 +464,7 @@ function KotdAdmin() {
           !usingDefault && React.createElement('button', { style: btn(T.muted), onClick: function () {
             persist({ enabled: cfg.enabled, items: [] }, 'Lista por defeito reposta');
           } }, 'Repor lista por defeito'))
+      )
       ),
       msg && React.createElement('p', { style: { color: T.gold, fontSize: 12, marginTop: 10, lineHeight: 1.4 } }, msg)
     )
