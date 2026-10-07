@@ -382,6 +382,11 @@ var WP_CSS = '\
 .wp-mic.wp-recon{border-color:#BE2318}\
 .wp-mic.wp-recon i{border-radius:5px;width:18px;height:18px}\
 .wp-mic.wp-play i{background:none;width:0;height:0;border-left:14px solid var(--ink);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px;border-radius:0}\
+.wp-mic.wp-pause i{background:none;width:14px;height:18px;border-left:5px solid var(--ink);border-right:5px solid var(--ink);border-radius:0}\
+.wp-prow{display:flex;align-items:center;gap:8px;min-width:0}\
+.wp-prog{flex:1;min-width:0;width:100%;height:44px;margin:0;padding:0;background:none;accent-color:var(--ink);cursor:pointer}\
+.wp-prog:disabled{cursor:default;opacity:.55}\
+.wp-ptime{flex:none;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}\
 .wp-trans{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)}\
 .wp-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:70}\
 @media(min-width:620px){.wp-ov{align-items:center;padding:20px}}\
@@ -619,6 +624,103 @@ function WpBalancoBanner(p) {
   );
 }
 
+// ── Leitor da Sprachnotiz ─────────────────────────────────────
+// UMA só instância de áudio em toda a Wochenplan (WP_LEITOR). Tocar noutra
+// nota pára e liberta a anterior; parar() liberta sempre o áudio. Cada
+// pedido assíncrono leva o número da sessão (gen): se entretanto parou ou
+// mudou de nota, o resultado é ignorado — nunca fica áudio órfão a tocar.
+// O signed URL vale WP_URL_VALIDADE s; perto do fim pede-se outro ao retomar,
+// e um erro de rede durante a reprodução tenta uma vez com URL novo.
+var WP_URL_VALIDADE = 3600;
+var WP_URL_MARGEM = 60;
+var WP_LEITOR_ERRO = 'Abspielen fehlgeschlagen. Bitte nochmal tippen.';
+function wpTempo(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function wpDauerSeg(str) { var m = /^(\d+):(\d{1,2})$/.exec(String(str || '').trim()); return m ? (+m[1]) * 60 + (+m[2]) : 0; }
+function wpCriarLeitor(criarAudio, agora) {
+  var el = null, gen = 0, fonte = null, posPendente = 0, ouvintes = [];
+  var st = { key: null, estado: 'parado', t: 0, dur: 0, erroKey: null };
+  function emitir(patch) { st = Object.assign({}, st, patch); ouvintes.slice().forEach(function(f) { f(st); }); }
+  function duracao() { return el && isFinite(el.duration) && el.duration > 0 ? el.duration : (fonte ? fonte.dauer : 0); }
+  function libertar() {
+    if (!el) return;
+    var a = el; el = null;
+    a.onplaying = a.onpause = a.ontimeupdate = a.onended = a.onerror = a.onloadedmetadata = null;
+    try { a.pause(); } catch (e) {}
+    try { a.removeAttribute('src'); a.load(); } catch (e) {}
+  }
+  function parar() { gen++; libertar(); fonte = null; posPendente = 0; emitir({ key: null, estado: 'parado', t: 0, dur: 0 }); }
+  function falhar(g) {
+    if (g !== gen) return;
+    var k = st.key;
+    parar();
+    emitir({ erroKey: k });
+  }
+  function tocar(g) {
+    var pr;
+    try { pr = el.play(); } catch (e) { falhar(g); return; }
+    if (pr && pr.then) pr.then(null, function() { falhar(g); });
+  }
+  function ligar(a, g) {
+    a.onloadedmetadata = function() {
+      if (g !== gen) return;
+      if (posPendente > 0) { try { a.currentTime = posPendente; } catch (e) {} posPendente = 0; }
+      emitir({ dur: duracao() });
+    };
+    a.onplaying = function() { if (g !== gen) return; if (fonte) fonte.tentou = false; emitir({ estado: 'toca', dur: duracao() }); };
+    a.onpause = function() { if (g !== gen || a.ended) return; if (st.estado === 'toca') emitir({ estado: 'pausa' }); };
+    a.ontimeupdate = function() { if (g !== gen) return; if (Math.floor(a.currentTime) !== Math.floor(st.t)) emitir({ t: a.currentTime }); };
+    a.onended = function() { if (g !== gen) return; try { a.currentTime = 0; } catch (e) {} emitir({ estado: 'fim', t: 0 }); };
+    a.onerror = function() {
+      if (g !== gen) return;
+      if (fonte && !fonte.tentou) { fonte.tentou = true; carregarUrl(a.currentTime || st.t); return; } // URL expirado/rede: uma tentativa com URL novo
+      falhar(g);
+    };
+  }
+  function carregarUrl(posicao) {
+    var g = gen, f = fonte;
+    emitir({ estado: 'carrega' });
+    return Promise.resolve().then(function() { return f.pedirUrl(f.path); }).then(function(url) {
+      if (g !== gen) return; // parou ou mudou de nota entretanto: não toca
+      if (!url) throw new Error('sem URL');
+      f.expira = agora() + (WP_URL_VALIDADE - WP_URL_MARGEM) * 1000;
+      if (!el) { el = criarAudio(); ligar(el, g); }
+      posPendente = posicao > 0 ? posicao : 0;
+      el.src = url;
+      tocar(g);
+    }).then(null, function() { falhar(g); });
+  }
+  function alternar(key, opts) {
+    if (fonte && st.key === key) {
+      if (st.estado === 'toca') { el.pause(); emitir({ estado: 'pausa' }); return; }
+      if (st.estado === 'carrega') { parar(); return; }
+      // pausa ou fim: continua da mesma posição (0 depois do fim); URL perto de expirar → pede outro
+      if (!el || agora() >= fonte.expira) { carregarUrl(st.estado === 'fim' ? 0 : (el ? el.currentTime : st.t)); return; }
+      emitir({ estado: 'carrega' });
+      tocar(gen);
+      return;
+    }
+    parar();
+    if (!opts || !opts.path || !opts.pedirUrl) return;
+    fonte = { path: opts.path, pedirUrl: opts.pedirUrl, dauer: opts.dauer || 0, expira: 0, tentou: false };
+    emitir({ key: key, estado: 'carrega', t: 0, dur: fonte.dauer, erroKey: null });
+    carregarUrl(0);
+  }
+  function saltar(key, seg) {
+    if (!el || st.key !== key) return;
+    var d = duracao();
+    seg = Math.max(0, d ? Math.min(seg, d) : seg);
+    try { el.currentTime = seg; } catch (e) {}
+    emitir({ t: seg });
+  }
+  return {
+    alternar: alternar, saltar: saltar, parar: parar,
+    estado: function() { return st; },
+    ouvir: function(f) { ouvintes.push(f); return function() { ouvintes = ouvintes.filter(function(x) { return x !== f; }); }; },
+    _instancia: function() { return el; }
+  };
+}
+var WP_LEITOR = wpCriarLeitor(function() { return new Audio(); }, function() { return Date.now(); });
+
 // ── Vista Tag ──────────────────────────────────────────────────
 function WpTagAbschluss(p) {
   var all = p.tasksDoDia;
@@ -627,6 +729,12 @@ function WpTagAbschluss(p) {
   var ist = 0, plan = 0;
   all.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
   var n = p.nota;
+  // estado do leitor só conta se for desta nota (WP_LEITOR é partilhado)
+  var ls = p.leitor || {};
+  var meu = !!n && ls.key === p.chaveNota;
+  var aTocar = meu && (ls.estado === 'toca' || ls.estado === 'carrega');
+  var durSeg = (meu && ls.dur) || wpDauerSeg(n && n.dauer);
+  var tSeg = meu ? Math.min(ls.t || 0, durSeg || ls.t || 0) : 0;
   return React.createElement('div', { className: 'wp-abs' },
     React.createElement('h3', null, 'Tagesabschluss'),
     React.createElement('div', { className: 'wp-nums' },
@@ -636,11 +744,25 @@ function WpTagAbschluss(p) {
       React.createElement('div', { className: 'wp-num' }, React.createElement('small', null, 'Geleistet'), React.createElement('b', null, wpHh(ist)))
     ),
     n
-      ? React.createElement('div', { className: 'wp-rec' },
-          React.createElement('button', { className: 'wp-mic wp-play', onClick: p.onPlay, 'aria-label': 'abspielen' }, React.createElement('i', null)),
-          React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, 'Sprachnotiz · ' + (n.dauer || '—')), React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, n.zeit || '')),
+      ? React.createElement(React.Fragment, null,
+        React.createElement('div', { className: 'wp-rec' },
+          React.createElement('button', { type: 'button', className: 'wp-mic ' + (aTocar ? 'wp-pause' : 'wp-play'), onClick: p.onPlay, 'aria-label': aTocar ? 'Pausieren' : 'Abspielen' }, React.createElement('i', null)),
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, 'Sprachnotiz · ' + (n.dauer || '—')),
+            React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, n.zeit || '')
+          ),
           React.createElement('button', { className: 'wp-mini', onClick: p.onAbrirNota }, 'Ändern')
-        )
+        ),
+        n.audio_url && React.createElement('div', { className: 'wp-prow' },
+          React.createElement('input', {
+            type: 'range', className: 'wp-prog', min: 0, max: durSeg || 1, step: 0.1, value: tSeg, disabled: !meu || !durSeg,
+            'aria-label': 'Position', 'aria-valuetext': wpTempo(tSeg) + ' / ' + wpTempo(durSeg),
+            onChange: function(e) { p.onSaltar(parseFloat(e.target.value)); }
+          }),
+          React.createElement('span', { className: 'wp-ptime' }, wpTempo(tSeg) + ' / ' + wpTempo(durSeg))
+        ),
+        ls.erroKey && ls.erroKey === p.chaveNota && React.createElement('div', { className: 'wp-errmsg', role: 'alert', style: { marginTop: 4 } }, WP_LEITOR_ERRO)
+      )
       : React.createElement('div', { className: 'wp-rec' },
           React.createElement('button', { className: 'wp-mic', onClick: p.onAbrirNota, 'aria-label': 'aufnehmen' }, React.createElement('i', null)),
           React.createElement('div', { style: { flex: 1 } }, React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, 'Tagesbilanz aufnehmen'), React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, 'fertig · offen · verschoben · Stunden'))
@@ -678,7 +800,8 @@ function WpTagView(p) {
       slots,
       React.createElement('button', { className: 'wp-add', onClick: function() { p.onNovo({ datum: d }); } }, '+ Auftrag'),
       p.who !== 'alle' && React.createElement(WpTagAbschluss, {
-        tasksDoDia: all, nota: p.notaDoDia, onPlay: p.onPlayNota, onAbrirNota: p.onAbrirNota
+        tasksDoDia: all, nota: p.notaDoDia, onPlay: p.onPlayNota, onAbrirNota: p.onAbrirNota,
+        leitor: p.leitor, chaveNota: p.chaveNota, onSaltar: p.onSaltarNota
       })
     ),
     React.createElement('div', null,
@@ -1675,6 +1798,7 @@ function WochenplanApp(props) {
   var notaStreamRef = React.useRef(null);
   var notaStartRef = React.useRef(0);
   var notaBlobRef = React.useRef(null);
+  var _l1 = React.useState(function() { return WP_LEITOR.estado(); }); var leitorSt = _l1[0], setLeitorSt = _l1[1];
 
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
   var _s30 = React.useState(function() { return { nur: false, spaet: false, pro: false, person: undefined, excl: [], tage: [true, true, true, true, true, true, true], ohne: [], druck: wpLoadDruck() }; }); var printOpt = _s30[0], setPrintOpt = _s30[1];
@@ -2007,6 +2131,7 @@ function WochenplanApp(props) {
   }
   function abrirNota(datum) {
     if (!who || who === 'alle') return;
+    WP_LEITOR.parar(); // "Ändern": pára a Sprachnotiz antes de abrir a edição
     var n = encontrarNota(datum, who);
     setNotaAberta({ datum: datum, wer: who });
     setNotaTexto((n && n.notiz) || '');
@@ -2075,19 +2200,25 @@ function WochenplanApp(props) {
   }
   function apagarNota() {
     var alvo = notaAberta;
+    WP_LEITOR.parar(); // nunca apagar uma nota que esteja a tocar
     db.from('wplan_tag').update({ notiz: null, audio_url: null, dauer: null }).eq('datum', alvo.datum).eq('wer', alvo.wer).then(function(res) {
       if (res.error) throw res.error;
       setTagRows(function(prev) { return prev.map(function(r) { return (r.datum === alvo.datum && r.wer === alvo.wer) ? Object.assign({}, r, { notiz: null, audio_url: null, dauer: null }) : r; }); });
       fecharNota();
     }).catch(function(e) { setErro('Falha ao apagar a nota: ' + (e && e.message ? e.message : e)); });
   }
+  function chaveDaNota(n) { return n ? n.datum + '|' + n.wer + '|' + (n.audio_url || '') : null; }
+  function pedirUrlNota(path) {
+    return db.storage.from(WP_BUCKET).createSignedUrl(path, WP_URL_VALIDADE).then(function(res) {
+      if (res.error) throw res.error;
+      return res.data.signedUrl;
+    });
+  }
   function tocarNota(datum, wer) {
     var n = encontrarNota(datum, wer);
     if (!n || !n.audio_url) { alert('Keine Audiodatei — nur Notiz.'); return; }
-    db.storage.from(WP_BUCKET).createSignedUrl(n.audio_url, 3600).then(function(res) {
-      if (res.error) throw res.error;
-      new Audio(res.data.signedUrl).play();
-    }).catch(function(e) { setErro('Falha ao reproduzir: ' + (e && e.message ? e.message : e)); });
+    if (!db) { WP_LEITOR.parar(); return; }
+    WP_LEITOR.alternar(chaveDaNota(n), { path: n.audio_url, pedirUrl: pedirUrlNota, dauer: wpDauerSeg(n.dauer) });
   }
 
   // ── Impressão ──
@@ -2134,6 +2265,14 @@ function WochenplanApp(props) {
       if (notaRecordedUrl) URL.revokeObjectURL(notaRecordedUrl);
     };
   }, []);
+
+  // Leitor da Sprachnotiz: segue o estado do WP_LEITOR; ao sair da Wochenplan pára e liberta o áudio
+  React.useEffect(function() {
+    var desligar = WP_LEITOR.ouvir(setLeitorSt);
+    return function() { desligar(); WP_LEITOR.parar(); };
+  }, []);
+  // …e também ao mudar de dia, de vista (Tag/Woche/Team), de pessoa/perfil, ou ao abrir/fechar qualquer modal/Vorschau/impressão
+  React.useEffect(function() { WP_LEITOR.parar(); }, [cur, mode, who, rolle, !!notaAberta, !!editTaskDraft, teamModalAberto, !!editPerson, !!pensumPessoa, previewJob, printJob]);
 
   // ── Aviso de balanço semanal (só na quinta às 15h, para quem tem Qui como último dia útil) ──
   var quemParaBalanco = rolle === 'monteur' ? who : (who !== 'alle' ? who : null);
@@ -2190,7 +2329,8 @@ function WochenplanApp(props) {
       React.createElement('div', null,
         mode === 'tag' && React.createElement(WpTagView, Object.assign({}, diaAtualObj, {
           onOpen: abrirTarefa, onNovo: abrirNovaTarefa,
-          notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); }
+          notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); },
+          leitor: leitorSt, chaveNota: chaveDaNota(notaDoDia), onSaltarNota: function(seg) { WP_LEITOR.saltar(chaveDaNota(notaDoDia), seg); }
         })),
         mode === 'woche' && React.createElement(React.Fragment, null,
           wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })),
