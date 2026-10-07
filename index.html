@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-07T10:38:18.565Z
+  Gerado em: 2026-10-07T14:50:23.815Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-395";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-396";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -31211,18 +31211,29 @@ function HwZahlteil(props) {
     // Trabalhos do Extra com estado "feito", pelo ano da data do trabalho (tudo em Rappen inteiros)
     function hwxTotaisExtra(trabs, ano, servicos, cats) {
       var out = { n: 0, total: 0, mat: 0, rec: { n: 0, total: 0, mat: 0 }, por: { n: 0, total: 0, mat: 0 }, porLista: [],
-        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [], incl: 0 };
-      for (var m = 0; m < 12; m++) out.meses.push({ n: 0, sem: 0, mat: 0 });
+        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [], incl: 0,
+        horasExtra: 0, inclMeses: [], inclHoras: 0, inclTit: {} };
+      for (var m = 0; m < 12; m++) { out.meses.push({ n: 0, sem: 0, mat: 0, h: 0 }); out.inclMeses.push({ n: 0, h: 0 }); }
       (trabs || []).forEach(function (t) {
         if (t.estado !== 'feito' || String(t.data).slice(0, 4) !== ano) return;
-        if (t.incluido_pauschale) { out.incl++; return; } // incluído na Pauschale Hauswart: nunca conta (evita contar 2×)
+        if (t.incluido_pauschale) { // incluído na Pauschale Hauswart: nunca conta em CHF (evita contar 2×); só nº, horas e títulos
+          var hi = hwxTrabHoras(t), mj = +String(t.data).slice(5, 7) - 1;
+          out.incl++; out.inclHoras += hi;
+          if (mj >= 0 && mj < 12) { out.inclMeses[mj].n++; out.inclMeses[mj].h += hi; }
+          var tn = String(t.titulo || '').trim() || '(sem título)', tk = hwxNorm(tn);
+          if (!out.inclTit[tk]) out.inclTit[tk] = { nome: tn, n: 0 };
+          out.inclTit[tk].n++;
+          return;
+        }
         var tot = hwxToRappen(Number(t.total) || 0), mat = hwxToRappen(Number(t.material) || 0), sem = tot - mat;
         out.n++; out.total += tot; out.mat += mat; out.jobs.push(t);
         var grp = t.pago ? out.rec : out.por;
         grp.n++; grp.total += tot; grp.mat += mat;
         if (!t.pago) out.porLista.push(t);
         var mi = +String(t.data).slice(5, 7) - 1;
-        if (mi >= 0 && mi < 12) { out.meses[mi].n++; out.meses[mi].sem += sem; out.meses[mi].mat += mat; }
+        var hx0 = hwxTrabHoras(t); // horas reais se existirem, senão as horas das linhas
+        out.horasExtra += hx0;
+        if (mi >= 0 && mi < 12) { out.meses[mi].n++; out.meses[mi].sem += sem; out.meses[mi].mat += mat; out.meses[mi].h += hx0; }
         var ck = hwxClienteTxt(t.cliente_snap), c = out.clientes[ck] || (out.clientes[ck] = { n: 0, sem: 0 });
         c.n++; c.sem += sem;
         (t.linhas || []).forEach(function (l) {
@@ -31242,7 +31253,7 @@ function HwZahlteil(props) {
     }
     // Lê o que a app Hauswart guardou (hauswart_data: archive, works, mats, cfg). NUNCA escreve.
     function hwxTotaisHw(row, ano) {
-      var out = { itens: [], ignoradas: 0, total: 0, mat: 0, emCurso: null };
+      var out = { itens: [], ignoradas: 0, total: 0, mat: 0, emCurso: null, pau: 0, horas: 0, trab: 0, dif: 0 };
       if (!row) return out;
       var arch = Array.isArray(row.archive) ? row.archive : [], arquivados = {};
       arch.forEach(function (a) {
@@ -31257,18 +31268,25 @@ function HwZahlteil(props) {
         if (tm !== null) mat = hwxToRappen(tm);
         else { mat = 0; (Array.isArray(a.mats) ? a.mats : []).forEach(function (mm) { mat += hwxToRappen(hwxNum(mm && mm.price) || 0); }); }
         var t = hwxToRappen(tot);
-        out.itens.push({ a: a, total: t, mat: mat, quarter: a.quarter || '', semData: semData, pago: !!a.paid, data: a.invoiceDate || '', num: a.invNum || a.invLabel || a.referenz || '' });
-        out.total += t; out.mat += mat;
+        // Campos reais da fatura arquivada (src/13): pauschale, totalWork (Σ works.hours × works.rate), totalMats (Σ mats.price), total = soma dos três
+        var pa = a.pauschale != null ? hwxNum(a.pauschale) : (a.cfg && a.cfg.pauschale != null ? hwxNum(a.cfg.pauschale) : null);
+        var pauR = hwxToRappen(pa === null ? 0 : pa), hrs = 0, wsum = 0;
+        (Array.isArray(a.works) ? a.works : []).forEach(function (w) { var hh = hwxNum(w && w.hours) || 0; hrs += hh; wsum += Math.round(hh * (hwxNum(w && w.rate) || 0) * 100); });
+        var tw = a.totalWork != null ? hwxNum(a.totalWork) : null;
+        var workR = tw !== null ? hwxToRappen(tw) : wsum;
+        var dif = t - (pauR + workR + mat);
+        out.itens.push({ a: a, total: t, mat: mat, pau: pauR, horas: hrs, trab: workR, dif: dif, quarter: a.quarter || '', semData: semData, pago: !!a.paid, data: a.invoiceDate || '', num: a.invNum || a.invLabel || a.referenz || '' });
+        out.total += t; out.mat += mat; out.pau += pauR; out.horas += hrs; out.trab += workR; out.dif += dif;
       });
       out.itens.sort(function (x, y) { return String(x.quarter).localeCompare(String(y.quarter)) || String(x.data).localeCompare(String(y.data)); });
       // trimestre em curso: ainda não arquivado (pauschale + trabalhos + materiais da linha viva)
       var cfg = row.cfg && typeof row.cfg === 'object' ? row.cfg : {};
       var cy = String(cfg.year == null ? '' : cfg.year);
       if (cy && cy === ano && !arquivados[cy + '|' + (cfg.quarter || '')]) {
-        var t2 = hwxToRappen(hwxNum(cfg.pauschale) || 0), m2 = 0;
-        (Array.isArray(row.works) ? row.works : []).forEach(function (w) { t2 += Math.round((hwxNum(w && w.hours) || 0) * (hwxNum(w && w.rate) || 0) * 100); });
+        var p2 = hwxToRappen(hwxNum(cfg.pauschale) || 0), t2 = p2, m2 = 0, w2 = 0, h2 = 0;
+        (Array.isArray(row.works) ? row.works : []).forEach(function (w) { var hh = hwxNum(w && w.hours) || 0; var v = Math.round(hh * (hwxNum(w && w.rate) || 0) * 100); h2 += hh; w2 += v; t2 += v; });
         (Array.isArray(row.mats) ? row.mats : []).forEach(function (mm) { var v = hwxToRappen(hwxNum(mm && mm.price) || 0); t2 += v; m2 += v; });
-        out.emCurso = { quarter: cfg.quarter || '', total: t2, mat: m2 };
+        out.emCurso = { quarter: cfg.quarter || '', total: t2, mat: m2, pau: p2, horas: h2, trab: w2, dif: t2 - (p2 + w2 + m2) };
       }
       return out;
     }
@@ -31282,6 +31300,17 @@ function HwZahlteil(props) {
         React.createElement('span', { style: { minWidth: 0, wordBreak: 'break-word' } }, props.l), React.createElement('span', { style: { whiteSpace: 'nowrap' } }, props.v));
     }
 
+    // Linhas Pauschale / Horas extra / Material de uma fatura (ou do resumo); se a soma não bater com o total, mostra a diferença
+    function hwxLinhasFatura(x) {
+      var R2 = function (r) { return 'CHF ' + hwxMoneyDe(hwxFromRappen(r)); };
+      return [
+        React.createElement(HxLinhaVal, { key: 'pa', l: 'Pauschale', v: R2(x.pau) }),
+        React.createElement(HxLinhaVal, { key: 'he', l: 'Horas extra', v: hwxQty(Math.round(x.horas * 100) / 100) + ' h · ' + R2(x.trab) }),
+        React.createElement(HxLinhaVal, { key: 'ma', l: 'Material', v: R2(x.mat) }),
+        x.dif !== 0 && React.createElement('div', { key: 'df', 'data-hwx-diferenca': String(x.dif), style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 8, padding: '6px 10px', marginTop: 4, fontSize: 13, fontWeight: 600 } },
+          '⚠️ A soma (Pauschale + horas extra + material) não bate com o total: diferença ' + (x.dif > 0 ? '+' : '−') + R2(Math.abs(x.dif)) + '.')
+      ];
+    }
     function HwxTotais(props) {
       var notify = props.notify, ctx = React.useContext(HxCtx);
       var trabalhos = hwxUseList('hwx_trabalhos', 'data', notify);
@@ -31428,6 +31457,11 @@ function HwZahlteil(props) {
                 React.createElement(HxBarra, { pct: m.sem / maxMes * 100, h: 10 }),
                 React.createElement('span', { style: { fontSize: 13, whiteSpace: 'nowrap', minWidth: 78, textAlign: 'right' } }, m.n ? R(m.sem) : '—'));
             }),
+            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Horas extra por mês (feitos, sem os incluídos na Pauschale)'),
+            ex.meses.map(function (m, i) {
+              return m.n ? React.createElement(HxLinhaVal, { key: 'h' + i, l: HWX_MONTHS[i], v: hwxQty(Math.round(m.h * 100) / 100) + ' h · ' + R(m.sem) }) : null;
+            }),
+            React.createElement(HxLinhaVal, { l: 'Total do ano (CHF sem material)', v: hwxQty(Math.round(ex.horasExtra * 100) / 100) + ' h · ' + R(ex.total - ex.mat), bold: true }),
             React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por cliente (sem material)'),
             clientesOrd.map(function (k) { return React.createElement(HxLinhaVal, { key: k, l: k + ' (' + ex.clientes[k].n + ')', v: R(ex.clientes[k].sem) }); }),
             React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por categoria (linhas)'),
@@ -31436,6 +31470,21 @@ function HwZahlteil(props) {
             React.createElement(HxLinhaVal, { l: 'Horas reais do ano', v: hwxQty(ex.horas) + ' h' }),
             React.createElement(HxLinhaVal, { l: 'Preço real médio por hora', v: ex.horas > 0 ? R(Math.round(precoMedio)) + ' / h' : '—', bold: true }),
             React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Total sem material ÷ horas reais, só nos trabalhos com horas reais.'))
+        ),
+        // ── Incluído na Pauschale (CHF 0: nunca entra nos totais em CHF) ──
+        React.createElement(HxSection, { title: 'Incluído na Pauschale · ' + ano },
+          ex.incl === 0 && React.createElement('div', { 'data-hwx-incl': '0', style: { fontSize: 14, color: HX.muted } }, 'Nenhum trabalho incluído na Pauschale em ' + ano + '.'),
+          ex.incl > 0 && React.createElement('div', { 'data-hwx-incl': String(ex.incl) },
+            React.createElement(HxLinhaVal, { l: ex.incl + ' trabalho(s) feito(s)', v: hwxQty(Math.round(ex.inclHoras * 100) / 100) + ' h · ' + R(0), bold: true }),
+            React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 6 } }, 'CHF 0: nunca entra nos totais em CHF.'),
+            React.createElement('div', { style: HXS.sec }, 'Por mês'),
+            ex.inclMeses.map(function (m, i) {
+              return m.n ? React.createElement(HxLinhaVal, { key: 'i' + i, l: HWX_MONTHS[i], v: m.n + (m.n === 1 ? ' vez · ' : ' vezes · ') + hwxQty(Math.round(m.h * 100) / 100) + ' h' }) : null;
+            }),
+            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 12 }) }, 'Por título'),
+            Object.keys(ex.inclTit).map(function (k) { return ex.inclTit[k]; }).sort(function (a, b) { return b.n - a.n || hwxCmpText(a.nome, b.nome); }).map(function (x) {
+              return React.createElement(HxLinhaVal, { key: 't' + x.nome, l: x.nome, v: x.n + (x.n === 1 ? ' vez' : ' vezes') });
+            }))
         ),
         // ── Hauswart ──
         React.createElement(HxSection, { title: 'Hauswart (só leitura) · ' + ano },
@@ -31447,6 +31496,12 @@ function HwZahlteil(props) {
             React.createElement(HxLinhaVal, { l: 'Faturas arquivadas — total', v: R(hx.total) }),
             React.createElement(HxLinhaVal, { l: 'Material (reembolso)', v: R(hx.mat), muted: true }),
             React.createElement(HxLinhaVal, { l: 'Sem material', v: R(hx.total - hx.mat), bold: true }),
+            React.createElement('div', { 'data-hwx-resumo-hw': '1', style: { borderTop: '1px solid ' + HX.border, marginTop: 6, paddingTop: 6 } },
+              React.createElement('div', { style: HXS.sec }, 'Resumo do ano · faturas arquivadas'),
+              hwxLinhasFatura({ pau: hx.pau, horas: hx.horas, trab: hx.trab, mat: hx.mat, dif: hx.dif, total: hx.total }),
+              curso && React.createElement('div', { style: { marginTop: 8 } },
+                React.createElement('div', { style: HXS.sec }, 'Resumo do ano · incluindo em curso'),
+                hwxLinhasFatura({ pau: hx.pau + curso.pau, horas: hx.horas + curso.horas, trab: hx.trab + curso.trab, mat: hx.mat + curso.mat, dif: hx.dif + curso.dif, total: hx.total + curso.total }))),
             trimOrd.concat(['']).map(function (q) {
               var its = hx.itens.filter(function (i) { return (trimOrd.indexOf(i.quarter) === -1 ? '' : i.quarter) === q; });
               if (!its.length) return null;
@@ -31457,6 +31512,7 @@ function HwZahlteil(props) {
                       React.createElement('span', { style: { fontWeight: 800 } }, (i.quarter || 'Q?') + ' · ' + (i.num || '(sem número)')),
                       React.createElement('span', { style: { fontWeight: 800, whiteSpace: 'nowrap' } }, R(i.total))),
                     React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, (i.data ? hwxFmtDate(i.data) : '') + (i.mat ? ' · material ' + R(i.mat) : '')),
+                    React.createElement('div', { 'data-hwx-fatura': i.num, style: { margin: '4px 0' } }, hwxLinhasFatura(i)),
                     React.createElement('div', null,
                       React.createElement(HxPill, { text: i.pago ? 'Pago' : 'Por receber', color: i.pago ? HX.ok : HX.warn }),
                       i.semData ? React.createElement(HxPill, { text: '⚠ sem data da fatura', color: HX.warn }) : null));
@@ -31466,6 +31522,7 @@ function HwZahlteil(props) {
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' } },
               React.createElement('span', { style: { fontWeight: 800 } }, (curso.quarter || 'Q?') + ' · em curso'),
               React.createElement('span', { style: { fontWeight: 800 } }, R(curso.total))),
+            React.createElement('div', { 'data-hwx-fatura': 'em curso', style: { margin: '4px 0' } }, hwxLinhasFatura(curso)),
             React.createElement('div', null, React.createElement(HxPill, { text: 'em curso', color: HX.warn })),
             React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Pauschale + trabalhos + material da fatura ainda não arquivada' + (curso.mat ? ' · material ' + R(curso.mat) : '') + '. Não entra no total arquivado.'))
         ),
