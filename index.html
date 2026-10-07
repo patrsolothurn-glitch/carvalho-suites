@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-07T15:26:52.437Z
+  Gerado em: 2026-10-07T16:03:10.165Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-398";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-399";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -35615,6 +35615,31 @@ function wpCriarLeitor(criarAudio, agora) {
 }
 var WP_LEITOR = wpCriarLeitor(function() { return new Audio(); }, function() { return Date.now(); });
 
+// Controlos do WP_LEITOR (▶/⏸, ⏹, barra e tempo) — os mesmos no cartão
+// Tagesabschluss e no modal Tagesbilanz. O estado só conta se for desta chave.
+function wpLeitorUI(ls, chave, dauerStr, cb) {
+  ls = ls || {};
+  var meu = !!chave && ls.key === chave;
+  var aTocar = meu && (ls.estado === 'toca' || ls.estado === 'carrega');
+  var ativo = aTocar || (meu && ls.estado === 'pausa'); // ⏹ visível enquanto toca ou está em pausa
+  var durSeg = (meu && ls.dur) || wpDauerSeg(dauerStr);
+  var tSeg = meu ? Math.min(ls.t || 0, durSeg || ls.t || 0) : 0;
+  var E = React.createElement;
+  return {
+    play: E('button', { type: 'button', className: 'wp-mic wp-lb ' + (aTocar ? 'wp-pause' : 'wp-play'), onClick: cb.onPlay, 'aria-label': aTocar ? 'Pausieren' : 'Abspielen' }, E('i', null)),
+    stop: ativo && E('button', { type: 'button', className: 'wp-mic wp-lb wp-stop', onClick: cb.onStop, 'aria-label': 'Stoppen' }, E('i', null)),
+    prow: E('div', { className: 'wp-prow' },
+      E('input', {
+        type: 'range', className: 'wp-prog', min: 0, max: durSeg || 1, step: 0.1, value: tSeg, disabled: !meu || !durSeg,
+        'aria-label': 'Position', 'aria-valuetext': wpTempo(tSeg) + ' / ' + wpTempo(durSeg),
+        onChange: function(e) { cb.onSaltar(parseFloat(e.target.value)); }
+      }),
+      E('span', { className: 'wp-ptime' }, wpTempo(tSeg) + ' / ' + wpTempo(durSeg))
+    ),
+    erro: !!ls.erroKey && ls.erroKey === chave && E('div', { className: 'wp-errmsg', role: 'alert', style: { marginTop: 4 } }, WP_LEITOR_ERRO)
+  };
+}
+
 // ── Vista Tag ──────────────────────────────────────────────────
 function WpTagAbschluss(p) {
   var all = p.tasksDoDia;
@@ -35623,13 +35648,7 @@ function WpTagAbschluss(p) {
   var ist = 0, plan = 0;
   all.forEach(function(a) { plan += wpDur(a); if (a.status === 'erledigt') ist += wpDur(a); });
   var n = p.nota;
-  // estado do leitor só conta se for desta nota (WP_LEITOR é partilhado)
-  var ls = p.leitor || {};
-  var meu = !!n && ls.key === p.chaveNota;
-  var aTocar = meu && (ls.estado === 'toca' || ls.estado === 'carrega');
-  var ativo = aTocar || (meu && ls.estado === 'pausa'); // ⏹ visível enquanto toca ou está em pausa
-  var durSeg = (meu && ls.dur) || wpDauerSeg(n && n.dauer);
-  var tSeg = meu ? Math.min(ls.t || 0, durSeg || ls.t || 0) : 0;
+  var lu = wpLeitorUI(p.leitor, n ? p.chaveNota : null, n && n.dauer, p);
   return React.createElement('div', { className: 'wp-abs' },
     React.createElement('h3', null, 'Tagesabschluss'),
     React.createElement('div', { className: 'wp-nums' },
@@ -35641,23 +35660,16 @@ function WpTagAbschluss(p) {
     n
       ? React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'wp-rec' },
-          React.createElement('button', { type: 'button', className: 'wp-mic wp-lb ' + (aTocar ? 'wp-pause' : 'wp-play'), onClick: p.onPlay, 'aria-label': aTocar ? 'Pausieren' : 'Abspielen' }, React.createElement('i', null)),
-          ativo && React.createElement('button', { type: 'button', className: 'wp-mic wp-lb wp-stop', onClick: p.onStop, 'aria-label': 'Stoppen' }, React.createElement('i', null)),
+          lu.play,
+          lu.stop,
           React.createElement('div', { style: { flex: 1, minWidth: 0 } },
             React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, 'Sprachnotiz · ' + (n.dauer || '—')),
             React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, n.zeit || '')
           ),
           React.createElement('button', { className: 'wp-mini', onClick: p.onAbrirNota }, 'Ändern')
         ),
-        n.audio_url && React.createElement('div', { className: 'wp-prow' },
-          React.createElement('input', {
-            type: 'range', className: 'wp-prog', min: 0, max: durSeg || 1, step: 0.1, value: tSeg, disabled: !meu || !durSeg,
-            'aria-label': 'Position', 'aria-valuetext': wpTempo(tSeg) + ' / ' + wpTempo(durSeg),
-            onChange: function(e) { p.onSaltar(parseFloat(e.target.value)); }
-          }),
-          React.createElement('span', { className: 'wp-ptime' }, wpTempo(tSeg) + ' / ' + wpTempo(durSeg))
-        ),
-        ls.erroKey && ls.erroKey === p.chaveNota && React.createElement('div', { className: 'wp-errmsg', role: 'alert', style: { marginTop: 4 } }, WP_LEITOR_ERRO)
+        n.audio_url && lu.prow,
+        lu.erro
       )
       : React.createElement('div', { className: 'wp-rec' },
           React.createElement('button', { className: 'wp-mic', onClick: p.onAbrirNota, 'aria-label': 'aufnehmen' }, React.createElement('i', null)),
@@ -36089,18 +36101,25 @@ function WpPersonModal(p) {
 
 // ── Modal: Tagesbilanz (nota de fim de dia) ───────────────────
 function WpNoteModal(p) {
+  var ouvir = !p.gravando && !!p.recordedUrl; // gravação acabada de fazer: ouvir com o WP_LEITOR
+  var lu = wpLeitorUI(p.leitor, ouvir ? p.chaveGravacao : null, p.recordedDurStr, { onPlay: p.onPlayGravacao, onStop: p.onStopGravacao, onSaltar: p.onSaltarGravacao });
   return React.createElement('div', { className: 'wp-ov', onClick: function(e) { if (e.target === e.currentTarget) p.onFechar(); } },
     React.createElement('div', { className: 'wp-sheet', onClick: function(e) { e.stopPropagation(); } },
       React.createElement('h2', null, 'Tagesbilanz ' + wpFmt(wpMk(p.datum))),
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 8, padding: 11 } },
-        React.createElement('button', {
-          className: 'wp-mic' + (p.gravando ? ' wp-recon' : p.recordedUrl ? ' wp-play' : ''),
-          onClick: p.onToggleGravar, 'aria-label': 'aufnehmen'
-        }, React.createElement('i', null)),
-        React.createElement('div', { style: { flex: 1 } },
-          React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, p.gravando ? 'Läuft…' : p.recordedUrl ? 'Aufnahme ' + p.recordedDurStr : 'Aufnehmen'),
-          React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, p.gravando ? 'nochmal tippen zum Stoppen' : p.recordedUrl ? 'tippen zum Abspielen' : 'fertig · offen · verschoben · Stunden')
-        )
+      React.createElement('div', { style: { background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 8, padding: 11 } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11 } },
+          ouvir ? lu.play : React.createElement('button', {
+            className: 'wp-mic' + (p.gravando ? ' wp-recon' : ''),
+            onClick: p.onToggleGravar, 'aria-label': 'aufnehmen'
+          }, React.createElement('i', null)),
+          ouvir && lu.stop,
+          React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+            React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, p.gravando ? 'Läuft…' : p.recordedUrl ? 'Aufnahme ' + p.recordedDurStr : 'Aufnehmen'),
+            React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, p.gravando ? 'nochmal tippen zum Stoppen' : p.recordedUrl ? 'tippen zum Abspielen' : 'fertig · offen · verschoben · Stunden')
+          )
+        ),
+        ouvir && lu.prow,
+        ouvir && lu.erro
       ),
       React.createElement('label', { htmlFor: 'wpFN2' }, 'Notiz'),
       React.createElement('textarea', { id: 'wpFN2', autoComplete: 'off', placeholder: 'Hauserstrasse 21 nicht gemacht, Material fehlt…', value: p.texto, onChange: function(e) { p.onTexto(e.target.value); } }),
@@ -37034,13 +37053,15 @@ function WochenplanApp(props) {
     setNotaRecordedUrl(''); setNotaRecordedDurStr(''); notaBlobRef.current = null;
   }
   function fecharNota() {
+    WP_LEITOR.parar(); // Abbrechen / fundo / Esc: pára antes de fechar
     if (notaMediaRef.current && notaMediaRef.current.state === 'recording') notaMediaRef.current.stop();
     if (notaStreamRef.current) { notaStreamRef.current.getTracks().forEach(function(t) { t.stop(); }); notaStreamRef.current = null; }
     setNotaAberta(null); setNotaGravando(false); setNotaRecordedUrl(''); setNotaRecordedDurStr('');
   }
   function alternarGravacaoNota() {
     if (notaGravando) { if (notaMediaRef.current) notaMediaRef.current.stop(); return; }
-    if (notaRecordedUrl) { new Audio(notaRecordedUrl).play(); return; }
+    if (notaRecordedUrl) { tocarGravacaoNova(); return; }
+    WP_LEITOR.parar(); // gravação nova: pára qualquer reprodução antes de gravar
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setErro('Este browser não suporta gravação de áudio.'); return; }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
       notaStreamRef.current = stream;
@@ -37065,6 +37086,7 @@ function WochenplanApp(props) {
     }).catch(function(e) { setErro('Permissão de microfone negada ou indisponível: ' + (e && e.message ? e.message : e)); });
   }
   function guardarNota() {
+    WP_LEITOR.parar(); // Speichern: pára antes de guardar e fechar
     var alvo = notaAberta;
     var texto = notaTexto.trim();
     if (!texto && !notaBlobRef.current) { fecharNota(); return; }
@@ -37102,6 +37124,13 @@ function WochenplanApp(props) {
       setTagRows(function(prev) { return prev.map(function(r) { return (r.datum === alvo.datum && r.wer === alvo.wer) ? Object.assign({}, r, { notiz: null, audio_url: null, dauer: null }) : r; }); });
       fecharNota();
     }).catch(function(e) { setErro('Falha ao apagar a nota: ' + (e && e.message ? e.message : e)); });
+  }
+  // Gravação acabada de fazer no modal (blob local, ainda não guardada): mesmo WP_LEITOR, URL não expira
+  function chaveDaGravacao() { return notaRecordedUrl ? 'rec|' + notaRecordedUrl : null; }
+  function tocarGravacaoNova() {
+    if (!notaRecordedUrl) return;
+    var u = notaRecordedUrl;
+    WP_LEITOR.alternar(chaveDaGravacao(), { path: u, pedirUrl: function() { return Promise.resolve(u); }, dauer: wpDauerSeg(notaRecordedDurStr) });
   }
   function chaveDaNota(n) { return n ? n.datum + '|' + n.wer + '|' + (n.audio_url || '') : null; }
   function pedirUrlNota(path) {
@@ -37170,7 +37199,14 @@ function WochenplanApp(props) {
     return function() { desligar(); document.removeEventListener('visibilitychange', aoMudarVisibilidade); WP_LEITOR.parar(); };
   }, []);
   // …e também ao mudar de dia, de vista (Tag/Woche/Team), de pessoa/perfil, ou ao abrir/fechar qualquer modal/Vorschau/impressão
-  React.useEffect(function() { WP_LEITOR.parar(); }, [cur, mode, who, rolle, !!notaAberta, !!editTaskDraft, teamModalAberto, !!editPerson, !!pensumPessoa, previewJob, printJob]);
+  React.useEffect(function() { WP_LEITOR.parar(); }, [cur, mode, who, rolle, !!notaAberta, !!editTaskDraft, teamModalAberto, !!editPerson, !!pensumPessoa, previewJob, printJob, notaGravando, notaRecordedUrl]);
+  // Modal Tagesbilanz: Esc fecha (e pára a reprodução, via fecharNota)
+  React.useEffect(function() {
+    if (!notaAberta) return;
+    function aoTeclar(e) { if (e.key === 'Escape' || e.key === 'Esc') fecharNota(); }
+    document.addEventListener('keydown', aoTeclar);
+    return function() { document.removeEventListener('keydown', aoTeclar); };
+  }, [notaAberta]);
 
   // ── Aviso de balanço semanal (só na quinta às 15h, para quem tem Qui como último dia útil) ──
   var quemParaBalanco = rolle === 'monteur' ? who : (who !== 'alle' ? who : null);
@@ -37278,6 +37314,8 @@ function WochenplanApp(props) {
     notaAberta && React.createElement(WpNoteModal, {
       datum: notaAberta.datum, texto: notaTexto, onTexto: setNotaTexto,
       gravando: notaGravando, recordedUrl: notaRecordedUrl, recordedDurStr: notaRecordedDurStr, onToggleGravar: alternarGravacaoNota,
+      leitor: leitorSt, chaveGravacao: chaveDaGravacao(), onPlayGravacao: tocarGravacaoNova, onStopGravacao: function() { WP_LEITOR.parar(); },
+      onSaltarGravacao: function(seg) { WP_LEITOR.saltar(chaveDaGravacao(), seg); },
       temNota: !!encontrarNota(notaAberta.datum, notaAberta.wer), guardando: guardandoNota, erro: erro,
       onFechar: fecharNota, onGuardar: guardarNota, onApagar: apagarNota
     })
