@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-07T04:24:43.213Z
+  Gerado em: 2026-10-07T10:38:18.565Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-393";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-395";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -31211,29 +31211,18 @@ function HwZahlteil(props) {
     // Trabalhos do Extra com estado "feito", pelo ano da data do trabalho (tudo em Rappen inteiros)
     function hwxTotaisExtra(trabs, ano, servicos, cats) {
       var out = { n: 0, total: 0, mat: 0, rec: { n: 0, total: 0, mat: 0 }, por: { n: 0, total: 0, mat: 0 }, porLista: [],
-        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [], incl: 0,
-        horasExtra: 0, inclMeses: [], inclHoras: 0, inclTit: {} };
-      for (var m = 0; m < 12; m++) { out.meses.push({ n: 0, sem: 0, mat: 0, h: 0 }); out.inclMeses.push({ n: 0, h: 0 }); }
+        meses: [], clientes: {}, cats: {}, horas: 0, semHoras: 0, comHoras: 0, jobs: [], incl: 0 };
+      for (var m = 0; m < 12; m++) out.meses.push({ n: 0, sem: 0, mat: 0 });
       (trabs || []).forEach(function (t) {
         if (t.estado !== 'feito' || String(t.data).slice(0, 4) !== ano) return;
-        if (t.incluido_pauschale) { // incluído na Pauschale Hauswart: nunca conta em CHF (evita contar 2×); só nº, horas e títulos
-          var hi = hwxTrabHoras(t), mj = +String(t.data).slice(5, 7) - 1;
-          out.incl++; out.inclHoras += hi;
-          if (mj >= 0 && mj < 12) { out.inclMeses[mj].n++; out.inclMeses[mj].h += hi; }
-          var tn = String(t.titulo || '').trim() || '(sem título)', tk = hwxNorm(tn);
-          if (!out.inclTit[tk]) out.inclTit[tk] = { nome: tn, n: 0 };
-          out.inclTit[tk].n++;
-          return;
-        }
+        if (t.incluido_pauschale) { out.incl++; return; } // incluído na Pauschale Hauswart: nunca conta (evita contar 2×)
         var tot = hwxToRappen(Number(t.total) || 0), mat = hwxToRappen(Number(t.material) || 0), sem = tot - mat;
         out.n++; out.total += tot; out.mat += mat; out.jobs.push(t);
         var grp = t.pago ? out.rec : out.por;
         grp.n++; grp.total += tot; grp.mat += mat;
         if (!t.pago) out.porLista.push(t);
         var mi = +String(t.data).slice(5, 7) - 1;
-        var hx0 = hwxTrabHoras(t); // horas reais se existirem, senão as horas das linhas
-        out.horasExtra += hx0;
-        if (mi >= 0 && mi < 12) { out.meses[mi].n++; out.meses[mi].sem += sem; out.meses[mi].mat += mat; out.meses[mi].h += hx0; }
+        if (mi >= 0 && mi < 12) { out.meses[mi].n++; out.meses[mi].sem += sem; out.meses[mi].mat += mat; }
         var ck = hwxClienteTxt(t.cliente_snap), c = out.clientes[ck] || (out.clientes[ck] = { n: 0, sem: 0 });
         c.n++; c.sem += sem;
         (t.linhas || []).forEach(function (l) {
@@ -31253,7 +31242,7 @@ function HwZahlteil(props) {
     }
     // Lê o que a app Hauswart guardou (hauswart_data: archive, works, mats, cfg). NUNCA escreve.
     function hwxTotaisHw(row, ano) {
-      var out = { itens: [], ignoradas: 0, total: 0, mat: 0, emCurso: null, pau: 0, horas: 0, trab: 0, dif: 0 };
+      var out = { itens: [], ignoradas: 0, total: 0, mat: 0, emCurso: null };
       if (!row) return out;
       var arch = Array.isArray(row.archive) ? row.archive : [], arquivados = {};
       arch.forEach(function (a) {
@@ -31268,25 +31257,18 @@ function HwZahlteil(props) {
         if (tm !== null) mat = hwxToRappen(tm);
         else { mat = 0; (Array.isArray(a.mats) ? a.mats : []).forEach(function (mm) { mat += hwxToRappen(hwxNum(mm && mm.price) || 0); }); }
         var t = hwxToRappen(tot);
-        // Campos reais da fatura arquivada (src/13): pauschale, totalWork (Σ works.hours × works.rate), totalMats (Σ mats.price), total = soma dos três
-        var pa = a.pauschale != null ? hwxNum(a.pauschale) : (a.cfg && a.cfg.pauschale != null ? hwxNum(a.cfg.pauschale) : null);
-        var pauR = hwxToRappen(pa === null ? 0 : pa), hrs = 0, wsum = 0;
-        (Array.isArray(a.works) ? a.works : []).forEach(function (w) { var hh = hwxNum(w && w.hours) || 0; hrs += hh; wsum += Math.round(hh * (hwxNum(w && w.rate) || 0) * 100); });
-        var tw = a.totalWork != null ? hwxNum(a.totalWork) : null;
-        var workR = tw !== null ? hwxToRappen(tw) : wsum;
-        var dif = t - (pauR + workR + mat);
-        out.itens.push({ a: a, total: t, mat: mat, pau: pauR, horas: hrs, trab: workR, dif: dif, quarter: a.quarter || '', semData: semData, pago: !!a.paid, data: a.invoiceDate || '', num: a.invNum || a.invLabel || a.referenz || '' });
-        out.total += t; out.mat += mat; out.pau += pauR; out.horas += hrs; out.trab += workR; out.dif += dif;
+        out.itens.push({ a: a, total: t, mat: mat, quarter: a.quarter || '', semData: semData, pago: !!a.paid, data: a.invoiceDate || '', num: a.invNum || a.invLabel || a.referenz || '' });
+        out.total += t; out.mat += mat;
       });
       out.itens.sort(function (x, y) { return String(x.quarter).localeCompare(String(y.quarter)) || String(x.data).localeCompare(String(y.data)); });
       // trimestre em curso: ainda não arquivado (pauschale + trabalhos + materiais da linha viva)
       var cfg = row.cfg && typeof row.cfg === 'object' ? row.cfg : {};
       var cy = String(cfg.year == null ? '' : cfg.year);
       if (cy && cy === ano && !arquivados[cy + '|' + (cfg.quarter || '')]) {
-        var p2 = hwxToRappen(hwxNum(cfg.pauschale) || 0), t2 = p2, m2 = 0, w2 = 0, h2 = 0;
-        (Array.isArray(row.works) ? row.works : []).forEach(function (w) { var hh = hwxNum(w && w.hours) || 0; var v = Math.round(hh * (hwxNum(w && w.rate) || 0) * 100); h2 += hh; w2 += v; t2 += v; });
+        var t2 = hwxToRappen(hwxNum(cfg.pauschale) || 0), m2 = 0;
+        (Array.isArray(row.works) ? row.works : []).forEach(function (w) { t2 += Math.round((hwxNum(w && w.hours) || 0) * (hwxNum(w && w.rate) || 0) * 100); });
         (Array.isArray(row.mats) ? row.mats : []).forEach(function (mm) { var v = hwxToRappen(hwxNum(mm && mm.price) || 0); t2 += v; m2 += v; });
-        out.emCurso = { quarter: cfg.quarter || '', total: t2, mat: m2, pau: p2, horas: h2, trab: w2, dif: t2 - (p2 + w2 + m2) };
+        out.emCurso = { quarter: cfg.quarter || '', total: t2, mat: m2 };
       }
       return out;
     }
@@ -31300,17 +31282,6 @@ function HwZahlteil(props) {
         React.createElement('span', { style: { minWidth: 0, wordBreak: 'break-word' } }, props.l), React.createElement('span', { style: { whiteSpace: 'nowrap' } }, props.v));
     }
 
-    // Linhas Pauschale / Horas extra / Material de uma fatura (ou do resumo); se a soma não bater com o total, mostra a diferença
-    function hwxLinhasFatura(x) {
-      var R2 = function (r) { return 'CHF ' + hwxMoneyDe(hwxFromRappen(r)); };
-      return [
-        React.createElement(HxLinhaVal, { key: 'pa', l: 'Pauschale', v: R2(x.pau) }),
-        React.createElement(HxLinhaVal, { key: 'he', l: 'Horas extra', v: hwxQty(Math.round(x.horas * 100) / 100) + ' h · ' + R2(x.trab) }),
-        React.createElement(HxLinhaVal, { key: 'ma', l: 'Material', v: R2(x.mat) }),
-        x.dif !== 0 && React.createElement('div', { key: 'df', 'data-hwx-diferenca': String(x.dif), style: { background: HX.warnBg, border: '1px solid ' + HX.warn, color: HX.warnText, borderRadius: 8, padding: '6px 10px', marginTop: 4, fontSize: 13, fontWeight: 600 } },
-          '⚠️ A soma (Pauschale + horas extra + material) não bate com o total: diferença ' + (x.dif > 0 ? '+' : '−') + R2(Math.abs(x.dif)) + '.')
-      ];
-    }
     function HwxTotais(props) {
       var notify = props.notify, ctx = React.useContext(HxCtx);
       var trabalhos = hwxUseList('hwx_trabalhos', 'data', notify);
@@ -31457,11 +31428,6 @@ function HwZahlteil(props) {
                 React.createElement(HxBarra, { pct: m.sem / maxMes * 100, h: 10 }),
                 React.createElement('span', { style: { fontSize: 13, whiteSpace: 'nowrap', minWidth: 78, textAlign: 'right' } }, m.n ? R(m.sem) : '—'));
             }),
-            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Horas extra por mês (feitos, sem os incluídos na Pauschale)'),
-            ex.meses.map(function (m, i) {
-              return m.n ? React.createElement(HxLinhaVal, { key: 'h' + i, l: HWX_MONTHS[i], v: hwxQty(Math.round(m.h * 100) / 100) + ' h · ' + R(m.sem) }) : null;
-            }),
-            React.createElement(HxLinhaVal, { l: 'Total do ano (CHF sem material)', v: hwxQty(Math.round(ex.horasExtra * 100) / 100) + ' h · ' + R(ex.total - ex.mat), bold: true }),
             React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por cliente (sem material)'),
             clientesOrd.map(function (k) { return React.createElement(HxLinhaVal, { key: k, l: k + ' (' + ex.clientes[k].n + ')', v: R(ex.clientes[k].sem) }); }),
             React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 14 }) }, 'Por categoria (linhas)'),
@@ -31470,21 +31436,6 @@ function HwZahlteil(props) {
             React.createElement(HxLinhaVal, { l: 'Horas reais do ano', v: hwxQty(ex.horas) + ' h' }),
             React.createElement(HxLinhaVal, { l: 'Preço real médio por hora', v: ex.horas > 0 ? R(Math.round(precoMedio)) + ' / h' : '—', bold: true }),
             React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Total sem material ÷ horas reais, só nos trabalhos com horas reais.'))
-        ),
-        // ── Incluído na Pauschale (CHF 0: nunca entra nos totais em CHF) ──
-        React.createElement(HxSection, { title: 'Incluído na Pauschale · ' + ano },
-          ex.incl === 0 && React.createElement('div', { 'data-hwx-incl': '0', style: { fontSize: 14, color: HX.muted } }, 'Nenhum trabalho incluído na Pauschale em ' + ano + '.'),
-          ex.incl > 0 && React.createElement('div', { 'data-hwx-incl': String(ex.incl) },
-            React.createElement(HxLinhaVal, { l: ex.incl + ' trabalho(s) feito(s)', v: hwxQty(Math.round(ex.inclHoras * 100) / 100) + ' h · ' + R(0), bold: true }),
-            React.createElement('div', { style: { fontSize: 13, color: HX.muted, marginBottom: 6 } }, 'CHF 0: nunca entra nos totais em CHF.'),
-            React.createElement('div', { style: HXS.sec }, 'Por mês'),
-            ex.inclMeses.map(function (m, i) {
-              return m.n ? React.createElement(HxLinhaVal, { key: 'i' + i, l: HWX_MONTHS[i], v: m.n + (m.n === 1 ? ' vez · ' : ' vezes · ') + hwxQty(Math.round(m.h * 100) / 100) + ' h' }) : null;
-            }),
-            React.createElement('div', { style: Object.assign({}, HXS.sec, { marginTop: 12 }) }, 'Por título'),
-            Object.keys(ex.inclTit).map(function (k) { return ex.inclTit[k]; }).sort(function (a, b) { return b.n - a.n || hwxCmpText(a.nome, b.nome); }).map(function (x) {
-              return React.createElement(HxLinhaVal, { key: 't' + x.nome, l: x.nome, v: x.n + (x.n === 1 ? ' vez' : ' vezes') });
-            }))
         ),
         // ── Hauswart ──
         React.createElement(HxSection, { title: 'Hauswart (só leitura) · ' + ano },
@@ -31496,12 +31447,6 @@ function HwZahlteil(props) {
             React.createElement(HxLinhaVal, { l: 'Faturas arquivadas — total', v: R(hx.total) }),
             React.createElement(HxLinhaVal, { l: 'Material (reembolso)', v: R(hx.mat), muted: true }),
             React.createElement(HxLinhaVal, { l: 'Sem material', v: R(hx.total - hx.mat), bold: true }),
-            React.createElement('div', { 'data-hwx-resumo-hw': '1', style: { borderTop: '1px solid ' + HX.border, marginTop: 6, paddingTop: 6 } },
-              React.createElement('div', { style: HXS.sec }, 'Resumo do ano · faturas arquivadas'),
-              hwxLinhasFatura({ pau: hx.pau, horas: hx.horas, trab: hx.trab, mat: hx.mat, dif: hx.dif, total: hx.total }),
-              curso && React.createElement('div', { style: { marginTop: 8 } },
-                React.createElement('div', { style: HXS.sec }, 'Resumo do ano · incluindo em curso'),
-                hwxLinhasFatura({ pau: hx.pau + curso.pau, horas: hx.horas + curso.horas, trab: hx.trab + curso.trab, mat: hx.mat + curso.mat, dif: hx.dif + curso.dif, total: hx.total + curso.total }))),
             trimOrd.concat(['']).map(function (q) {
               var its = hx.itens.filter(function (i) { return (trimOrd.indexOf(i.quarter) === -1 ? '' : i.quarter) === q; });
               if (!its.length) return null;
@@ -31512,7 +31457,6 @@ function HwZahlteil(props) {
                       React.createElement('span', { style: { fontWeight: 800 } }, (i.quarter || 'Q?') + ' · ' + (i.num || '(sem número)')),
                       React.createElement('span', { style: { fontWeight: 800, whiteSpace: 'nowrap' } }, R(i.total))),
                     React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, (i.data ? hwxFmtDate(i.data) : '') + (i.mat ? ' · material ' + R(i.mat) : '')),
-                    React.createElement('div', { 'data-hwx-fatura': i.num, style: { margin: '4px 0' } }, hwxLinhasFatura(i)),
                     React.createElement('div', null,
                       React.createElement(HxPill, { text: i.pago ? 'Pago' : 'Por receber', color: i.pago ? HX.ok : HX.warn }),
                       i.semData ? React.createElement(HxPill, { text: '⚠ sem data da fatura', color: HX.warn }) : null));
@@ -31522,7 +31466,6 @@ function HwZahlteil(props) {
             React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' } },
               React.createElement('span', { style: { fontWeight: 800 } }, (curso.quarter || 'Q?') + ' · em curso'),
               React.createElement('span', { style: { fontWeight: 800 } }, R(curso.total))),
-            React.createElement('div', { 'data-hwx-fatura': 'em curso', style: { margin: '4px 0' } }, hwxLinhasFatura(curso)),
             React.createElement('div', null, React.createElement(HxPill, { text: 'em curso', color: HX.warn })),
             React.createElement('div', { style: { fontSize: 13, color: HX.muted } }, 'Pauschale + trabalhos + material da fatura ainda não arquivada' + (curso.mat ? ' · material ' + R(curso.mat) : '') + '. Não entra no total arquivado.'))
         ),
@@ -44610,6 +44553,460 @@ function FitnessApp(props) {
   );
 }
 
+// ── HOME EXTRAS ─────────────────────────────────────────────────────
+// (1) Popup "Kompliment des Tages" — 1x por dia por utilizador
+// (2) Cartão do tempo (Open-Meteo, Selzach) ao lado da saudação
+// (3) Painel admin do Kompliment (ligar/desligar + criar/editar/apagar textos)
+// Independente das apps. Usa só React, T, Card (carregados antes). Nada aqui
+// pode partir a Home: tudo falha em silêncio e cai nos valores por defeito.
+
+var KOTD_DEFAULT_ITEMS = [
+  'Dein Werkzeugkoffer ist perfekt organisiert. Man findet darin alles – ausser Werkzeug.',
+  'Deine Arbeitsweise verdient ein eigenes Handbuch.',
+  'Heute arbeitest du auf Profi-Niveau.',
+  'Effizienz könnte von dir noch etwas lernen.',
+  'Probleme lösen sich fast von selbst, wenn du da bist.',
+  'Kaffee arbeitet hart, aber du arbeitest härter.',
+  'Dein Auge fürs Detail ist beeindruckend.',
+  'Wieder ein Tag, wieder ein erfolgreicher Auftrag.',
+  'Du brauchst keine Montageanleitung – du weisst es sowieso besser.',
+  'Was du festschraubst, hält für die Ewigkeit.',
+  'Deine Wasserwaage ist neidisch auf deine Genauigkeit.',
+  'Bei dir passt jedes Teil auf Anhieb – und am Ende bleibt keine Schraube übrig.',
+  'Wo du warst, ist danach alles gerade.',
+  'Aus einem Haufen Kartons machst du ein fertiges Zimmer.',
+  'Dein Akkuschrauber läuft leer – du nie.'
+];
+var KOTD_CFG_KEY = 'carvalho_kotd_config';
+var KOTD_MAX_LEN = 220;
+
+function kotdSafeGet(k) {
+  try { return localStorage.getItem(k); } catch (e) { return null; }
+}
+function kotdSafeSet(k, v) {
+  try { localStorage.setItem(k, v); return true; } catch (e) { return false; }
+}
+
+// Data LOCAL (não UTC) em YYYY-MM-DD.
+function kotdLocalDate(d) {
+  var m = d.getMonth() + 1, day = d.getDate();
+  return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+}
+function kotdDayOfYear(d) {
+  var a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  var b = Date.UTC(d.getFullYear(), 0, 0);
+  return Math.round((a - b) / 86400000);
+}
+// Lista efectiva: a personalizada se tiver textos válidos, senão a por defeito.
+function kotdEffectiveItems(items) {
+  var l = Array.isArray(items) ? items.filter(function (s) { return typeof s === 'string' && s.trim(); }) : [];
+  return l.length ? l : KOTD_DEFAULT_ITEMS;
+}
+// Próximo índice: último+1 (rotação); sem histórico, baseado no dia do ano.
+// Com 2+ textos nunca devolve o mesmo índice do último mostrado.
+function kotdNextIndex(n, last, now) {
+  if (n <= 0) return 0;
+  var idx = (last && typeof last.index === 'number' && last.index >= 0)
+    ? (last.index + 1) % n
+    : kotdDayOfYear(now) % n;
+  if (n > 1 && last && idx === last.index) idx = (idx + 1) % n;
+  return idx;
+}
+function kotdStoreKey(userId) { return 'kotd_' + userId; }
+function kotdReadShown(userId) {
+  try {
+    var o = JSON.parse(kotdSafeGet(kotdStoreKey(userId)) || 'null');
+    return o && typeof o.date === 'string' ? o : null;
+  } catch (e) { return null; }
+}
+// Decide o que mostrar: devolve {text,index,date} ou null (já mostrado hoje / desligado / sem utilizador).
+function kotdDecide(userId, cfg, now) {
+  if (!userId || !cfg || cfg.enabled === false) return null;
+  var today = kotdLocalDate(now);
+  var shown = kotdReadShown(userId);
+  if (shown && shown.date === today) return null;
+  var list = kotdEffectiveItems(cfg.items);
+  var idx = kotdNextIndex(list.length, shown, now);
+  return { text: list[idx], index: idx, date: today };
+}
+function kotdMarkShown(userId, d) {
+  kotdSafeSet(kotdStoreKey(userId), JSON.stringify({ date: d.date, index: d.index }));
+}
+
+function kotdCachedConfig() {
+  try {
+    var o = JSON.parse(kotdSafeGet(KOTD_CFG_KEY) || 'null');
+    if (o && typeof o === 'object') {
+      return { enabled: o.enabled !== false, items: Array.isArray(o.items) ? o.items : [] };
+    }
+  } catch (e) {}
+  return { enabled: true, items: [] };
+}
+// Lê a config partilhada (tabela app_settings, se existir) e guarda em cache local.
+// Se a tabela não existir / sem rede / demora > 3,5 s → usa a cache local.
+function kotdLoadConfig() {
+  var base = kotdCachedConfig();
+  if (typeof window === 'undefined' || !window.supabaseClient) return Promise.resolve(base);
+  var remote;
+  try {
+    remote = Promise.resolve(window.supabaseClient.from('app_settings').select('value').eq('key', 'kotd').maybeSingle())
+      .then(function (res) {
+        if (!res || res.error || !res.data || !res.data.value) return base;
+        var v = res.data.value;
+        var cfg = { enabled: v.enabled !== false, items: Array.isArray(v.items) ? v.items : [] };
+        kotdSafeSet(KOTD_CFG_KEY, JSON.stringify(cfg));
+        return cfg;
+      }).catch(function () { return base; });
+  } catch (e) { return Promise.resolve(base); }
+  var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(base); }, 3500); });
+  return Promise.race([remote, timeout]);
+}
+// Guarda sempre em local; tenta partilhar via Supabase. Resolve {remote:boolean}.
+function kotdSaveConfig(cfg) {
+  kotdSafeSet(KOTD_CFG_KEY, JSON.stringify(cfg));
+  if (typeof window === 'undefined' || !window.supabaseClient) return Promise.resolve({ remote: false });
+  try {
+    return Promise.resolve(window.supabaseClient.from('app_settings').upsert({
+      key: 'kotd', value: cfg, updated_at: new Date().toISOString()
+    })).then(function (res) { return { remote: !(res && res.error) }; })
+      .catch(function () { return { remote: false }; });
+  } catch (e) { return Promise.resolve({ remote: false }); }
+}
+
+// ── Popup ──
+function KotdPopup(props) {
+  var userId = props.userId;
+  var _s = React.useState(null), item = _s[0], setItem = _s[1];
+  var _v = React.useState(false), vis = _v[0], setVis = _v[1];
+  var closeTimer = React.useRef(null);
+  var unmountTimer = React.useRef(null);
+  var autoTimer = React.useRef(null);
+
+  React.useEffect(function () {
+    if (!userId) return;
+    var cancelled = false;
+    kotdLoadConfig().then(function (cfg) {
+      if (cancelled) return;
+      var d = kotdDecide(userId, cfg, new Date());
+      if (!d) return;
+      kotdMarkShown(userId, d);
+      setItem(d);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { if (!cancelled) setVis(true); }); });
+      autoTimer.current = setTimeout(function () { close(); }, 12000);
+    });
+    return function () {
+      cancelled = true;
+      clearTimeout(autoTimer.current);
+      clearTimeout(closeTimer.current);
+      clearTimeout(unmountTimer.current);
+    };
+  }, [userId]);
+
+  function close() {
+    clearTimeout(autoTimer.current);
+    setVis(false);
+    unmountTimer.current = setTimeout(function () { setItem(null); }, 350);
+  }
+  if (!item) return null;
+  var BLUE = '#2563EB';
+  return React.createElement('div', {
+    role: 'status', 'aria-live': 'polite',
+    style: {
+      position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '50%',
+      width: 'calc(100% - 24px)', maxWidth: 420, zIndex: 600,
+      opacity: vis ? 1 : 0,
+      transform: 'translate(-50%,' + (vis ? '0' : '-14px') + ')',
+      transition: 'opacity .35s ease, transform .35s ease',
+      pointerEvents: vis ? 'auto' : 'none'
+    }
+  }, React.createElement('div', {
+    style: {
+      position: 'relative', background: '#FFFFFF', borderRadius: 20, overflow: 'hidden',
+      boxShadow: '0 10px 30px rgba(0,0,0,.28)', borderTop: '4px solid ' + BLUE,
+      padding: '16px 44px 16px 16px', display: 'flex', gap: 12, alignItems: 'flex-start'
+    }
+  },
+    React.createElement('div', {
+      'aria-hidden': 'true',
+      style: { width: 40, height: 40, borderRadius: '50%', background: BLUE, color: '#fff', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, fontWeight: 800, lineHeight: 1, paddingTop: 6, fontFamily: 'Georgia,serif' }
+    }, '”'),
+    React.createElement('div', { style: { minWidth: 0 } },
+      React.createElement('p', { style: { color: BLUE, fontSize: 11, fontWeight: 800, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 6 } }, 'Kompliment des Tages'),
+      React.createElement('p', { style: { color: '#1F2937', fontSize: 15, fontWeight: 600, lineHeight: 1.4, wordBreak: 'break-word' } }, item.text)
+    ),
+    React.createElement('button', {
+      onClick: close, 'aria-label': 'Schliessen',
+      style: { position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: '50%', border: 'none',
+        background: 'transparent', color: '#6B7280', fontSize: 20, lineHeight: 1, cursor: 'pointer' }
+    }, '×')
+  ));
+}
+
+// ── Tempo ──
+var WX_FALLBACK = { lat: 47.21, lon: 7.48, name: 'Selzach' };
+var WX_KEY = 'carvalho_wx_cache';
+var WX_TTL = 30 * 60 * 1000;
+var WX_MAX_KM = 5;
+// Só em memória, por sessão: posição já obtida e pedido recusado (não voltar a pedir).
+var wxSessionPos = null;
+var wxGeoDenied = false;
+
+function wxUrl(lat, lon) {
+  return 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+    '&current=temperature_2m,weather_code&daily=temperature_2m_min,temperature_2m_max,weather_code&timezone=auto';
+}
+function wxGeoUrl(lat, lon) {
+  return 'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + lat + '&longitude=' + lon + '&localityLanguage=de';
+}
+// Distância em km entre dois pontos {lat,lon} (haversine).
+function wxDistKm(a, b) {
+  var R = 6371, rad = Math.PI / 180;
+  var dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+function wxRound(n) { return Math.round(n * 1000) / 1000; }
+// A cache só serve sem pedir de novo se tem menos de 30 min E a posição está a <= 5 km.
+function wxCacheFresh(c, pos, now) {
+  return !!c && now - c.t < WX_TTL && wxDistKm(c, pos) <= WX_MAX_KM;
+}
+
+function wxDescribe(code) {
+  if (code === 0) return { i: '☀️', t: 'Sol' };
+  if (code === 1) return { i: '🌤️', t: 'Pouco nublado' };
+  if (code === 2) return { i: '⛅', t: 'Nublado' };
+  if (code === 3) return { i: '☁️', t: 'Encoberto' };
+  if (code === 45 || code === 48) return { i: '🌫️', t: 'Nevoeiro' };
+  if (code >= 51 && code <= 57) return { i: '🌦️', t: 'Chuvisco' };
+  if (code >= 61 && code <= 67) return { i: '🌧️', t: 'Chuva' };
+  if (code >= 71 && code <= 77) return { i: '🌨️', t: 'Neve' };
+  if (code >= 80 && code <= 82) return { i: '🌦️', t: 'Aguaceiros' };
+  if (code === 85 || code === 86) return { i: '🌨️', t: 'Neve' };
+  if (code >= 95 && code <= 99) return { i: '⛈️', t: 'Trovoada' };
+  return { i: '🌡️', t: 'Tempo' };
+}
+function wxParse(j) {
+  if (!j || !j.current || typeof j.current.temperature_2m !== 'number') return null;
+  var min = j.daily && j.daily.temperature_2m_min && j.daily.temperature_2m_min[0];
+  var max = j.daily && j.daily.temperature_2m_max && j.daily.temperature_2m_max[0];
+  return { temp: Math.round(j.current.temperature_2m), code: j.current.weather_code,
+    min: typeof min === 'number' ? Math.round(min) : null, max: typeof max === 'number' ? Math.round(max) : null };
+}
+function wxReadCache() {
+  try {
+    var o = JSON.parse(kotdSafeGet(WX_KEY) || 'null');
+    if (!o || !o.data || typeof o.t !== 'number') return null;
+    // cache antiga (sem coordenadas) veio sempre de Selzach
+    if (typeof o.lat !== 'number' || typeof o.lon !== 'number') {
+      return { t: o.t, data: o.data, lat: WX_FALLBACK.lat, lon: WX_FALLBACK.lon, name: WX_FALLBACK.name };
+    }
+    return { t: o.t, data: o.data, lat: o.lat, lon: o.lon, name: typeof o.name === 'string' ? o.name : '' };
+  } catch (e) { return null; }
+}
+// GET json; nunca rejeita (devolve null em qualquer falha/timeout).
+function wxFetchJson(url, ms) {
+  return new Promise(function (resolve) {
+    var ctrl = null, to = null;
+    try {
+      ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      to = setTimeout(function () { if (ctrl) ctrl.abort(); resolve(null); }, ms);
+      fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { clearTimeout(to); resolve(j); })
+        .catch(function () { clearTimeout(to); resolve(null); });
+    } catch (e) { clearTimeout(to); resolve(null); }
+  });
+}
+// Posição aproximada do aparelho; qualquer recusa/erro/timeout/falta de suporte → Selzach, em silêncio.
+// Resolve sempre {lat,lon,fallback}.
+function wxGetPosition() {
+  var fb = { lat: WX_FALLBACK.lat, lon: WX_FALLBACK.lon, fallback: true };
+  if (wxSessionPos && Date.now() - wxSessionPos.t < WX_TTL) return Promise.resolve(wxSessionPos.pos);
+  if (wxGeoDenied || typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(fb);
+  var ask = function () {
+    return new Promise(function (resolve) {
+      var done = false;
+      var finish = function (p) { if (!done) { done = true; resolve(p); } };
+      var guard = setTimeout(function () { finish(fb); }, 10000);
+      try {
+        navigator.geolocation.getCurrentPosition(function (p) {
+          clearTimeout(guard);
+          var pos = { lat: wxRound(p.coords.latitude), lon: wxRound(p.coords.longitude), fallback: false };
+          wxSessionPos = { t: Date.now(), pos: pos };
+          finish(pos);
+        }, function (err) {
+          clearTimeout(guard);
+          if (err && err.code === 1) wxGeoDenied = true;
+          finish(fb);
+        }, { enableHighAccuracy: false, timeout: 8000, maximumAge: WX_TTL });
+      } catch (e) { clearTimeout(guard); finish(fb); }
+    });
+  };
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      return navigator.permissions.query({ name: 'geolocation' }).then(function (st) {
+        if (st && st.state === 'denied') { wxGeoDenied = true; return fb; }
+        return ask();
+      }, function () { return ask(); });
+    }
+  } catch (e) {}
+  return ask();
+}
+
+function HomeWeather() {
+  var _s = React.useState(wxReadCache), wx = _s[0], setWx = _s[1];
+  // estado quando não há valor para mostrar: 'a obter' | 'offline' | 'erro'
+  var _st = React.useState('a obter'), status = _st[0], setStatus = _st[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  var _w = React.useState(function () { return typeof window !== 'undefined' && window.innerWidth < 520; }), narrow = _w[0], setNarrow = _w[1];
+  React.useEffect(function () {
+    var h = function () { setNarrow(window.innerWidth < 520); };
+    window.addEventListener('resize', h);
+    return function () { window.removeEventListener('resize', h); };
+  }, []);
+  React.useEffect(function () {
+    var cancelled = false;
+    wxGetPosition().then(function (pos) {
+      if (cancelled) return;
+      var cached = wxReadCache();
+      if (wxCacheFresh(cached, pos, Date.now())) { setWx(cached); return; }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) { setStatus('offline'); return; } // offline: fica o último valor, se houver
+      wxFetchJson(wxUrl(pos.lat, pos.lon), 6000).then(function (j) {
+        var d = wxParse(j);
+        if (cancelled) return;
+        if (!d) { setStatus('erro'); return; }
+        var near = cached && wxDistKm(cached, pos) <= WX_MAX_KM;
+        var name = pos.fallback ? WX_FALLBACK.name : ((near && cached.name) || '');
+        var save = function (nm) {
+          // as coordenadas ficam só aqui, no localStorage deste aparelho
+          var rec = { t: Date.now(), data: d, lat: pos.lat, lon: pos.lon, name: nm };
+          kotdSafeSet(WX_KEY, JSON.stringify(rec));
+          if (!cancelled) setWx(rec);
+        };
+        if (name) { save(name); return; }
+        wxFetchJson(wxGeoUrl(pos.lat, pos.lon), 5000).then(function (g) {
+          save(g && typeof (g.city || g.locality) === 'string' ? (g.city || g.locality) : '');
+        });
+      });
+    });
+    return function () { cancelled = true; };
+  }, [tick]);
+
+  // telemóvel: linha própria, por baixo da data (largura toda); ecrãs largos: à direita da saudação
+  var box = narrow
+    ? { flex: '1 1 100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }
+    : { flex: '0 0 auto', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 };
+  var shell = Object.assign({ background: T.surface, border: '1px solid ' + T.goldBrd, borderRadius: 16, padding: '8px 12px' }, box);
+
+  if (!wx) {
+    var msg = status === 'a obter' ? 'A obter o tempo…'
+      : status === 'offline' ? 'Tempo indisponível · sem rede' : 'Tempo indisponível · toca para repetir';
+    return React.createElement('div', {
+      role: 'button', title: 'Tempo', onClick: function () { setStatus('a obter'); setTick(tick + 1); },
+      style: Object.assign({ cursor: 'pointer' }, shell)
+    },
+      React.createElement('span', { style: { fontSize: 22, lineHeight: 1 } }, '🌡️'),
+      React.createElement('span', { style: { color: T.muted, fontSize: 12, fontWeight: 700 } }, msg)
+    );
+  }
+  var w = wx.data;
+  var d = wxDescribe(w.code);
+  var label = d.t + (w.min !== null ? ' · ' + w.min + '°' : '');
+  return React.createElement('div', {
+    title: (wx.name || '') + (w.max !== null ? (wx.name ? ' · ' : '') + 'máx ' + w.max + '°' : ''),
+    style: shell
+  },
+    React.createElement('span', { style: { fontSize: 28, lineHeight: 1 } }, d.i),
+    React.createElement('div', { style: { color: T.text, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-1px' } }, w.temp + '°'),
+    React.createElement('div', { style: { textAlign: 'right', minWidth: 0, maxWidth: narrow ? 'none' : 130, marginLeft: narrow ? 'auto' : 0 } },
+      React.createElement('div', { style: { color: T.muted, fontSize: 11, fontWeight: 700 } }, label),
+      wx.name && React.createElement('div', { style: { color: T.muted, fontSize: 10, fontWeight: 600, marginTop: 1, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, wx.name)
+    )
+  );
+}
+
+// ── Painel admin (Definições) ──
+function KotdAdmin() {
+  var _c = React.useState(kotdCachedConfig), cfg = _c[0], setCfg = _c[1];
+  var _m = React.useState(''), msg = _m[0], setMsg = _m[1];
+  var _n = React.useState(''), novo = _n[0], setNovo = _n[1];
+  var _e = React.useState(null), ed = _e[0], setEd = _e[1]; // {i, text}
+  var usingDefault = !cfg.items.some(function (s) { return s && s.trim(); });
+  var list = kotdEffectiveItems(cfg.items);
+
+  React.useEffect(function () {
+    var alive = true;
+    kotdLoadConfig().then(function (c) { if (alive) setCfg(c); });
+    return function () { alive = false; };
+  }, []);
+
+  function persist(next, okMsg) {
+    setCfg(next);
+    kotdSaveConfig(next).then(function (r) {
+      setMsg(r.remote ? okMsg : okMsg + ' — só neste aparelho (falta a tabela app_settings no Supabase).');
+    });
+  }
+  // Ao editar a lista por defeito, parte-se dela (copia) para personalizar.
+  function baseItems() { return usingDefault ? KOTD_DEFAULT_ITEMS.slice() : cfg.items.slice(); }
+  function clean(s) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, KOTD_MAX_LEN); }
+
+  var inp = { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 14 };
+  var btn = function (c) { return { background: 'transparent', border: '1px solid ' + c, color: c, borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }; };
+
+  return React.createElement('div', { style: { marginBottom: 14 } },
+    React.createElement('p', { style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 } }, 'Kompliment des Tages'),
+    React.createElement(Card, { style: { padding: 16 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
+        React.createElement('span', { style: { color: T.text, fontSize: 14, fontWeight: 700 } }, 'Mostrar popup diário'),
+        React.createElement('button', {
+          onClick: function () { persist({ enabled: !cfg.enabled, items: cfg.items }, cfg.enabled ? 'Desligado' : 'Ligado'); },
+          'aria-pressed': cfg.enabled,
+          style: { width: 52, height: 30, borderRadius: 15, border: 'none', cursor: 'pointer', background: cfg.enabled ? '#2563EB' : T.surface2, position: 'relative' }
+        }, React.createElement('span', { style: { position: 'absolute', top: 3, left: cfg.enabled ? 25 : 3, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left .2s' } }))
+      ),
+      React.createElement('p', { style: { color: T.muted, fontSize: 11.5, marginBottom: 10 } },
+        usingDefault ? 'Lista por defeito (' + list.length + ' textos). Ao adicionar ou editar passa a lista personalizada.' : 'Lista personalizada (' + list.length + ' textos).'),
+      list.map(function (t, i) {
+        var editing = ed && ed.i === i;
+        return React.createElement('div', { key: i, style: { borderTop: '1px solid ' + T.goldBrd, padding: '10px 0' } },
+          editing
+            ? React.createElement('div', null,
+                React.createElement('textarea', { value: ed.text, rows: 3, maxLength: KOTD_MAX_LEN, onChange: function (e) { setEd({ i: i, text: e.target.value }); }, style: inp }),
+                React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
+                  React.createElement('button', { style: btn('#22C55E'), onClick: function () {
+                    var t = clean(ed.text); if (!t) return;
+                    var b = baseItems(); b[i] = t; setEd(null); persist({ enabled: cfg.enabled, items: b }, 'Texto guardado');
+                  } }, 'Guardar'),
+                  React.createElement('button', { style: btn(T.muted), onClick: function () { setEd(null); } }, 'Cancelar')))
+            : React.createElement('div', null,
+                React.createElement('p', { style: { color: T.text, fontSize: 13.5, lineHeight: 1.4, marginBottom: 8 } }, t),
+                React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                  React.createElement('button', { style: btn(T.gold), onClick: function () { setEd({ i: i, text: t }); } }, 'Editar'),
+                  React.createElement('button', { style: btn('#DC2626'), onClick: function () {
+                    if (window.confirm && !window.confirm('Apagar este texto?')) return;
+                    var b = baseItems(); b.splice(i, 1);
+                    persist({ enabled: cfg.enabled, items: b }, b.length ? 'Texto apagado' : 'Lista vazia — volta a usar a lista por defeito');
+                  } }, 'Apagar')))
+        );
+      }),
+      React.createElement('div', { style: { borderTop: '1px solid ' + T.goldBrd, paddingTop: 12, marginTop: 4 } },
+        React.createElement('textarea', { value: novo, rows: 2, maxLength: KOTD_MAX_LEN, placeholder: 'Novo elogio…', onChange: function (e) { setNovo(e.target.value); }, style: inp }),
+        React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
+          React.createElement('button', { style: btn('#22C55E'), onClick: function () {
+            var t = clean(novo); if (!t) return;
+            var b = baseItems(); b.push(t); setNovo(''); persist({ enabled: cfg.enabled, items: b }, 'Texto adicionado');
+          } }, '+ Adicionar'),
+          !usingDefault && React.createElement('button', { style: btn(T.muted), onClick: function () {
+            persist({ enabled: cfg.enabled, items: [] }, 'Lista por defeito reposta');
+          } }, 'Repor lista por defeito'))
+      ),
+      msg && React.createElement('p', { style: { color: T.gold, fontSize: 12, marginTop: 10, lineHeight: 1.4 } }, msg)
+    )
+  );
+}
+
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -46649,6 +47046,7 @@ function CarvalhoSuite() {
   }, "Defini\xE7\xF5es"))), React.createElement("div", {
     style: { padding: '14px 16px' }
   },
+  isAdmin && React.createElement(KotdAdmin, null),
   React.createElement("p", {
     style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }
   }, "Diagnóstico & Manutenção"),
@@ -47826,6 +48224,20 @@ function CarvalhoSuite() {
       padding: '20px 20px 16px',
       borderBottom: "1px solid ".concat(T.goldBrd)
     }
+  }, /*#__PURE__*/React.createElement(KotdPopup, {
+    userId: profile && profile.id
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: '1 1 180px',
+      minWidth: 0
+    }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
       color: T.gold,
@@ -47841,7 +48253,7 @@ function CarvalhoSuite() {
       color: T.text,
       textTransform: 'capitalize'
     }
-  }, dateStr), !profile && !profileErr && /*#__PURE__*/React.createElement("p", {
+  }, dateStr)), /*#__PURE__*/React.createElement(HomeWeather, null)), !profile && !profileErr && /*#__PURE__*/React.createElement("p", {
     style: {
       color: T.muted,
       fontSize: 11,

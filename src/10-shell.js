@@ -2037,6 +2037,7 @@ function CarvalhoSuite() {
   }, "Defini\xE7\xF5es"))), React.createElement("div", {
     style: { padding: '14px 16px' }
   },
+  isAdmin && React.createElement(KotdAdmin, null),
   React.createElement("p", {
     style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }
   }, "Diagnóstico & Manutenção"),
@@ -3214,6 +3215,20 @@ function CarvalhoSuite() {
       padding: '20px 20px 16px',
       borderBottom: "1px solid ".concat(T.goldBrd)
     }
+  }, /*#__PURE__*/React.createElement(KotdPopup, {
+    userId: profile && profile.id
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: '1 1 180px',
+      minWidth: 0
+    }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
       color: T.gold,
@@ -3229,7 +3244,7 @@ function CarvalhoSuite() {
       color: T.text,
       textTransform: 'capitalize'
     }
-  }, dateStr), !profile && !profileErr && /*#__PURE__*/React.createElement("p", {
+  }, dateStr)), /*#__PURE__*/React.createElement(HomeWeather, null)), !profile && !profileErr && /*#__PURE__*/React.createElement("p", {
     style: {
       color: T.muted,
       fontSize: 11,
