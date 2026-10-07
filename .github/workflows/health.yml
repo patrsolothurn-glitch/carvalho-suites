@@ -1,0 +1,71 @@
+name: Vigilância diária da Carvalho Suite
+
+# Verificação diária simples: site no ar, index.html com tamanho normal, Supabase a responder.
+# Se um passo falhar, o job falha e o GitHub envia email. Sem gatilho push.
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  saude:
+    name: Saúde do site e da base de dados
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: https://patrsolothurn-glitch.github.io/carvalho-suites/
+      MIN_BYTES: '1500000'
+    steps:
+      - name: 1) Site responde HTTP 200
+        run: |
+          CODE=$(curl --silent --show-error --fail-with-body --max-time 30 \
+            --retry 2 --retry-all-errors --retry-delay 5 \
+            --output corpo.html --write-out '%{http_code}' "$SITE_URL") || RC=$?
+          if [ "$CODE" != "200" ]; then
+            echo "::error title=Site em baixo::O site $SITE_URL devolveu HTTP ${CODE:-000} em vez de 200 (curl saiu com código ${RC:-0})"
+            exit 1
+          fi
+          echo "Site OK: HTTP $CODE" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: 2) index.html tem o tamanho esperado
+        run: |
+          # --compressed descomprime; medimos o corpo realmente descarregado, não o Content-Length
+          if ! curl --silent --show-error --fail-with-body --max-time 30 \
+            --retry 2 --retry-all-errors --retry-delay 5 --compressed \
+            --output index.html "$SITE_URL"; then
+            echo "::error title=index.html não descarregou::Não foi possível descarregar o index.html de $SITE_URL"
+            exit 1
+          fi
+          BYTES=$(wc -c < index.html | tr -d ' ')
+          if [ "$BYTES" -le "$MIN_BYTES" ]; then
+            echo "::error title=index.html pequeno demais::index.html só tem $BYTES bytes (mínimo: mais de $MIN_BYTES)"
+            exit 1
+          fi
+          echo "index.html OK: $BYTES bytes (mínimo > $MIN_BYTES)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: 3) Supabase responde HTTP 200
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          FALTA=""
+          [ -z "$SUPABASE_URL" ] && FALTA="SUPABASE_URL"
+          [ -z "$SUPABASE_ANON_KEY" ] && FALTA="${FALTA:+$FALTA e }SUPABASE_ANON_KEY"
+          if [ -n "$FALTA" ]; then
+            echo "::error title=Secret em falta::Falta criar no repositório (Settings > Secrets and variables > Actions) o secret: $FALTA"
+            exit 1
+          fi
+          URL="${SUPABASE_URL%/}/rest/v1/profiles?select=id&limit=1"
+          CODE=$(curl --silent --show-error --fail-with-body --max-time 30 \
+            --retry 2 --retry-all-errors --retry-delay 5 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            --output resposta.json --write-out '%{http_code}' "$URL") || RC=$?
+          if [ "$CODE" != "200" ]; then
+            echo "::error title=Supabase falhou::${SUPABASE_URL%/}/rest/v1/profiles devolveu HTTP ${CODE:-000} em vez de 200 (curl saiu com código ${RC:-0}); resposta: $(head -c 300 resposta.json 2>/dev/null)"
+            exit 1
+          fi
+          echo "Supabase OK: HTTP $CODE" | tee -a "$GITHUB_STEP_SUMMARY"
