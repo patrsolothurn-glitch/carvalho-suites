@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-07T09:48:14.863Z
+  Gerado em: 2026-10-07T10:38:18.565Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-394";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-395";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -44857,16 +44857,26 @@ function wxGetPosition() {
 
 function HomeWeather() {
   var _s = React.useState(wxReadCache), wx = _s[0], setWx = _s[1];
+  // estado quando não há valor para mostrar: 'a obter' | 'offline' | 'erro'
+  var _st = React.useState('a obter'), status = _st[0], setStatus = _st[1];
+  var _t = React.useState(0), tick = _t[0], setTick = _t[1];
+  var _w = React.useState(function () { return typeof window !== 'undefined' && window.innerWidth < 520; }), narrow = _w[0], setNarrow = _w[1];
+  React.useEffect(function () {
+    var h = function () { setNarrow(window.innerWidth < 520); };
+    window.addEventListener('resize', h);
+    return function () { window.removeEventListener('resize', h); };
+  }, []);
   React.useEffect(function () {
     var cancelled = false;
     wxGetPosition().then(function (pos) {
       if (cancelled) return;
       var cached = wxReadCache();
       if (wxCacheFresh(cached, pos, Date.now())) { setWx(cached); return; }
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) return; // offline: fica o último valor
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) { setStatus('offline'); return; } // offline: fica o último valor, se houver
       wxFetchJson(wxUrl(pos.lat, pos.lon), 6000).then(function (j) {
         var d = wxParse(j);
-        if (!d || cancelled) return;
+        if (cancelled) return;
+        if (!d) { setStatus('erro'); return; }
         var near = cached && wxDistKm(cached, pos) <= WX_MAX_KM;
         var name = pos.fallback ? WX_FALLBACK.name : ((near && cached.name) || '');
         var save = function (nm) {
@@ -44882,20 +44892,36 @@ function HomeWeather() {
       });
     });
     return function () { cancelled = true; };
-  }, []);
-  if (!wx) return null;
+  }, [tick]);
+
+  // telemóvel: linha própria, por baixo da data (largura toda); ecrãs largos: à direita da saudação
+  var box = narrow
+    ? { flex: '1 1 100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }
+    : { flex: '0 0 auto', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 };
+  var shell = Object.assign({ background: T.surface, border: '1px solid ' + T.goldBrd, borderRadius: 16, padding: '8px 12px' }, box);
+
+  if (!wx) {
+    var msg = status === 'a obter' ? 'A obter o tempo…'
+      : status === 'offline' ? 'Tempo indisponível · sem rede' : 'Tempo indisponível · toca para repetir';
+    return React.createElement('div', {
+      role: 'button', title: 'Tempo', onClick: function () { setStatus('a obter'); setTick(tick + 1); },
+      style: Object.assign({ cursor: 'pointer' }, shell)
+    },
+      React.createElement('span', { style: { fontSize: 22, lineHeight: 1 } }, '🌡️'),
+      React.createElement('span', { style: { color: T.muted, fontSize: 12, fontWeight: 700 } }, msg)
+    );
+  }
   var w = wx.data;
   var d = wxDescribe(w.code);
-  var label = d.t + (w.min !== null ? ' \u00B7 ' + w.min + '\u00B0' : '');
+  var label = d.t + (w.min !== null ? ' · ' + w.min + '°' : '');
   return React.createElement('div', {
-    title: (wx.name || '') + (w.max !== null ? (wx.name ? ' \u00B7 ' : '') + 'm\u00E1x ' + w.max + '\u00B0' : ''),
-    style: { flex: '0 0 auto', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
-      background: T.surface, border: '1px solid ' + T.goldBrd, borderRadius: 16, padding: '8px 12px' }
+    title: (wx.name || '') + (w.max !== null ? (wx.name ? ' · ' : '') + 'máx ' + w.max + '°' : ''),
+    style: shell
   },
     React.createElement('span', { style: { fontSize: 28, lineHeight: 1 } }, d.i),
-    React.createElement('div', { style: { textAlign: 'right', maxWidth: 130 } },
-      React.createElement('div', { style: { color: T.text, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-1px' } }, w.temp + '\u00B0'),
-      React.createElement('div', { style: { color: T.muted, fontSize: 11, fontWeight: 700, marginTop: 3 } }, label),
+    React.createElement('div', { style: { color: T.text, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-1px' } }, w.temp + '°'),
+    React.createElement('div', { style: { textAlign: 'right', minWidth: 0, maxWidth: narrow ? 'none' : 130, marginLeft: narrow ? 'auto' : 0 } },
+      React.createElement('div', { style: { color: T.muted, fontSize: 11, fontWeight: 700 } }, label),
       wx.name && React.createElement('div', { style: { color: T.muted, fontSize: 10, fontWeight: 600, marginTop: 1, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, wx.name)
     )
   );
