@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-07T16:03:10.165Z
+  Gerado em: 2026-10-07T16:20:03.656Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-399";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-400";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -35274,6 +35274,15 @@ var WP_CSS = '\
 .wp-mic.wp-recon i{border-radius:5px;width:18px;height:18px}\
 .wp-mic.wp-play i{background:none;width:0;height:0;border-left:14px solid var(--ink);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px;border-radius:0}\
 .wp-mic.wp-lb{width:44px;height:44px}\
+.wp-vnm{display:inline-block;font-size:11.5px;font-weight:600;color:var(--ink2);white-space:nowrap}\
+.wp-vnb{display:block;min-height:32px;margin:2px 0 4px;padding:4px 8px;border:1px solid var(--line2);border-radius:6px;background:var(--card);cursor:pointer}\
+.wp-chip.wp-pchip{min-height:44px;font-size:15px;padding:0 14px}\
+.wp-dia-aviso{margin:0 0 10px;padding:10px 12px;border-radius:8px;background:#FAF0DA;color:#7A4A00;border:1px solid #E4C27A;font-size:15px;font-weight:700}\
+.wp-desc{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px}\
+.wp-desc>div{background:var(--bg);border-radius:12px;padding:16px;width:100%;max-width:360px}\
+.wp-desc h3{font-size:16px;margin-bottom:12px}\
+.wp-desc .wp-acts button{min-height:44px;height:auto}\
+.wp-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:15px;font-weight:600;padding:11px 18px;border-radius:9px;z-index:95;box-shadow:0 4px 14px rgba(0,0,0,.25)}\
 .wp-mic.wp-stop i{background:var(--ink);width:16px;height:16px;border-radius:2px}\
 .wp-mic.wp-pause i{background:none;width:14px;height:18px;border-left:5px solid var(--ink);border-right:5px solid var(--ink);border-radius:0}\
 .wp-prow{display:flex;align-items:center;gap:8px;min-width:0}\
@@ -35640,6 +35649,17 @@ function wpLeitorUI(ls, chave, dauerStr, cb) {
   };
 }
 
+// Sprachnotizen de um dia (wplan_tag com audio_url): da pessoa escolhida, ou de todas com "Alle".
+function wpNotasDoDia(tagRows, datum, who) {
+  return (tagRows || []).filter(function(r) { return r.datum === datum && r.audio_url && (who === 'alle' || r.wer === who); });
+}
+// Marcador pequeno 🎤 + duração (Woche/Team). Escondido na impressão.
+function wpMarcaNotas(L) {
+  if (!L.length) return null;
+  return React.createElement('span', { className: 'wp-vnm wp-noprint', 'aria-label': L.length === 1 ? 'Sprachnotiz ' + (L[0].dauer || '') : L.length + ' Sprachnotizen' }, '🎤 ' + (L.length === 1 ? (L[0].dauer || '') : '×' + L.length));
+}
+function wpDiaLongo(datum) { var d = wpMk(datum); return WP_LONG[WP_DAY[wpDi(d)]] + ' ' + wpFmt(d); }
+
 // ── Vista Tag ──────────────────────────────────────────────────
 function WpTagAbschluss(p) {
   var all = p.tasksDoDia;
@@ -35707,6 +35727,16 @@ function WpTagView(p) {
       (!all.length && !st) && React.createElement('div', { className: 'wp-frei' }, 'Nichts geplant'),
       slots,
       React.createElement('button', { className: 'wp-add', onClick: function() { p.onNovo({ datum: d }); } }, '+ Auftrag'),
+      p.who === 'alle' && (function() {
+        var comNota = p.tagRows.filter(function(r) { return r.datum === d && r.wer && (r.notiz || r.audio_url); });
+        if (!comNota.length) return null;
+        return React.createElement('div', { className: 'wp-abs wp-alle-notas' },
+          React.createElement('div', { style: { fontSize: 15, marginBottom: 8 } }, 'Wähle eine Person, um die Sprachnotiz zu hören'),
+          React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } }, comNota.map(function(r) {
+            return React.createElement('button', { key: r.wer, type: 'button', className: 'wp-chip wp-pchip', onClick: function() { p.onWho(r.wer); } }, r.wer + (r.audio_url ? ' · 🎤 ' + (r.dauer || '') : ' · Notiz'));
+          }))
+        );
+      })(),
       p.who !== 'alle' && React.createElement(WpTagAbschluss, {
         tasksDoDia: all, nota: p.notaDoDia, onPlay: p.onPlayNota, onAbrirNota: p.onAbrirNota,
         leitor: p.leitor, chaveNota: p.chaveNota, onSaltar: p.onSaltarNota, onStop: p.onStopNota
@@ -35728,6 +35758,7 @@ function WpWocheKarten(p) {
     var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
     dias.push(React.createElement('div', { key: k, className: 'wp-wd' + (k === p.cur ? ' wp-sel' : ''), onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('h4', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_DAY[i] + ' ' + wpFmt(dd), soma > 0 && React.createElement('em', null, wpDez(soma) + 'h')),
+      wpMarcaNotas(wpNotasDoDia(p.tagRows, k, p.who)),
       st && React.createElement('div', { className: 'wp-tg', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
       L.map(function(a) {
         return React.createElement('div', { key: a.id, className: 'wp-wc', style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
@@ -35751,7 +35782,7 @@ function WpWocheRaster(p) {
     var linhas = [];
     for (var qq = 1; qq < WP_H1 - WP_H0; qq++) linhas.push(React.createElement('div', { key: 'l' + qq, className: 'wp-gl', style: { top: (qq * 60 * WP_PPM) + 'px' } }));
     cols.push(React.createElement('div', { key: k, className: 'wp-gc', onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
-      React.createElement('b', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_DAY[i] + ' ' + wpFmt(dd)),
+      React.createElement('b', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_DAY[i] + ' ' + wpFmt(dd), ' ', wpMarcaNotas(wpNotasDoDia(p.tagRows, k, p.who))),
       React.createElement('div', { className: 'wp-gbox' + (k === p.cur ? ' wp-sel' : ''), style: { height: tot } },
         linhas,
         React.createElement('div', { className: 'wp-gm', style: { top: ((wpMn(p.mVon) - WP_H0 * 60) * WP_PPM) + 'px', height: ((wpMn(p.mBis) - wpMn(p.mVon)) * WP_PPM) + 'px' } }),
@@ -35777,6 +35808,7 @@ function WpWocheListe(p) {
     dias.push(React.createElement('div', { key: k, className: 'wp-ld', onClick: (function(kk) { return function() { p.onDia(kk); }; })(k) },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
         React.createElement('h4', k === wpTodayIso() ? { style: { color: 'var(--or)' } } : null, WP_LONG[WP_DAY[i]] + ' ' + wpFmt(dd)),
+        wpMarcaNotas(wpNotasDoDia(p.tagRows, k, p.who)),
         st && React.createElement('span', { className: 'wp-tg', style: { margin: 0, background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
         React.createElement('span', { style: { marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink3)' } }, L.length + ' · ' + wpDez(soma) + 'h')
       ),
@@ -35821,10 +35853,12 @@ function WpTeamNarrow(p, W, m) {
     var blocos = pessoas.map(function(pe) {
       var L = p.tasks.filter(function(a) { return a.datum === k && wpHat(a, pe.name); }).sort(function(x, y) { return x.von < y.von ? -1 : 1; });
       var st = wpStatOf(p.tagRows, p.leute, k, p.who, pe.name);
-      if (!L.length && !st) return null;
       var soma = 0; L.forEach(function(a) { soma += wpDur(a); });
+      var nv = wpNotasDoDia(p.tagRows, k, pe.name);
+      if (!L.length && !st && !nv.length) return null;
       return React.createElement('div', { key: pe.name, className: 'wp-tmp' },
         React.createElement('div', { className: 'wp-tmp-h' }, pe.name, soma > 0 && React.createElement('span', null, wpDez(soma) + 'h')),
+        nv.length > 0 && React.createElement('button', { type: 'button', className: 'wp-vnb wp-noprint', onClick: function() { p.onNota(k, pe.name); } }, wpMarcaNotas(nv)),
         st && React.createElement('div', { className: 'wp-tg', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
         L.map(function(a) {
           return React.createElement('div', { key: a.id, className: 'wp-pc', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
@@ -35860,8 +35894,10 @@ function WpTeamView(p) {
           var st = nm ? wpStatOf(p.tagRows, p.leute, k, p.who, nm) : null;
           var soma = 0; L.forEach(function(a) { soma += wpDur(a); }); wk += soma;
           var sT = nm ? wpSollTag(P, k) * 60 : 0;
+          var nv = nm ? wpNotasDoDia(p.tagRows, k, nm) : [];
           return React.createElement('td', { key: k, className: st ? 'wp-off' : '' },
             st && React.createElement('div', { className: 'wp-tg', style: { background: wpDst(st)[1], color: wpDst(st)[2] } }, wpDst(st)[0]),
+            nv.length > 0 && React.createElement('button', { type: 'button', className: 'wp-vnb wp-noprint', onClick: function() { p.onNota(k, nm); } }, wpMarcaNotas(nv)),
             L.map(function(a) {
               return React.createElement('div', { key: a.id, className: 'wp-pc', onClick: function() { p.onOpen(a.id); }, style: { borderLeftColor: WP_PRIO[a.prio].c, background: wpIsLunch(a, p.mVon, p.mBis) ? '#FAF0DA' : undefined } },
                 React.createElement('b', null, wpStIcon(a.status), a.von + '–' + a.bis),
@@ -36106,6 +36142,7 @@ function WpNoteModal(p) {
   return React.createElement('div', { className: 'wp-ov', onClick: function(e) { if (e.target === e.currentTarget) p.onFechar(); } },
     React.createElement('div', { className: 'wp-sheet', onClick: function(e) { e.stopPropagation(); } },
       React.createElement('h2', null, 'Tagesbilanz ' + wpFmt(wpMk(p.datum))),
+      p.datum !== p.hoje && React.createElement('div', { className: 'wp-dia-aviso', role: 'note' }, 'Du speicherst für ' + wpDiaLongo(p.datum)),
       React.createElement('div', { style: { background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 8, padding: 11 } },
         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11 } },
           ouvir ? lu.play : React.createElement('button', {
@@ -36127,7 +36164,16 @@ function WpNoteModal(p) {
       React.createElement('div', { className: 'wp-acts' },
         p.temNota && React.createElement('button', { className: 'wp-del', onClick: p.onApagar, 'aria-label': 'apagar' }, '🗑'),
         React.createElement('button', { onClick: p.onFechar }, 'Abbrechen'),
-        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'A guardar…' : 'Speichern')
+        React.createElement('button', { className: 'wp-go', onClick: p.onGuardar, disabled: p.guardando }, p.guardando ? 'Speichert…' : 'Speichern')
+      )
+    ),
+    p.confirmar && React.createElement('div', { className: 'wp-desc', role: 'alertdialog', 'aria-modal': true, onClick: function(e) { e.stopPropagation(); } },
+      React.createElement('div', null,
+        React.createElement('h3', null, p.confirmar === 'aufnahme' ? 'Aufnahme verwerfen?' : 'Änderungen verwerfen?'),
+        React.createElement('div', { className: 'wp-acts' },
+          React.createElement('button', { type: 'button', onClick: p.onWeiter }, 'Weiter bearbeiten'),
+          React.createElement('button', { type: 'button', className: 'wp-go', style: { background: '#BE2318', borderColor: '#BE2318' }, onClick: p.onVerwerfen }, 'Verwerfen')
+        )
       )
     )
   );
@@ -36714,6 +36760,10 @@ function WochenplanApp(props) {
   var notaStartRef = React.useRef(0);
   var notaBlobRef = React.useRef(null);
   var _l1 = React.useState(function() { return WP_LEITOR.estado(); }); var leitorSt = _l1[0], setLeitorSt = _l1[1];
+  var _n1 = React.useState(null); var confirmarDescartar = _n1[0], setConfirmarDescartar = _n1[1]; // null | 'aufnahme' | 'text'
+  var _n2 = React.useState(''); var toast = _n2[0], setToast = _n2[1];
+  var toastTimerRef = React.useRef(null);
+  var hojeRef = React.useRef(wpTodayIso()); // o "hoje" que a app conhece; muda à meia-noite / ao voltar a ficar visível
 
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
   var _s30 = React.useState(function() { return { nur: false, spaet: false, pro: false, person: undefined, excl: [], tage: [true, true, true, true, true, true, true], ohne: [], druck: wpLoadDruck() }; }); var printOpt = _s30[0], setPrintOpt = _s30[1];
@@ -36828,10 +36878,20 @@ function WochenplanApp(props) {
     if (rolle === 'monteur') setWho(leute[0].name);
   }, [leute]);
 
-  // Tick de minuto (banner de balanço semanal)
+  // "Hoje" mudou (meia-noite ou app voltou do segundo plano): se o ecrã estava no hoje
+  // anterior passa para o novo hoje; se estava noutro dia de propósito, fica onde está.
+  function verificarHoje() {
+    var h = wpTodayIso(), antigo = hojeRef.current;
+    if (h === antigo) return;
+    hojeRef.current = h;
+    setCur(function(c) { return c === antigo ? h : c; });
+  }
+  // Tick de minuto (banner de balanço semanal + mudança de dia)
   React.useEffect(function() {
-    var t = setInterval(function() { setAgoraTick(function(x) { return x + 1; }); }, 60000);
-    return function() { clearInterval(t); };
+    var t = setInterval(function() { verificarHoje(); setAgoraTick(function(x) { return x + 1; }); }, 60000);
+    function aoFicarVisivel() { if (!document.hidden) verificarHoje(); }
+    document.addEventListener('visibilitychange', aoFicarVisivel);
+    return function() { clearInterval(t); document.removeEventListener('visibilitychange', aoFicarVisivel); };
   }, []);
 
   function setRolle(r) {
@@ -37048,8 +37108,9 @@ function WochenplanApp(props) {
     if (!who || who === 'alle') return;
     WP_LEITOR.parar(); // "Ändern": pára a Sprachnotiz antes de abrir a edição
     var n = encontrarNota(datum, who);
-    setNotaAberta({ datum: datum, wer: who });
+    setNotaAberta({ datum: datum, wer: who, textoOrig: (n && n.notiz) || '' });
     setNotaTexto((n && n.notiz) || '');
+    setConfirmarDescartar(null);
     setNotaRecordedUrl(''); setNotaRecordedDurStr(''); notaBlobRef.current = null;
   }
   function fecharNota() {
@@ -37057,6 +37118,21 @@ function WochenplanApp(props) {
     if (notaMediaRef.current && notaMediaRef.current.state === 'recording') notaMediaRef.current.stop();
     if (notaStreamRef.current) { notaStreamRef.current.getTracks().forEach(function(t) { t.stop(); }); notaStreamRef.current = null; }
     setNotaAberta(null); setNotaGravando(false); setNotaRecordedUrl(''); setNotaRecordedDurStr('');
+    setConfirmarDescartar(null);
+  }
+  // Abbrechen / fundo / Esc: com gravação ou texto por guardar pergunta antes; sem alterações fecha direto
+  function pedirFecharNota() {
+    if (!notaAberta) return;
+    WP_LEITOR.parar();
+    var temAudio = notaGravando || !!notaBlobRef.current;
+    var mudouTexto = notaTexto.trim() !== String(notaAberta.textoOrig || '').trim();
+    if (temAudio || mudouTexto) { setConfirmarDescartar(temAudio ? 'aufnahme' : 'text'); return; }
+    fecharNota();
+  }
+  function mostrarToast(t) {
+    setToast(t);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(function() { toastTimerRef.current = null; setToast(''); }, 2500);
   }
   function alternarGravacaoNota() {
     if (notaGravando) { if (notaMediaRef.current) notaMediaRef.current.stop(); return; }
@@ -37090,7 +37166,9 @@ function WochenplanApp(props) {
     var alvo = notaAberta;
     var texto = notaTexto.trim();
     if (!texto && !notaBlobRef.current) { fecharNota(); return; }
+    setErro(null);
     setGuardandoNota(true);
+    var enviado = null; // o que foi gravado na base (para o estado local, se o upsert não devolver a linha)
     var upload = notaBlobRef.current
       ? db.storage.from(WP_BUCKET).upload(alvo.wer + '/' + alvo.datum + '-' + Date.now() + '.webm', notaBlobRef.current, { contentType: 'audio/webm', upsert: false }).then(function(res) {
           if (res.error) throw res.error;
@@ -37100,10 +37178,11 @@ function WochenplanApp(props) {
     upload.then(function(path) {
       var payload = { datum: alvo.datum, wer: alvo.wer, notiz: texto || null };
       if (path !== undefined) { payload.audio_url = path; payload.dauer = notaRecordedDurStr; }
+      enviado = payload;
       return db.from('wplan_tag').upsert(payload, { onConflict: 'datum,wer' }).select();
     }).then(function(res) {
       if (res.error) throw res.error;
-      var linha = (res.data && res.data[0]) || Object.assign({ datum: alvo.datum, wer: alvo.wer }, {});
+      var linha = (res.data && res.data[0]) || Object.assign({}, enviado); // sem linha devolvida: usa o que acabou de ser gravado
       setTagRows(function(prev) {
         var idx = prev.findIndex(function(r) { return r.datum === alvo.datum && r.wer === alvo.wer; });
         if (idx === -1) return prev.concat([linha]);
@@ -37111,9 +37190,11 @@ function WochenplanApp(props) {
       });
       setGuardandoNota(false);
       fecharNota();
+      mostrarToast('Gespeichert');
     }).catch(function(e) {
+      // modal fica aberto, gravação e texto ficam: Speichern volta a estar disponível
       setGuardandoNota(false);
-      setErro('Falha ao guardar a nota: ' + (e && e.message ? e.message : e));
+      setErro('Speichern fehlgeschlagen – bitte nochmal versuchen. (' + (e && e.message ? e.message : e) + ')');
     });
   }
   function apagarNota() {
@@ -37203,10 +37284,14 @@ function WochenplanApp(props) {
   // Modal Tagesbilanz: Esc fecha (e pára a reprodução, via fecharNota)
   React.useEffect(function() {
     if (!notaAberta) return;
-    function aoTeclar(e) { if (e.key === 'Escape' || e.key === 'Esc') fecharNota(); }
+    function aoTeclar(e) {
+      if (e.key !== 'Escape' && e.key !== 'Esc') return;
+      if (confirmarDescartar) setConfirmarDescartar(null); else pedirFecharNota();
+    }
     document.addEventListener('keydown', aoTeclar);
     return function() { document.removeEventListener('keydown', aoTeclar); };
-  }, [notaAberta]);
+  }, [notaAberta, notaTexto, notaRecordedUrl, notaGravando, confirmarDescartar]);
+  React.useEffect(function() { return function() { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }; }, []);
 
   // ── Aviso de balanço semanal (só na quinta às 15h, para quem tem Qui como último dia útil) ──
   var quemParaBalanco = rolle === 'monteur' ? who : (who !== 'alle' ? who : null);
@@ -37262,7 +37347,7 @@ function WochenplanApp(props) {
       mostrarBalanco && React.createElement(WpBalancoBanner, { quem: pessoaBalanco.name, onAbrir: function() { setMode('tag'); setCur(wpTodayIso()); abrirNota(wpTodayIso()); } }),
       React.createElement('div', null,
         mode === 'tag' && React.createElement(WpTagView, Object.assign({}, diaAtualObj, {
-          onOpen: abrirTarefa, onNovo: abrirNovaTarefa,
+          onOpen: abrirTarefa, onNovo: abrirNovaTarefa, onWho: setWho,
           notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); },
           leitor: leitorSt, chaveNota: chaveDaNota(notaDoDia), onSaltarNota: function(seg) { WP_LEITOR.saltar(chaveDaNota(notaDoDia), seg); }, onStopNota: function() { WP_LEITOR.parar(); }
         })),
@@ -37270,7 +37355,7 @@ function WochenplanApp(props) {
           wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })),
           React.createElement(WpNotizenSemana, { texto: notizSemana, onTexto: mudarNotizSemana })
         ),
-        mode === 'team' && rolle === 'bauleiter' && React.createElement(WpTeamView, Object.assign({}, diaAtualObj, { onOpen: abrirTarefa, onDia: function(k) { setCur(k); setMode('tag'); } }))
+        mode === 'team' && rolle === 'bauleiter' && React.createElement(WpTeamView, Object.assign({}, diaAtualObj, { onOpen: abrirTarefa, onDia: function(k) { setCur(k); setMode('tag'); }, onNota: function(k, nm) { setWho(nm); setCur(k); setMode('tag'); } }))
       ),
       React.createElement(WpLegend, null)
     ),
@@ -37317,8 +37402,10 @@ function WochenplanApp(props) {
       leitor: leitorSt, chaveGravacao: chaveDaGravacao(), onPlayGravacao: tocarGravacaoNova, onStopGravacao: function() { WP_LEITOR.parar(); },
       onSaltarGravacao: function(seg) { WP_LEITOR.saltar(chaveDaGravacao(), seg); },
       temNota: !!encontrarNota(notaAberta.datum, notaAberta.wer), guardando: guardandoNota, erro: erro,
-      onFechar: fecharNota, onGuardar: guardarNota, onApagar: apagarNota
-    })
+      onFechar: pedirFecharNota, onGuardar: guardarNota, onApagar: apagarNota,
+      hoje: hojeRef.current, confirmar: confirmarDescartar, onWeiter: function() { setConfirmarDescartar(null); }, onVerwerfen: fecharNota
+    }),
+    toast && React.createElement('div', { className: 'wp-toast wp-noprint', role: 'status', 'aria-live': 'polite' }, toast)
   );
 }
 
