@@ -382,6 +382,8 @@ var WP_CSS = '\
 .wp-mic.wp-recon{border-color:#BE2318}\
 .wp-mic.wp-recon i{border-radius:5px;width:18px;height:18px}\
 .wp-mic.wp-play i{background:none;width:0;height:0;border-left:14px solid var(--ink);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px;border-radius:0}\
+.wp-mic.wp-lb{width:44px;height:44px}\
+.wp-mic.wp-stop i{background:var(--ink);width:16px;height:16px;border-radius:2px}\
 .wp-mic.wp-pause i{background:none;width:14px;height:18px;border-left:5px solid var(--ink);border-right:5px solid var(--ink);border-radius:0}\
 .wp-prow{display:flex;align-items:center;gap:8px;min-width:0}\
 .wp-prog{flex:1;min-width:0;width:100%;height:44px;margin:0;padding:0;background:none;accent-color:var(--ink);cursor:pointer}\
@@ -646,6 +648,7 @@ function wpCriarLeitor(criarAudio, agora) {
     var a = el; el = null;
     a.onplaying = a.onpause = a.ontimeupdate = a.onended = a.onerror = a.onloadedmetadata = null;
     try { a.pause(); } catch (e) {}
+    try { a.currentTime = 0; } catch (e) {}
     try { a.removeAttribute('src'); a.load(); } catch (e) {}
   }
   function parar() { gen++; libertar(); fonte = null; posPendente = 0; emitir({ key: null, estado: 'parado', t: 0, dur: 0 }); }
@@ -733,6 +736,7 @@ function WpTagAbschluss(p) {
   var ls = p.leitor || {};
   var meu = !!n && ls.key === p.chaveNota;
   var aTocar = meu && (ls.estado === 'toca' || ls.estado === 'carrega');
+  var ativo = aTocar || (meu && ls.estado === 'pausa'); // ⏹ visível enquanto toca ou está em pausa
   var durSeg = (meu && ls.dur) || wpDauerSeg(n && n.dauer);
   var tSeg = meu ? Math.min(ls.t || 0, durSeg || ls.t || 0) : 0;
   return React.createElement('div', { className: 'wp-abs' },
@@ -746,7 +750,8 @@ function WpTagAbschluss(p) {
     n
       ? React.createElement(React.Fragment, null,
         React.createElement('div', { className: 'wp-rec' },
-          React.createElement('button', { type: 'button', className: 'wp-mic ' + (aTocar ? 'wp-pause' : 'wp-play'), onClick: p.onPlay, 'aria-label': aTocar ? 'Pausieren' : 'Abspielen' }, React.createElement('i', null)),
+          React.createElement('button', { type: 'button', className: 'wp-mic wp-lb ' + (aTocar ? 'wp-pause' : 'wp-play'), onClick: p.onPlay, 'aria-label': aTocar ? 'Pausieren' : 'Abspielen' }, React.createElement('i', null)),
+          ativo && React.createElement('button', { type: 'button', className: 'wp-mic wp-lb wp-stop', onClick: p.onStop, 'aria-label': 'Stoppen' }, React.createElement('i', null)),
           React.createElement('div', { style: { flex: 1, minWidth: 0 } },
             React.createElement('div', { style: { fontSize: 13.5, fontWeight: 600 } }, 'Sprachnotiz · ' + (n.dauer || '—')),
             React.createElement('div', { style: { fontSize: 11.5, color: 'var(--ink2)' } }, n.zeit || '')
@@ -801,7 +806,7 @@ function WpTagView(p) {
       React.createElement('button', { className: 'wp-add', onClick: function() { p.onNovo({ datum: d }); } }, '+ Auftrag'),
       p.who !== 'alle' && React.createElement(WpTagAbschluss, {
         tasksDoDia: all, nota: p.notaDoDia, onPlay: p.onPlayNota, onAbrirNota: p.onAbrirNota,
-        leitor: p.leitor, chaveNota: p.chaveNota, onSaltar: p.onSaltarNota
+        leitor: p.leitor, chaveNota: p.chaveNota, onSaltar: p.onSaltarNota, onStop: p.onStopNota
       })
     ),
     React.createElement('div', null,
@@ -2269,7 +2274,9 @@ function WochenplanApp(props) {
   // Leitor da Sprachnotiz: segue o estado do WP_LEITOR; ao sair da Wochenplan pára e liberta o áudio
   React.useEffect(function() {
     var desligar = WP_LEITOR.ouvir(setLeitorSt);
-    return function() { desligar(); WP_LEITOR.parar(); };
+    function aoMudarVisibilidade() { if (document.hidden) WP_LEITOR.parar(); } // página em segundo plano
+    document.addEventListener('visibilitychange', aoMudarVisibilidade);
+    return function() { desligar(); document.removeEventListener('visibilitychange', aoMudarVisibilidade); WP_LEITOR.parar(); };
   }, []);
   // …e também ao mudar de dia, de vista (Tag/Woche/Team), de pessoa/perfil, ou ao abrir/fechar qualquer modal/Vorschau/impressão
   React.useEffect(function() { WP_LEITOR.parar(); }, [cur, mode, who, rolle, !!notaAberta, !!editTaskDraft, teamModalAberto, !!editPerson, !!pensumPessoa, previewJob, printJob]);
@@ -2330,7 +2337,7 @@ function WochenplanApp(props) {
         mode === 'tag' && React.createElement(WpTagView, Object.assign({}, diaAtualObj, {
           onOpen: abrirTarefa, onNovo: abrirNovaTarefa,
           notaDoDia: notaDoDia, onPlayNota: function() { tocarNota(cur, who); }, onAbrirNota: function() { abrirNota(cur); },
-          leitor: leitorSt, chaveNota: chaveDaNota(notaDoDia), onSaltarNota: function(seg) { WP_LEITOR.saltar(chaveDaNota(notaDoDia), seg); }
+          leitor: leitorSt, chaveNota: chaveDaNota(notaDoDia), onSaltarNota: function(seg) { WP_LEITOR.saltar(chaveDaNota(notaDoDia), seg); }, onStopNota: function() { WP_LEITOR.parar(); }
         })),
         mode === 'woche' && React.createElement(React.Fragment, null,
           wl === 'raster' ? React.createElement(WpWocheRaster, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : wl === 'liste' ? React.createElement(WpWocheListe, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })) : React.createElement(WpWocheKarten, Object.assign({}, diaAtualObj, { onDia: function(k) { setCur(k); setMode('tag'); } })),
