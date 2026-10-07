@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-07T04:42:49.942Z
+  Gerado em: 2026-10-07T09:48:14.863Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-393";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-394";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -44744,9 +44744,34 @@ function KotdPopup(props) {
 }
 
 // ── Tempo ──
-var WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=47.21&longitude=7.48&current=temperature_2m,weather_code&daily=temperature_2m_min,temperature_2m_max,weather_code&timezone=Europe%2FZurich';
+var WX_FALLBACK = { lat: 47.21, lon: 7.48, name: 'Selzach' };
 var WX_KEY = 'carvalho_wx_cache';
 var WX_TTL = 30 * 60 * 1000;
+var WX_MAX_KM = 5;
+// Só em memória, por sessão: posição já obtida e pedido recusado (não voltar a pedir).
+var wxSessionPos = null;
+var wxGeoDenied = false;
+
+function wxUrl(lat, lon) {
+  return 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+    '&current=temperature_2m,weather_code&daily=temperature_2m_min,temperature_2m_max,weather_code&timezone=auto';
+}
+function wxGeoUrl(lat, lon) {
+  return 'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' + lat + '&longitude=' + lon + '&localityLanguage=de';
+}
+// Distância em km entre dois pontos {lat,lon} (haversine).
+function wxDistKm(a, b) {
+  var R = 6371, rad = Math.PI / 180;
+  var dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+  var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+function wxRound(n) { return Math.round(n * 1000) / 1000; }
+// A cache só serve sem pedir de novo se tem menos de 30 min E a posição está a <= 5 km.
+function wxCacheFresh(c, pos, now) {
+  return !!c && now - c.t < WX_TTL && wxDistKm(c, pos) <= WX_MAX_KM;
+}
 
 function wxDescribe(code) {
   if (code === 0) return { i: '☀️', t: 'Sol' };
@@ -44772,43 +44797,106 @@ function wxParse(j) {
 function wxReadCache() {
   try {
     var o = JSON.parse(kotdSafeGet(WX_KEY) || 'null');
-    return o && o.data && typeof o.t === 'number' ? o : null;
+    if (!o || !o.data || typeof o.t !== 'number') return null;
+    // cache antiga (sem coordenadas) veio sempre de Selzach
+    if (typeof o.lat !== 'number' || typeof o.lon !== 'number') {
+      return { t: o.t, data: o.data, lat: WX_FALLBACK.lat, lon: WX_FALLBACK.lon, name: WX_FALLBACK.name };
+    }
+    return { t: o.t, data: o.data, lat: o.lat, lon: o.lon, name: typeof o.name === 'string' ? o.name : '' };
   } catch (e) { return null; }
+}
+// GET json; nunca rejeita (devolve null em qualquer falha/timeout).
+function wxFetchJson(url, ms) {
+  return new Promise(function (resolve) {
+    var ctrl = null, to = null;
+    try {
+      ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      to = setTimeout(function () { if (ctrl) ctrl.abort(); resolve(null); }, ms);
+      fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { clearTimeout(to); resolve(j); })
+        .catch(function () { clearTimeout(to); resolve(null); });
+    } catch (e) { clearTimeout(to); resolve(null); }
+  });
+}
+// Posição aproximada do aparelho; qualquer recusa/erro/timeout/falta de suporte → Selzach, em silêncio.
+// Resolve sempre {lat,lon,fallback}.
+function wxGetPosition() {
+  var fb = { lat: WX_FALLBACK.lat, lon: WX_FALLBACK.lon, fallback: true };
+  if (wxSessionPos && Date.now() - wxSessionPos.t < WX_TTL) return Promise.resolve(wxSessionPos.pos);
+  if (wxGeoDenied || typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(fb);
+  var ask = function () {
+    return new Promise(function (resolve) {
+      var done = false;
+      var finish = function (p) { if (!done) { done = true; resolve(p); } };
+      var guard = setTimeout(function () { finish(fb); }, 10000);
+      try {
+        navigator.geolocation.getCurrentPosition(function (p) {
+          clearTimeout(guard);
+          var pos = { lat: wxRound(p.coords.latitude), lon: wxRound(p.coords.longitude), fallback: false };
+          wxSessionPos = { t: Date.now(), pos: pos };
+          finish(pos);
+        }, function (err) {
+          clearTimeout(guard);
+          if (err && err.code === 1) wxGeoDenied = true;
+          finish(fb);
+        }, { enableHighAccuracy: false, timeout: 8000, maximumAge: WX_TTL });
+      } catch (e) { clearTimeout(guard); finish(fb); }
+    });
+  };
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      return navigator.permissions.query({ name: 'geolocation' }).then(function (st) {
+        if (st && st.state === 'denied') { wxGeoDenied = true; return fb; }
+        return ask();
+      }, function () { return ask(); });
+    }
+  } catch (e) {}
+  return ask();
 }
 
 function HomeWeather() {
-  var _s = React.useState(function () { var c = wxReadCache(); return c ? c.data : null; }), wx = _s[0], setWx = _s[1];
+  var _s = React.useState(wxReadCache), wx = _s[0], setWx = _s[1];
   React.useEffect(function () {
-    var cached = wxReadCache();
-    if (cached && Date.now() - cached.t < WX_TTL) return;
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-    var cancelled = false, ctrl = null, to = null;
-    try {
-      ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      to = setTimeout(function () { if (ctrl) ctrl.abort(); }, 6000);
-      fetch(WX_URL, ctrl ? { signal: ctrl.signal } : undefined)
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) {
-          var d = wxParse(j);
-          if (!d || cancelled) return;
-          kotdSafeSet(WX_KEY, JSON.stringify({ t: Date.now(), data: d }));
-          setWx(d);
-        }).catch(function () {}).then(function () { clearTimeout(to); });
-    } catch (e) {}
-    return function () { cancelled = true; clearTimeout(to); };
+    var cancelled = false;
+    wxGetPosition().then(function (pos) {
+      if (cancelled) return;
+      var cached = wxReadCache();
+      if (wxCacheFresh(cached, pos, Date.now())) { setWx(cached); return; }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return; // offline: fica o último valor
+      wxFetchJson(wxUrl(pos.lat, pos.lon), 6000).then(function (j) {
+        var d = wxParse(j);
+        if (!d || cancelled) return;
+        var near = cached && wxDistKm(cached, pos) <= WX_MAX_KM;
+        var name = pos.fallback ? WX_FALLBACK.name : ((near && cached.name) || '');
+        var save = function (nm) {
+          // as coordenadas ficam só aqui, no localStorage deste aparelho
+          var rec = { t: Date.now(), data: d, lat: pos.lat, lon: pos.lon, name: nm };
+          kotdSafeSet(WX_KEY, JSON.stringify(rec));
+          if (!cancelled) setWx(rec);
+        };
+        if (name) { save(name); return; }
+        wxFetchJson(wxGeoUrl(pos.lat, pos.lon), 5000).then(function (g) {
+          save(g && typeof (g.city || g.locality) === 'string' ? (g.city || g.locality) : '');
+        });
+      });
+    });
+    return function () { cancelled = true; };
   }, []);
   if (!wx) return null;
-  var d = wxDescribe(wx.code);
-  var label = d.t + (wx.min !== null ? ' · ' + wx.min + '°' : '');
+  var w = wx.data;
+  var d = wxDescribe(w.code);
+  var label = d.t + (w.min !== null ? ' \u00B7 ' + w.min + '\u00B0' : '');
   return React.createElement('div', {
-    title: 'Selzach' + (wx.max !== null ? ' · máx ' + wx.max + '°' : ''),
+    title: (wx.name || '') + (w.max !== null ? (wx.name ? ' \u00B7 ' : '') + 'm\u00E1x ' + w.max + '\u00B0' : ''),
     style: { flex: '0 0 auto', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
       background: T.surface, border: '1px solid ' + T.goldBrd, borderRadius: 16, padding: '8px 12px' }
   },
     React.createElement('span', { style: { fontSize: 28, lineHeight: 1 } }, d.i),
-    React.createElement('div', { style: { textAlign: 'right' } },
-      React.createElement('div', { style: { color: T.text, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-1px' } }, wx.temp + '°'),
-      React.createElement('div', { style: { color: T.muted, fontSize: 11, fontWeight: 700, marginTop: 3 } }, label)
+    React.createElement('div', { style: { textAlign: 'right', maxWidth: 130 } },
+      React.createElement('div', { style: { color: T.text, fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-1px' } }, w.temp + '\u00B0'),
+      React.createElement('div', { style: { color: T.muted, fontSize: 11, fontWeight: 700, marginTop: 3 } }, label),
+      wx.name && React.createElement('div', { style: { color: T.muted, fontSize: 10, fontWeight: 600, marginTop: 1, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, wx.name)
     )
   );
 }
