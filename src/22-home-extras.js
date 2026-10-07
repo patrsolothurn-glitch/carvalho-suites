@@ -373,19 +373,13 @@ function HomeWeather() {
 }
 
 // ── Painel admin (Definições) ──
-var KOTD_LISTA_ABERTA_KEY = 'carvalho_kotd_lista_aberta';
 function KotdAdmin() {
   var _c = React.useState(kotdCachedConfig), cfg = _c[0], setCfg = _c[1];
   var _m = React.useState(''), msg = _m[0], setMsg = _m[1];
   var _n = React.useState(''), novo = _n[0], setNovo = _n[1];
   var _e = React.useState(null), ed = _e[0], setEd = _e[1]; // {i, text}
-  // Lista de textos recolhível: só preferência de interface (fechada na 1.ª vez)
-  var _a = React.useState(function () { return kotdSafeGet(KOTD_LISTA_ABERTA_KEY) === '1'; }), aberto = _a[0], setAberto = _a[1];
-  function alternarLista() {
-    var v = !aberto;
-    setAberto(v);
-    kotdSafeSet(KOTD_LISTA_ABERTA_KEY, v ? '1' : '0');
-  }
+  // Painel fechado sempre que se entra em Definições (não se guarda o estado)
+  var _a = React.useState(false), aberto = _a[0], setAberto = _a[1];
   var usingDefault = !cfg.items.some(function (s) { return s && s.trim(); });
   var list = kotdEffectiveItems(cfg.items);
 
@@ -408,63 +402,62 @@ function KotdAdmin() {
   var inp = { width: '100%', background: T.surface2, border: '1px solid ' + T.goldBrd, borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 14 };
   var btn = function (c) { return { background: 'transparent', border: '1px solid ' + c, color: c, borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }; };
 
-  return React.createElement('div', { style: { marginBottom: 14 } },
-    React.createElement('p', { style: { color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 } }, 'Elogio do Dia'),
-    React.createElement(Card, { style: { padding: 16 } },
-      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 } },
-        React.createElement('span', { style: { color: T.text, fontSize: 14, fontWeight: 700 } }, 'Mostrar popup diário'),
-        React.createElement('button', {
-          onClick: function () { persist({ enabled: !cfg.enabled, items: cfg.items }, cfg.enabled ? 'Desligado' : 'Ligado'); },
-          'aria-pressed': cfg.enabled,
-          style: { width: 52, height: 30, borderRadius: 15, border: 'none', cursor: 'pointer', background: cfg.enabled ? '#2563EB' : T.surface2, position: 'relative' }
-        }, React.createElement('span', { style: { position: 'absolute', top: 3, left: cfg.enabled ? 25 : 3, width: 24, height: 24, borderRadius: '50%', background: '#fff', transition: 'left .2s' } }))
-      ),
-      React.createElement('p', { style: { color: T.muted, fontSize: 11.5, marginBottom: 10 } },
-        usingDefault ? 'Lista por defeito (' + list.length + ' textos). Ao adicionar ou editar passa a lista personalizada.' : 'Lista personalizada (' + list.length + ' textos).'),
+  var sw = React.createElement('button', {
+    onClick: function () { persist({ enabled: !cfg.enabled, items: cfg.items }, cfg.enabled ? 'Desligado' : 'Ligado'); },
+    'aria-pressed': cfg.enabled, 'aria-label': 'Mostrar popup diário',
+    style: { width: 46, height: 28, borderRadius: 14, border: 'none', cursor: 'pointer', flexShrink: 0, background: cfg.enabled ? '#2563EB' : T.surface2, position: 'relative' }
+  }, React.createElement('span', { style: { position: 'absolute', top: 3, left: cfg.enabled ? 21 : 3, width: 22, height: 22, borderRadius: '50%', background: '#fff', transition: 'left .2s' } }));
+  var mini = function (c) { return { background: 'transparent', border: '1px solid ' + c, color: c, borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }; };
+
+  return React.createElement(Card, { style: { padding: '4px 12px', marginBottom: 14 } },
+    // linha única: título + interruptor + seta
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, minHeight: 44 } },
+      React.createElement('span', { style: { flexShrink: 0, color: T.gold, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap' } }, 'Elogio do dia'),
+      React.createElement('span', { style: { flex: 1, minWidth: 0, textAlign: 'right', color: T.text, fontSize: 12, fontWeight: 700, lineHeight: 1.15 } }, 'Mostrar popup diário'),
+      sw,
       React.createElement('button', {
-        type: 'button', onClick: alternarLista,
-        'aria-expanded': aberto, 'aria-controls': 'kotd-lista',
-        'aria-label': (aberto ? 'Esconder' : 'Mostrar') + ' os textos do Elogio do Dia (' + list.length + ')',
-        style: { width: '100%', minHeight: 44, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', borderTop: '1px solid ' + T.goldBrd, padding: '0 2px', color: T.text, fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }
-      },
-        React.createElement('span', null, 'Textos (' + list.length + ')'),
-        React.createElement('span', { 'aria-hidden': true, style: { color: T.gold, fontSize: 16 } }, aberto ? '▾' : '▸')
-      ),
-      aberto && React.createElement('div', { id: 'kotd-lista' },
+        type: 'button', onClick: function () { setAberto(!aberto); },
+        'aria-expanded': aberto, 'aria-controls': 'kotd-painel',
+        'aria-label': (aberto ? 'Fechar' : 'Abrir') + ' os textos do Elogio do dia',
+        style: { width: 44, height: 44, margin: '0 -8px 0 -2px', flexShrink: 0, background: 'transparent', border: 'none', color: T.gold, fontSize: 18, cursor: 'pointer' }
+      }, aberto ? '▾' : '▸')
+    ),
+    aberto && React.createElement('div', { id: 'kotd-painel', style: { paddingBottom: 10 } },
+      React.createElement('p', { style: { color: T.muted, fontSize: 11.5, margin: '2px 0 8px' } },
+        usingDefault ? 'Lista por defeito (' + list.length + ' textos). Ao adicionar ou editar passa a lista personalizada.' : 'Lista personalizada (' + list.length + ' textos).'),
+      React.createElement('p', { style: { color: T.text, fontSize: 13, fontWeight: 700, margin: '0 0 2px' } }, 'Textos (' + list.length + ')'),
       list.map(function (t, i) {
         var editing = ed && ed.i === i;
-        return React.createElement('div', { key: i, style: { borderTop: '1px solid ' + T.goldBrd, padding: '10px 0' } },
+        return React.createElement('div', { key: i, style: { borderTop: '1px solid ' + T.goldBrd, padding: '6px 0' } },
           editing
             ? React.createElement('div', null,
                 React.createElement('textarea', { value: ed.text, rows: 3, maxLength: KOTD_MAX_LEN, onChange: function (e) { setEd({ i: i, text: e.target.value }); }, style: inp }),
                 React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8 } },
                   React.createElement('button', { style: btn('#22C55E'), onClick: function () {
-                    var t = clean(ed.text); if (!t) return;
-                    var b = baseItems(); b[i] = t; setEd(null); persist({ enabled: cfg.enabled, items: b }, 'Texto guardado');
+                    var t2 = clean(ed.text); if (!t2) return;
+                    var b = baseItems(); b[i] = t2; setEd(null); persist({ enabled: cfg.enabled, items: b }, 'Texto guardado');
                   } }, 'Guardar'),
                   React.createElement('button', { style: btn(T.muted), onClick: function () { setEd(null); } }, 'Cancelar')))
-            : React.createElement('div', null,
-                React.createElement('p', { style: { color: T.text, fontSize: 13.5, lineHeight: 1.4, marginBottom: 8 } }, t),
-                React.createElement('div', { style: { display: 'flex', gap: 8 } },
-                  React.createElement('button', { style: btn(T.gold), onClick: function () { setEd({ i: i, text: t }); } }, 'Editar'),
-                  React.createElement('button', { style: btn('#DC2626'), onClick: function () {
-                    if (window.confirm && !window.confirm('Apagar este texto?')) return;
-                    var b = baseItems(); b.splice(i, 1);
-                    persist({ enabled: cfg.enabled, items: b }, b.length ? 'Texto apagado' : 'Lista vazia — volta a usar a lista por defeito');
-                  } }, 'Apagar')))
+            : React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+                React.createElement('span', { title: t, style: { flex: 1, minWidth: 0, color: T.text, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, t),
+                React.createElement('button', { style: mini(T.gold), onClick: function () { setEd({ i: i, text: t }); } }, 'Editar'),
+                React.createElement('button', { style: mini('#DC2626'), onClick: function () {
+                  if (window.confirm && !window.confirm('Apagar este texto?')) return;
+                  var b = baseItems(); b.splice(i, 1);
+                  persist({ enabled: cfg.enabled, items: b }, b.length ? 'Texto apagado' : 'Lista vazia — volta a usar a lista por defeito');
+                } }, 'Apagar'))
         );
       }),
-      React.createElement('div', { style: { borderTop: '1px solid ' + T.goldBrd, paddingTop: 12, marginTop: 4 } },
+      React.createElement('div', { style: { borderTop: '1px solid ' + T.goldBrd, paddingTop: 10, marginTop: 2 } },
         React.createElement('textarea', { value: novo, rows: 2, maxLength: KOTD_MAX_LEN, placeholder: 'Novo elogio…', onChange: function (e) { setNovo(e.target.value); }, style: inp }),
         React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
           React.createElement('button', { style: btn('#22C55E'), onClick: function () {
-            var t = clean(novo); if (!t) return;
-            var b = baseItems(); b.push(t); setNovo(''); persist({ enabled: cfg.enabled, items: b }, 'Texto adicionado');
+            var t2 = clean(novo); if (!t2) return;
+            var b = baseItems(); b.push(t2); setNovo(''); persist({ enabled: cfg.enabled, items: b }, 'Texto adicionado');
           } }, '+ Adicionar'),
           !usingDefault && React.createElement('button', { style: btn(T.muted), onClick: function () {
             persist({ enabled: cfg.enabled, items: [] }, 'Lista por defeito reposta');
           } }, 'Repor lista por defeito'))
-      )
       ),
       msg && React.createElement('p', { style: { color: T.gold, fontSize: 12, marginTop: 10, lineHeight: 1.4 } }, msg)
     )
