@@ -68,4 +68,9 @@ jobs:
             echo "::error title=Supabase falhou::${SUPABASE_URL%/}/rest/v1/profiles devolveu HTTP ${CODE:-000} em vez de 200 (curl saiu com código ${RC:-0}); resposta: $(head -c 300 resposta.json 2>/dev/null)"
             exit 1
           fi
-          echo "Supabase OK: HTTP $CODE" | tee -a "$GITHUB_STEP_SUMMARY"
+          # RLS: 200 com lista vazia ([]) também é sucesso; o objetivo é saber se o Supabase responde
+          if [ "$(tr -d ' \n\r\t' < resposta.json)" = "[]" ]; then
+            echo "Supabase OK: HTTP $CODE (lista vazia; RLS não mostra linhas à anon key, é normal)" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Supabase OK: HTTP $CODE" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
