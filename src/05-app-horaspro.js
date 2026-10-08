@@ -12,6 +12,20 @@ var H = {
   blue: '#2563EB',
   orange: '#D97706'
 };
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function hprLog(op, err) {
+  console.error('[horaspro] falha ao ' + op + ':', err);
+}
+function hprAvisar(op, err) {
+  hprLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Patricio Time — ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function hprAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') hprLog(op, err);
+  else hprAvisar(op, err);
+}
 
 // ── FORM COMPONENT ISOLADO (evita re-render ao escrever) ────────────
 var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
@@ -566,7 +580,8 @@ function HorasProApp(_ref9) {
   var loadEntries = function loadEntries() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').select('*').then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { hprAvisarRes('carregar as entradas de horas (horas_entries)', res.error); return; }
+      if (!res.data) return;
       setEntries(res.data.map(function (row) {
         return {
           id: row.id,
@@ -583,7 +598,7 @@ function HorasProApp(_ref9) {
         };
       }));
       setEntriesLoaded(true);
-    }).catch(function () {});
+    }).catch(function (err) { hprAvisar('carregar as entradas de horas (horas_entries)', err); });
   };
   // Dias de férias disponíveis (quota). Enquanto houver dias, marcar férias
   // não desconta horas — só consome a quota. Quando a quota chega a 0, os
@@ -599,12 +614,13 @@ function HorasProApp(_ref9) {
   var loadFeriasDisp = function loadFeriasDisp() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horaspro_settings').select('*').eq('id', 1).then(function (res) {
-      if (res.error || !res.data || !res.data[0]) return;
+      if (res.error) { hprAvisarRes('carregar os dias de férias/komp disponíveis (horaspro_settings)', res.error); return; }
+      if (!res.data || !res.data[0]) return;
       setFeriasDisp(Number(res.data[0].ferias_disponiveis) || 0);
       setKompDisp(Number(res.data[0].komp_disponivel) || 0);
       setHorasFeriasDisp(Number(res.data[0].horas_ferias_disponivel) || 0);
       setFeriasDispLoaded(true);
-    }).catch(function () {});
+    }).catch(function (err) { hprAvisar('carregar os dias de férias/komp disponíveis (horaspro_settings)', err); });
   };
   var salvarFeriasDisp = function salvarFeriasDisp(novoValor) {
     setFeriasDisp(novoValor);
@@ -692,9 +708,10 @@ function HorasProApp(_ref9) {
       is_auto: !!e.isAuto,
       dl_tipo: e.dlTipo || null,
       validated: !!e.validado
-    }).then(function () {
+    }).then(function (res) {
+      if (res && res.error) { hprAvisarRes('gravar uma entrada de horas (horas_entries)', res.error); return; }
       loadEntries();
-      }).catch(function () {});
+      }).catch(function (err) { hprAvisar('gravar uma entrada de horas (horas_entries)', err); });
   };
   var fmt = function fmt(d) {
     return d.toISOString().split('T')[0];
@@ -950,7 +967,7 @@ function HorasProApp(_ref9) {
     if (window.supabaseClient) {
       window.supabaseClient.from('horas_entries').update({
         validated: novo
-      }).eq('id', entry.id).then(function () {}).catch(function () {});
+      }).eq('id', entry.id).then(function (res) { if (res && res.error) hprAvisarRes('marcar/desmarcar uma entrada como validada (horas_entries)', res.error); }).catch(function (err) { hprAvisar('marcar/desmarcar uma entrada como validada (horas_entries)', err); });
     }
   };
   var validarTudoVisivel = function validarTudoVisivel() {
@@ -968,7 +985,7 @@ function HorasProApp(_ref9) {
     if (window.supabaseClient) {
       window.supabaseClient.from('horas_entries').update({
         validated: true
-      }).in('id', ids).then(function () {}).catch(function () {});
+      }).in('id', ids).then(function (res) { if (res && res.error) hprAvisarRes('validar todas as entradas visíveis (horas_entries)', res.error); }).catch(function (err) { hprAvisar('validar todas as entradas visíveis (horas_entries)', err); });
     }
   };
   var dayLabel = curDate.toLocaleDateString('pt-PT', {
@@ -985,7 +1002,8 @@ function HorasProApp(_ref9) {
   var loadProjects = function loadProjects() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horaspro_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { hprAvisarRes('carregar os projetos (horaspro_projects)', res.error); return; }
+      if (!res.data) return;
       setProjList(res.data.map(function (row) {
         return {
           id: row.id,
@@ -994,7 +1012,7 @@ function HorasProApp(_ref9) {
           color: row.color || H.blue
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { hprAvisar('carregar os projetos (horaspro_projects)', err); });
   };
   (0, _react.useEffect)(function () {
     loadProjects();
@@ -2649,7 +2667,7 @@ function HorasProApp(_ref9) {
             });
           });
           if (window.supabaseClient) {
-            window.supabaseClient.from('horas_entries').delete().eq('id', e.id).then(function () {}).catch(function () {});
+            window.supabaseClient.from('horas_entries').delete().eq('id', e.id).then(function (res) { if (res && res.error) hprAvisarRes('apagar uma entrada de horas (horas_entries)', res.error); }).catch(function (err) { hprAvisar('apagar uma entrada de horas (horas_entries)', err); });
           }
           if (e.isAuto) setDiasLivres(function (p) {
             return p.filter(function (x) {
@@ -4616,7 +4634,7 @@ function HorasProApp(_ref9) {
                         setEntries(function (p) { return p.filter(function (e) { return !(e.date === dStr && e.isAuto); }); });
                         setDiasLivres(function (p) { return p.filter(function (dl) { return dl.date !== dStr; }); });
                         if (window.supabaseClient) {
-                          window.supabaseClient.from('horas_entries').delete().eq('data', dStr).eq('is_auto', true).then(function () { loadEntries(); }).catch(function () {});
+                          window.supabaseClient.from('horas_entries').delete().eq('data', dStr).eq('is_auto', true).then(function (res) { if (res && res.error) { hprAvisarRes('remover a entrada automática do dia (horas_entries)', res.error); return; } loadEntries(); }).catch(function (err) { hprAvisar('remover a entrada automática do dia (horas_entries)', err); });
                         }
                       },
                       style: { display: 'block', width: '100%', background: 'none', border: 'none', color: opt.tipo === '_remover' ? H.red : H.text, fontSize: 12, padding: '5px 8px', textAlign: 'left', cursor: 'pointer', borderRadius: 7 }
