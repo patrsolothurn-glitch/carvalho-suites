@@ -215,7 +215,8 @@ function AgendaProApp(_ref13) {
   var loadMonteurs = function loadMonteurs() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('agenda_monteurs').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { console.error('[agenda_pro] carregar monteurs:', res.error); window.mostrarErro('Patricio Work', res.error); return; }
+      if (!res.data) return;
       setMonteurs(res.data.map(function (row) {
         return {
           id: row.id,
@@ -227,7 +228,7 @@ function AgendaProApp(_ref13) {
           categoria: row.categoria || ''
         };
       }));
-    }).catch(function () {});
+    }).catch(function (e) { console.error('[agenda_pro] carregar monteurs:', e); window.mostrarErro('Patricio Work', e); });
   };
   (0, _react.useEffect)(function () {
     loadMonteurs();
@@ -461,7 +462,8 @@ function AgendaProApp(_ref13) {
   var loadProjects = function loadProjects() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { console.error('[agenda_pro] carregar projetos:', res.error); window.mostrarErro('Patricio Work', res.error); return; }
+      if (!res.data) return;
       setProjList(res.data.map(function (row) {
         return {
           id: row.id,
@@ -470,7 +472,7 @@ function AgendaProApp(_ref13) {
           contaEstatisticas: row.conta_estatisticas !== false
         };
       }));
-    }).catch(function () {});
+    }).catch(function (e) { console.error('[agenda_pro] carregar projetos:', e); window.mostrarErro('Patricio Work', e); });
   };
   (0, _react.useEffect)(function () {
     loadProjects();
@@ -827,7 +829,8 @@ function AgendaProApp(_ref13) {
   var loadJobs = function loadJobs() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('agenda_pro_jobs').select('*').then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { console.error('[agenda_pro] carregar trabalhos:', res.error); window.mostrarErro('Patricio Work', res.error); return; }
+      if (!res.data) return;
       setAppts(res.data.map(function (row) {
         return {
           id: row.id,
@@ -845,7 +848,7 @@ function AgendaProApp(_ref13) {
           partilhadoCom: row.partilhado_com || 'todos'
         };
       }));
-    }).catch(function () {});
+    }).catch(function (e) { console.error('[agenda_pro] carregar trabalhos:', e); window.mostrarErro('Patricio Work', e); });
   };
   (0, _react.useEffect)(function () {
     loadJobs();
@@ -908,7 +911,7 @@ function AgendaProApp(_ref13) {
           body: body,
           profileIds: ids
         }
-      }).catch(function () {});
+      }).catch(function (e) { console.error('[agenda_pro] enviar push:', e); });
     });
   };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {
@@ -1111,7 +1114,9 @@ function AgendaProApp(_ref13) {
   var updateApptTime = function(id, hi, hf) {
     setAppts(function(p){ return p.map(function(a){ return a.id===id ? Object.assign({},a,{hi:hi,hf:hf}) : a; }); });
     if (window.supabaseClient) {
-      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function(){}).catch(function(){});
+      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function (res) {
+        if (res.error) { console.error('[agenda_pro] mover trabalho:', res.error); window.mostrarErro('Patricio Work', res.error); }
+      }).catch(function (e) { console.error('[agenda_pro] mover trabalho:', e); window.mostrarErro('Patricio Work', e); });
     }
   };
   var renderTimeline = function(dayStr) {
@@ -1258,7 +1263,9 @@ function AgendaProApp(_ref13) {
     if (window.supabaseClient) {
       window.supabaseClient.from('agenda_pro_jobs').update({
         status: status
-      }).eq('id', id).then(function () {}).catch(function () {});
+      }).eq('id', id).then(function (res) {
+        if (res.error) { console.error('[agenda_pro] mudar estado:', res.error); window.mostrarErro('Patricio Work', res.error); }
+      }).catch(function (e) { console.error('[agenda_pro] mudar estado:', e); window.mostrarErro('Patricio Work', e); });
     }
   };
   var deleteAppt = function deleteAppt(id) {
@@ -1268,7 +1275,9 @@ function AgendaProApp(_ref13) {
       });
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function () {}).catch(function () {});
+      window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function (res) {
+        if (res.error) { console.error('[agenda_pro] apagar trabalho:', res.error); window.mostrarErro('Patricio Work', res.error); }
+      }).catch(function (e) { console.error('[agenda_pro] apagar trabalho:', e); window.mostrarErro('Patricio Work', e); });
       window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', id).then(function (res) {
         if (res.error) {
           console.error('[agenda_pro→familia] falha ao remover evento partilhado ao apagar trabalho:', res.error);
