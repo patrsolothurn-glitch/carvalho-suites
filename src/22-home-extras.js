@@ -1,11 +1,30 @@
 // ── HOME EXTRAS ─────────────────────────────────────────────────────
-// (1) Popup "Kompliment des Tages" — 1x por dia por utilizador
+// (1) Popup "Elogio do Dia" — 1x por dia por utilizador
 // (2) Cartão do tempo (Open-Meteo, Selzach) ao lado da saudação
-// (3) Painel admin do Kompliment (ligar/desligar + criar/editar/apagar textos)
+// (3) Painel admin do Elogio do Dia (ligar/desligar + criar/editar/apagar textos)
 // Independente das apps. Usa só React, T, Card (carregados antes). Nada aqui
 // pode partir a Home: tudo falha em silêncio e cai nos valores por defeito.
 
 var KOTD_DEFAULT_ITEMS = [
+  'A tua caixa de ferramentas está perfeitamente organizada. Encontra-se lá tudo, menos ferramentas.',
+  'A tua forma de trabalhar merecia um manual só dela.',
+  'Hoje estás a trabalhar a nível profissional.',
+  'A eficiência ainda tinha muito a aprender contigo.',
+  'Os problemas resolvem-se quase sozinhos quando estás por perto.',
+  'O café trabalha muito, mas tu trabalhas mais.',
+  'O teu olho para o detalhe é impressionante.',
+  'Mais um dia, mais um trabalho concluído com sucesso.',
+  'Não precisas de manual de montagem: já sabes mais do que ele.',
+  'O que tu aparafusas aguenta para a eternidade.',
+  'O teu nível de bolha tem inveja da tua precisão.',
+  'Contigo, cada peça encaixa à primeira, e no fim não sobra nenhum parafuso.',
+  'Por onde passas, fica tudo direitinho.',
+  'De uma pilha de caixas de cartão fazes uma divisão pronta.',
+  'A tua aparafusadora fica sem bateria, tu nunca.'
+];
+// Lista por defeito ANTIGA (alemão). Só serve para reconhecer uma lista guardada que nunca foi
+// editada (igual a esta) e passá-la para a nova por defeito em português.
+var KOTD_LEGACY_DE_ITEMS = [
   'Dein Werkzeugkoffer ist perfekt organisiert. Man findet darin alles – ausser Werkzeug.',
   'Deine Arbeitsweise verdient ein eigenes Handbuch.',
   'Heute arbeitest du auf Profi-Niveau.',
@@ -78,11 +97,25 @@ function kotdMarkShown(userId, d) {
   kotdSafeSet(kotdStoreKey(userId), JSON.stringify({ date: d.date, index: d.index }));
 }
 
+// Lista guardada igual (mesmos textos, mesma ordem) à antiga por defeito em alemão = nunca editada:
+// passa a usar a nova por defeito (items vazio). Qualquer lista editada é preservada tal como está.
+function kotdIsLegacyDefault(items) {
+  if (!Array.isArray(items) || items.length !== KOTD_LEGACY_DE_ITEMS.length) return false;
+  for (var i = 0; i < items.length; i++) {
+    if (typeof items[i] !== 'string' || items[i].trim() !== KOTD_LEGACY_DE_ITEMS[i]) return false;
+  }
+  return true;
+}
+function kotdNormItems(items) {
+  var l = Array.isArray(items) ? items : [];
+  return kotdIsLegacyDefault(l) ? [] : l;
+}
+
 function kotdCachedConfig() {
   try {
     var o = JSON.parse(kotdSafeGet(KOTD_CFG_KEY) || 'null');
     if (o && typeof o === 'object') {
-      return { enabled: o.enabled !== false, items: Array.isArray(o.items) ? o.items : [] };
+      return { enabled: o.enabled !== false, items: kotdNormItems(o.items) };
     }
   } catch (e) {}
   return { enabled: true, items: [] };
@@ -98,7 +131,7 @@ function kotdLoadConfig() {
       .then(function (res) {
         if (!res || res.error || !res.data || !res.data.value) return base;
         var v = res.data.value;
-        var cfg = { enabled: v.enabled !== false, items: Array.isArray(v.items) ? v.items : [] };
+        var cfg = { enabled: v.enabled !== false, items: kotdNormItems(v.items) };
         kotdSafeSet(KOTD_CFG_KEY, JSON.stringify(cfg));
         return cfg;
       }).catch(function () { return base; });
@@ -181,7 +214,7 @@ function KotdPopup(props) {
       React.createElement('p', { style: { color: '#1F2937', fontSize: 15, fontWeight: 600, lineHeight: 1.4, wordBreak: 'break-word' } }, item.text)
     ),
     React.createElement('button', {
-      onClick: close, 'aria-label': 'Schliessen',
+      onClick: close, 'aria-label': 'Fechar',
       style: { position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: '50%', border: 'none',
         background: 'transparent', color: '#6B7280', fontSize: 20, lineHeight: 1, cursor: 'pointer' }
     }, '×')
