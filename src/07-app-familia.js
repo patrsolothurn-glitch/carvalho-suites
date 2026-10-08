@@ -26,6 +26,20 @@ var CATEGORIAS = {
   escola: { label: 'Escola', emoji: '📚', color: '#A855F7' },
   pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
 };
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function famLog(op, err) {
+  console.error('[familia] falha ao ' + op + ':', err);
+}
+function famAvisar(op, err) {
+  famLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Fam\u00edlia Carvalho \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function famAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') famLog(op, err);
+  else famAvisar(op, err);
+}
 function FamiliaApp(_ref19) {
   var onBack = _ref19.onBack,
     _ref19$sharedDias = _ref19.sharedDias,
@@ -179,7 +193,7 @@ function FamiliaApp(_ref19) {
   var famStorageSet = function famStorageSet(key, value) {
     try {
       if (typeof window !== 'undefined' && window.storage && window.storage.set) {
-        return window.storage.set(key, value).catch(function () {});
+        return window.storage.set(key, value).catch(function (err) { famLog('gravar na cache local (window.storage)', err); });
       }
     } catch (e) {}
     try {
@@ -242,7 +256,7 @@ function FamiliaApp(_ref19) {
         if (window.supabaseClient && memberId !== 'todos') {
           window.supabaseClient.from('members').update({
             photo_url: resized
-          }).eq('id', memberId).then(function () {}).catch(function () {});
+          }).eq('id', memberId).then(function (res) { if (res && res.error) famAvisarRes('guardar a foto do membro', res.error); }).catch(function (err) { famAvisar('guardar a foto do membro', err); });
         }
       });
     };
@@ -325,7 +339,8 @@ function FamiliaApp(_ref19) {
     ]).then(function (results) {
       var res = results[0];
       var resFotos = results[1];
-      if (res.error || !res.data) return;
+      if (res.error) { famAvisarRes('carregar os eventos do calendário (family_events)', res.error); return; }
+      if (!res.data) return;
       var comFoto = {};
       ((resFotos && resFotos.data) || []).forEach(function (r) { comFoto[r.id] = true; });
       var built = {};
@@ -358,7 +373,7 @@ function FamiliaApp(_ref19) {
       });
       setEvents(built);
       setEventsArquivados(builtArq);
-    }).catch(function () {});
+    }).catch(function (err) { famAvisar('carregar os eventos do calendário (family_events)', err); });
   };
   // Vai buscar o photo_url de UM evento (só quando é preciso mostrá-lo —
   // ao abrir o dia com o evento visível, ou ao editar). Guarda o
@@ -393,7 +408,8 @@ function FamiliaApp(_ref19) {
   var loadMemberPhotos = function loadMemberPhotos() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('members').select('id,name,emoji,photo_url').then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { famLog('carregar os membros (members)', res.error); return; }
+      if (!res.data) return;
       var next = {};
       var nameEmoji = {};
       res.data.forEach(function (row) {
@@ -413,7 +429,7 @@ function FamiliaApp(_ref19) {
           });
         });
       });
-    }).catch(function () {});
+    }).catch(function (err) { famLog('carregar os membros (members)', err); });
   };
   (0, _react.useEffect)(function () {
     loadFamilyEvents();
@@ -480,8 +496,9 @@ function FamiliaApp(_ref19) {
     var lastDay = new Date(y, mo2 + 1, 0).getDate();
     var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-").concat(String(lastDay).padStart(2, '0'));
     window.supabaseClient.from('horas_entries').select('entry_date,hours').gte('entry_date', ini).lte('entry_date', fim2).then(function (res) {
+      if (res && res.error) { famAvisarRes('carregar as horas do mês (horas_entries)', res.error); }
       setHorasMesData(res.data || []);
-    }).catch(function () {});
+    }).catch(function (err) { famAvisar('carregar as horas do mês (horas_entries)', err); });
   };
   (0, _react.useEffect)(function () {
     loadHorasMes();
@@ -693,7 +710,7 @@ function FamiliaApp(_ref19) {
               body: ev.t + (ev.hora ? ' · ' + ev.hora : ''),
               profileIds: ids
             }
-          }).catch(function () {});
+          }).then(function (res) { if (res && res.error) famLog('enviar push (novo evento)', res.error); }).catch(function (err) { famLog('enviar push (novo evento)', err); });
         });
       } catch (e) {}
       setForm({
@@ -1039,7 +1056,7 @@ function FamiliaApp(_ref19) {
           if (window.supabaseClient && m.id !== 'todos') {
             window.supabaseClient.from('members').update({
               emoji: e
-            }).eq('id', m.id).then(function () {}).catch(function () {});
+            }).eq('id', m.id).then(function (res) { if (res && res.error) famAvisarRes('guardar o emoji do membro', res.error); }).catch(function (err) { famAvisar('guardar o emoji do membro', err); });
           }
         },
         style: {
@@ -1085,7 +1102,7 @@ function FamiliaApp(_ref19) {
           if (window.supabaseClient && m.id !== 'todos') {
             window.supabaseClient.from('members').update({
               name: val
-            }).eq('id', m.id).then(function () {}).catch(function () {});
+            }).eq('id', m.id).then(function (res) { if (res && res.error) famAvisarRes('guardar o nome do membro', res.error); }).catch(function (err) { famAvisar('guardar o nome do membro', err); });
           }
         }
         setEditMemberId(null);
@@ -1947,11 +1964,11 @@ function FamiliaApp(_ref19) {
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (verArquivados) {
-          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function () {}).catch(function () {});
+          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function (res) { if (res && res.error) famAvisarRes('desarquivar o evento', res.error); }).catch(function (err) { famAvisar('desarquivar o evento', err); });
           setEventsArquivados(function (p) { var d = _objectSpread({}, p); d[selDateStr] = (d[selDateStr] || []).filter(function (item) { return item.id !== ev.id; }); return d; });
           setEvents(function (p) { var d = _objectSpread({}, p); d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]); return d; });
         } else {
-          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function () {}).catch(function () {});
+          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function (res) { if (res && res.error) famAvisarRes('arquivar o evento', res.error); }).catch(function (err) { famAvisar('arquivar o evento', err); });
           setEvents(function (p) {
             var d = _objectSpread({}, p);
             d[selDateStr] = (d[selDateStr] || []).map(function (item) {
@@ -2079,7 +2096,7 @@ function FamiliaApp(_ref19) {
                     body: '\uD83D\uDDD1\uFE0F ' + ev.t + ' foi apagado',
                     profileIds: ids
                   }
-                }).catch(function () {});
+                }).then(function (res) { if (res && res.error) famLog('enviar push (evento apagado)', res.error); }).catch(function (err) { famLog('enviar push (evento apagado)', err); });
               });
             } catch (e) {}
             (verArquivados ? setEventsArquivados : setEvents)(function (p) {
@@ -2558,7 +2575,7 @@ function FamiliaApp(_ref19) {
                   body: '\u270F\uFE0F ' + titulo + (hora ? ' \u00b7 ' + hora : ''),
                   profileIds: ids
                 }
-              }).catch(function () {});
+              }).then(function (res) { if (res && res.error) famLog('enviar push (evento editado)', res.error); }).catch(function (err) { famLog('enviar push (evento editado)', err); });
             });
           } catch (e) {}
         }).catch(function (e) {
@@ -3044,7 +3061,7 @@ function FamiliaApp(_ref19) {
             // Feedback imediato: mostrar ✓ verde
             setJustDoneIds(function(prev) { var s = new Set(prev); s.add(evId); return s; });
             // Arquivar no Supabase
-            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', evId).then(function() {}).catch(function() {});
+            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', evId).then(function (res) { if (res && res.error) famAvisarRes('marcar o evento como feito', res.error); }).catch(function (err) { famAvisar('marcar o evento como feito', err); });
             // Após 900ms remover da lista (mantém no calendário)
             setTimeout(function() {
               setEvents(function(p) {
@@ -3120,7 +3137,7 @@ function FamiliaApp(_ref19) {
         React.createElement("div", { style: { display: 'flex', gap: 6, flexShrink: 0 } },
           React.createElement("button", {
             onClick: function onClick() {
-              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function() {}).catch(function() {}); });
+              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function (res) { if (res && res.error) famAvisarRes('desfazer o evento feito', res.error); }).catch(function (err) { famAvisar('desfazer o evento feito', err); }); });
               allDates.forEach(function (d) {
                 setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
                 setEvents(function (p) { var nx = _objectSpread({}, p); var toAdd = (eventsArquivados[d] || []).filter(function (it) { return allIds.indexOf(it.id) !== -1; }).map(function (it) { return _objectSpread(_objectSpread({}, it), {}, { arquivado: false }); }); nx[d] = [].concat(_toConsumableArray(nx[d] || []), toAdd); return nx; });
