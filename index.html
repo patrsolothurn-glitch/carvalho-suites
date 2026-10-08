@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-08T14:47:42.159Z
+  Gerado em: 2026-10-08T14:51:17.908Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-406";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-407";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -9955,13 +9955,19 @@ var CATEGORIAS = {
   escola: { label: 'Escola', emoji: '📚', color: '#A855F7' },
   pessoal: { label: 'Pessoal', emoji: '✨', color: '#2D8A4E' }
 };
-// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido.
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
 function famLog(op, err) {
   console.error('[familia] falha ao ' + op + ':', err);
 }
 function famAvisar(op, err) {
   famLog(op, err);
   if (typeof window.mostrarErro === 'function') window.mostrarErro('Fam\u00edlia Carvalho \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function famAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') famLog(op, err);
+  else famAvisar(op, err);
 }
 function FamiliaApp(_ref19) {
   var onBack = _ref19.onBack,
@@ -10179,7 +10185,7 @@ function FamiliaApp(_ref19) {
         if (window.supabaseClient && memberId !== 'todos') {
           window.supabaseClient.from('members').update({
             photo_url: resized
-          }).eq('id', memberId).then(function (res) { if (res && res.error) famAvisar('guardar a foto do membro', res.error); }).catch(function (err) { famAvisar('guardar a foto do membro', err); });
+          }).eq('id', memberId).then(function (res) { if (res && res.error) famAvisarRes('guardar a foto do membro', res.error); }).catch(function (err) { famAvisar('guardar a foto do membro', err); });
         }
       });
     };
@@ -10262,7 +10268,7 @@ function FamiliaApp(_ref19) {
     ]).then(function (results) {
       var res = results[0];
       var resFotos = results[1];
-      if (res.error) { famAvisar('carregar os eventos do calendário (family_events)', res.error); return; }
+      if (res.error) { famAvisarRes('carregar os eventos do calendário (family_events)', res.error); return; }
       if (!res.data) return;
       var comFoto = {};
       ((resFotos && resFotos.data) || []).forEach(function (r) { comFoto[r.id] = true; });
@@ -10419,7 +10425,7 @@ function FamiliaApp(_ref19) {
     var lastDay = new Date(y, mo2 + 1, 0).getDate();
     var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-").concat(String(lastDay).padStart(2, '0'));
     window.supabaseClient.from('horas_entries').select('entry_date,hours').gte('entry_date', ini).lte('entry_date', fim2).then(function (res) {
-      if (res && res.error) { famAvisar('carregar as horas do mês (horas_entries)', res.error); }
+      if (res && res.error) { famAvisarRes('carregar as horas do mês (horas_entries)', res.error); }
       setHorasMesData(res.data || []);
     }).catch(function (err) { famAvisar('carregar as horas do mês (horas_entries)', err); });
   };
@@ -10979,7 +10985,7 @@ function FamiliaApp(_ref19) {
           if (window.supabaseClient && m.id !== 'todos') {
             window.supabaseClient.from('members').update({
               emoji: e
-            }).eq('id', m.id).then(function (res) { if (res && res.error) famAvisar('guardar o emoji do membro', res.error); }).catch(function (err) { famAvisar('guardar o emoji do membro', err); });
+            }).eq('id', m.id).then(function (res) { if (res && res.error) famAvisarRes('guardar o emoji do membro', res.error); }).catch(function (err) { famAvisar('guardar o emoji do membro', err); });
           }
         },
         style: {
@@ -11025,7 +11031,7 @@ function FamiliaApp(_ref19) {
           if (window.supabaseClient && m.id !== 'todos') {
             window.supabaseClient.from('members').update({
               name: val
-            }).eq('id', m.id).then(function (res) { if (res && res.error) famAvisar('guardar o nome do membro', res.error); }).catch(function (err) { famAvisar('guardar o nome do membro', err); });
+            }).eq('id', m.id).then(function (res) { if (res && res.error) famAvisarRes('guardar o nome do membro', res.error); }).catch(function (err) { famAvisar('guardar o nome do membro', err); });
           }
         }
         setEditMemberId(null);
@@ -11887,11 +11893,11 @@ function FamiliaApp(_ref19) {
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         if (verArquivados) {
-          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function (res) { if (res && res.error) famAvisar('desarquivar o evento', res.error); }).catch(function (err) { famAvisar('desarquivar o evento', err); });
+          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', ev.id).then(function (res) { if (res && res.error) famAvisarRes('desarquivar o evento', res.error); }).catch(function (err) { famAvisar('desarquivar o evento', err); });
           setEventsArquivados(function (p) { var d = _objectSpread({}, p); d[selDateStr] = (d[selDateStr] || []).filter(function (item) { return item.id !== ev.id; }); return d; });
           setEvents(function (p) { var d = _objectSpread({}, p); d[selDateStr] = [].concat(_toConsumableArray(d[selDateStr] || []), [_objectSpread(_objectSpread({}, ev), {}, { arquivado: false })]); return d; });
         } else {
-          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function (res) { if (res && res.error) famAvisar('arquivar o evento', res.error); }).catch(function (err) { famAvisar('arquivar o evento', err); });
+          if (window.supabaseClient && ev.id) window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', ev.id).then(function (res) { if (res && res.error) famAvisarRes('arquivar o evento', res.error); }).catch(function (err) { famAvisar('arquivar o evento', err); });
           setEvents(function (p) {
             var d = _objectSpread({}, p);
             d[selDateStr] = (d[selDateStr] || []).map(function (item) {
@@ -12984,7 +12990,7 @@ function FamiliaApp(_ref19) {
             // Feedback imediato: mostrar ✓ verde
             setJustDoneIds(function(prev) { var s = new Set(prev); s.add(evId); return s; });
             // Arquivar no Supabase
-            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', evId).then(function (res) { if (res && res.error) famAvisar('marcar o evento como feito', res.error); }).catch(function (err) { famAvisar('marcar o evento como feito', err); });
+            window.supabaseClient.from('family_events').update({ arquivado: true }).eq('id', evId).then(function (res) { if (res && res.error) famAvisarRes('marcar o evento como feito', res.error); }).catch(function (err) { famAvisar('marcar o evento como feito', err); });
             // Após 900ms remover da lista (mantém no calendário)
             setTimeout(function() {
               setEvents(function(p) {
@@ -13060,7 +13066,7 @@ function FamiliaApp(_ref19) {
         React.createElement("div", { style: { display: 'flex', gap: 6, flexShrink: 0 } },
           React.createElement("button", {
             onClick: function onClick() {
-              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function (res) { if (res && res.error) famAvisar('desfazer o evento feito', res.error); }).catch(function (err) { famAvisar('desfazer o evento feito', err); }); });
+              allIds.forEach(function (id) { if (window.supabaseClient) window.supabaseClient.from('family_events').update({ arquivado: false }).eq('id', id).then(function (res) { if (res && res.error) famAvisarRes('desfazer o evento feito', res.error); }).catch(function (err) { famAvisar('desfazer o evento feito', err); }); });
               allDates.forEach(function (d) {
                 setEventsArquivados(function (p) { var nx = _objectSpread({}, p); nx[d] = (nx[d] || []).filter(function (it) { return allIds.indexOf(it.id) === -1; }); return nx; });
                 setEvents(function (p) { var nx = _objectSpread({}, p); var toAdd = (eventsArquivados[d] || []).filter(function (it) { return allIds.indexOf(it.id) !== -1; }).map(function (it) { return _objectSpread(_objectSpread({}, it), {}, { arquivado: false }); }); nx[d] = [].concat(_toConsumableArray(nx[d] || []), toAdd); return nx; });
