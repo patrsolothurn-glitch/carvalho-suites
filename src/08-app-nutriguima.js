@@ -103,7 +103,7 @@ function NutriguimaApp(_ref29) {
   var loadNutriData = function loadNutriData() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('nutri_products').select('*').then(function (res) {
-      if (res.error) return;
+      if (res.error) { console.error('[nutriguima] carregar produtos:', res.error); window.mostrarErro('Nutriguima', res.error); return; }
       if (res.data && res.data.length > 0) {
         setProducts(res.data.map(function (row) {
           return {
@@ -128,10 +128,12 @@ function NutriguimaApp(_ref29) {
             emoji: p.emoji,
             cat: p.cat,
             stock: stock[p.id] || 0
-          }).then(function () { }).catch(function () {});
+          }).then(function (r) {
+            if (r.error) console.error('[nutriguima] semear produto:', r.error);
+          }).catch(function (e) { console.error('[nutriguima] semear produto:', e); });
         });
       }
-    }).catch(function () {});
+    }).catch(function (e) { console.error('[nutriguima] carregar produtos:', e); window.mostrarErro('Nutriguima', e); });
   };
   (0, _react.useEffect)(function () {
     loadNutriData();
@@ -212,7 +214,9 @@ function NutriguimaApp(_ref29) {
       return c;
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () { }).catch(function () {});
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function (r) {
+        if (r.error) { console.error('[nutriguima] apagar produto:', r.error); window.mostrarErro('Nutriguima', r.error); }
+      }).catch(function (e) { console.error('[nutriguima] apagar produto:', e); window.mostrarErro('Nutriguima', e); });
     }
   };
   var filtered = products.filter(function (p) {
@@ -267,7 +271,9 @@ function NutriguimaApp(_ref29) {
       var qty = cart[p.id] || 0;
       var novoStock = Math.max(0, (stock[p.id] || 0) - qty);
       if (window.supabaseClient) {
-        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function() {}).catch(function() {});
+        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function (r) {
+          if (r.error) { console.error('[nutriguima] atualizar stock (encomenda):', r.error); window.mostrarErro('Nutriguima', r.error); }
+        }).catch(function (e) { console.error('[nutriguima] atualizar stock (encomenda):', e); window.mostrarErro('Nutriguima', e); });
       }
       setStock(function(s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, novoStock)); });
     });
@@ -1346,7 +1352,9 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () { }).catch(function () {});
+            }).eq('id', p.id).then(function (r) {
+              if (r.error) { console.error('[nutriguima] atualizar stock:', r.error); window.mostrarErro('Nutriguima', r.error); }
+            }).catch(function (e) { console.error('[nutriguima] atualizar stock:', e); window.mostrarErro('Nutriguima', e); });
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -1380,7 +1388,9 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () { }).catch(function () {});
+            }).eq('id', p.id).then(function (r) {
+              if (r.error) { console.error('[nutriguima] atualizar stock:', r.error); window.mostrarErro('Nutriguima', r.error); }
+            }).catch(function (e) { console.error('[nutriguima] atualizar stock:', e); window.mostrarErro('Nutriguima', e); });
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
