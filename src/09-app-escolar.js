@@ -150,24 +150,24 @@ var ALUNOS_DEF = {
     klasse: 'SEK P 1p',
     cidade: 'Grenchen',
     responsavel: {
-      nome: 'Petra Humair',
-      sala: '3-01',
-      tel: '079 763 71 86',
-      email: 'petra.humair@schulen-grenchen.ch'
+      nome: '',
+      sala: '',
+      tel: '',
+      email: ''
     },
     disciplinas: [{
       id: 1,
       abr: 'D',
       nome: 'Deutsch',
-      prof: 'Petra Humair',
-      tel: '079 763 71 86',
+      prof: '',
+      tel: '',
       emoji: '📝',
       cor: '#2563EB'
     }, {
       id: 2,
       abr: 'M',
       nome: 'Mathematik',
-      prof: 'Greder',
+      prof: '',
       tel: '',
       emoji: '📐',
       cor: '#DC2626'
@@ -175,15 +175,15 @@ var ALUNOS_DEF = {
       id: 3,
       abr: 'F',
       nome: 'Französisch',
-      prof: 'Petra Humair',
-      tel: '079 763 71 86',
+      prof: '',
+      tel: '',
       emoji: '🗼',
       cor: '#9333EA'
     }, {
       id: 4,
       abr: 'Inf',
       nome: 'Informatik',
-      prof: 'Walcher',
+      prof: '',
       tel: '',
       emoji: '💻',
       cor: '#0891B2'
@@ -191,7 +191,7 @@ var ALUNOS_DEF = {
       id: 5,
       abr: 'E',
       nome: 'Englisch',
-      prof: 'Von Streit',
+      prof: '',
       tel: '',
       emoji: '🌍',
       cor: '#7C3AED'
@@ -199,15 +199,15 @@ var ALUNOS_DEF = {
       id: 6,
       abr: 'Gs',
       nome: 'Geschichte',
-      prof: 'Petra Humair',
-      tel: '079 763 71 86',
+      prof: '',
+      tel: '',
       emoji: '🏛',
       cor: '#92400E'
     }, {
       id: 7,
       abr: 'Mu',
       nome: 'Musik',
-      prof: 'Von Streit',
+      prof: '',
       tel: '',
       emoji: '🎵',
       cor: '#DB2777'
@@ -215,7 +215,7 @@ var ALUNOS_DEF = {
       id: 8,
       abr: 'Schw',
       nome: 'Schwimmen',
-      prof: 'Sutter',
+      prof: '',
       tel: '',
       emoji: '🏊',
       cor: '#0EA5E9'
@@ -223,15 +223,15 @@ var ALUNOS_DEF = {
       id: 9,
       abr: 'Gg',
       nome: 'Geografie',
-      prof: 'Petra Humair',
-      tel: '079 763 71 86',
+      prof: '',
+      tel: '',
       emoji: '🗺',
       cor: '#65A30D'
     }, {
       id: 10,
       abr: 'BG',
       nome: 'Bildnerisches Gestalten',
-      prof: 'Walcher',
+      prof: '',
       tel: '',
       emoji: '🎨',
       cor: '#EA580C'
@@ -239,7 +239,7 @@ var ALUNOS_DEF = {
       id: 11,
       abr: 'Ch',
       nome: 'Chemie',
-      prof: 'Ruprecht',
+      prof: '',
       tel: '',
       emoji: '⚗️',
       cor: '#0891B2'
@@ -247,7 +247,7 @@ var ALUNOS_DEF = {
       id: 12,
       abr: 'Rök',
       nome: 'Religion ökumenisch',
-      prof: 'Wehrle',
+      prof: '',
       tel: '',
       emoji: '⛪',
       cor: '#DB2777'
@@ -255,7 +255,7 @@ var ALUNOS_DEF = {
       id: 13,
       abr: 'Tu',
       nome: 'Turnen',
-      prof: 'Sutter',
+      prof: '',
       tel: '',
       emoji: '⚽',
       cor: '#16A34A'
@@ -263,7 +263,7 @@ var ALUNOS_DEF = {
       id: 14,
       abr: 'Bio',
       nome: 'Biologie',
-      prof: 'Greder',
+      prof: '',
       tel: '',
       emoji: '🌿',
       cor: '#16A34A'
@@ -271,7 +271,7 @@ var ALUNOS_DEF = {
       id: 15,
       abr: 'LT',
       nome: 'Lerntechnik',
-      prof: 'Wyss',
+      prof: '',
       tel: '',
       emoji: '🧠',
       cor: '#F59E0B'
@@ -279,7 +279,7 @@ var ALUNOS_DEF = {
       id: 16,
       abr: 'TT',
       nome: 'Tastaturschreiben',
-      prof: 'Walcher',
+      prof: '',
       tel: '',
       emoji: '⌨️',
       cor: '#64748B'
@@ -287,7 +287,7 @@ var ALUNOS_DEF = {
       id: 18,
       abr: 'TG',
       nome: 'Textiles und Technisches Gestalten',
-      prof: 'Stampfli',
+      prof: '',
       tel: '',
       emoji: '🧵',
       cor: '#D97706'
@@ -295,7 +295,7 @@ var ALUNOS_DEF = {
       id: 19,
       abr: 'W+T',
       nome: 'Wissenschaft und Technik',
-      prof: 'Greder',
+      prof: '',
       tel: '',
       emoji: '🔬',
       cor: '#0D9488'
@@ -499,40 +499,40 @@ var ALUNOS_DEF = {
     klasse: 'Prim 3a',
     cidade: 'Selzach',
     responsavel: {
-      nome: 'Aïna Probst',
+      nome: '',
       sala: '',
-      tel: '032 641 70 75',
+      tel: '',
       email: ''
     },
     disciplinas: [{
       id: 101,
       abr: 'U',
       nome: 'Unterricht',
-      prof: 'Aïna Probst',
-      tel: '032 641 70 75',
+      prof: '',
+      tel: '',
       emoji: '📚',
       cor: '#2563EB'
     }, {
       id: 102,
       abr: 'TTG',
       nome: 'Textiles & Technisches Gestalten',
-      prof: 'Sonja Seiler',
-      tel: '032 641 70 62',
+      prof: '',
+      tel: '',
       emoji: '✂️',
       cor: '#F97316'
     }, {
       id: 103,
       abr: 'BS',
       nome: 'Bewegung & Sport',
-      prof: 'Lea Kipfer',
-      tel: '032 641 70 75',
+      prof: '',
+      tel: '',
       emoji: '⚽',
       cor: '#16A34A'
     }, {
       id: 104,
       abr: 'Rel',
       nome: 'Religion',
-      prof: 'Sylvie Ulrich',
+      prof: '',
       tel: '',
       emoji: '⛪',
       cor: '#DB2777'
