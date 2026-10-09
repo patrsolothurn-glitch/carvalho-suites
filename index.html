@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-08T15:27:41.396Z
+  Gerado em: 2026-10-09T01:49:59.226Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-408";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-409";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -32380,9 +32380,10 @@ function RpPlanungView(props) {
       .order('datum')
       .order('h_start')
       .then(function(r) {
+        if (r.error) { console.error('[rapport] carregar planung:', r.error); window.mostrarErro('Arnold Rapport', r.error); setLoading(false); return; }
         setJobs(r.data || []);
         setLoading(false);
-      });
+      }).catch(function(e) { console.error('[rapport] carregar planung:', e); window.mostrarErro('Arnold Rapport', e); setLoading(false); });
   }
 
   React.useEffect(function() { loadJobs(); }, [monday]);
@@ -32428,21 +32429,26 @@ function RpPlanungView(props) {
     } else {
       op = db.from('rapport_planung').update(payload).eq('id', form.id);
     }
-    op.then(function() {
+    op.then(function(res) {
+      if (res.error) { console.error('[rapport] guardar planung:', res.error); window.mostrarErro('Arnold Rapport', res.error); setFSaving(false); return; }
       setForm(null); setFSaving(false); loadJobs();
-    }).catch(function() { setFSaving(false); });
+    }).catch(function(e) { console.error('[rapport] guardar planung:', e); window.mostrarErro('Arnold Rapport', e); setFSaving(false); });
   }
 
   function deleteJob(id) {
-    db.from('rapport_planung').delete().eq('id', id).then(function() {
+    db.from('rapport_planung').delete().eq('id', id).then(function(res) {
+      if (res.error) { console.error('[rapport] apagar planung:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
       setConfirm(null); setExpanded(null); loadJobs();
-    });
+    }).catch(function(e) { console.error('[rapport] apagar planung:', e); window.mostrarErro('Arnold Rapport', e); });
   }
 
   function toggleStatus(job) {
     var order = ['planned', 'active', 'done'];
     var next = order[(order.indexOf(job.status || 'planned') + 1) % order.length];
-    db.from('rapport_planung').update({ status: next }).eq('id', job.id).then(loadJobs);
+    db.from('rapport_planung').update({ status: next }).eq('id', job.id).then(function(res) {
+      if (res.error) { console.error('[rapport] mudar status planung:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
+      loadJobs();
+    }).catch(function(e) { console.error('[rapport] mudar status planung:', e); window.mostrarErro('Arnold Rapport', e); });
   }
 
   var totalKm = jobs.reduce(function(s, j) { return s + (j.km || 0); }, 0);
@@ -32703,7 +32709,10 @@ function RpTagesView(props) {
     if (!db) return;
     setLoading(true);
     db.from('rapport_tages').select('*').eq('user_id', userId).order('datum', { ascending: false })
-      .then(function(r) { setList(r.data || []); setLoading(false); });
+      .then(function(r) {
+        if (r.error) { console.error('[rapport] carregar tagesrapporte:', r.error); window.mostrarErro('Arnold Rapport', r.error); setLoading(false); return; }
+        setList(r.data || []); setLoading(false);
+      }).catch(function(e) { console.error('[rapport] carregar tagesrapporte:', e); window.mostrarErro('Arnold Rapport', e); setLoading(false); });
   }
   React.useEffect(load, []);
   React.useEffect(function () {
@@ -32743,14 +32752,14 @@ function RpTagesView(props) {
     setWpOpts([]); setWpTask(null);
     db.from('wplan_tasks').select('*').eq('datum', datum).order('von')
       .then(function(r) {
-        if (r.error) return;
+        if (r.error) { console.error('[rapport] carregar wplan_tasks:', r.error); return; }
         var usados = {};
         (list || []).forEach(function(x) { if (x.wplan_task_id) usados[String(x.wplan_task_id)] = 1; });
         var livres = (r.data || []).filter(function(t) { return !usados[String(t.id)]; });
         if (livres.length === 1) wpApply(livres[0]);
         else if (livres.length > 1) setWpOpts(livres);
       })
-      .catch(function() {});
+      .catch(function(e) { console.error('[rapport] carregar wplan_tasks:', e); });
   }
   function openNew() { resetForm(); setForm('new'); wpLoadFor(rpToday()); }
   function openEdit(item) {
@@ -32807,16 +32816,24 @@ function RpTagesView(props) {
     var op = form === 'new'
       ? db.from('rapport_tages').insert(payload)
       : db.from('rapport_tages').update(payload).eq('id', form.id);
-    op.then(function() { setForm(null); setFSaving(false); load(); })
-      .catch(function() { setFSaving(false); });
+    op.then(function(res) {
+      if (res.error) { console.error('[rapport] guardar tagesrapport:', res.error); window.mostrarErro('Arnold Rapport', res.error); setFSaving(false); return; }
+      setForm(null); setFSaving(false); load();
+    }).catch(function(e) { console.error('[rapport] guardar tagesrapport:', e); window.mostrarErro('Arnold Rapport', e); setFSaving(false); });
   }
   function del(id) {
     db.from('rapport_tages').delete().eq('id', id)
-      .then(function() { setConfirm(null); setViewItem(null); load(); });
+      .then(function(res) {
+        if (res.error) { console.error('[rapport] apagar tagesrapport:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
+        setConfirm(null); setViewItem(null); load();
+      }).catch(function(e) { console.error('[rapport] apagar tagesrapport:', e); window.mostrarErro('Arnold Rapport', e); });
   }
   function toggleStatus(item) {
     var next = item.status === 'draft' ? 'submitted' : 'draft';
-    db.from('rapport_tages').update({ status: next }).eq('id', item.id).then(load);
+    db.from('rapport_tages').update({ status: next }).eq('id', item.id).then(function(res) {
+      if (res.error) { console.error('[rapport] mudar status tagesrapport:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
+      load();
+    }).catch(function(e) { console.error('[rapport] mudar status tagesrapport:', e); window.mostrarErro('Arnold Rapport', e); });
   }
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
@@ -33157,7 +33174,10 @@ function RpWochenView(props) {
     if (!db) return;
     setLoading(true);
     db.from('rapport_wochen').select('*').eq('user_id', userId).order('jahr', { ascending: false }).order('kw', { ascending: false })
-      .then(function(r) { setList(r.data || []); setLoading(false); });
+      .then(function(r) {
+        if (r.error) { console.error('[rapport] carregar wochenberichte:', r.error); window.mostrarErro('Arnold Rapport', r.error); setLoading(false); return; }
+        setList(r.data || []); setLoading(false);
+      }).catch(function(e) { console.error('[rapport] carregar wochenberichte:', e); window.mostrarErro('Arnold Rapport', e); setLoading(false); });
   }
   React.useEffect(load, []);
   React.useEffect(function () {
@@ -33171,6 +33191,7 @@ function RpWochenView(props) {
     var friday = rpShiftWeek(monday, 1);
     db.from('rapport_tages').select('h_start,h_end,km,beschrieb,arbeit').eq('user_id', userId).gte('datum', monday).lt('datum', friday)
       .then(function(r) {
+        if (r.error) { console.error('[rapport] auto-preencher wochenbericht:', r.error); return; }
         var items = r.data || [];
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
         var beschriebe = items.map(function(i) { return i.beschrieb || i.arbeit || ''; }).filter(Boolean);
@@ -33179,7 +33200,7 @@ function RpWochenView(props) {
         setFStd(totalH > 0 ? totalH.toFixed(1) : '');
         setFKm(totalKm > 0 ? String(totalKm) : '');
         setFZus(arbeitList ? 'Zusammenfassung KW ' + kw + ':\n' + arbeitList : '');
-      });
+      }).catch(function(e) { console.error('[rapport] auto-preencher wochenbericht:', e); });
   }
 
   function openNew() {
@@ -33202,10 +33223,16 @@ function RpWochenView(props) {
     var fri = new Date(mon + 'T12:00:00'); fri.setDate(fri.getDate() + 4);
     var payload = { user_id: userId, kw: parseInt(fKW), jahr: parseInt(fJahr), datum_von: mon, datum_bis: fri.toISOString().slice(0,10), zusammenfassung: fZus.trim(), total_stunden: parseFloat(fStd) || 0, total_km: parseInt(fKm) || 0, offene_arbeiten: fOff.trim(), bemerkungen: fBem.trim(), status: fStatus };
     var op = form === 'new' ? db.from('rapport_wochen').insert(payload) : db.from('rapport_wochen').update(payload).eq('id', form.id);
-    op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
+    op.then(function(res) {
+      if (res.error) { console.error('[rapport] guardar wochenbericht:', res.error); window.mostrarErro('Arnold Rapport', res.error); setFSaving(false); return; }
+      setForm(null); setFSaving(false); load();
+    }).catch(function(e) { console.error('[rapport] guardar wochenbericht:', e); window.mostrarErro('Arnold Rapport', e); setFSaving(false); });
   }
   function del(id) {
-    db.from('rapport_wochen').delete().eq('id', id).then(function() { setConfirm(null); load(); });
+    db.from('rapport_wochen').delete().eq('id', id).then(function(res) {
+      if (res.error) { console.error('[rapport] apagar wochenbericht:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
+      setConfirm(null); load();
+    }).catch(function(e) { console.error('[rapport] apagar wochenbericht:', e); window.mostrarErro('Arnold Rapport', e); });
   }
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
@@ -33262,7 +33289,12 @@ function RpWochenView(props) {
           ),
           React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
             RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
+            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() {
+              db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(function(res) {
+                if (res.error) { console.error('[rapport] mudar status wochenbericht:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
+                load();
+              }).catch(function(e) { console.error('[rapport] mudar status wochenbericht:', e); window.mostrarErro('Arnold Rapport', e); });
+            } }),
             RpBtn({ label: '🖨️ Drucken', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
             RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
