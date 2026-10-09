@@ -982,6 +982,13 @@ function EscolarApp(_ref31) {
     _useState176 = _slicedToArray(_useState175, 2),
     alunosData = _useState176[0],
     setAlunosData = _useState176[1];
+  // Só true depois de a leitura inicial de escolar_perfil (dentro de
+  // loadEscolarData) confirmar sem erro — com ou sem linhas. Enquanto for
+  // false, gravarPerfil/savePerfilOnly recusam-se a escrever (ver abaixo):
+  // sem isto, um "guardar turma" disparado antes dessa leitura terminar
+  // gravaria o responsavel ainda em ALUNOS_DEF (ou o que estiver em memória
+  // nesse instante) por cima de um valor bom já na base de dados.
+  var escolarPerfilLoadedRef = (0, _react.useRef)(false);
   var aluno = alunosData[alunoKey];
   // Persistido em window (tal como _saveTimers/_saveLatest/_saveDomains
   // abaixo) — um simples "var = {}" era reinicializado a cada render, o
@@ -1366,6 +1373,11 @@ function EscolarApp(_ref31) {
       return apagarEInserir();
     };
     var gravarPerfil = function gravarPerfil() {
+      if (!escolarPerfilLoadedRef.current) {
+        console.error('[escolar] guardar perfil (turma/responsável) bloqueado: leitura inicial de escolar_perfil ainda não confirmou sem erro.');
+        window.mostrarErro('Vida Escolar', { message: 'A ler os dados da base de dados: não foi guardado. Tenta de novo.' });
+        return Promise.resolve(false);
+      }
       return sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
         if (delRes && delRes.error) {
           console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
@@ -1428,6 +1440,11 @@ function EscolarApp(_ref31) {
   };
   var savePerfilOnly = function savePerfilOnly(key, data) {
     if (!window.supabaseClient) return;
+    if (!escolarPerfilLoadedRef.current) {
+      console.error('[escolar] guardar perfil (turma/responsável) bloqueado: leitura inicial de escolar_perfil ainda não confirmou sem erro.');
+      window.mostrarErro('Vida Escolar', { message: 'A ler os dados da base de dados: não foi guardado. Tenta de novo.' });
+      return;
+    }
     var sb = window.supabaseClient;
     var resp = data.responsavel || {};
     sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
@@ -1746,6 +1763,9 @@ function EscolarApp(_ref31) {
       [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes], ['eventos', eventosRes]].forEach(function (p) {
         if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
       });
+      // Leitura de escolar_perfil confirmada sem erro (com ou sem linhas) —
+      // só agora é seguro deixar gravarPerfil/savePerfilOnly escrever.
+      if (perfilRes && !perfilRes.error) escolarPerfilLoadedRef.current = true;
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
       if (!anyData) {
         // Já não repomos os dados de exemplo (ALUNOS_DEF) automaticamente.
