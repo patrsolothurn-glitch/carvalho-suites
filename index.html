@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-09T07:33:54.644Z
+  Gerado em: 2026-10-09T08:57:18.304Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-409";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-410";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -16225,12 +16225,21 @@ function EscolarApp(_ref31) {
     _useStateEditRespAviso2 = _slicedToArray(_useStateEditRespAviso, 2),
     editRespAviso = _useStateEditRespAviso2[0],
     setEditRespAviso = _useStateEditRespAviso2[1];
+  // Valores para os quais o aviso de validação já foi mostrado e ainda não
+  // foi confirmado com um 2.º clique em "Guardar" — null quando não há
+  // nenhum aviso pendente. Qualquer alteração a um campo (onChange nos 4
+  // inputs) repõe isto a null, obrigando a mostrar o aviso outra vez.
+  var _useStateEditRespAvisoValores = (0, _react.useState)(null),
+    _useStateEditRespAvisoValores2 = _slicedToArray(_useStateEditRespAvisoValores, 2),
+    editRespAvisoValores = _useStateEditRespAvisoValores2[0],
+    setEditRespAvisoValores = _useStateEditRespAvisoValores2[1];
   // Fecha o editor do responsável ao trocar de aluno — sem isto, o input
   // (não controlado) ficaria com o defaultValue do aluno anterior, mas a
   // gravação usaria a chave do aluno novo: nunca misturar os dois.
   (0, _react.useEffect)(function () {
     setEditResp(false);
     setEditRespAviso('');
+    setEditRespAvisoValores(null);
   }, [alunoKey]);
   // Persistido em window (tal como _saveTimers/_saveLatest/_saveDomains
   // abaixo) — um simples "var = {}" era reinicializado a cada render, o
@@ -17415,17 +17424,17 @@ function EscolarApp(_ref31) {
     }
   },
   /*#__PURE__*/React.createElement("p", { style: { color: E.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 } }, "Nome do professor"),
-  /*#__PURE__*/React.createElement("input", { id: "resp-nome-".concat(alunoKey), defaultValue: (respInfo && respInfo.nome) || '', autoComplete: "off", placeholder: "Ex: Maria Exemplo", style: respInputStyle }),
+  /*#__PURE__*/React.createElement("input", { id: "resp-nome-".concat(alunoKey), defaultValue: (respInfo && respInfo.nome) || '', autoComplete: "off", placeholder: "Ex: Maria Exemplo", style: respInputStyle, onChange: function onChange() { setEditRespAvisoValores(null); setEditRespAviso(''); } }),
   /*#__PURE__*/React.createElement("p", { style: { color: E.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 } }, "Sala"),
-  /*#__PURE__*/React.createElement("input", { id: "resp-sala-".concat(alunoKey), defaultValue: (respInfo && respInfo.sala) || '', autoComplete: "off", placeholder: "Ex: 3-01", style: respInputStyle }),
+  /*#__PURE__*/React.createElement("input", { id: "resp-sala-".concat(alunoKey), defaultValue: (respInfo && respInfo.sala) || '', autoComplete: "off", placeholder: "Ex: 3-01", style: respInputStyle, onChange: function onChange() { setEditRespAvisoValores(null); setEditRespAviso(''); } }),
   /*#__PURE__*/React.createElement("p", { style: { color: E.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 } }, "Telefone"),
-  /*#__PURE__*/React.createElement("input", { id: "resp-tel-".concat(alunoKey), defaultValue: (respInfo && respInfo.tel) || '', autoComplete: "off", placeholder: "Ex: 032 000 00 00", style: respInputStyle }),
+  /*#__PURE__*/React.createElement("input", { id: "resp-tel-".concat(alunoKey), defaultValue: (respInfo && respInfo.tel) || '', autoComplete: "off", placeholder: "Ex: 032 000 00 00", style: respInputStyle, onChange: function onChange() { setEditRespAvisoValores(null); setEditRespAviso(''); } }),
   /*#__PURE__*/React.createElement("p", { style: { color: E.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 } }, "Email"),
-  /*#__PURE__*/React.createElement("input", { id: "resp-email-".concat(alunoKey), defaultValue: (respInfo && respInfo.email) || '', autoComplete: "off", placeholder: "Ex: exemplo@exemplo.ch", style: respInputStyle }),
+  /*#__PURE__*/React.createElement("input", { id: "resp-email-".concat(alunoKey), defaultValue: (respInfo && respInfo.email) || '', autoComplete: "off", placeholder: "Ex: exemplo@exemplo.ch", style: respInputStyle, onChange: function onChange() { setEditRespAvisoValores(null); setEditRespAviso(''); } }),
   editRespAviso && /*#__PURE__*/React.createElement("p", { style: { color: '#F59E0B', fontSize: 11, fontWeight: 700, marginBottom: 6 } }, "⚠️ ", editRespAviso),
   /*#__PURE__*/React.createElement("div", { style: { display: 'flex', gap: 6 } },
     /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() { setEditResp(false); setEditRespAviso(''); },
+      onClick: function onClick() { setEditResp(false); setEditRespAviso(''); setEditRespAvisoValores(null); },
       style: { flex: 1, background: E.surface2, border: "1px solid ".concat(E.border), borderRadius: 8, padding: '8px', color: E.muted, fontSize: 12, cursor: 'pointer' }
     }, "Cancelar"),
     /*#__PURE__*/React.createElement("button", {
@@ -17438,11 +17447,20 @@ function EscolarApp(_ref31) {
         var avisos = [];
         if (tel.trim() && /[a-zA-Z]/.test(tel)) avisos.push('o telefone parece ter letras');
         if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) avisos.push('o email não parece ter o formato certo');
-        setEditRespAviso(avisos.length ? ('Confirma se está certo: ' + avisos.join('; ') + '.') : '');
-        saveResponsavelTurma(alunoKey, { nome: nome, sala: sala, tel: tel, email: email });
+        var valoresAtuais = { nome: nome, sala: sala, tel: tel, email: email };
+        var jaConfirmouEstesValores = editRespAvisoValores && JSON.stringify(editRespAvisoValores) === JSON.stringify(valoresAtuais);
+        if (avisos.length > 0 && !jaConfirmouEstesValores) {
+          // 1.ª vez com estes valores: só avisa, não grava — fica à espera do 2.º clique.
+          setEditRespAviso('Confirma se está certo: ' + avisos.join('; ') + '.');
+          setEditRespAvisoValores(valoresAtuais);
+          return;
+        }
+        setEditRespAviso('');
+        setEditRespAvisoValores(null);
+        saveResponsavelTurma(alunoKey, valoresAtuais);
       },
       style: { flex: 2, background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"), border: 'none', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer' }
-    }, "✓ Guardar"),
+    }, editRespAvisoValores ? "Guardar mesmo assim" : "✓ Guardar"),
     respInfo && /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() { removerResponsavelTurma(alunoKey); },
       style: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '8px 10px', color: '#EF4444', fontSize: 13, cursor: 'pointer' }
