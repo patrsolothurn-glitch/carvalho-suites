@@ -129,8 +129,11 @@ var SubbyApp = function SubbyApp(_ref) {
     setLoading(true);
     window.supabaseClient.from(TABLE).select('*').eq('owner', owner)
       .order('proxima_cobranca', { ascending: true })
-      .then(function(r) { setSubs(r.data || []); setLoading(false); })
-      .catch(function() { setLoading(false); });
+      .then(function(r) {
+        if (r.error) { console.error('[subby] carregar subscrições:', r.error); window.mostrarErro('Subby', r.error); setLoading(false); return; }
+        setSubs(r.data || []); setLoading(false);
+      })
+      .catch(function(e) { console.error('[subby] carregar subscrições:', e); window.mostrarErro('Subby', e); setLoading(false); });
   };
 
   var loadOrdem = function() {
@@ -148,7 +151,9 @@ var SubbyApp = function SubbyApp(_ref) {
     setOrdem(o);
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').update({ subby_prefs: { sortBy: o } })
-      .eq('member_id', owner).then(function() {}).catch(function() {});
+      .eq('member_id', owner).then(function(r) {
+        if (r.error) { console.error('[subby] guardar ordem:', r.error); window.mostrarErro('Subby', r.error); }
+      }).catch(function(e) { console.error('[subby] guardar ordem:', e); window.mostrarErro('Subby', e); });
   };
 
   var fetchFX = function() {
@@ -288,20 +293,26 @@ var SubbyApp = function SubbyApp(_ref) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window._sbAnonKey||'') },
           body: JSON.stringify({ profile_ids: ids, title: '💳 Abo Kontrolle', body: msg, url: '/' })
-        }).catch(function(){});
+        }).catch(function(e) { console.error('[subby] enviar push:', e); });
       });
-    }).catch(function() {});
+    }).catch(function(e) { console.error('[subby] gravar subscrição:', e); window.mostrarErro('Subby', e); });
   };
 
   var apagar = function(id, nome) {
     if (!window.confirm('Apagar "' + nome + '"?')) return;
     window.supabaseClient.from(TABLE).delete().eq('id', id)
-      .then(function() { loadSubs(); }).catch(function(){});
+      .then(function(r) {
+        if (r.error) { console.error('[subby] apagar subscrição:', r.error); window.mostrarErro('Subby', r.error); return; }
+        loadSubs();
+      }).catch(function(e) { console.error('[subby] apagar subscrição:', e); window.mostrarErro('Subby', e); });
   };
 
   var marcarVisto = function(sub) {
     window.supabaseClient.from(TABLE).update({ visto_ate_data: sub.proxima_cobranca })
-      .eq('id', sub.id).then(function() { loadSubs(); }).catch(function(){});
+      .eq('id', sub.id).then(function(r) {
+        if (r.error) { console.error('[subby] marcar como visto:', r.error); window.mostrarErro('Subby', r.error); return; }
+        loadSubs();
+      }).catch(function(e) { console.error('[subby] marcar como visto:', e); window.mostrarErro('Subby', e); });
   };
 
   var renderIcone = function(sub, size) {
