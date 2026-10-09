@@ -131,7 +131,7 @@
     var HWX_AJUDA = {
       'Nome': ['Nome da pessoa ou da entrada. Aparece nas listas e nos documentos.', 'ex.: Hans Müller'],
       'Firma (opcional)': ['Nome da empresa ou administração, se o cliente for uma firma. Aparece à frente do nome.', 'ex.: Verwaltung Müller AG'],
-      'Rua': ['Rua e número da morada.', 'ex.: Gartenstrasse 12'],
+      'Rua': ['Rua e número da morada.', 'ex.: Musterstrasse 1'],
       'PLZ': ['Código postal suíço: 4 dígitos.', '2545'],
       'Localidade': ['Localidade (Ort) da morada.', 'Selzach'],
       'Telemóvel': ['Número para ligar e para o WhatsApp. Podes escrevê-lo com espaços.', '079 123 45 67'],
@@ -142,7 +142,7 @@
       'Nota': ['Nota curta sobre o serviço (por exemplo como se cobra).', 'ex.: preço por visita'],
       'Número de cliente': ['Número do cliente. Se deixares vazio, a base dá o próximo.', 'automático'],
       'Subnúmero': ['Número do local dentro do cliente (1.1, 1.2…). Vazio = o próximo.', 'automático'],
-      'Nome do local': ['Nome curto para reconheceres este local de trabalho.', 'ex.: Passionsstrasse 6'],
+      'Nome do local': ['Nome curto para reconheceres este local de trabalho.', 'ex.: Musterweg 3'],
       'Limite anual (CHF)': ['Máximo de rendimento anual (Extra + Hauswart, sem material). A barra dos Totais usa este valor.', 'ex.: 2500'],
       'Preço base por hora (CHF)': ['Preço por hora das linhas livres. Também serve para avisar quando uma taxa parece preço de trabalho.', 'ex.: 35,00'],
       'Horas que quero trabalhar por sexta': ['Limite de horas de uma sexta. A Agenda avisa quando o dia passa deste valor.', 'ex.: 8'],
@@ -1526,7 +1526,7 @@
 
       return React.createElement(HxFormShell, { title: (editing ? 'Editar local' : 'Novo local') + ' · #' + cli.numero + ' ' + (cli.firma || cli.nome), onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
         React.createElement(HxField, { label: 'Subnúmero', value: f.sub_numero, inputMode: 'numeric', onChange: function (v) { upd('sub_numero', v); }, error: errs.sub_numero, placeholder: 'automático (próximo: ' + cli.numero + '.' + next + ')', hint: editing ? 'Local ' + cli.numero + '.' + editing.sub_numero : undefined, onEnter: function () { doSave(); } }),
-        React.createElement(HxField, { label: 'Nome do local', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Passionsstrasse 6', onEnter: function () { doSave(); } }),
+        React.createElement(HxField, { label: 'Nome do local', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Musterweg 3', onEnter: function () { doSave(); } }),
         React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: updA('rua'), onEnter: function () { doSave(); } }),
         React.createElement(HxRow, { cols: 2 },
           React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: updA('plz'), warn: hwxPlzWarn(f.plz), onEnter: function () { doSave(); } }),
@@ -1638,7 +1638,7 @@
           )
         ),
         React.createElement(HxSection, { title: '👤 CONTACTO' },
-          React.createElement(HxField, { label: 'Nome', info: 'Pessoa de contacto (usada na saudação das mensagens de WhatsApp).', placeholder: 'ex.: Roland Aeschbacher', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
+          React.createElement(HxField, { label: 'Nome', info: 'Pessoa de contacto (usada na saudação das mensagens de WhatsApp).', placeholder: 'ex.: Max Muster', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
             React.createElement(HxField, { label: 'Telemóvel', value: f.c_tel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_tel', v); }, placeholder: '079 123 45 67', onEnter: enter }),
             React.createElement(HxField, { label: 'Telefone fixo', value: f.c_fixo, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_fixo', v); }, placeholder: '032 123 45 67', onEnter: enter })

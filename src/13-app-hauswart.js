@@ -3,27 +3,49 @@
 // Admin only. Dados em localStorage (prefixo hw_).
 // ─────────────────────────────────────────────────────────────────────
 
+// Dados pessoais e de cliente NÃO vêm no código (repo público) — ficam vazios
+// aqui de propósito. São lidos de hauswart_data.cfg (Supabase) depois do
+// login; este objeto só serve de forma/fallback para campos que a BD ainda
+// não tenha. rate e pauschale ficam com um valor neutro (não específico dum
+// cliente real) só para a UI não aparecer com "undefined"/NaN antes de a
+// BD responder.
 var HW_DEFAULTS = {
-  name: 'Patricio Norberto Antunes Carvalho',
-  address: 'Gassackerweg 4b',
-  city: '2545 Selzach',
-  phone: '079 888 43 84',
-  email: 'patr.carvalho@hotmail.com',
-  iban: 'CH63 0830 7000 4824 1931 8',
-  bank: 'Neon Bank',
+  name: '',
+  address: '',
+  city: '',
+  phone: '',
+  email: '',
+  iban: '',
+  bank: '',
   rate: 35,
-  pauschale: 1350,
-  location: 'Passionsstrasse 6, 2545 Selzach',
-  clientName: 'Verwaltung der SWEGT',
-  clientContact: 'Roland Aeschbacher',
-  clientAddress: 'Gartenstrasse 12',
-  clientCity: '4513 Langendorf',
+  pauschale: 0,
+  location: '',
+  clientName: '',
+  clientContact: '',
+  clientAddress: '',
+  clientCity: '',
   quarter: 'Q3',
   year: new Date().getFullYear(),
   invoiceDate: '',
   serviceDate: '',
   invNumManual: '',
 };
+
+// Campos obrigatórios antes de imprimir uma fatura (trava em onPrint, ~linha
+// 497, e aviso em HwCfgTab, ~linha 790) — numa só lista para os dois sítios
+// nunca divergirem.
+var HW_CAMPOS_FATURA_OBRIGATORIOS = [
+  ['iban', 'IBAN'],
+  ['name', 'Nome (Meine Daten)'],
+  ['address', 'Morada (Meine Daten)'],
+  ['city', 'Localidade (Meine Daten)'],
+  ['clientName', 'Firma (Empfänger)'],
+  ['clientAddress', 'Strasse (Empfänger)'],
+];
+function hwVazio(v) { return !String(v == null ? '' : v).trim(); }
+function hwCamposEmFalta(cfgObj) {
+  return HW_CAMPOS_FATURA_OBRIGATORIOS.filter(function (c) { return hwVazio(cfgObj[c[0]]); }).map(function (c) { return c[1]; });
+}
 
 var HW_QUARTERS = [
   { key: 'Q1', from: '1. Januar',  to: '31. März',      startDay: '01-01', endDay: '03-31' },
@@ -276,6 +298,13 @@ var HauswartApp = function(props) {
   // Guarda o updated_at que veio do servidor, para o hwSync poder detetar
   // se outro aparelho gravou entretanto (ver hwSync abaixo).
   var lastUpdatedAtRef = React.useRef(null);
+  // Só passa a true depois de a leitura inicial de hauswart_data confirmar o
+  // que está no servidor (linha com dados, ou PGRST116 = linha genuinamente
+  // inexistente). Enquanto for false, hwSync não escreve no Supabase — sem
+  // isto, se a leitura inicial falhasse por instabilidade de rede, o cfg em
+  // memória (vazio, com o novo HW_DEFAULTS) podia ser gravado por cima dos
+  // dados bons assim que a ligação voltasse e o utilizador guardasse algo.
+  var hwLoadedRef = React.useRef(false);
   // Hauswart Extra (src/21-app-hauswart-extra.js): só alterna o ecrã, não toca nos dados acima.
   var _useStateExtra = React.useState(false);
   var showExtra = _useStateExtra[0], setShowExtra = _useStateExtra[1];
@@ -287,6 +316,7 @@ var HauswartApp = function(props) {
         if (!res.error && res.data) {
           var d = res.data;
           lastUpdatedAtRef.current = d.updated_at || null;
+          hwLoadedRef.current = true;
           if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
           if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats',  d.mats); }
           if (d.cfg   && Object.keys(d.cfg).length) { var m2 = Object.assign({}, HW_DEFAULTS, d.cfg); setCfgRaw(m2); hwSave('cfg', m2); }
@@ -294,6 +324,7 @@ var HauswartApp = function(props) {
         } else if (res.error && res.error.code === 'PGRST116') {
           // Linha genuinamente inexistente para este member_id — seguro semear a partir do localStorage.
           lastUpdatedAtRef.current = null;
+          hwLoadedRef.current = true;
           var lw = hwLoad('works') || []; var lm = hwLoad('mats') || [];
           var lc = hwLoad('cfg') || {}; var la = hwLoad('archive') || [];
           if (lw.length > 0 || lm.length > 0 || la.length > 0) {
@@ -330,9 +361,19 @@ var HauswartApp = function(props) {
   }, []);
 
   var hwSync = function(w, m, c, a) {
-    hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
+    // works/mats/archive são só registos de trabalho — seguros de atualizar
+    // em localStorage mesmo offline. cfg é o que tem dados pessoais/do
+    // cliente: só vai para o localStorage quando também vai (ou acabou de
+    // ir) para a BD, nunca antes — ver hwSave('cfg', c) dentro de doUpsert.
+    hwSave('works', w); hwSave('mats', m); hwSave('archive', a);
     if (!window.supabaseClient) return;
+    if (!hwLoadedRef.current) {
+      console.error('[hauswart] gravação bloqueada: a leitura inicial de hauswart_data (member_id=' + owner + ') ainda não confirmou com sucesso.');
+      window.mostrarErro('Hauswart', { message: 'Sem ligação à base de dados: não foi guardado. Tenta de novo.' });
+      return;
+    }
     var doUpsert = function() {
+      hwSave('cfg', c);
       var nowIso = new Date().toISOString();
       window.supabaseClient.from('hauswart_data').upsert(
         { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: nowIso },
@@ -350,9 +391,18 @@ var HauswartApp = function(props) {
       });
     };
     // Antes de gravar, confirma que ninguém gravou por cima entretanto
-    // noutro aparelho. Se a leitura falhar, não bloqueia — grava na mesma.
+    // noutro aparelho. PGRST116 (linha ainda não existe) é o único erro que
+    // não bloqueia — é exatamente o que se espera na primeira gravação de
+    // sempre. Qualquer outro erro (rede, RLS, timeout) bloqueia: mais vale
+    // pedir para repetir do que arriscar gravar por cima de dados bons sem
+    // saber se há um updated_at mais recente no servidor.
     window.supabaseClient.from('hauswart_data').select('updated_at').eq('member_id', owner).single()
       .then(function(checkRes) {
+        if (checkRes && checkRes.error && checkRes.error.code !== 'PGRST116') {
+          console.error('[hauswart] gravação bloqueada: falha ao verificar updated_at antes de gravar:', checkRes.error);
+          window.mostrarErro('Hauswart', { message: 'Sem ligação à base de dados: não foi guardado. Tenta de novo.' });
+          return;
+        }
         if (checkRes && !checkRes.error && checkRes.data && checkRes.data.updated_at) {
           var serverTs = new Date(checkRes.data.updated_at).getTime();
           var localTs = lastUpdatedAtRef.current ? new Date(lastUpdatedAtRef.current).getTime() : 0;
@@ -364,8 +414,8 @@ var HauswartApp = function(props) {
         }
         doUpsert();
       }).catch(function(e) {
-        console.warn('hwSync: falha ao verificar updated_at, a gravar na mesma:', e);
-        doUpsert();
+        console.error('[hauswart] gravação bloqueada: exceção ao verificar updated_at antes de gravar:', e);
+        window.mostrarErro('Hauswart', { message: 'Sem ligação à base de dados: não foi guardado. Tenta de novo.' });
       });
   };
 
@@ -496,6 +546,8 @@ var HauswartApp = function(props) {
       tab === 'mats' && React.createElement(HwMatsTab, { mats: mats, updM: updM, S: S }),
       tab === 'invoice' && React.createElement(HwInvoiceTab, { works: works, mats: mats, cfg: cfg, total: total, totalWork: totalWork, totalMats: totalMats, pauschale: pauschale, beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, updC: updC, onPrint: function() {
         if (!cfg.invoiceDate) { window.alert('Preenche primeiro a Data de envio (Rechnungsdatum) nas Definições.'); return; }
+        var faltam = hwCamposEmFalta(cfg);
+        if (faltam.length) { window.alert('Preenche primeiro nas Definições: ' + faltam.join(', ') + '.'); return; }
         setPrint(true);
       }, S: S }),
       tab === 'arquivo' && React.createElement(HwArquivoTab, { archive: archive, updA: updA, setPrint: setPrint, S: S }),
@@ -801,8 +853,14 @@ function HwCfgTab(props) {
     setSaved(true); setTimeout(function() { setSaved(false); }, 2000);
   };
 
+  var faltamObrigatorios = hwCamposEmFalta(f);
+
   return React.createElement('div', null,
     React.createElement(HwHdr, { title: 'Einstellungen' }),
+
+    faltamObrigatorios.length > 0 && React.createElement('div', { style: { fontSize: 12, color: '#f87171', background: '#7f1d1d22', border: '1px solid #7f1d1d', borderRadius: 8, padding: '9px 12px', marginBottom: 12, lineHeight: 1.5 } },
+      '⚠️ Obrigatório antes de imprimir: ' + faltamObrigatorios.join(', ') + '.'
+    ),
 
     React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 12 }) },
       React.createElement('div', { style: S.secLabel }, '📅 Quartal & Jahr'),
