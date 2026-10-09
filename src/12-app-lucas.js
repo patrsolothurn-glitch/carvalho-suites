@@ -729,6 +729,7 @@ function LucasApp(_ref) {
   }
   function _deleteCondutor() {
     _deleteCondutor = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(id, nome) {
+      var res;
       return _regenerator().w(function (_context3) {
         while (1) switch (_context3.n) {
           case 0:
@@ -741,6 +742,12 @@ function LucasApp(_ref) {
             _context3.n = 2;
             return supabase.from('lucas_condutores').delete().eq('id', id);
           case 2:
+            res = _context3.v;
+            if (res.error) {
+              console.error('[escola-grenchen] apagar condutor:', res.error);
+              flash('Erro ao remover: ' + res.error.message, true);
+              return _context3.a(2);
+            }
             flash('Removido');
             loadDrivers();
           case 3:
@@ -755,7 +762,7 @@ function LucasApp(_ref) {
   }
   function _setAccessCode() {
     _setAccessCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee4(id, code) {
-      var val;
+      var val, res;
       return _regenerator().w(function (_context4) {
         while (1) switch (_context4.n) {
           case 0:
@@ -765,6 +772,12 @@ function LucasApp(_ref) {
               access_code: val
             }).eq('id', id);
           case 1:
+            res = _context4.v;
+            if (res.error) {
+              console.error('[escola-grenchen] definir código de acesso:', res.error);
+              flash('Erro: ' + res.error.message, true);
+              return _context4.a(2);
+            }
             setDrivers(function (p) {
               return p.map(function (d) {
                 return d.id === id ? Object.assign({}, d, {
@@ -815,6 +828,7 @@ function LucasApp(_ref) {
   }
   function _saveConfig() {
     _saveConfig = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee6(key, value) {
+      var res;
       return _regenerator().w(function (_context6) {
         while (1) switch (_context6.n) {
           case 0:
@@ -826,6 +840,12 @@ function LucasApp(_ref) {
               onConflict: 'key'
             });
           case 1:
+            res = _context6.v;
+            if (res.error) {
+              console.error('[escola-grenchen] guardar config:', res.error);
+              flash('Erro ao guardar: ' + res.error.message, true);
+              return _context6.a(2);
+            }
             setConfig(function (prev) {
               return Object.assign({}, prev, _defineProperty({}, key, value));
             });
@@ -924,7 +944,7 @@ function LucasApp(_ref) {
   }
   function _setVisitanteCode() {
     _setVisitanteCode = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee0(id, code) {
-      var val;
+      var val, res;
       return _regenerator().w(function (_context0) {
         while (1) switch (_context0.n) {
           case 0:
@@ -934,6 +954,12 @@ function LucasApp(_ref) {
               access_code: val
             }).eq('id', id);
           case 1:
+            res = _context0.v;
+            if (res.error) {
+              console.error('[escola-grenchen] definir código do visitante:', res.error);
+              flash('Erro: ' + res.error.message, true);
+              return _context0.a(2);
+            }
             setVisitantes(function (p) {
               return p.map(function (v) {
                 return v.id === id ? Object.assign({}, v, {
@@ -978,6 +1004,7 @@ function LucasApp(_ref) {
   }
   function _toggleVisitante() {
     _toggleVisitante = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee1(id, cur) {
+      var res;
       return _regenerator().w(function (_context1) {
         while (1) switch (_context1.n) {
           case 0:
@@ -986,6 +1013,12 @@ function LucasApp(_ref) {
               autorizado: !cur
             }).eq('id', id);
           case 1:
+            res = _context1.v;
+            if (res.error) {
+              console.error('[escola-grenchen] alternar visitante:', res.error);
+              flash('Erro: ' + res.error.message, true);
+              return _context1.a(2);
+            }
             setVisitantes(function (p) {
               return p.map(function (v) {
                 return v.id === id ? Object.assign({}, v, {
@@ -1006,12 +1039,19 @@ function LucasApp(_ref) {
   }
   function _deleteVisitante() {
     _deleteVisitante = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee10(id) {
+      var res;
       return _regenerator().w(function (_context10) {
         while (1) switch (_context10.n) {
           case 0:
             _context10.n = 1;
             return supabase.from('lucas_visitantes').delete().eq('id', id);
           case 1:
+            res = _context10.v;
+            if (res.error) {
+              console.error('[escola-grenchen] apagar visitante:', res.error);
+              flash('Erro ao remover: ' + res.error.message, true);
+              return _context10.a(2);
+            }
             setVisitantes(function (p) {
               return p.filter(function (v) {
                 return v.id !== id;
@@ -1151,7 +1191,7 @@ function LucasApp(_ref) {
   }
   function _setSlot() {
     _setSlot = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14(dia, slot, condutor) {
-      var key, cur, dayLabel, slotNames, quem;
+      var key, cur, res, dayLabel, slotNames, quem;
       return _regenerator().w(function (_context14) {
         while (1) switch (_context14.n) {
           case 0:
@@ -1171,6 +1211,13 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            res = _context14.v;
+            if (res.error) {
+              console.error('[escola-grenchen] guardar slot:', res.error);
+              flash('Erro ao guardar: ' + res.error.message, true);
+              setSaving(false);
+              return _context14.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 condutor: condutor
