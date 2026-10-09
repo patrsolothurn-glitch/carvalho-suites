@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-08T15:27:41.396Z
+  Gerado em: 2026-10-09T06:51:00.693Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-408";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-409";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -33373,20 +33373,9 @@ function vgType(id) {
 }
 var VG_MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 var VG_SHORT  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-var VG_SUPABASE_URL = 'https://qtynznppkxjmihxiquze.supabase.co';
-var VG_BUCKET = 'trip-photos';
 
 function vgBlankForm(mes) {
   return { tipo: 'ferias', titulo: '', local: '', mes: mes !== undefined ? mes : new Date().getMonth(), dia_inicio: '', dia_fim: '', notas: '', album_url: '' };
-}
-function vgUploadFoto(db, file, tripId, idx) {
-  return new Promise(function(resolve, reject) {
-    var ext = (file.name || 'jpg').split('.').pop();
-    var path = tripId + '/' + Date.now() + '_' + idx + '.' + ext;
-    db.storage.from(VG_BUCKET).upload(path, file, { upsert: true })
-      .then(function(r) { if (r.error) { reject(r.error); return; } resolve(VG_SUPABASE_URL + '/storage/v1/object/public/' + VG_BUCKET + '/' + path); })
-      .catch(reject);
-  });
 }
 
 // ── App principal (todo o estado aqui) ───────────────────────────
@@ -33403,8 +33392,6 @@ function ViagensApp(props) {
   var _s5 = React.useState(null); var form = _s5[0], setForm = _s5[1];
   var _s6 = React.useState(vgBlankForm()); var formData = _s6[0], setFormData = _s6[1];
   var _s7 = React.useState(false); var saving = _s7[0], setSaving = _s7[1];
-  var _s8 = React.useState(null); var progress = _s8[0], setProgress = _s8[1];
-  var _s9 = React.useState(false); var formExpanded = _s9[0], setFormExpanded = _s9[1];
   // Estado do detalhe
   var _s10 = React.useState(null); var detailTrip = _s10[0], setDetailTrip = _s10[1];
   var _s11 = React.useState([]); var detailFotos = _s11[0], setDetailFotos = _s11[1];
@@ -33450,14 +33437,11 @@ function ViagensApp(props) {
   // Abrir formulário
   function openAdd(mes) {
     setFormData(vgBlankForm(mes !== undefined ? mes : new Date().getMonth()));
-    setFormExpanded(false);
     setForm('new');
   }
   function openEdit(trip) {
     setFormData({ tipo: trip.tipo, titulo: trip.titulo, local: trip.local, mes: trip.mes, dia_inicio: trip.dia_inicio || '', dia_fim: trip.dia_fim || '', notas: trip.notas || '', album_url: trip.album_url || '' });
-    setFormExpanded(false);
     setForm(trip);
-
   }
 
   // Guardar
@@ -33469,7 +33453,12 @@ function ViagensApp(props) {
     op.then(function() { setSaving(false); setForm(null); load(); }).catch(function() { setSaving(false); });
   }
 
-  function deleteTrip(id) { db.from('family_trips').delete().eq('id', id).then(function() { setConfirmDel(null); load(); }); }
+  function deleteTrip(id) {
+    db.from('family_trips').delete().eq('id', id).then(function(res) {
+      if (res.error) { console.error('[viagens] apagar entrada:', res.error); window.mostrarErro('Viagens Família', res.error); return; }
+      setConfirmDel(null); load();
+    }).catch(function(e) { console.error('[viagens] apagar entrada:', e); window.mostrarErro('Viagens Família', e); });
+  }
 
   var wrap = { minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui,sans-serif', paddingBottom: 40 };
   var inp = { width: '100%', padding: '11px 13px', borderRadius: 10, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' };
@@ -33542,29 +33531,6 @@ function ViagensApp(props) {
 
   // ── Formulário ────────────────────────────────────────────────
   if (form) {
-    var fotos = formData.fotos || [];
-    var visiveis = (!formExpanded && fotos.length > 3) ? fotos.slice(0, 3) : fotos;
-    var MAX_FOTOS = 100;
-    function addFiles(files) {
-      var current = fotos.slice(), pf = (formData._pendingFiles || []).slice();
-      var slots = MAX_FOTOS - current.length;
-      if (slots <= 0) return;
-      var existingKeys = pf.map(function(f) { return f.name + '_' + f.size; });
-      var arr = Array.prototype.slice.call(files).filter(function(f) {
-        var key = f.name + '_' + f.size;
-        if (existingKeys.indexOf(key) !== -1) return false;
-        existingKeys.push(key);
-        return true;
-      }).slice(0, slots);
-      Promise.all(arr.map(function(f) { return new Promise(function(res) { var r = new FileReader(); r.onload = function(e) { res(e.target.result); }; r.readAsDataURL(f); }); }))
-        .then(function(results) { setFormData(Object.assign({}, formData, { fotos: current.concat(results), _pendingFiles: pf.concat(arr) })); });
-    }
-    function removePhoto(idx) {
-      var nf = fotos.slice(); nf.splice(idx, 1);
-      var npf = (formData._pendingFiles || []).slice(), existing = fotos.length - (formData._pendingFiles || []).length;
-      if (idx >= existing) npf.splice(idx - existing, 1);
-      setFormData(Object.assign({}, formData, { fotos: nf, _pendingFiles: npf }));
-    }
     var valid = formData.titulo.trim() && formData.local.trim();
     return React.createElement('div', { style: wrap },
       headerBar,
