@@ -2526,7 +2526,7 @@ function EscolarApp(_ref31) {
         color: "".concat(E.purple, "88"),
         flexShrink: 0
       }
-    }, "\u270E")), isSel && (al.responsavel && al.responsavel.nome ? /*#__PURE__*/React.createElement("div", {
+    }, "\u270E")), isSel ? (al.responsavel && al.responsavel.nome ? /*#__PURE__*/React.createElement("div", {
       style: { marginTop: 1 }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
@@ -2570,7 +2570,16 @@ function EscolarApp(_ref31) {
         marginTop: 1,
         fontWeight: 700
       }
-    }, "+ Respons\u00E1vel"))), isSel && /*#__PURE__*/React.createElement("div", {
+    }, "+ Respons\u00E1vel")) : (al.responsavel && al.responsavel.nome && /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 9.5,
+        color: E.muted,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.3,
+        marginTop: 1
+      }
+    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome))), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
         width: 7,
         height: 7,
