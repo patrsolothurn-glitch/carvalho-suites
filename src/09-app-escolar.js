@@ -2538,7 +2538,7 @@ function EscolarApp(_ref31) {
       }
     }, "\uD83C\uDFEB ", /*#__PURE__*/React.createElement("b", {
       style: { color: E.text, fontWeight: 800 }
-    }, al.responsavel.nome), al.klasse ? " \xB7 ".concat(al.klasse) : ''), (al.responsavel.tel || al.responsavel.email) && /*#__PURE__*/React.createElement("p", {
+    }, al.responsavel.nome)), (al.responsavel.tel || al.responsavel.email) && /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 9.5,
         color: E.purpleL,
