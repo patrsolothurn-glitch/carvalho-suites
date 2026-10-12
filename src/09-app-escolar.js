@@ -1574,7 +1574,9 @@ function EscolarApp(_ref31) {
   // passa pelo saveAlunoSnapshot. Só o ponto de entrada "grid" edita
   // Klasse aqui (no "chip" a Klasse já se edita ao lado, no editor
   // existente, para não haver dois campos de Klasse a dar informação
-  // diferente no mesmo cartão).
+  // diferente no mesmo cartão). resp_sala deixou de fazer parte deste
+  // painel (a sala já existe por aula) — grava-se sempre vazio, para a
+  // linha ficar coerente (nunca aparece "sala" no cartão do aluno).
   var salvarResponsavel = function salvarResponsavel() {
     if (!respEditor) return;
     var key = respEditor.key;
@@ -1591,20 +1593,21 @@ function EscolarApp(_ref31) {
         klasse: origem === 'grid' ? klasse : atual.klasse,
         responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
           nome: nome,
+          sala: '',
           tel: tel,
           email: email,
           obs: obs
         })
       })));
     });
-    var fields = { resp_nome: nome, resp_tel: tel, resp_email: email, resp_obs: obs };
+    var fields = { resp_nome: nome, resp_sala: '', resp_tel: tel, resp_email: email, resp_obs: obs };
     if (origem === 'grid') fields.klasse = klasse;
     savePerfilOnly(key, fields);
     addEscolarToast('Responsável de turma guardado.');
     setRespEditor(null);
   };
-  // Apaga só o responsável (nome/telefone/email/observação) — nunca toca
-  // em aluno/klasse/cidade, nunca apaga a linha da escolar_perfil.
+  // Apaga só o responsável (nome/sala/telefone/email/observação) — nunca
+  // toca em aluno/klasse/cidade, nunca apaga a linha da escolar_perfil.
   var apagarResponsavel = function apagarResponsavel() {
     if (!respEditor) return;
     var key = respEditor.key;
@@ -1614,13 +1617,14 @@ function EscolarApp(_ref31) {
       return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
         responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
           nome: '',
+          sala: '',
           tel: '',
           email: '',
           obs: ''
         })
       })));
     });
-    savePerfilOnly(key, { resp_nome: '', resp_tel: '', resp_email: '', resp_obs: '' });
+    savePerfilOnly(key, { resp_nome: '', resp_sala: '', resp_tel: '', resp_email: '', resp_obs: '' });
     addEscolarToast('Responsável de turma apagado.');
     setRespEditor(null);
   };
@@ -2017,11 +2021,20 @@ function EscolarApp(_ref31) {
           if (perfilRow) {
             if (perfilRow.klasse) updated.klasse = perfilRow.klasse;
             if (perfilRow.cidade) updated.cidade = perfilRow.cidade;
-            updated.responsavel = {
+            // "Tocado" = pelo menos uma coluna resp_* não é NULL na base —
+            // inclui um '' explícito (apagar legítimo). Só quando as 5
+            // colunas estão a NULL (nunca ninguém gravou o responsável
+            // deste aluno, ex: só a Klasse foi editada) é que se mantém o
+            // responsavel do seed (ALUNOS_DEF) em vez de o apagar sem
+            // querer — era isto que fazia o Liam não mostrar nada.
+            var respTocado = perfilRow.resp_nome != null || perfilRow.resp_sala != null ||
+              perfilRow.resp_tel != null || perfilRow.resp_email != null || perfilRow.resp_obs != null;
+            if (respTocado) updated.responsavel = {
               nome: perfilRow.resp_nome || '',
               sala: perfilRow.resp_sala || '',
               tel: perfilRow.resp_tel || '',
-              email: perfilRow.resp_email || ''
+              email: perfilRow.resp_email || '',
+              obs: perfilRow.resp_obs || ''
             };
           }
           next[key] = updated;
