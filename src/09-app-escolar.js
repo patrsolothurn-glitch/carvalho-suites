@@ -600,6 +600,11 @@ var E = {
   gold: '#C9A847',
   orange: '#F97316'
 };
+// Grelha dos botões "+ Adicionar aula" / "+ Gerir disciplinas" /
+// "Responsável de turma": 1 coluna no telemóvel, 3 colunas a partir de
+// 480px. Os cartões (quando abertos) ocupam sempre a largura toda.
+var ESC_BTNS_GRID_CSS = '.esc-btns-grid{display:grid;grid-template-columns:1fr;gap:8px}' +
+  '@media(min-width:480px){.esc-btns-grid{grid-template-columns:1fr 1fr 1fr}}';
 var ECard = function ECard(_ref32) {
   var children = _ref32.children,
     _ref32$style = _ref32.style,
@@ -816,6 +821,25 @@ function EscolarApp(_ref31) {
     _useStateEditNotaVal2 = _slicedToArray(_useStateEditNotaVal, 2),
     editNotaVal = _useStateEditNotaVal2[0],
     setEditNotaVal = _useStateEditNotaVal2[1];
+  // Painel "Responsável de turma": respEditor diz qual aluno está a ser
+  // editado e por qual ponto de entrada ('chip' = ✏️ do cartão do aluno,
+  // 'grid' = botão na grelha do horário) — os dois abrem o mesmo painel/estado,
+  // nunca duas instâncias ao mesmo tempo. respForm é sempre controlado
+  // (value/onChange), nunca defaultValue+getElementById.
+  var _useStateRespEditor = (0, _react.useState)(null),
+    _useStateRespEditor2 = _slicedToArray(_useStateRespEditor, 2),
+    respEditor = _useStateRespEditor2[0],
+    setRespEditor = _useStateRespEditor2[1];
+  var _useStateRespForm = (0, _react.useState)({
+      klasse: '',
+      nome: '',
+      tel: '',
+      email: '',
+      obs: ''
+    }),
+    _useStateRespForm2 = _slicedToArray(_useStateRespForm, 2),
+    respForm = _useStateRespForm2[0],
+    setRespForm = _useStateRespForm2[1];
   // Ref único que junta TODOS os formulários de adicionar/editar desta app
   // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
   // aberto, o reload automático (visibilitychange) fica bloqueado — evita
@@ -828,7 +852,8 @@ function EscolarApp(_ref31) {
     showAddTPC || editTpcId !== null ||
     editAula !== null || showAddAula ||
     editKlasse || editKlasseKey !== null ||
-    editNotaKey !== null
+    editNotaKey !== null ||
+    respEditor !== null
   );
   var addEscolarToast = function addEscolarToast(msg) {
     var sub = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
@@ -1426,27 +1451,182 @@ function EscolarApp(_ref31) {
       });
     });
   };
-  var savePerfilOnly = function savePerfilOnly(key, data) {
+  // Upsert por aluno (chave 'aluno') que grava SÓ as colunas passadas em
+  // "fields" — nunca apaga a linha para a reinserir. Cada chamador passa
+  // só as colunas que o seu próprio editor possui (ex: {klasse,cidade} no
+  // editor da turma, {resp_nome,resp_tel,...} no editor do responsável),
+  // para nunca pisar com dados velhos/em memória as colunas que não está
+  // a editar. (Antes disto, apagava a linha toda e reinseria — o mesmo
+  // padrão que já causou perda de dados nesta app noutras tabelas.)
+  var savePerfilOnly = function savePerfilOnly(key, fields) {
     if (!window.supabaseClient) return;
     var sb = window.supabaseClient;
-    var resp = data.responsavel || {};
-    sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
-        return;
+    var row = _objectSpread({ aluno: key }, fields);
+    sb.from('escolar_perfil').upsert(row, { onConflict: 'aluno' }).then(function (res) {
+      if (res && res.error) {
+        console.error('[escolar] upsert perfil falhou:', res.error.message);
+        addEscolarToast('Não foi possível guardar os dados da turma.');
       }
-      return sb.from('escolar_perfil').insert({
-        aluno: key,
-        klasse: data.klasse || '',
-        cidade: data.cidade || '',
-        resp_nome: resp.nome || '',
-        resp_sala: resp.sala || '',
-        resp_tel: resp.tel || '',
-        resp_email: resp.email || ''
-      });
     }).catch(function (e) {
-      console.warn('[escolar] erro perfil:', e);
+      console.error('[escolar] erro perfil:', e);
+      addEscolarToast('Não foi possível guardar os dados da turma.');
     });
+  };
+  // Campo controlado (value/onChange) do painel "Responsável de turma" —
+  // nunca defaultValue+getElementById, para nunca ler o DOM a destempo.
+  var respCampo = function respCampo(label, value, onChange, placeholder, type) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: { marginBottom: 6 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: E.muted,
+        fontSize: 8,
+        fontWeight: 700,
+        marginBottom: 3,
+        textTransform: 'uppercase'
+      }
+    }, label), /*#__PURE__*/React.createElement("input", {
+      value: value,
+      onChange: function onChange_(e) {
+        return onChange(e.target.value);
+      },
+      autoComplete: "off",
+      placeholder: placeholder || '',
+      type: type || 'text',
+      style: {
+        width: '100%',
+        background: E.surface2,
+        border: "1px solid ".concat(E.purple),
+        borderRadius: 8,
+        padding: '7px 9px',
+        color: E.text,
+        fontSize: 13,
+        outline: 'none',
+        boxSizing: 'border-box'
+      }
+    }));
+  };
+  // Botões Apagar/Cancelar/Guardar do painel "Responsável de turma" —
+  // partilhados pelos dois pontos de entrada (chip e grelha do horário).
+  var respBotoes = function respBotoes() {
+    return /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, marginTop: 8 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: apagarResponsavel,
+      style: {
+        flex: 1,
+        background: 'rgba(220,38,38,0.1)',
+        border: '1px solid rgba(220,38,38,0.3)',
+        borderRadius: 8,
+        padding: '8px',
+        color: E.red,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "🗑 Apagar"), /*#__PURE__*/React.createElement("button", {
+      onClick: fecharResponsavel,
+      style: {
+        flex: 1,
+        background: E.surface2,
+        border: "1px solid ".concat(E.border),
+        borderRadius: 8,
+        padding: '8px',
+        color: E.muted,
+        fontSize: 12,
+        cursor: 'pointer'
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: salvarResponsavel,
+      style: {
+        flex: 2,
+        background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
+        border: 'none',
+        borderRadius: 8,
+        padding: '8px',
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: 'pointer'
+      }
+    }, "✓ Guardar"));
+  };
+  // Abre o painel "Responsável de turma" para "key", vindo de um dos dois
+  // pontos de entrada ("chip" = ✏️ do cartão do aluno, "grid" = botão na
+  // grelha do horário) — carrega o formulário controlado a partir do que
+  // já está em alunosData (nunca de defaultValue/DOM).
+  var abrirResponsavel = function abrirResponsavel(key, origem) {
+    var al = alunosData[key] || {};
+    var resp = al.responsavel || {};
+    setRespForm({
+      klasse: al.klasse || '',
+      nome: resp.nome || '',
+      tel: resp.tel || '',
+      email: resp.email || '',
+      obs: resp.obs || ''
+    });
+    setRespEditor({ key: key, origem: origem });
+  };
+  var fecharResponsavel = function fecharResponsavel() {
+    setRespEditor(null);
+  };
+  // Grava o responsável de turma — upsert próprio (savePerfilOnly), nunca
+  // passa pelo saveAlunoSnapshot. Só o ponto de entrada "grid" edita
+  // Klasse aqui (no "chip" a Klasse já se edita ao lado, no editor
+  // existente, para não haver dois campos de Klasse a dar informação
+  // diferente no mesmo cartão). resp_sala deixou de fazer parte deste
+  // painel (a sala já existe por aula) — grava-se sempre vazio, para a
+  // linha ficar coerente (nunca aparece "sala" no cartão do aluno).
+  var salvarResponsavel = function salvarResponsavel() {
+    if (!respEditor) return;
+    var key = respEditor.key;
+    var origem = respEditor.origem;
+    var klasse = respForm.klasse.trim();
+    var nome = respForm.nome.trim();
+    var tel = respForm.tel.trim();
+    var email = respForm.email.trim();
+    var obs = respForm.obs.trim();
+    setAlunosData(function (p) {
+      var atual = p[key] || {};
+      var respAtual = atual.responsavel || {};
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
+        klasse: origem === 'grid' ? klasse : atual.klasse,
+        responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
+          nome: nome,
+          sala: '',
+          tel: tel,
+          email: email,
+          obs: obs
+        })
+      })));
+    });
+    var fields = { resp_nome: nome, resp_sala: '', resp_tel: tel, resp_email: email, resp_obs: obs };
+    if (origem === 'grid') fields.klasse = klasse;
+    savePerfilOnly(key, fields);
+    addEscolarToast('Responsável de turma guardado.');
+    setRespEditor(null);
+  };
+  // Apaga só o responsável (nome/sala/telefone/email/observação) — nunca
+  // toca em aluno/klasse/cidade, nunca apaga a linha da escolar_perfil.
+  var apagarResponsavel = function apagarResponsavel() {
+    if (!respEditor) return;
+    var key = respEditor.key;
+    setAlunosData(function (p) {
+      var atual = p[key] || {};
+      var respAtual = atual.responsavel || {};
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
+        responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
+          nome: '',
+          sala: '',
+          tel: '',
+          email: '',
+          obs: ''
+        })
+      })));
+    });
+    savePerfilOnly(key, { resp_nome: '', resp_sala: '', resp_tel: '', resp_email: '', resp_obs: '' });
+    addEscolarToast('Responsável de turma apagado.');
+    setRespEditor(null);
   };
   // onDone(err) opcional: chamado quando ESTA gravação específica ficou
   // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
@@ -1841,11 +2021,20 @@ function EscolarApp(_ref31) {
           if (perfilRow) {
             if (perfilRow.klasse) updated.klasse = perfilRow.klasse;
             if (perfilRow.cidade) updated.cidade = perfilRow.cidade;
-            updated.responsavel = {
+            // "Tocado" = pelo menos uma coluna resp_* não é NULL na base —
+            // inclui um '' explícito (apagar legítimo). Só quando as 5
+            // colunas estão a NULL (nunca ninguém gravou o responsável
+            // deste aluno, ex: só a Klasse foi editada) é que se mantém o
+            // responsavel do seed (ALUNOS_DEF) em vez de o apagar sem
+            // querer — era isto que fazia o Liam não mostrar nada.
+            var respTocado = perfilRow.resp_nome != null || perfilRow.resp_sala != null ||
+              perfilRow.resp_tel != null || perfilRow.resp_email != null || perfilRow.resp_obs != null;
+            if (respTocado) updated.responsavel = {
               nome: perfilRow.resp_nome || '',
               sala: perfilRow.resp_sala || '',
               tel: perfilRow.resp_tel || '',
-              email: perfilRow.resp_email || ''
+              email: perfilRow.resp_email || '',
+              obs: perfilRow.resp_obs || ''
             };
           }
           next[key] = updated;
@@ -2055,6 +2244,33 @@ function EscolarApp(_ref31) {
       return ev.dataInicio && dStr >= ev.dataInicio && dStr <= fim;
     });
   };
+  // Botão da grelha "+ Adicionar aula" / "+ Gerir disciplinas" /
+  // "Responsável de turma" — fundo escuro, borda subtil, ícone em cima e
+  // texto por baixo, realce na cor da app quando ativo.
+  var btnGridEl = function btnGridEl(icon, label, ativo, onClick) {
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: onClick,
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        width: '100%',
+        boxSizing: 'border-box',
+        background: ativo ? "".concat(E.purple, "22") : E.surface2,
+        border: "1px solid ".concat(ativo ? E.purple : E.border),
+        borderRadius: 13,
+        padding: '12px 8px',
+        color: ativo ? E.purpleL : E.text,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 19 }
+    }, icon), label);
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -2206,7 +2422,7 @@ function EscolarApp(_ref31) {
         });
         return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoDado));
       });
-      if (novoDado) savePerfilOnly(alunoKey, novoDado);
+      if (novoDado) savePerfilOnly(alunoKey, { klasse: novoDado.klasse });
       setEditKlasse(false);
     },
     style: {
@@ -2310,7 +2526,51 @@ function EscolarApp(_ref31) {
         color: "".concat(E.purple, "88"),
         flexShrink: 0
       }
-    }, "\u270E")), isSel && al.responsavel && al.responsavel.nome && /*#__PURE__*/React.createElement("p", {
+    }, "\u270E")), isSel ? (al.responsavel && al.responsavel.nome ? /*#__PURE__*/React.createElement("div", {
+      style: { marginTop: 1 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 9.5,
+        color: E.muted,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.3
+      }
+    }, "\uD83C\uDFEB ", /*#__PURE__*/React.createElement("b", {
+      style: { color: E.text, fontWeight: 800 }
+    }, al.responsavel.nome)), (al.responsavel.tel || al.responsavel.email) && /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 9.5,
+        color: E.purpleL,
+        lineHeight: 1.3,
+        marginTop: 1,
+        display: 'flex',
+        gap: 6,
+        flexWrap: 'wrap'
+      }
+    }, al.responsavel.tel && /*#__PURE__*/React.createElement("a", {
+      href: "tel:".concat(al.responsavel.tel),
+      onClick: function onClick(e) { return e.stopPropagation(); },
+      style: { color: E.purpleL, textDecoration: 'none' }
+    }, "\uD83D\uDCDE ", al.responsavel.tel), al.responsavel.email && /*#__PURE__*/React.createElement("a", {
+      href: "mailto:".concat(al.responsavel.email),
+      onClick: function onClick(e) { return e.stopPropagation(); },
+      style: { color: E.purpleL, textDecoration: 'none' }
+    }, "\u2709\uFE0F ", al.responsavel.email))) : isAdmin && /*#__PURE__*/React.createElement("p", {
+      onClick: function onClick(e) {
+        e.stopPropagation();
+        setEditKlasseKey(k);
+        setAlunoKey(k);
+        abrirResponsavel(k, 'chip');
+      },
+      style: {
+        fontSize: 9.5,
+        color: E.purple,
+        cursor: 'pointer',
+        marginTop: 1,
+        fontWeight: 700
+      }
+    }, "+ Respons\u00E1vel")) : (al.responsavel && al.responsavel.nome && /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 9.5,
         color: E.muted,
@@ -2319,7 +2579,7 @@ function EscolarApp(_ref31) {
         lineHeight: 1.3,
         marginTop: 1
       }
-    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome, al.responsavel.sala ? " \xB7 sala ".concat(al.responsavel.sala) : '', al.responsavel.tel ? " \xB7 ".concat(al.responsavel.tel) : '')), isSel && /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome))), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
         width: 7,
         height: 7,
@@ -2491,7 +2751,7 @@ function EscolarApp(_ref31) {
           });
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, novoDado));
         });
-        if (novoDado) savePerfilOnly(k, novoDado);
+        if (novoDado) savePerfilOnly(k, { klasse: novoDado.klasse, cidade: novoDado.cidade });
         setEditKlasseKey(null);
       },
       style: {
@@ -2505,11 +2765,39 @@ function EscolarApp(_ref31) {
         fontWeight: 800,
         cursor: 'pointer'
       }
-    }, "\u2713 Guardar"))), isAdmin && /*#__PURE__*/React.createElement("button", {
+    }, "\u2713 Guardar")), respEditor && respEditor.key === k && respEditor.origem === 'chip' && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid ".concat(E.border)
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: E.muted,
+        fontSize: 9,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        marginBottom: 6
+      }
+    }, "Respons\u00e1vel de turma"), respCampo('Nome do respons\u00e1vel', respForm.nome, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { nome: v }); });
+    }, 'Ex: Petra Humair'), respCampo('Telefone', respForm.tel, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { tel: v }); });
+    }, 'Ex: 032 ...', 'tel'), respCampo('Email', respForm.email, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { email: v }); });
+    }, 'nome@escola.ch', 'email'), respCampo('Observa\u00e7\u00e3o', respForm.obs, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { obs: v }); });
+    }, 'Ex: s\u00f3 recebe SMS'), respBotoes())), isAdmin && /*#__PURE__*/React.createElement("button", {
       onClick: function onClick(e) {
         e.stopPropagation();
-        setEditKlasseKey(editKlasseKey === k ? null : k);
+        var abrir = editKlasseKey !== k;
+        setEditKlasseKey(abrir ? k : null);
         setAlunoKey(k);
+        if (abrir) {
+          abrirResponsavel(k, 'chip');
+        } else {
+          fecharResponsavel();
+        }
       },
       style: {
         background: "".concat(E.purple, "15"),
@@ -3391,30 +3679,22 @@ function EscolarApp(_ref31) {
         fontWeight: 700
       }
     }, "\uD83D\uDDD1"))));
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setShowAddAula(function (v) {
-        return !v;
-      });
-    },
+  }), /*#__PURE__*/React.createElement("style", null, ESC_BTNS_GRID_CSS), /*#__PURE__*/React.createElement("div", {
+    className: "esc-btns-grid",
     style: {
-      width: '100%',
-      background: 'none',
-      border: "1px dashed ".concat(E.purple, "55"),
-      borderRadius: 13,
-      padding: '11px',
-      color: E.purple,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer',
       marginTop: 4,
       marginBottom: 10
     }
-  }, showAddAula ? '✕ Fechar' : '＋ Adicionar aula'), showAddAula && /*#__PURE__*/React.createElement(ECard, {
+  }, btnGridEl('\uD83D\uDDD3\uFE0F', showAddAula ? 'Fechar' : 'Adicionar aula', showAddAula, function () {
+    return setShowAddAula(function (v) {
+      return !v;
+    });
+  }), showAddAula && /*#__PURE__*/React.createElement(ECard, {
     style: {
       padding: '14px',
       marginBottom: 10,
-      border: "1px solid ".concat(E.purple)
+      border: "1px solid ".concat(E.purple),
+      gridColumn: '1 / -1'
     }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
@@ -3622,28 +3902,15 @@ function EscolarApp(_ref31) {
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "\u2713 Guardar"))), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setShowAddDisc(function (v) {
-        return !v;
-      });
-    },
-    style: {
-      width: '100%',
-      background: 'none',
-      border: "1px dashed ".concat(E.purple, "55"),
-      borderRadius: 13,
-      padding: '11px',
-      color: E.purple,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer',
-      marginTop: 4
-    }
-  }, showAddDisc ? '✕ Fechar' : '＋ Gerir disciplinas'), showAddDisc && /*#__PURE__*/React.createElement(ECard, {
+  }, "\u2713 Guardar"))), btnGridEl('\uD83D\uDCD8', showAddDisc ? 'Fechar' : 'Gerir disciplinas', showAddDisc, function () {
+    return setShowAddDisc(function (v) {
+      return !v;
+    });
+  }), showAddDisc && /*#__PURE__*/React.createElement(ECard, {
     style: {
       marginTop: 10,
       padding: '14px',
+      gridColumn: '1 / -1',
       border: "1px solid ".concat(E.purple)
     }
   }, /*#__PURE__*/React.createElement("p", {
@@ -4064,7 +4331,47 @@ function EscolarApp(_ref31) {
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "\u2713 Adicionar disciplina")))), tab === 'cal' && /*#__PURE__*/React.createElement("div", {
+  }, "✓ Adicionar disciplina")), btnGridEl('🏫', 'Responsável de turma', !!(respEditor && respEditor.key === alunoKey && respEditor.origem === 'grid'), function () {
+    if (respEditor && respEditor.key === alunoKey && respEditor.origem === 'grid') {
+      fecharResponsavel();
+    } else {
+      abrirResponsavel(alunoKey, 'grid');
+    }
+  }), respEditor && respEditor.key === alunoKey && respEditor.origem === 'grid' && /*#__PURE__*/React.createElement(ECard, {
+    style: {
+      marginTop: 10,
+      padding: '14px',
+      border: "1px solid ".concat(E.purple),
+      gridColumn: '1 / -1'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: E.purple,
+      fontWeight: 800,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, "Responsável de turma"), respCampo('Klasse/turma', respForm.klasse, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { klasse: v });
+    });
+  }, 'Ex: SEK B'), respCampo('Nome do responsável', respForm.nome, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { nome: v });
+    });
+  }, 'Ex: Petra Humair'), respCampo('Telefone', respForm.tel, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { tel: v });
+    });
+  }, 'Ex: 032 ...', 'tel'), respCampo('Email', respForm.email, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { email: v });
+    });
+  }, 'nome@escola.ch', 'email'), respCampo('Observação', respForm.obs, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { obs: v });
+    });
+  }, 'Ex: só recebe SMS'), respBotoes())))), tab === 'cal' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px'
     }
