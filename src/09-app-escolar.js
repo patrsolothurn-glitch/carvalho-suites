@@ -2441,7 +2441,7 @@ function EscolarApp(_ref31) {
       padding: '10px 14px',
       display: 'flex',
       gap: 10,
-      alignItems: 'center',
+      alignItems: 'stretch',
       overflow: 'visible'
     }
   }, (isAdmin ? ['lucas', 'liam'] : [alunoKey]).map(function (k) {
@@ -2451,8 +2451,8 @@ function EscolarApp(_ref31) {
       key: k,
       style: {
         display: 'flex',
-        alignItems: 'center',
-        gap: 8,
+        flexDirection: 'column',
+        gap: 4,
         padding: '8px 14px',
         background: isSel ? "".concat(al.cor, "20") : E.surface,
         border: "2px solid ".concat(isSel ? al.cor : E.border),
@@ -2469,7 +2469,6 @@ function EscolarApp(_ref31) {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        flex: 1,
         minWidth: 0,
         cursor: 'pointer'
       }
@@ -2493,7 +2492,7 @@ function EscolarApp(_ref31) {
       style: {
         textAlign: 'left',
         flex: 1,
-        minWidth: 64
+        minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
@@ -2504,15 +2503,7 @@ function EscolarApp(_ref31) {
         overflowWrap: 'break-word',
         lineHeight: 1.15
       }
-    }, al.nome), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 4,
-        minWidth: 0,
-        flexWrap: 'wrap'
-      }
-    }, /*#__PURE__*/React.createElement("p", {
+    }, al.nome), /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 10,
         color: E.muted,
@@ -2520,14 +2511,20 @@ function EscolarApp(_ref31) {
         overflowWrap: 'break-word',
         lineHeight: 1.2
       }
-    }, al.klasse || 'SEK P', " \xB7 ", al.cidade || 'Grenchen'), isAdmin && /*#__PURE__*/React.createElement("span", {
+    }, al.klasse || 'SEK P', " \xB7 ", al.cidade || 'Grenchen')), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 9,
-        color: "".concat(E.purple, "88"),
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: E.green,
         flexShrink: 0
       }
-    }, "\u270E")), isSel ? (al.responsavel && al.responsavel.nome ? /*#__PURE__*/React.createElement("div", {
-      style: { marginTop: 1 }
+    })), isSel ? (al.responsavel && al.responsavel.nome ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 1,
+        width: '100%',
+        minWidth: 0
+      }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 9.5,
@@ -2545,17 +2542,28 @@ function EscolarApp(_ref31) {
         lineHeight: 1.3,
         marginTop: 1,
         display: 'flex',
+        alignItems: 'center',
         gap: 6,
-        flexWrap: 'wrap'
+        minWidth: 0
       }
     }, al.responsavel.tel && /*#__PURE__*/React.createElement("a", {
       href: "tel:".concat(al.responsavel.tel),
       onClick: function onClick(e) { return e.stopPropagation(); },
-      style: { color: E.purpleL, textDecoration: 'none' }
+      style: { color: E.purpleL, textDecoration: 'none', flexShrink: 0 }
     }, "\uD83D\uDCDE ", al.responsavel.tel), al.responsavel.email && /*#__PURE__*/React.createElement("a", {
       href: "mailto:".concat(al.responsavel.email),
       onClick: function onClick(e) { return e.stopPropagation(); },
-      style: { color: E.purpleL, textDecoration: 'none' }
+      style: {
+        color: E.purpleL,
+        textDecoration: 'none',
+        flex: 1,
+        minWidth: 0,
+        display: 'block',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        fontSize: 9
+      }
     }, "\u2709\uFE0F ", al.responsavel.email))) : isAdmin && /*#__PURE__*/React.createElement("p", {
       onClick: function onClick(e) {
         e.stopPropagation();
@@ -2579,15 +2587,15 @@ function EscolarApp(_ref31) {
         lineHeight: 1.3,
         marginTop: 1
       }
-    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome))), isSel && /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome)), isAdmin && /*#__PURE__*/React.createElement("span", {
       style: {
-        width: 7,
-        height: 7,
-        borderRadius: '50%',
-        background: E.green,
-        flexShrink: 0
+        position: 'absolute',
+        top: 6,
+        right: 8,
+        fontSize: 9,
+        color: "".concat(E.purple, "88")
       }
-    })), isAdmin && editKlasseKey === k && /*#__PURE__*/React.createElement("div", {
+    }, "\u270E"), isAdmin && editKlasseKey === k && /*#__PURE__*/React.createElement("div", {
       onClick: function onClick(e) {
         return e.stopPropagation();
       },
