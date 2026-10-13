@@ -1017,8 +1017,9 @@ function HwArquivoTab(props) {
                 React.createElement('div', { style: { display: 'flex', gap: 5, marginTop: 8, justifyContent: 'flex-end' } },
                   React.createElement('button', {
                     onClick: function() { setPrint(a); },
-                    style: { background: '#1d4ed822', color: '#93c5fd', border: 'none', borderRadius: 6, padding: '5px 8px', fontSize: 12, cursor: 'pointer' }
-                  }, '🖨️'),
+                    title: 'Abrir esta fatura',
+                    style: { background: '#1d4ed822', color: '#93c5fd', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
+                  }, '📄 Abrir'),
                   React.createElement('button', {
                     onClick: function() { markPaid(a.id); },
                     style: { background: a.paid ? '#7c2d12' : '#14532d', color: a.paid ? '#fdba74' : '#4ade80', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
