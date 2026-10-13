@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-09T01:49:59.226Z
+  Gerado em: 2026-10-13T04:37:49.477Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-409";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-416";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -5754,6 +5754,20 @@ function apCatVista(a) {
   var c = a.categoria || 'trabalho';
   return CATEGORIAS_WORK[c] ? c : 'trabalho';
 }
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function agpLog(op, err) {
+  console.error('[agendapro] falha ao ' + op + ':', err);
+}
+function agpAvisar(op, err) {
+  agpLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Patricio Work \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function agpAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') agpLog(op, err);
+  else agpAvisar(op, err);
+}
 function AgendaProApp(_ref13) {
   var onBack = _ref13.onBack,
     _ref13$sharedDias = _ref13.sharedDias,
@@ -5919,7 +5933,8 @@ function AgendaProApp(_ref13) {
   var loadMonteurs = function loadMonteurs() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('agenda_monteurs').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { agpAvisarRes('carregar os monteurs (agenda_monteurs)', res.error); return; }
+      if (!res.data) return;
       setMonteurs(res.data.map(function (row) {
         return {
           id: row.id,
@@ -5931,7 +5946,7 @@ function AgendaProApp(_ref13) {
           categoria: row.categoria || ''
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { agpAvisar('carregar os monteurs (agenda_monteurs)', err); });
   };
   (0, _react.useEffect)(function () {
     loadMonteurs();
@@ -6165,7 +6180,8 @@ function AgendaProApp(_ref13) {
   var loadProjects = function loadProjects() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { agpAvisarRes('carregar os projetos (horas_projects)', res.error); return; }
+      if (!res.data) return;
       setProjList(res.data.map(function (row) {
         return {
           id: row.id,
@@ -6174,7 +6190,7 @@ function AgendaProApp(_ref13) {
           contaEstatisticas: row.conta_estatisticas !== false
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { agpAvisar('carregar os projetos (horas_projects)', err); });
   };
   (0, _react.useEffect)(function () {
     loadProjects();
@@ -6531,7 +6547,8 @@ function AgendaProApp(_ref13) {
   var loadJobs = function loadJobs() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('agenda_pro_jobs').select('*').then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { agpAvisarRes('carregar as marcações (agenda_pro_jobs)', res.error); return; }
+      if (!res.data) return;
       setAppts(res.data.map(function (row) {
         return {
           id: row.id,
@@ -6549,7 +6566,7 @@ function AgendaProApp(_ref13) {
           partilhadoCom: row.partilhado_com || 'todos'
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { agpAvisar('carregar as marcações (agenda_pro_jobs)', err); });
   };
   (0, _react.useEffect)(function () {
     loadJobs();
@@ -6612,7 +6629,7 @@ function AgendaProApp(_ref13) {
           body: body,
           profileIds: ids
         }
-      }).catch(function () {});
+      }).then(function (res) { if (res && res.error) agpLog('enviar push (marcação)', res.error); }).catch(function (err) { agpLog('enviar push (marcação)', err); });
     });
   };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {
@@ -6815,7 +6832,7 @@ function AgendaProApp(_ref13) {
   var updateApptTime = function(id, hi, hf) {
     setAppts(function(p){ return p.map(function(a){ return a.id===id ? Object.assign({},a,{hi:hi,hf:hf}) : a; }); });
     if (window.supabaseClient) {
-      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function(){}).catch(function(){});
+      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function (res) { if (res && res.error) agpAvisarRes('guardar a hora da marcação', res.error); }).catch(function (err) { agpAvisar('guardar a hora da marcação', err); });
     }
   };
   var renderTimeline = function(dayStr) {
@@ -6962,7 +6979,7 @@ function AgendaProApp(_ref13) {
     if (window.supabaseClient) {
       window.supabaseClient.from('agenda_pro_jobs').update({
         status: status
-      }).eq('id', id).then(function () {}).catch(function () {});
+      }).eq('id', id).then(function (res) { if (res && res.error) agpAvisarRes('guardar o estado da marcação', res.error); }).catch(function (err) { agpAvisar('guardar o estado da marcação', err); });
     }
   };
   var deleteAppt = function deleteAppt(id) {
@@ -6972,7 +6989,7 @@ function AgendaProApp(_ref13) {
       });
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function () {}).catch(function () {});
+      window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function (res) { if (res && res.error) agpAvisarRes('apagar a marcação', res.error); }).catch(function (err) { agpAvisar('apagar a marcação', err); });
       window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', id).then(function (res) {
         if (res.error) {
           console.error('[agenda_pro→familia] falha ao remover evento partilhado ao apagar trabalho:', res.error);
@@ -13757,6 +13774,20 @@ function FamiliaApp(_ref19) {
 // ── NUTRIGUIMA ──────────────────────────────────────────────────────
 
 
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function nutLog(op, err) {
+  console.error('[nutriguima] falha ao ' + op + ':', err);
+}
+function nutAvisar(op, err) {
+  nutLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Nutriguima \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function nutAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') nutLog(op, err);
+  else nutAvisar(op, err);
+}
 function NutriguimaApp(_ref29) {
   var onBack = _ref29.onBack;
   var _useState121 = (0, _react.useState)({}),
@@ -13862,7 +13893,7 @@ function NutriguimaApp(_ref29) {
   var loadNutriData = function loadNutriData() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('nutri_products').select('*').then(function (res) {
-      if (res.error) return;
+      if (res.error) { nutAvisarRes('carregar os produtos (nutri_products)', res.error); return; }
       if (res.data && res.data.length > 0) {
         setProducts(res.data.map(function (row) {
           return {
@@ -13887,10 +13918,10 @@ function NutriguimaApp(_ref29) {
             emoji: p.emoji,
             cat: p.cat,
             stock: stock[p.id] || 0
-          }).then(function () { }).catch(function () {});
+          }).then(function (res) { if (res && res.error) nutLog('semear os produtos por defeito (nutri_products)', res.error); }).catch(function (err) { nutLog('semear os produtos por defeito (nutri_products)', err); });
         });
       }
-    }).catch(function () {});
+    }).catch(function (err) { nutAvisar('carregar os produtos (nutri_products)', err); });
   };
   (0, _react.useEffect)(function () {
     loadNutriData();
@@ -13971,7 +14002,7 @@ function NutriguimaApp(_ref29) {
       return c;
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () { }).catch(function () {});
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function (res) { if (res && res.error) nutAvisarRes('apagar o produto', res.error); }).catch(function (err) { nutAvisar('apagar o produto', err); });
     }
   };
   var filtered = products.filter(function (p) {
@@ -14026,7 +14057,7 @@ function NutriguimaApp(_ref29) {
       var qty = cart[p.id] || 0;
       var novoStock = Math.max(0, (stock[p.id] || 0) - qty);
       if (window.supabaseClient) {
-        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function() {}).catch(function() {});
+        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function (res) { if (res && res.error) nutAvisarRes('guardar o stock da encomenda', res.error); }).catch(function (err) { nutAvisar('guardar o stock da encomenda', err); });
       }
       setStock(function(s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, novoStock)); });
     });
@@ -15105,7 +15136,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () { }).catch(function () {});
+            }).eq('id', p.id).then(function (res) { if (res && res.error) nutAvisarRes('guardar o stock', res.error); }).catch(function (err) { nutAvisar('guardar o stock', err); });
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -15139,7 +15170,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () { }).catch(function () {});
+            }).eq('id', p.id).then(function (res) { if (res && res.error) nutAvisarRes('guardar o stock', res.error); }).catch(function (err) { nutAvisar('guardar o stock', err); });
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -15819,6 +15850,11 @@ var E = {
   gold: '#C9A847',
   orange: '#F97316'
 };
+// Grelha dos botões "+ Adicionar aula" / "+ Gerir disciplinas" /
+// "Responsável de turma": 1 coluna no telemóvel, 3 colunas a partir de
+// 480px. Os cartões (quando abertos) ocupam sempre a largura toda.
+var ESC_BTNS_GRID_CSS = '.esc-btns-grid{display:grid;grid-template-columns:1fr;gap:8px}' +
+  '@media(min-width:480px){.esc-btns-grid{grid-template-columns:1fr 1fr 1fr}}';
 var ECard = function ECard(_ref32) {
   var children = _ref32.children,
     _ref32$style = _ref32.style,
@@ -16035,6 +16071,25 @@ function EscolarApp(_ref31) {
     _useStateEditNotaVal2 = _slicedToArray(_useStateEditNotaVal, 2),
     editNotaVal = _useStateEditNotaVal2[0],
     setEditNotaVal = _useStateEditNotaVal2[1];
+  // Painel "Responsável de turma": respEditor diz qual aluno está a ser
+  // editado e por qual ponto de entrada ('chip' = ✏️ do cartão do aluno,
+  // 'grid' = botão na grelha do horário) — os dois abrem o mesmo painel/estado,
+  // nunca duas instâncias ao mesmo tempo. respForm é sempre controlado
+  // (value/onChange), nunca defaultValue+getElementById.
+  var _useStateRespEditor = (0, _react.useState)(null),
+    _useStateRespEditor2 = _slicedToArray(_useStateRespEditor, 2),
+    respEditor = _useStateRespEditor2[0],
+    setRespEditor = _useStateRespEditor2[1];
+  var _useStateRespForm = (0, _react.useState)({
+      klasse: '',
+      nome: '',
+      tel: '',
+      email: '',
+      obs: ''
+    }),
+    _useStateRespForm2 = _slicedToArray(_useStateRespForm, 2),
+    respForm = _useStateRespForm2[0],
+    setRespForm = _useStateRespForm2[1];
   // Ref único que junta TODOS os formulários de adicionar/editar desta app
   // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
   // aberto, o reload automático (visibilitychange) fica bloqueado — evita
@@ -16047,7 +16102,8 @@ function EscolarApp(_ref31) {
     showAddTPC || editTpcId !== null ||
     editAula !== null || showAddAula ||
     editKlasse || editKlasseKey !== null ||
-    editNotaKey !== null
+    editNotaKey !== null ||
+    respEditor !== null
   );
   var addEscolarToast = function addEscolarToast(msg) {
     var sub = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
@@ -16645,27 +16701,182 @@ function EscolarApp(_ref31) {
       });
     });
   };
-  var savePerfilOnly = function savePerfilOnly(key, data) {
+  // Upsert por aluno (chave 'aluno') que grava SÓ as colunas passadas em
+  // "fields" — nunca apaga a linha para a reinserir. Cada chamador passa
+  // só as colunas que o seu próprio editor possui (ex: {klasse,cidade} no
+  // editor da turma, {resp_nome,resp_tel,...} no editor do responsável),
+  // para nunca pisar com dados velhos/em memória as colunas que não está
+  // a editar. (Antes disto, apagava a linha toda e reinseria — o mesmo
+  // padrão que já causou perda de dados nesta app noutras tabelas.)
+  var savePerfilOnly = function savePerfilOnly(key, fields) {
     if (!window.supabaseClient) return;
     var sb = window.supabaseClient;
-    var resp = data.responsavel || {};
-    sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
-      if (delRes && delRes.error) {
-        console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
-        return;
+    var row = _objectSpread({ aluno: key }, fields);
+    sb.from('escolar_perfil').upsert(row, { onConflict: 'aluno' }).then(function (res) {
+      if (res && res.error) {
+        console.error('[escolar] upsert perfil falhou:', res.error.message);
+        addEscolarToast('Não foi possível guardar os dados da turma.');
       }
-      return sb.from('escolar_perfil').insert({
-        aluno: key,
-        klasse: data.klasse || '',
-        cidade: data.cidade || '',
-        resp_nome: resp.nome || '',
-        resp_sala: resp.sala || '',
-        resp_tel: resp.tel || '',
-        resp_email: resp.email || ''
-      });
     }).catch(function (e) {
-      console.warn('[escolar] erro perfil:', e);
+      console.error('[escolar] erro perfil:', e);
+      addEscolarToast('Não foi possível guardar os dados da turma.');
     });
+  };
+  // Campo controlado (value/onChange) do painel "Responsável de turma" —
+  // nunca defaultValue+getElementById, para nunca ler o DOM a destempo.
+  var respCampo = function respCampo(label, value, onChange, placeholder, type) {
+    return /*#__PURE__*/React.createElement("div", {
+      style: { marginBottom: 6 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: E.muted,
+        fontSize: 8,
+        fontWeight: 700,
+        marginBottom: 3,
+        textTransform: 'uppercase'
+      }
+    }, label), /*#__PURE__*/React.createElement("input", {
+      value: value,
+      onChange: function onChange_(e) {
+        return onChange(e.target.value);
+      },
+      autoComplete: "off",
+      placeholder: placeholder || '',
+      type: type || 'text',
+      style: {
+        width: '100%',
+        background: E.surface2,
+        border: "1px solid ".concat(E.purple),
+        borderRadius: 8,
+        padding: '7px 9px',
+        color: E.text,
+        fontSize: 13,
+        outline: 'none',
+        boxSizing: 'border-box'
+      }
+    }));
+  };
+  // Botões Apagar/Cancelar/Guardar do painel "Responsável de turma" —
+  // partilhados pelos dois pontos de entrada (chip e grelha do horário).
+  var respBotoes = function respBotoes() {
+    return /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6, marginTop: 8 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: apagarResponsavel,
+      style: {
+        flex: 1,
+        background: 'rgba(220,38,38,0.1)',
+        border: '1px solid rgba(220,38,38,0.3)',
+        borderRadius: 8,
+        padding: '8px',
+        color: E.red,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "🗑 Apagar"), /*#__PURE__*/React.createElement("button", {
+      onClick: fecharResponsavel,
+      style: {
+        flex: 1,
+        background: E.surface2,
+        border: "1px solid ".concat(E.border),
+        borderRadius: 8,
+        padding: '8px',
+        color: E.muted,
+        fontSize: 12,
+        cursor: 'pointer'
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: salvarResponsavel,
+      style: {
+        flex: 2,
+        background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
+        border: 'none',
+        borderRadius: 8,
+        padding: '8px',
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: 'pointer'
+      }
+    }, "✓ Guardar"));
+  };
+  // Abre o painel "Responsável de turma" para "key", vindo de um dos dois
+  // pontos de entrada ("chip" = ✏️ do cartão do aluno, "grid" = botão na
+  // grelha do horário) — carrega o formulário controlado a partir do que
+  // já está em alunosData (nunca de defaultValue/DOM).
+  var abrirResponsavel = function abrirResponsavel(key, origem) {
+    var al = alunosData[key] || {};
+    var resp = al.responsavel || {};
+    setRespForm({
+      klasse: al.klasse || '',
+      nome: resp.nome || '',
+      tel: resp.tel || '',
+      email: resp.email || '',
+      obs: resp.obs || ''
+    });
+    setRespEditor({ key: key, origem: origem });
+  };
+  var fecharResponsavel = function fecharResponsavel() {
+    setRespEditor(null);
+  };
+  // Grava o responsável de turma — upsert próprio (savePerfilOnly), nunca
+  // passa pelo saveAlunoSnapshot. Só o ponto de entrada "grid" edita
+  // Klasse aqui (no "chip" a Klasse já se edita ao lado, no editor
+  // existente, para não haver dois campos de Klasse a dar informação
+  // diferente no mesmo cartão). resp_sala deixou de fazer parte deste
+  // painel (a sala já existe por aula) — grava-se sempre vazio, para a
+  // linha ficar coerente (nunca aparece "sala" no cartão do aluno).
+  var salvarResponsavel = function salvarResponsavel() {
+    if (!respEditor) return;
+    var key = respEditor.key;
+    var origem = respEditor.origem;
+    var klasse = respForm.klasse.trim();
+    var nome = respForm.nome.trim();
+    var tel = respForm.tel.trim();
+    var email = respForm.email.trim();
+    var obs = respForm.obs.trim();
+    setAlunosData(function (p) {
+      var atual = p[key] || {};
+      var respAtual = atual.responsavel || {};
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
+        klasse: origem === 'grid' ? klasse : atual.klasse,
+        responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
+          nome: nome,
+          sala: '',
+          tel: tel,
+          email: email,
+          obs: obs
+        })
+      })));
+    });
+    var fields = { resp_nome: nome, resp_sala: '', resp_tel: tel, resp_email: email, resp_obs: obs };
+    if (origem === 'grid') fields.klasse = klasse;
+    savePerfilOnly(key, fields);
+    addEscolarToast('Responsável de turma guardado.');
+    setRespEditor(null);
+  };
+  // Apaga só o responsável (nome/sala/telefone/email/observação) — nunca
+  // toca em aluno/klasse/cidade, nunca apaga a linha da escolar_perfil.
+  var apagarResponsavel = function apagarResponsavel() {
+    if (!respEditor) return;
+    var key = respEditor.key;
+    setAlunosData(function (p) {
+      var atual = p[key] || {};
+      var respAtual = atual.responsavel || {};
+      return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
+        responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
+          nome: '',
+          sala: '',
+          tel: '',
+          email: '',
+          obs: ''
+        })
+      })));
+    });
+    savePerfilOnly(key, { resp_nome: '', resp_sala: '', resp_tel: '', resp_email: '', resp_obs: '' });
+    addEscolarToast('Responsável de turma apagado.');
+    setRespEditor(null);
   };
   // onDone(err) opcional: chamado quando ESTA gravação específica ficou
   // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
@@ -17060,11 +17271,20 @@ function EscolarApp(_ref31) {
           if (perfilRow) {
             if (perfilRow.klasse) updated.klasse = perfilRow.klasse;
             if (perfilRow.cidade) updated.cidade = perfilRow.cidade;
-            updated.responsavel = {
+            // "Tocado" = pelo menos uma coluna resp_* não é NULL na base —
+            // inclui um '' explícito (apagar legítimo). Só quando as 5
+            // colunas estão a NULL (nunca ninguém gravou o responsável
+            // deste aluno, ex: só a Klasse foi editada) é que se mantém o
+            // responsavel do seed (ALUNOS_DEF) em vez de o apagar sem
+            // querer — era isto que fazia o Liam não mostrar nada.
+            var respTocado = perfilRow.resp_nome != null || perfilRow.resp_sala != null ||
+              perfilRow.resp_tel != null || perfilRow.resp_email != null || perfilRow.resp_obs != null;
+            if (respTocado) updated.responsavel = {
               nome: perfilRow.resp_nome || '',
               sala: perfilRow.resp_sala || '',
               tel: perfilRow.resp_tel || '',
-              email: perfilRow.resp_email || ''
+              email: perfilRow.resp_email || '',
+              obs: perfilRow.resp_obs || ''
             };
           }
           next[key] = updated;
@@ -17274,6 +17494,33 @@ function EscolarApp(_ref31) {
       return ev.dataInicio && dStr >= ev.dataInicio && dStr <= fim;
     });
   };
+  // Botão da grelha "+ Adicionar aula" / "+ Gerir disciplinas" /
+  // "Responsável de turma" — fundo escuro, borda subtil, ícone em cima e
+  // texto por baixo, realce na cor da app quando ativo.
+  var btnGridEl = function btnGridEl(icon, label, ativo, onClick) {
+    return /*#__PURE__*/React.createElement("button", {
+      onClick: onClick,
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        width: '100%',
+        boxSizing: 'border-box',
+        background: ativo ? "".concat(E.purple, "22") : E.surface2,
+        border: "1px solid ".concat(ativo ? E.purple : E.border),
+        borderRadius: 13,
+        padding: '12px 8px',
+        color: ativo ? E.purpleL : E.text,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 19 }
+    }, icon), label);
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -17425,7 +17672,7 @@ function EscolarApp(_ref31) {
         });
         return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoDado));
       });
-      if (novoDado) savePerfilOnly(alunoKey, novoDado);
+      if (novoDado) savePerfilOnly(alunoKey, { klasse: novoDado.klasse });
       setEditKlasse(false);
     },
     style: {
@@ -17529,7 +17776,51 @@ function EscolarApp(_ref31) {
         color: "".concat(E.purple, "88"),
         flexShrink: 0
       }
-    }, "\u270E")), isSel && al.responsavel && al.responsavel.nome && /*#__PURE__*/React.createElement("p", {
+    }, "\u270E")), isSel ? (al.responsavel && al.responsavel.nome ? /*#__PURE__*/React.createElement("div", {
+      style: { marginTop: 1 }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 9.5,
+        color: E.muted,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        lineHeight: 1.3
+      }
+    }, "\uD83C\uDFEB ", /*#__PURE__*/React.createElement("b", {
+      style: { color: E.text, fontWeight: 800 }
+    }, al.responsavel.nome)), (al.responsavel.tel || al.responsavel.email) && /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 9.5,
+        color: E.purpleL,
+        lineHeight: 1.3,
+        marginTop: 1,
+        display: 'flex',
+        gap: 6,
+        flexWrap: 'wrap'
+      }
+    }, al.responsavel.tel && /*#__PURE__*/React.createElement("a", {
+      href: "tel:".concat(al.responsavel.tel),
+      onClick: function onClick(e) { return e.stopPropagation(); },
+      style: { color: E.purpleL, textDecoration: 'none' }
+    }, "\uD83D\uDCDE ", al.responsavel.tel), al.responsavel.email && /*#__PURE__*/React.createElement("a", {
+      href: "mailto:".concat(al.responsavel.email),
+      onClick: function onClick(e) { return e.stopPropagation(); },
+      style: { color: E.purpleL, textDecoration: 'none' }
+    }, "\u2709\uFE0F ", al.responsavel.email))) : isAdmin && /*#__PURE__*/React.createElement("p", {
+      onClick: function onClick(e) {
+        e.stopPropagation();
+        setEditKlasseKey(k);
+        setAlunoKey(k);
+        abrirResponsavel(k, 'chip');
+      },
+      style: {
+        fontSize: 9.5,
+        color: E.purple,
+        cursor: 'pointer',
+        marginTop: 1,
+        fontWeight: 700
+      }
+    }, "+ Respons\u00E1vel")) : (al.responsavel && al.responsavel.nome && /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 9.5,
         color: E.muted,
@@ -17538,7 +17829,7 @@ function EscolarApp(_ref31) {
         lineHeight: 1.3,
         marginTop: 1
       }
-    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome, al.responsavel.sala ? " \xB7 sala ".concat(al.responsavel.sala) : '', al.responsavel.tel ? " \xB7 ".concat(al.responsavel.tel) : '')), isSel && /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDC69\u200D\uD83C\uDFEB ", al.responsavel.nome))), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
         width: 7,
         height: 7,
@@ -17710,7 +18001,7 @@ function EscolarApp(_ref31) {
           });
           return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, k, novoDado));
         });
-        if (novoDado) savePerfilOnly(k, novoDado);
+        if (novoDado) savePerfilOnly(k, { klasse: novoDado.klasse, cidade: novoDado.cidade });
         setEditKlasseKey(null);
       },
       style: {
@@ -17724,11 +18015,39 @@ function EscolarApp(_ref31) {
         fontWeight: 800,
         cursor: 'pointer'
       }
-    }, "\u2713 Guardar"))), isAdmin && /*#__PURE__*/React.createElement("button", {
+    }, "\u2713 Guardar")), respEditor && respEditor.key === k && respEditor.origem === 'chip' && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10,
+        paddingTop: 10,
+        borderTop: "1px solid ".concat(E.border)
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: E.muted,
+        fontSize: 9,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        marginBottom: 6
+      }
+    }, "Respons\u00e1vel de turma"), respCampo('Nome do respons\u00e1vel', respForm.nome, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { nome: v }); });
+    }, 'Ex: Petra Humair'), respCampo('Telefone', respForm.tel, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { tel: v }); });
+    }, 'Ex: 032 ...', 'tel'), respCampo('Email', respForm.email, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { email: v }); });
+    }, 'nome@escola.ch', 'email'), respCampo('Observa\u00e7\u00e3o', respForm.obs, function (v) {
+      return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { obs: v }); });
+    }, 'Ex: s\u00f3 recebe SMS'), respBotoes())), isAdmin && /*#__PURE__*/React.createElement("button", {
       onClick: function onClick(e) {
         e.stopPropagation();
-        setEditKlasseKey(editKlasseKey === k ? null : k);
+        var abrir = editKlasseKey !== k;
+        setEditKlasseKey(abrir ? k : null);
         setAlunoKey(k);
+        if (abrir) {
+          abrirResponsavel(k, 'chip');
+        } else {
+          fecharResponsavel();
+        }
       },
       style: {
         background: "".concat(E.purple, "15"),
@@ -18610,30 +18929,22 @@ function EscolarApp(_ref31) {
         fontWeight: 700
       }
     }, "\uD83D\uDDD1"))));
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setShowAddAula(function (v) {
-        return !v;
-      });
-    },
+  }), /*#__PURE__*/React.createElement("style", null, ESC_BTNS_GRID_CSS), /*#__PURE__*/React.createElement("div", {
+    className: "esc-btns-grid",
     style: {
-      width: '100%',
-      background: 'none',
-      border: "1px dashed ".concat(E.purple, "55"),
-      borderRadius: 13,
-      padding: '11px',
-      color: E.purple,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer',
       marginTop: 4,
       marginBottom: 10
     }
-  }, showAddAula ? '✕ Fechar' : '＋ Adicionar aula'), showAddAula && /*#__PURE__*/React.createElement(ECard, {
+  }, btnGridEl('\uD83D\uDDD3\uFE0F', showAddAula ? 'Fechar' : 'Adicionar aula', showAddAula, function () {
+    return setShowAddAula(function (v) {
+      return !v;
+    });
+  }), showAddAula && /*#__PURE__*/React.createElement(ECard, {
     style: {
       padding: '14px',
       marginBottom: 10,
-      border: "1px solid ".concat(E.purple)
+      border: "1px solid ".concat(E.purple),
+      gridColumn: '1 / -1'
     }
   }, /*#__PURE__*/React.createElement("p", {
     style: {
@@ -18841,28 +19152,15 @@ function EscolarApp(_ref31) {
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "\u2713 Guardar"))), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setShowAddDisc(function (v) {
-        return !v;
-      });
-    },
-    style: {
-      width: '100%',
-      background: 'none',
-      border: "1px dashed ".concat(E.purple, "55"),
-      borderRadius: 13,
-      padding: '11px',
-      color: E.purple,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: 'pointer',
-      marginTop: 4
-    }
-  }, showAddDisc ? '✕ Fechar' : '＋ Gerir disciplinas'), showAddDisc && /*#__PURE__*/React.createElement(ECard, {
+  }, "\u2713 Guardar"))), btnGridEl('\uD83D\uDCD8', showAddDisc ? 'Fechar' : 'Gerir disciplinas', showAddDisc, function () {
+    return setShowAddDisc(function (v) {
+      return !v;
+    });
+  }), showAddDisc && /*#__PURE__*/React.createElement(ECard, {
     style: {
       marginTop: 10,
       padding: '14px',
+      gridColumn: '1 / -1',
       border: "1px solid ".concat(E.purple)
     }
   }, /*#__PURE__*/React.createElement("p", {
@@ -19283,7 +19581,47 @@ function EscolarApp(_ref31) {
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "\u2713 Adicionar disciplina")))), tab === 'cal' && /*#__PURE__*/React.createElement("div", {
+  }, "✓ Adicionar disciplina")), btnGridEl('🏫', 'Responsável de turma', !!(respEditor && respEditor.key === alunoKey && respEditor.origem === 'grid'), function () {
+    if (respEditor && respEditor.key === alunoKey && respEditor.origem === 'grid') {
+      fecharResponsavel();
+    } else {
+      abrirResponsavel(alunoKey, 'grid');
+    }
+  }), respEditor && respEditor.key === alunoKey && respEditor.origem === 'grid' && /*#__PURE__*/React.createElement(ECard, {
+    style: {
+      marginTop: 10,
+      padding: '14px',
+      border: "1px solid ".concat(E.purple),
+      gridColumn: '1 / -1'
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: E.purple,
+      fontWeight: 800,
+      fontSize: 12,
+      marginBottom: 8
+    }
+  }, "Responsável de turma"), respCampo('Klasse/turma', respForm.klasse, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { klasse: v });
+    });
+  }, 'Ex: SEK B'), respCampo('Nome do responsável', respForm.nome, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { nome: v });
+    });
+  }, 'Ex: Petra Humair'), respCampo('Telefone', respForm.tel, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { tel: v });
+    });
+  }, 'Ex: 032 ...', 'tel'), respCampo('Email', respForm.email, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { email: v });
+    });
+  }, 'nome@escola.ch', 'email'), respCampo('Observação', respForm.obs, function (v) {
+    return setRespForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, { obs: v });
+    });
+  }, 'Ex: só recebe SMS'), respBotoes())))), tab === 'cal' && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px'
     }
@@ -21447,6 +21785,20 @@ function subbyValorMensalEUR(sub) {
   return mensal * (FX[sub.moeda] || 1);
 }
 
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function sbyLog(op, err) {
+  console.error('[subby] falha ao ' + op + ':', err);
+}
+function sbyAvisar(op, err) {
+  sbyLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Carvalho Abo Kontrolle \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function sbyAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') sbyLog(op, err);
+  else sbyAvisar(op, err);
+}
 var SubbyApp = function SubbyApp(_ref) {
   var profile = _ref.profile;
   var onBack = _ref.onBack || function() {};
@@ -21487,7 +21839,7 @@ var SubbyApp = function SubbyApp(_ref) {
     setLoading(true);
     window.supabaseClient.from(TABLE).select('*').eq('owner', owner)
       .order('proxima_cobranca', { ascending: true })
-      .then(function(r) { setSubs(r.data || []); setLoading(false); })
+      .then(function(r) { if (r && r.error) sbyAvisarRes('carregar as subscrições (subscriptions)', r.error); setSubs(r.data || []); setLoading(false); })
       .catch(function() { setLoading(false); });
   };
 
@@ -21495,18 +21847,19 @@ var SubbyApp = function SubbyApp(_ref) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('subby_prefs').eq('member_id', owner)
       .then(function(r) {
+        if (r && r.error) sbyLog('carregar a ordenação (profiles.subby_prefs)', r.error);
         var rows = r.data || [];
         if (rows[0] && rows[0].subby_prefs && rows[0].subby_prefs.sortBy) {
           setOrdem(rows[0].subby_prefs.sortBy);
         }
-      }).catch(function() {});
+      }).catch(function(err) { sbyLog('carregar a ordenação (profiles.subby_prefs)', err); });
   };
 
   var saveOrdem = function(o) {
     setOrdem(o);
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').update({ subby_prefs: { sortBy: o } })
-      .eq('member_id', owner).then(function() {}).catch(function() {});
+      .eq('member_id', owner).then(function(res) { if (res && res.error) sbyLog('guardar a ordenação (profiles.subby_prefs)', res.error); }).catch(function(err) { sbyLog('guardar a ordenação (profiles.subby_prefs)', err); });
   };
 
   var fetchFX = function() {
@@ -21520,7 +21873,7 @@ var SubbyApp = function SubbyApp(_ref) {
           setSubs(function(prev) { return prev.slice(); });
         }
       })
-      .catch(function() {});
+      .catch(function(err) { sbyLog('carregar as taxas de câmbio (frankfurter.dev)', err); });
   };
 
   (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); fetchFX(); }, []);
@@ -21636,7 +21989,7 @@ var SubbyApp = function SubbyApp(_ref) {
           return window.supabaseClient.from(TABLE).insert(row);
         });
     op.then(function(res) {
-      if (res && res.error) { return; } // erro já mostrado pelo monitor global; formulário fica aberto
+      if (res && res.error) { sbyAvisarRes('gravar a subscrição (subscriptions)', res.error); return; } // erro já mostrado pelo monitor global; formulário fica aberto
       setShowForm(false); resetForm(); loadSubs();
       // Push notification
       var msg = editId ? 'Subscrição actualizada: ' + fNome.trim() : 'Nova subscrição: ' + fNome.trim();
@@ -21646,20 +21999,20 @@ var SubbyApp = function SubbyApp(_ref) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window._sbAnonKey||'') },
           body: JSON.stringify({ profile_ids: ids, title: '💳 Abo Kontrolle', body: msg, url: '/' })
-        }).catch(function(){});
+        }).then(function(r) { if (r && r.ok === false) sbyLog('enviar push (HTTP ' + r.status + ')', r.statusText || r.status); }).catch(function(err) { sbyLog('enviar push (subscrição)', err); });
       });
-    }).catch(function() {});
+    }).catch(function(err) { sbyAvisar('gravar a subscrição (subscriptions)', err); });
   };
 
   var apagar = function(id, nome) {
     if (!window.confirm('Apagar "' + nome + '"?')) return;
     window.supabaseClient.from(TABLE).delete().eq('id', id)
-      .then(function() { loadSubs(); }).catch(function(){});
+      .then(function(res) { if (res && res.error) sbyAvisarRes('apagar a subscrição', res.error); loadSubs(); }).catch(function(err) { sbyAvisar('apagar a subscrição', err); });
   };
 
   var marcarVisto = function(sub) {
     window.supabaseClient.from(TABLE).update({ visto_ate_data: sub.proxima_cobranca })
-      .eq('id', sub.id).then(function() { loadSubs(); }).catch(function(){});
+      .eq('id', sub.id).then(function(res) { if (res && res.error) sbyAvisarRes('marcar a subscrição como vista', res.error); loadSubs(); }).catch(function(err) { sbyAvisar('marcar a subscrição como vista', err); });
   };
 
   var renderIcone = function(sub, size) {
@@ -25873,27 +26226,49 @@ function LucasApp(_ref) {
 // Admin only. Dados em localStorage (prefixo hw_).
 // ─────────────────────────────────────────────────────────────────────
 
+// Dados pessoais e de cliente NÃO vêm no código (repo público) — ficam vazios
+// aqui de propósito. São lidos de hauswart_data.cfg (Supabase) depois do
+// login; este objeto só serve de forma/fallback para campos que a BD ainda
+// não tenha. rate e pauschale ficam com um valor neutro (não específico dum
+// cliente real) só para a UI não aparecer com "undefined"/NaN antes de a
+// BD responder.
 var HW_DEFAULTS = {
-  name: 'Patricio Norberto Antunes Carvalho',
-  address: 'Gassackerweg 4b',
-  city: '2545 Selzach',
-  phone: '079 888 43 84',
-  email: 'patr.carvalho@hotmail.com',
-  iban: 'CH63 0830 7000 4824 1931 8',
-  bank: 'Neon Bank',
+  name: '',
+  address: '',
+  city: '',
+  phone: '',
+  email: '',
+  iban: '',
+  bank: '',
   rate: 35,
-  pauschale: 1350,
-  location: 'Passionsstrasse 6, 2545 Selzach',
-  clientName: 'Verwaltung der SWEGT',
-  clientContact: 'Roland Aeschbacher',
-  clientAddress: 'Gartenstrasse 12',
-  clientCity: '4513 Langendorf',
+  pauschale: 0,
+  location: '',
+  clientName: '',
+  clientContact: '',
+  clientAddress: '',
+  clientCity: '',
   quarter: 'Q3',
   year: new Date().getFullYear(),
   invoiceDate: '',
   serviceDate: '',
   invNumManual: '',
 };
+
+// Campos obrigatórios antes de imprimir uma fatura (trava em onPrint, ~linha
+// 497, e aviso em HwCfgTab, ~linha 790) — numa só lista para os dois sítios
+// nunca divergirem.
+var HW_CAMPOS_FATURA_OBRIGATORIOS = [
+  ['iban', 'IBAN'],
+  ['name', 'Nome (Meine Daten)'],
+  ['address', 'Morada (Meine Daten)'],
+  ['city', 'Localidade (Meine Daten)'],
+  ['clientName', 'Firma (Empfänger)'],
+  ['clientAddress', 'Strasse (Empfänger)'],
+];
+function hwVazio(v) { return !String(v == null ? '' : v).trim(); }
+function hwCamposEmFalta(cfgObj) {
+  return HW_CAMPOS_FATURA_OBRIGATORIOS.filter(function (c) { return hwVazio(cfgObj[c[0]]); }).map(function (c) { return c[1]; });
+}
 
 var HW_QUARTERS = [
   { key: 'Q1', from: '1. Januar',  to: '31. März',      startDay: '01-01', endDay: '03-31' },
@@ -26146,6 +26521,13 @@ var HauswartApp = function(props) {
   // Guarda o updated_at que veio do servidor, para o hwSync poder detetar
   // se outro aparelho gravou entretanto (ver hwSync abaixo).
   var lastUpdatedAtRef = React.useRef(null);
+  // Só passa a true depois de a leitura inicial de hauswart_data confirmar o
+  // que está no servidor (linha com dados, ou PGRST116 = linha genuinamente
+  // inexistente). Enquanto for false, hwSync não escreve no Supabase — sem
+  // isto, se a leitura inicial falhasse por instabilidade de rede, o cfg em
+  // memória (vazio, com o novo HW_DEFAULTS) podia ser gravado por cima dos
+  // dados bons assim que a ligação voltasse e o utilizador guardasse algo.
+  var hwLoadedRef = React.useRef(false);
   // Hauswart Extra (src/21-app-hauswart-extra.js): só alterna o ecrã, não toca nos dados acima.
   var _useStateExtra = React.useState(false);
   var showExtra = _useStateExtra[0], setShowExtra = _useStateExtra[1];
@@ -26157,6 +26539,7 @@ var HauswartApp = function(props) {
         if (!res.error && res.data) {
           var d = res.data;
           lastUpdatedAtRef.current = d.updated_at || null;
+          hwLoadedRef.current = true;
           if (d.works && d.works.length) { setWorksRaw(d.works); hwSave('works', d.works); }
           if (d.mats  && d.mats.length)  { setMatsRaw(d.mats);   hwSave('mats',  d.mats); }
           if (d.cfg   && Object.keys(d.cfg).length) { var m2 = Object.assign({}, HW_DEFAULTS, d.cfg); setCfgRaw(m2); hwSave('cfg', m2); }
@@ -26164,6 +26547,7 @@ var HauswartApp = function(props) {
         } else if (res.error && res.error.code === 'PGRST116') {
           // Linha genuinamente inexistente para este member_id — seguro semear a partir do localStorage.
           lastUpdatedAtRef.current = null;
+          hwLoadedRef.current = true;
           var lw = hwLoad('works') || []; var lm = hwLoad('mats') || [];
           var lc = hwLoad('cfg') || {}; var la = hwLoad('archive') || [];
           if (lw.length > 0 || lm.length > 0 || la.length > 0) {
@@ -26200,9 +26584,19 @@ var HauswartApp = function(props) {
   }, []);
 
   var hwSync = function(w, m, c, a) {
-    hwSave('works', w); hwSave('mats', m); hwSave('cfg', c); hwSave('archive', a);
+    // works/mats/archive são só registos de trabalho — seguros de atualizar
+    // em localStorage mesmo offline. cfg é o que tem dados pessoais/do
+    // cliente: só vai para o localStorage quando também vai (ou acabou de
+    // ir) para a BD, nunca antes — ver hwSave('cfg', c) dentro de doUpsert.
+    hwSave('works', w); hwSave('mats', m); hwSave('archive', a);
     if (!window.supabaseClient) return;
+    if (!hwLoadedRef.current) {
+      console.error('[hauswart] gravação bloqueada: a leitura inicial de hauswart_data (member_id=' + owner + ') ainda não confirmou com sucesso.');
+      window.mostrarErro('Hauswart', { message: 'Sem ligação à base de dados: não foi guardado. Tenta de novo.' });
+      return;
+    }
     var doUpsert = function() {
+      hwSave('cfg', c);
       var nowIso = new Date().toISOString();
       window.supabaseClient.from('hauswart_data').upsert(
         { member_id: owner, works: w, mats: m, cfg: c, archive: a, updated_at: nowIso },
@@ -26220,9 +26614,18 @@ var HauswartApp = function(props) {
       });
     };
     // Antes de gravar, confirma que ninguém gravou por cima entretanto
-    // noutro aparelho. Se a leitura falhar, não bloqueia — grava na mesma.
+    // noutro aparelho. PGRST116 (linha ainda não existe) é o único erro que
+    // não bloqueia — é exatamente o que se espera na primeira gravação de
+    // sempre. Qualquer outro erro (rede, RLS, timeout) bloqueia: mais vale
+    // pedir para repetir do que arriscar gravar por cima de dados bons sem
+    // saber se há um updated_at mais recente no servidor.
     window.supabaseClient.from('hauswart_data').select('updated_at').eq('member_id', owner).single()
       .then(function(checkRes) {
+        if (checkRes && checkRes.error && checkRes.error.code !== 'PGRST116') {
+          console.error('[hauswart] gravação bloqueada: falha ao verificar updated_at antes de gravar:', checkRes.error);
+          window.mostrarErro('Hauswart', { message: 'Sem ligação à base de dados: não foi guardado. Tenta de novo.' });
+          return;
+        }
         if (checkRes && !checkRes.error && checkRes.data && checkRes.data.updated_at) {
           var serverTs = new Date(checkRes.data.updated_at).getTime();
           var localTs = lastUpdatedAtRef.current ? new Date(lastUpdatedAtRef.current).getTime() : 0;
@@ -26234,8 +26637,8 @@ var HauswartApp = function(props) {
         }
         doUpsert();
       }).catch(function(e) {
-        console.warn('hwSync: falha ao verificar updated_at, a gravar na mesma:', e);
-        doUpsert();
+        console.error('[hauswart] gravação bloqueada: exceção ao verificar updated_at antes de gravar:', e);
+        window.mostrarErro('Hauswart', { message: 'Sem ligação à base de dados: não foi guardado. Tenta de novo.' });
       });
   };
 
@@ -26366,6 +26769,8 @@ var HauswartApp = function(props) {
       tab === 'mats' && React.createElement(HwMatsTab, { mats: mats, updM: updM, S: S }),
       tab === 'invoice' && React.createElement(HwInvoiceTab, { works: works, mats: mats, cfg: cfg, total: total, totalWork: totalWork, totalMats: totalMats, pauschale: pauschale, beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, updC: updC, onPrint: function() {
         if (!cfg.invoiceDate) { window.alert('Preenche primeiro a Data de envio (Rechnungsdatum) nas Definições.'); return; }
+        var faltam = hwCamposEmFalta(cfg);
+        if (faltam.length) { window.alert('Preenche primeiro nas Definições: ' + faltam.join(', ') + '.'); return; }
         setPrint(true);
       }, S: S }),
       tab === 'arquivo' && React.createElement(HwArquivoTab, { archive: archive, updA: updA, setPrint: setPrint, S: S }),
@@ -26671,8 +27076,14 @@ function HwCfgTab(props) {
     setSaved(true); setTimeout(function() { setSaved(false); }, 2000);
   };
 
+  var faltamObrigatorios = hwCamposEmFalta(f);
+
   return React.createElement('div', null,
     React.createElement(HwHdr, { title: 'Einstellungen' }),
+
+    faltamObrigatorios.length > 0 && React.createElement('div', { style: { fontSize: 12, color: '#f87171', background: '#7f1d1d22', border: '1px solid #7f1d1d', borderRadius: 8, padding: '9px 12px', marginBottom: 12, lineHeight: 1.5 } },
+      '⚠️ Obrigatório antes de imprimir: ' + faltamObrigatorios.join(', ') + '.'
+    ),
 
     React.createElement('div', { style: Object.assign({}, S.card, { marginBottom: 12 }) },
       React.createElement('div', { style: S.secLabel }, '📅 Quartal & Jahr'),
@@ -27505,7 +27916,7 @@ function HwZahlteil(props) {
     var HWX_AJUDA = {
       'Nome': ['Nome da pessoa ou da entrada. Aparece nas listas e nos documentos.', 'ex.: Hans Müller'],
       'Firma (opcional)': ['Nome da empresa ou administração, se o cliente for uma firma. Aparece à frente do nome.', 'ex.: Verwaltung Müller AG'],
-      'Rua': ['Rua e número da morada.', 'ex.: Gartenstrasse 12'],
+      'Rua': ['Rua e número da morada.', 'ex.: Musterstrasse 1'],
       'PLZ': ['Código postal suíço: 4 dígitos.', '2545'],
       'Localidade': ['Localidade (Ort) da morada.', 'Selzach'],
       'Telemóvel': ['Número para ligar e para o WhatsApp. Podes escrevê-lo com espaços.', '079 123 45 67'],
@@ -27516,7 +27927,7 @@ function HwZahlteil(props) {
       'Nota': ['Nota curta sobre o serviço (por exemplo como se cobra).', 'ex.: preço por visita'],
       'Número de cliente': ['Número do cliente. Se deixares vazio, a base dá o próximo.', 'automático'],
       'Subnúmero': ['Número do local dentro do cliente (1.1, 1.2…). Vazio = o próximo.', 'automático'],
-      'Nome do local': ['Nome curto para reconheceres este local de trabalho.', 'ex.: Passionsstrasse 6'],
+      'Nome do local': ['Nome curto para reconheceres este local de trabalho.', 'ex.: Musterweg 3'],
       'Limite anual (CHF)': ['Máximo de rendimento anual (Extra + Hauswart, sem material). A barra dos Totais usa este valor.', 'ex.: 2500'],
       'Preço base por hora (CHF)': ['Preço por hora das linhas livres. Também serve para avisar quando uma taxa parece preço de trabalho.', 'ex.: 35,00'],
       'Horas que quero trabalhar por sexta': ['Limite de horas de uma sexta. A Agenda avisa quando o dia passa deste valor.', 'ex.: 8'],
@@ -28900,7 +29311,7 @@ function HwZahlteil(props) {
 
       return React.createElement(HxFormShell, { title: (editing ? 'Editar local' : 'Novo local') + ' · #' + cli.numero + ' ' + (cli.firma || cli.nome), onCancel: tryClose, onSave: function () { doSave(); }, busy: busy },
         React.createElement(HxField, { label: 'Subnúmero', value: f.sub_numero, inputMode: 'numeric', onChange: function (v) { upd('sub_numero', v); }, error: errs.sub_numero, placeholder: 'automático (próximo: ' + cli.numero + '.' + next + ')', hint: editing ? 'Local ' + cli.numero + '.' + editing.sub_numero : undefined, onEnter: function () { doSave(); } }),
-        React.createElement(HxField, { label: 'Nome do local', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Passionsstrasse 6', onEnter: function () { doSave(); } }),
+        React.createElement(HxField, { label: 'Nome do local', value: f.nome, onChange: function (v) { upd('nome', v); }, error: errs.nome, placeholder: 'ex.: Musterweg 3', onEnter: function () { doSave(); } }),
         React.createElement(HxField, { label: 'Rua', value: f.rua, onChange: updA('rua'), onEnter: function () { doSave(); } }),
         React.createElement(HxRow, { cols: 2 },
           React.createElement(HxField, { label: 'PLZ', value: f.plz, inputMode: 'numeric', onChange: updA('plz'), warn: hwxPlzWarn(f.plz), onEnter: function () { doSave(); } }),
@@ -29012,7 +29423,7 @@ function HwZahlteil(props) {
           )
         ),
         React.createElement(HxSection, { title: '👤 CONTACTO' },
-          React.createElement(HxField, { label: 'Nome', info: 'Pessoa de contacto (usada na saudação das mensagens de WhatsApp).', placeholder: 'ex.: Roland Aeschbacher', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
+          React.createElement(HxField, { label: 'Nome', info: 'Pessoa de contacto (usada na saudação das mensagens de WhatsApp).', placeholder: 'ex.: Max Muster', value: f.c_nome, onChange: function (v) { upd('c_nome', v); }, onEnter: enter }),
           React.createElement(HxRow, { cols: 2 },
             React.createElement(HxField, { label: 'Telemóvel', value: f.c_tel, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_tel', v); }, placeholder: '079 123 45 67', onEnter: enter }),
             React.createElement(HxField, { label: 'Telefone fixo', value: f.c_fixo, type: 'tel', inputMode: 'tel', onChange: function (v) { upd('c_fixo', v); }, placeholder: '032 123 45 67', onEnter: enter })
@@ -32380,10 +32791,9 @@ function RpPlanungView(props) {
       .order('datum')
       .order('h_start')
       .then(function(r) {
-        if (r.error) { console.error('[rapport] carregar planung:', r.error); window.mostrarErro('Arnold Rapport', r.error); setLoading(false); return; }
         setJobs(r.data || []);
         setLoading(false);
-      }).catch(function(e) { console.error('[rapport] carregar planung:', e); window.mostrarErro('Arnold Rapport', e); setLoading(false); });
+      });
   }
 
   React.useEffect(function() { loadJobs(); }, [monday]);
@@ -32429,26 +32839,21 @@ function RpPlanungView(props) {
     } else {
       op = db.from('rapport_planung').update(payload).eq('id', form.id);
     }
-    op.then(function(res) {
-      if (res.error) { console.error('[rapport] guardar planung:', res.error); window.mostrarErro('Arnold Rapport', res.error); setFSaving(false); return; }
+    op.then(function() {
       setForm(null); setFSaving(false); loadJobs();
-    }).catch(function(e) { console.error('[rapport] guardar planung:', e); window.mostrarErro('Arnold Rapport', e); setFSaving(false); });
+    }).catch(function() { setFSaving(false); });
   }
 
   function deleteJob(id) {
-    db.from('rapport_planung').delete().eq('id', id).then(function(res) {
-      if (res.error) { console.error('[rapport] apagar planung:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
+    db.from('rapport_planung').delete().eq('id', id).then(function() {
       setConfirm(null); setExpanded(null); loadJobs();
-    }).catch(function(e) { console.error('[rapport] apagar planung:', e); window.mostrarErro('Arnold Rapport', e); });
+    });
   }
 
   function toggleStatus(job) {
     var order = ['planned', 'active', 'done'];
     var next = order[(order.indexOf(job.status || 'planned') + 1) % order.length];
-    db.from('rapport_planung').update({ status: next }).eq('id', job.id).then(function(res) {
-      if (res.error) { console.error('[rapport] mudar status planung:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
-      loadJobs();
-    }).catch(function(e) { console.error('[rapport] mudar status planung:', e); window.mostrarErro('Arnold Rapport', e); });
+    db.from('rapport_planung').update({ status: next }).eq('id', job.id).then(loadJobs);
   }
 
   var totalKm = jobs.reduce(function(s, j) { return s + (j.km || 0); }, 0);
@@ -32709,10 +33114,7 @@ function RpTagesView(props) {
     if (!db) return;
     setLoading(true);
     db.from('rapport_tages').select('*').eq('user_id', userId).order('datum', { ascending: false })
-      .then(function(r) {
-        if (r.error) { console.error('[rapport] carregar tagesrapporte:', r.error); window.mostrarErro('Arnold Rapport', r.error); setLoading(false); return; }
-        setList(r.data || []); setLoading(false);
-      }).catch(function(e) { console.error('[rapport] carregar tagesrapporte:', e); window.mostrarErro('Arnold Rapport', e); setLoading(false); });
+      .then(function(r) { setList(r.data || []); setLoading(false); });
   }
   React.useEffect(load, []);
   React.useEffect(function () {
@@ -32752,14 +33154,14 @@ function RpTagesView(props) {
     setWpOpts([]); setWpTask(null);
     db.from('wplan_tasks').select('*').eq('datum', datum).order('von')
       .then(function(r) {
-        if (r.error) { console.error('[rapport] carregar wplan_tasks:', r.error); return; }
+        if (r.error) return;
         var usados = {};
         (list || []).forEach(function(x) { if (x.wplan_task_id) usados[String(x.wplan_task_id)] = 1; });
         var livres = (r.data || []).filter(function(t) { return !usados[String(t.id)]; });
         if (livres.length === 1) wpApply(livres[0]);
         else if (livres.length > 1) setWpOpts(livres);
       })
-      .catch(function(e) { console.error('[rapport] carregar wplan_tasks:', e); });
+      .catch(function() {});
   }
   function openNew() { resetForm(); setForm('new'); wpLoadFor(rpToday()); }
   function openEdit(item) {
@@ -32816,24 +33218,16 @@ function RpTagesView(props) {
     var op = form === 'new'
       ? db.from('rapport_tages').insert(payload)
       : db.from('rapport_tages').update(payload).eq('id', form.id);
-    op.then(function(res) {
-      if (res.error) { console.error('[rapport] guardar tagesrapport:', res.error); window.mostrarErro('Arnold Rapport', res.error); setFSaving(false); return; }
-      setForm(null); setFSaving(false); load();
-    }).catch(function(e) { console.error('[rapport] guardar tagesrapport:', e); window.mostrarErro('Arnold Rapport', e); setFSaving(false); });
+    op.then(function() { setForm(null); setFSaving(false); load(); })
+      .catch(function() { setFSaving(false); });
   }
   function del(id) {
     db.from('rapport_tages').delete().eq('id', id)
-      .then(function(res) {
-        if (res.error) { console.error('[rapport] apagar tagesrapport:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
-        setConfirm(null); setViewItem(null); load();
-      }).catch(function(e) { console.error('[rapport] apagar tagesrapport:', e); window.mostrarErro('Arnold Rapport', e); });
+      .then(function() { setConfirm(null); setViewItem(null); load(); });
   }
   function toggleStatus(item) {
     var next = item.status === 'draft' ? 'submitted' : 'draft';
-    db.from('rapport_tages').update({ status: next }).eq('id', item.id).then(function(res) {
-      if (res.error) { console.error('[rapport] mudar status tagesrapport:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
-      load();
-    }).catch(function(e) { console.error('[rapport] mudar status tagesrapport:', e); window.mostrarErro('Arnold Rapport', e); });
+    db.from('rapport_tages').update({ status: next }).eq('id', item.id).then(load);
   }
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
@@ -33174,10 +33568,7 @@ function RpWochenView(props) {
     if (!db) return;
     setLoading(true);
     db.from('rapport_wochen').select('*').eq('user_id', userId).order('jahr', { ascending: false }).order('kw', { ascending: false })
-      .then(function(r) {
-        if (r.error) { console.error('[rapport] carregar wochenberichte:', r.error); window.mostrarErro('Arnold Rapport', r.error); setLoading(false); return; }
-        setList(r.data || []); setLoading(false);
-      }).catch(function(e) { console.error('[rapport] carregar wochenberichte:', e); window.mostrarErro('Arnold Rapport', e); setLoading(false); });
+      .then(function(r) { setList(r.data || []); setLoading(false); });
   }
   React.useEffect(load, []);
   React.useEffect(function () {
@@ -33191,7 +33582,6 @@ function RpWochenView(props) {
     var friday = rpShiftWeek(monday, 1);
     db.from('rapport_tages').select('h_start,h_end,km,beschrieb,arbeit').eq('user_id', userId).gte('datum', monday).lt('datum', friday)
       .then(function(r) {
-        if (r.error) { console.error('[rapport] auto-preencher wochenbericht:', r.error); return; }
         var items = r.data || [];
         var totalH = items.reduce(function(s, i) { return s + rpStunden(i.h_start, i.h_end); }, 0);
         var beschriebe = items.map(function(i) { return i.beschrieb || i.arbeit || ''; }).filter(Boolean);
@@ -33200,7 +33590,7 @@ function RpWochenView(props) {
         setFStd(totalH > 0 ? totalH.toFixed(1) : '');
         setFKm(totalKm > 0 ? String(totalKm) : '');
         setFZus(arbeitList ? 'Zusammenfassung KW ' + kw + ':\n' + arbeitList : '');
-      }).catch(function(e) { console.error('[rapport] auto-preencher wochenbericht:', e); });
+      });
   }
 
   function openNew() {
@@ -33223,16 +33613,10 @@ function RpWochenView(props) {
     var fri = new Date(mon + 'T12:00:00'); fri.setDate(fri.getDate() + 4);
     var payload = { user_id: userId, kw: parseInt(fKW), jahr: parseInt(fJahr), datum_von: mon, datum_bis: fri.toISOString().slice(0,10), zusammenfassung: fZus.trim(), total_stunden: parseFloat(fStd) || 0, total_km: parseInt(fKm) || 0, offene_arbeiten: fOff.trim(), bemerkungen: fBem.trim(), status: fStatus };
     var op = form === 'new' ? db.from('rapport_wochen').insert(payload) : db.from('rapport_wochen').update(payload).eq('id', form.id);
-    op.then(function(res) {
-      if (res.error) { console.error('[rapport] guardar wochenbericht:', res.error); window.mostrarErro('Arnold Rapport', res.error); setFSaving(false); return; }
-      setForm(null); setFSaving(false); load();
-    }).catch(function(e) { console.error('[rapport] guardar wochenbericht:', e); window.mostrarErro('Arnold Rapport', e); setFSaving(false); });
+    op.then(function() { setForm(null); setFSaving(false); load(); }).catch(function() { setFSaving(false); });
   }
   function del(id) {
-    db.from('rapport_wochen').delete().eq('id', id).then(function(res) {
-      if (res.error) { console.error('[rapport] apagar wochenbericht:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
-      setConfirm(null); load();
-    }).catch(function(e) { console.error('[rapport] apagar wochenbericht:', e); window.mostrarErro('Arnold Rapport', e); });
+    db.from('rapport_wochen').delete().eq('id', id).then(function() { setConfirm(null); load(); });
   }
 
   return React.createElement('div', { style: { padding: '12px 14px', paddingBottom: 80, maxWidth: 600, margin: '0 auto' } },
@@ -33289,12 +33673,7 @@ function RpWochenView(props) {
           ),
           React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' } },
             RpBtn({ label: '✏️', sm: true, ghost: true, onClick: function() { openEdit(item); } }),
-            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() {
-              db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(function(res) {
-                if (res.error) { console.error('[rapport] mudar status wochenbericht:', res.error); window.mostrarErro('Arnold Rapport', res.error); return; }
-                load();
-              }).catch(function(e) { console.error('[rapport] mudar status wochenbericht:', e); window.mostrarErro('Arnold Rapport', e); });
-            } }),
+            RpBtn({ label: item.status === 'draft' ? '✓ Abgeben' : '↺ Entwurf', sm: true, color: item.status === 'draft' ? '#10B981' : '#475569', onClick: function() { db.from('rapport_wochen').update({ status: item.status === 'draft' ? 'submitted' : 'draft' }).eq('id', item.id).then(load); } }),
             RpBtn({ label: '🖨️ Drucken', sm: true, color: '#3B82F6', onClick: function() { rpPrintWochen(item); } }),
             RpBtn({ label: '🗑️', sm: true, color: '#EF4444', onClick: function() { setConfirm(item.id); } })
           )
