@@ -107,7 +107,7 @@
       var d = hwxPhone(raw);
       return d || String(raw == null ? '' : raw).replace(/\D/g, '');
     }
-    // Só para MOSTRAR (o que está gravado não muda): +41 79 597 22 62 / 079 597 22 62
+    // Só para MOSTRAR (o que está gravado não muda): +41 79 000 00 00 / 079 000 00 00
     function hwxFmtPhone(raw) {
       var s = String(raw == null ? '' : raw).trim();
       if (!s) return '';
