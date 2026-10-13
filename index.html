@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-12T14:14:27.468Z
+  Gerado em: 2026-10-12T23:12:49.644Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-413";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-414";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -5754,6 +5754,20 @@ function apCatVista(a) {
   var c = a.categoria || 'trabalho';
   return CATEGORIAS_WORK[c] ? c : 'trabalho';
 }
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function agpLog(op, err) {
+  console.error('[agendapro] falha ao ' + op + ':', err);
+}
+function agpAvisar(op, err) {
+  agpLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Patricio Work \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function agpAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') agpLog(op, err);
+  else agpAvisar(op, err);
+}
 function AgendaProApp(_ref13) {
   var onBack = _ref13.onBack,
     _ref13$sharedDias = _ref13.sharedDias,
@@ -5919,7 +5933,8 @@ function AgendaProApp(_ref13) {
   var loadMonteurs = function loadMonteurs() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('agenda_monteurs').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { agpAvisarRes('carregar os monteurs (agenda_monteurs)', res.error); return; }
+      if (!res.data) return;
       setMonteurs(res.data.map(function (row) {
         return {
           id: row.id,
@@ -5931,7 +5946,7 @@ function AgendaProApp(_ref13) {
           categoria: row.categoria || ''
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { agpAvisar('carregar os monteurs (agenda_monteurs)', err); });
   };
   (0, _react.useEffect)(function () {
     loadMonteurs();
@@ -6165,7 +6180,8 @@ function AgendaProApp(_ref13) {
   var loadProjects = function loadProjects() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_projects').select('*').order('created_at', { ascending: true }).then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { agpAvisarRes('carregar os projetos (horas_projects)', res.error); return; }
+      if (!res.data) return;
       setProjList(res.data.map(function (row) {
         return {
           id: row.id,
@@ -6174,7 +6190,7 @@ function AgendaProApp(_ref13) {
           contaEstatisticas: row.conta_estatisticas !== false
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { agpAvisar('carregar os projetos (horas_projects)', err); });
   };
   (0, _react.useEffect)(function () {
     loadProjects();
@@ -6531,7 +6547,8 @@ function AgendaProApp(_ref13) {
   var loadJobs = function loadJobs() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('agenda_pro_jobs').select('*').then(function (res) {
-      if (res.error || !res.data) return;
+      if (res.error) { agpAvisarRes('carregar as marcações (agenda_pro_jobs)', res.error); return; }
+      if (!res.data) return;
       setAppts(res.data.map(function (row) {
         return {
           id: row.id,
@@ -6549,7 +6566,7 @@ function AgendaProApp(_ref13) {
           partilhadoCom: row.partilhado_com || 'todos'
         };
       }));
-    }).catch(function () {});
+    }).catch(function (err) { agpAvisar('carregar as marcações (agenda_pro_jobs)', err); });
   };
   (0, _react.useEffect)(function () {
     loadJobs();
@@ -6612,7 +6629,7 @@ function AgendaProApp(_ref13) {
           body: body,
           profileIds: ids
         }
-      }).catch(function () {});
+      }).then(function (res) { if (res && res.error) agpLog('enviar push (marcação)', res.error); }).catch(function (err) { agpLog('enviar push (marcação)', err); });
     });
   };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {
@@ -6815,7 +6832,7 @@ function AgendaProApp(_ref13) {
   var updateApptTime = function(id, hi, hf) {
     setAppts(function(p){ return p.map(function(a){ return a.id===id ? Object.assign({},a,{hi:hi,hf:hf}) : a; }); });
     if (window.supabaseClient) {
-      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function(){}).catch(function(){});
+      window.supabaseClient.from('agenda_pro_jobs').update({start_time:hi,end_time:hf}).eq('id',id).then(function (res) { if (res && res.error) agpAvisarRes('guardar a hora da marcação', res.error); }).catch(function (err) { agpAvisar('guardar a hora da marcação', err); });
     }
   };
   var renderTimeline = function(dayStr) {
@@ -6962,7 +6979,7 @@ function AgendaProApp(_ref13) {
     if (window.supabaseClient) {
       window.supabaseClient.from('agenda_pro_jobs').update({
         status: status
-      }).eq('id', id).then(function () {}).catch(function () {});
+      }).eq('id', id).then(function (res) { if (res && res.error) agpAvisarRes('guardar o estado da marcação', res.error); }).catch(function (err) { agpAvisar('guardar o estado da marcação', err); });
     }
   };
   var deleteAppt = function deleteAppt(id) {
@@ -6972,7 +6989,7 @@ function AgendaProApp(_ref13) {
       });
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function () {}).catch(function () {});
+      window.supabaseClient.from('agenda_pro_jobs').delete().eq('id', id).then(function (res) { if (res && res.error) agpAvisarRes('apagar a marcação', res.error); }).catch(function (err) { agpAvisar('apagar a marcação', err); });
       window.supabaseClient.from('family_events').delete().eq('source', 'agenda_pro').eq('source_id', id).then(function (res) {
         if (res.error) {
           console.error('[agenda_pro→familia] falha ao remover evento partilhado ao apagar trabalho:', res.error);
