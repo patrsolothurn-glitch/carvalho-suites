@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-13T04:37:49.477Z
+  Gerado em: 2026-10-13T04:50:57.678Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-416";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-417";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -27240,8 +27240,9 @@ function HwArquivoTab(props) {
                 React.createElement('div', { style: { display: 'flex', gap: 5, marginTop: 8, justifyContent: 'flex-end' } },
                   React.createElement('button', {
                     onClick: function() { setPrint(a); },
-                    style: { background: '#1d4ed822', color: '#93c5fd', border: 'none', borderRadius: 6, padding: '5px 8px', fontSize: 12, cursor: 'pointer' }
-                  }, '🖨️'),
+                    title: 'Abrir esta fatura',
+                    style: { background: '#1d4ed822', color: '#93c5fd', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
+                  }, '📄 Abrir'),
                   React.createElement('button', {
                     onClick: function() { markPaid(a.id); },
                     style: { background: a.paid ? '#7c2d12' : '#14532d', color: a.paid ? '#fdba74' : '#4ade80', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }
@@ -27892,7 +27893,7 @@ function HwZahlteil(props) {
       var d = hwxPhone(raw);
       return d || String(raw == null ? '' : raw).replace(/\D/g, '');
     }
-    // Só para MOSTRAR (o que está gravado não muda): +41 79 597 22 62 / 079 597 22 62
+    // Só para MOSTRAR (o que está gravado não muda): +41 79 000 00 00 / 079 000 00 00
     function hwxFmtPhone(raw) {
       var s = String(raw == null ? '' : raw).trim();
       if (!s) return '';
