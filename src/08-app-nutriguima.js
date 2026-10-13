@@ -1,3 +1,17 @@
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function nutLog(op, err) {
+  console.error('[nutriguima] falha ao ' + op + ':', err);
+}
+function nutAvisar(op, err) {
+  nutLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Nutriguima \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function nutAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') nutLog(op, err);
+  else nutAvisar(op, err);
+}
 function NutriguimaApp(_ref29) {
   var onBack = _ref29.onBack;
   var _useState121 = (0, _react.useState)({}),
@@ -103,7 +117,7 @@ function NutriguimaApp(_ref29) {
   var loadNutriData = function loadNutriData() {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('nutri_products').select('*').then(function (res) {
-      if (res.error) return;
+      if (res.error) { nutAvisarRes('carregar os produtos (nutri_products)', res.error); return; }
       if (res.data && res.data.length > 0) {
         setProducts(res.data.map(function (row) {
           return {
@@ -128,10 +142,10 @@ function NutriguimaApp(_ref29) {
             emoji: p.emoji,
             cat: p.cat,
             stock: stock[p.id] || 0
-          }).then(function () { }).catch(function () {});
+          }).then(function (res) { if (res && res.error) nutLog('semear os produtos por defeito (nutri_products)', res.error); }).catch(function (err) { nutLog('semear os produtos por defeito (nutri_products)', err); });
         });
       }
-    }).catch(function () {});
+    }).catch(function (err) { nutAvisar('carregar os produtos (nutri_products)', err); });
   };
   (0, _react.useEffect)(function () {
     loadNutriData();
@@ -212,7 +226,7 @@ function NutriguimaApp(_ref29) {
       return c;
     });
     if (window.supabaseClient) {
-      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function () { }).catch(function () {});
+      window.supabaseClient.from('nutri_products').delete().eq('id', id).then(function (res) { if (res && res.error) nutAvisarRes('apagar o produto', res.error); }).catch(function (err) { nutAvisar('apagar o produto', err); });
     }
   };
   var filtered = products.filter(function (p) {
@@ -267,7 +281,7 @@ function NutriguimaApp(_ref29) {
       var qty = cart[p.id] || 0;
       var novoStock = Math.max(0, (stock[p.id] || 0) - qty);
       if (window.supabaseClient) {
-        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function() {}).catch(function() {});
+        window.supabaseClient.from('nutri_products').update({ stock: novoStock }).eq('id', p.id).then(function (res) { if (res && res.error) nutAvisarRes('guardar o stock da encomenda', res.error); }).catch(function (err) { nutAvisar('guardar o stock da encomenda', err); });
       }
       setStock(function(s) { return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, novoStock)); });
     });
@@ -1346,7 +1360,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () { }).catch(function () {});
+            }).eq('id', p.id).then(function (res) { if (res && res.error) nutAvisarRes('guardar o stock', res.error); }).catch(function (err) { nutAvisar('guardar o stock', err); });
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
@@ -1380,7 +1394,7 @@ function NutriguimaApp(_ref29) {
           if (window.supabaseClient) {
             window.supabaseClient.from('nutri_products').update({
               stock: next
-            }).eq('id', p.id).then(function () { }).catch(function () {});
+            }).eq('id', p.id).then(function (res) { if (res && res.error) nutAvisarRes('guardar o stock', res.error); }).catch(function (err) { nutAvisar('guardar o stock', err); });
           }
           return _objectSpread(_objectSpread({}, s), {}, _defineProperty({}, p.id, next));
         });
