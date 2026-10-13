@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-12T23:12:49.644Z
+  Gerado em: 2026-10-13T04:01:14.611Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-414";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-415";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -21771,6 +21771,20 @@ function subbyValorMensalEUR(sub) {
   return mensal * (FX[sub.moeda] || 1);
 }
 
+// Erros antes descartados em silêncio: consola sempre; aviso no ecrã (window.mostrarErro) só quando pedido e quando nenhum outro o mostra.
+function sbyLog(op, err) {
+  console.error('[subby] falha ao ' + op + ':', err);
+}
+function sbyAvisar(op, err) {
+  sbyLog(op, err);
+  if (typeof window.mostrarErro === 'function') window.mostrarErro('Carvalho Abo Kontrolle \u2014 ' + op, err);
+}
+// Erro vindo de res.error: o interceptor do head.html já mostra o cartão (exceto PGRST116/PGRST205) — aqui só consola.
+function sbyAvisarRes(op, err) {
+  var code = err && err.code;
+  if (window.__sbErrPatched && code !== 'PGRST116' && code !== 'PGRST205') sbyLog(op, err);
+  else sbyAvisar(op, err);
+}
 var SubbyApp = function SubbyApp(_ref) {
   var profile = _ref.profile;
   var onBack = _ref.onBack || function() {};
@@ -21811,7 +21825,7 @@ var SubbyApp = function SubbyApp(_ref) {
     setLoading(true);
     window.supabaseClient.from(TABLE).select('*').eq('owner', owner)
       .order('proxima_cobranca', { ascending: true })
-      .then(function(r) { setSubs(r.data || []); setLoading(false); })
+      .then(function(r) { if (r && r.error) sbyAvisarRes('carregar as subscrições (subscriptions)', r.error); setSubs(r.data || []); setLoading(false); })
       .catch(function() { setLoading(false); });
   };
 
@@ -21819,18 +21833,19 @@ var SubbyApp = function SubbyApp(_ref) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').select('subby_prefs').eq('member_id', owner)
       .then(function(r) {
+        if (r && r.error) sbyLog('carregar a ordenação (profiles.subby_prefs)', r.error);
         var rows = r.data || [];
         if (rows[0] && rows[0].subby_prefs && rows[0].subby_prefs.sortBy) {
           setOrdem(rows[0].subby_prefs.sortBy);
         }
-      }).catch(function() {});
+      }).catch(function(err) { sbyLog('carregar a ordenação (profiles.subby_prefs)', err); });
   };
 
   var saveOrdem = function(o) {
     setOrdem(o);
     if (!window.supabaseClient) return;
     window.supabaseClient.from('profiles').update({ subby_prefs: { sortBy: o } })
-      .eq('member_id', owner).then(function() {}).catch(function() {});
+      .eq('member_id', owner).then(function(res) { if (res && res.error) sbyLog('guardar a ordenação (profiles.subby_prefs)', res.error); }).catch(function(err) { sbyLog('guardar a ordenação (profiles.subby_prefs)', err); });
   };
 
   var fetchFX = function() {
@@ -21844,7 +21859,7 @@ var SubbyApp = function SubbyApp(_ref) {
           setSubs(function(prev) { return prev.slice(); });
         }
       })
-      .catch(function() {});
+      .catch(function(err) { sbyLog('carregar as taxas de câmbio (frankfurter.dev)', err); });
   };
 
   (0,_react.useEffect)(function() { loadSubs(); loadOrdem(); fetchFX(); }, []);
@@ -21960,7 +21975,7 @@ var SubbyApp = function SubbyApp(_ref) {
           return window.supabaseClient.from(TABLE).insert(row);
         });
     op.then(function(res) {
-      if (res && res.error) { return; } // erro já mostrado pelo monitor global; formulário fica aberto
+      if (res && res.error) { sbyAvisarRes('gravar a subscrição (subscriptions)', res.error); return; } // erro já mostrado pelo monitor global; formulário fica aberto
       setShowForm(false); resetForm(); loadSubs();
       // Push notification
       var msg = editId ? 'Subscrição actualizada: ' + fNome.trim() : 'Nova subscrição: ' + fNome.trim();
@@ -21970,20 +21985,20 @@ var SubbyApp = function SubbyApp(_ref) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window._sbAnonKey||'') },
           body: JSON.stringify({ profile_ids: ids, title: '💳 Abo Kontrolle', body: msg, url: '/' })
-        }).catch(function(){});
+        }).then(function(r) { if (r && r.ok === false) sbyLog('enviar push (HTTP ' + r.status + ')', r.statusText || r.status); }).catch(function(err) { sbyLog('enviar push (subscrição)', err); });
       });
-    }).catch(function() {});
+    }).catch(function(err) { sbyAvisar('gravar a subscrição (subscriptions)', err); });
   };
 
   var apagar = function(id, nome) {
     if (!window.confirm('Apagar "' + nome + '"?')) return;
     window.supabaseClient.from(TABLE).delete().eq('id', id)
-      .then(function() { loadSubs(); }).catch(function(){});
+      .then(function(res) { if (res && res.error) sbyAvisarRes('apagar a subscrição', res.error); loadSubs(); }).catch(function(err) { sbyAvisar('apagar a subscrição', err); });
   };
 
   var marcarVisto = function(sub) {
     window.supabaseClient.from(TABLE).update({ visto_ate_data: sub.proxima_cobranca })
-      .eq('id', sub.id).then(function() { loadSubs(); }).catch(function(){});
+      .eq('id', sub.id).then(function(res) { if (res && res.error) sbyAvisarRes('marcar a subscrição como vista', res.error); loadSubs(); }).catch(function(err) { sbyAvisar('marcar a subscrição como vista', err); });
   };
 
   var renderIcone = function(sub, size) {
