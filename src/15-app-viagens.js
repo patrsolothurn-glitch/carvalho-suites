@@ -92,13 +92,16 @@ function ViagensApp(props) {
     setSaving(true);
     var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, created_by: profile && profile.id };
     var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
-    op.then(function() { setSaving(false); setForm(null); load(); }).catch(function() { setSaving(false); });
+    op.then(function(res) {
+      if (res && res.error) { console.error('[viagens] guardar entrada:', res.error); window.mostrarErro('Viagens Família', res.error); setSaving(false); return; }
+      setSaving(false); setForm(null); load();
+    }).catch(function(e) { console.error('[viagens] guardar entrada:', e); window.mostrarErro('Viagens Família', e); setSaving(false); });
   }
 
   function deleteTrip(id) {
     db.from('family_trips').delete().eq('id', id).then(function(res) {
       if (res.error) { console.error('[viagens] apagar entrada:', res.error); window.mostrarErro('Viagens Família', res.error); return; }
-      setConfirmDel(null); load();
+      setConfirmDel(null); setForm(null); load();
     }).catch(function(e) { console.error('[viagens] apagar entrada:', e); window.mostrarErro('Viagens Família', e); });
   }
 
@@ -212,8 +215,12 @@ function ViagensApp(props) {
         ),
         React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
           saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
+        ),
+        form !== 'new' && React.createElement('button', { onClick: function() { setConfirmDel(form.id); }, style: { width: '100%', padding: 12, marginTop: 10, borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'none', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer' } },
+          '🗑️ Apagar esta entrada'
         )
-      )
+      ),
+      confirmModal
     );
   }
 
