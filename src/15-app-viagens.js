@@ -98,7 +98,7 @@ function ViagensApp(props) {
   function deleteTrip(id) {
     db.from('family_trips').delete().eq('id', id).then(function(res) {
       if (res.error) { console.error('[viagens] apagar entrada:', res.error); window.mostrarErro('Viagens Família', res.error); return; }
-      setConfirmDel(null); load();
+      setConfirmDel(null); setForm(null); load();
     }).catch(function(e) { console.error('[viagens] apagar entrada:', e); window.mostrarErro('Viagens Família', e); });
   }
 
@@ -212,8 +212,12 @@ function ViagensApp(props) {
         ),
         React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
           saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
+        ),
+        form !== 'new' && React.createElement('button', { onClick: function() { setConfirmDel(form.id); }, style: { width: '100%', padding: 12, marginTop: 10, borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'none', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer' } },
+          '🗑️ Apagar esta entrada'
         )
-      )
+      ),
+      confirmModal
     );
   }
 
