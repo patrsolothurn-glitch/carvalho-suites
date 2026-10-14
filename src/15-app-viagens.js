@@ -92,7 +92,10 @@ function ViagensApp(props) {
     setSaving(true);
     var payload = { tipo: formData.tipo, titulo: formData.titulo.trim(), local: formData.local.trim(), ano: year, mes: formData.mes, dia_inicio: formData.dia_inicio ? parseInt(formData.dia_inicio, 10) : null, dia_fim: formData.dia_fim ? parseInt(formData.dia_fim, 10) : null, notas: formData.notas.trim(), album_url: formData.album_url || null, created_by: profile && profile.id };
     var op = (form === 'new') ? db.from('family_trips').insert(payload) : db.from('family_trips').update(payload).eq('id', form.id);
-    op.then(function() { setSaving(false); setForm(null); load(); }).catch(function() { setSaving(false); });
+    op.then(function(res) {
+      if (res && res.error) { console.error('[viagens] guardar entrada:', res.error); window.mostrarErro('Viagens Família', res.error); setSaving(false); return; }
+      setSaving(false); setForm(null); load();
+    }).catch(function(e) { console.error('[viagens] guardar entrada:', e); window.mostrarErro('Viagens Família', e); setSaving(false); });
   }
 
   function deleteTrip(id) {
