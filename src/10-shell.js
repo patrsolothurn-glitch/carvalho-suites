@@ -1,3 +1,9 @@
+// Registo público desligado no Supabase (Allow new users to sign up = off).
+// Esconde o separador "Criar conta" sem apagar doSignup nem o resto da
+// lógica de registo — login e recuperação de palavra-passe continuam
+// a funcionar. Reativar: pôr true (e voltar a ligar o registo no Supabase).
+var SIGNUP_ENABLED = false;
+
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -1670,7 +1676,7 @@ function CarvalhoSuite() {
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "Entrar"), /*#__PURE__*/React.createElement("button", {
+  }, "Entrar"), SIGNUP_ENABLED && /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       setAuthMode('signup');
       setPassErr('');
