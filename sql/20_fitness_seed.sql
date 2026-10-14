@@ -1,11 +1,19 @@
 -- ══════════════════════════════════════════════════════════════════
 -- Carvalho Fitness — seed (correr DEPOIS de sql/20_fitness.sql)
 --
--- user_id resolvido pelo email de login confirmado pelo Patricio:
--- patr.carvalho@hotmail.com (profiles.email — profiles.id é o mesmo
--- uuid que auth.users.id/auth.uid(), como no resto da suite). Se o
--- email não existir em profiles, o bloco pára com um erro claro em
--- vez de inserir dados sem dono.
+-- ESTE SEED JÁ FOI APLICADO. Os dados reais (perfil, refeições,
+-- alimentos, treino) já estão na base de dados — este ficheiro é só
+-- documentação de uma migração passada, não é para correr outra vez.
+-- O email abaixo é um PLACEHOLDER (user@exemplo.ch); o email real
+-- nunca fica em código num repositório público. NÃO voltes a correr
+-- este ficheiro sem primeiro trocar o placeholder pelo email certo
+-- (e sem confirmar que não vai duplicar dados já existentes).
+--
+-- user_id resolvido pelo email de login confirmado pelo Patricio
+-- (profiles.email — profiles.id é o mesmo uuid que
+-- auth.users.id/auth.uid(), como no resto da suite). Se o email não
+-- existir em profiles, o bloco pára com um erro claro em vez de
+-- inserir dados sem dono.
 --
 -- Sexo, data de nascimento, altura, atividade, objetivo e ritmo NÃO
 -- vêm no seed (não foram dados no pedido) — ficam por preencher em
@@ -27,9 +35,9 @@ declare
   v_ref1 uuid; v_ref2 uuid; v_ref3 uuid; v_ref4 uuid;
   v_treino1 uuid;
 begin
-  select id into v_user_id from profiles where email = 'patr.carvalho@hotmail.com';
+  select id into v_user_id from profiles where email = 'user@exemplo.ch';
   if v_user_id is null then
-    raise exception 'Não encontrei profiles.email = patr.carvalho@hotmail.com — confirma o email antes de correr este seed.';
+    raise exception 'Não encontrei profiles.email = user@exemplo.ch — confirma o email antes de correr este seed.';
   end if;
 
   if exists (select 1 from fitness_refeicoes where user_id = v_user_id)
@@ -123,5 +131,5 @@ begin
 end $$;
 
 -- Para verificar depois:
--- select nome, pct from fitness_refeicoes where user_id = (select id from profiles where email = 'patr.carvalho@hotmail.com') order by ordem;
--- select count(*) from fitness_alimentos where user_id = (select id from profiles where email = 'patr.carvalho@hotmail.com');
+-- select nome, pct from fitness_refeicoes where user_id = (select id from profiles where email = 'user@exemplo.ch') order by ordem;
+-- select count(*) from fitness_alimentos where user_id = (select id from profiles where email = 'user@exemplo.ch');
