@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-14T04:36:57.807Z
+  Gerado em: 2026-10-14T10:54:32.897Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-422";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-423";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -33955,7 +33955,7 @@ function ViagensApp(props) {
   function deleteTrip(id) {
     db.from('family_trips').delete().eq('id', id).then(function(res) {
       if (res.error) { console.error('[viagens] apagar entrada:', res.error); window.mostrarErro('Viagens Família', res.error); return; }
-      setConfirmDel(null); load();
+      setConfirmDel(null); setForm(null); load();
     }).catch(function(e) { console.error('[viagens] apagar entrada:', e); window.mostrarErro('Viagens Família', e); });
   }
 
@@ -34069,8 +34069,12 @@ function ViagensApp(props) {
         ),
         React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
           saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
+        ),
+        form !== 'new' && React.createElement('button', { onClick: function() { setConfirmDel(form.id); }, style: { width: '100%', padding: 12, marginTop: 10, borderRadius: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'none', color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer' } },
+          '🗑️ Apagar esta entrada'
         )
-      )
+      ),
+      confirmModal
     );
   }
 
