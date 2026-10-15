@@ -293,7 +293,7 @@ function FamiliaApp(_ref19) {
       color: F.gold
     }, {
       id: 'esposa',
-      name: 'Esposa',
+      name: 'Cristina',
       emoji: '👩',
       color: F.blue
     }, {
