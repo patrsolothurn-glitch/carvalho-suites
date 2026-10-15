@@ -863,7 +863,7 @@ function LucasApp(_ref) {
   }
   function _notificar() {
     _notificar = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee7(titulo, corpo) {
-      var _t2;
+      var _t2, res;
       return _regenerator().w(function (_context7) {
         while (1) switch (_context7.p = _context7.n) {
           case 0:
@@ -882,11 +882,18 @@ function LucasApp(_ref) {
               }
             });
           case 2:
+            res = _context7.v;
+            if (res && res.error) {
+              console.error('[escola-grenchen] notificar:', res.error);
+              flash('Não foi possível notificar: ' + res.error.message, true);
+            }
             _context7.n = 4;
             break;
           case 3:
             _context7.p = 3;
             _t2 = _context7.v;
+            console.error('[escola-grenchen] notificar:', _t2);
+            flash('Não foi possível notificar.', true);
           case 4:
             return _context7.a(2);
         }
