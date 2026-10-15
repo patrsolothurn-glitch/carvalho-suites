@@ -925,7 +925,7 @@ function AgendaProApp(_ref13) {
           body: body,
           profileIds: ids
         }
-      }).then(function (res) { if (res && res.error) agpLog('enviar push (marcação)', res.error); }).catch(function (err) { agpLog('enviar push (marcação)', err); });
+      }).then(function (res) { if (res && res.error) agpAvisar('enviar push (marcação)', res.error); }).catch(function (err) { agpAvisar('enviar push (marcação)', err); });
     });
   };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {

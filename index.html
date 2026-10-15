@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-15T09:33:07.242Z
+  Gerado em: 2026-10-15T15:16:58.589Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-427";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-428";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -6629,7 +6629,7 @@ function AgendaProApp(_ref13) {
           body: body,
           profileIds: ids
         }
-      }).then(function (res) { if (res && res.error) agpLog('enviar push (marcação)', res.error); }).catch(function (err) { agpLog('enviar push (marcação)', err); });
+      }).then(function (res) { if (res && res.error) agpAvisar('enviar push (marcação)', res.error); }).catch(function (err) { agpAvisar('enviar push (marcação)', err); });
     });
   };
   var syncToFamilia = function syncToFamilia(jobId, partilhado, jobData) {
