@@ -106,6 +106,7 @@ function RpLabel(props) { return React.createElement('label', { style: rpS.label
 function RpInput(props) {
   return React.createElement('input', {
     type: props.type || 'text',
+    autoComplete: props.type === 'time' ? undefined : 'off',
     value: props.value,
     placeholder: props.placeholder || '',
     onChange: function(e) { props.onChange(e.target.value); },
@@ -128,6 +129,7 @@ function RpIoToggle(props) {
 }
 function RpTextarea(props) {
   return React.createElement('textarea', {
+    autoComplete: 'off',
     value: props.value,
     placeholder: props.placeholder || '',
     rows: props.rows || 3,
