@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-15T15:22:15.610Z
+  Gerado em: 2026-10-15T15:25:27.363Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-429";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-430";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -43437,10 +43437,12 @@ function FitnessApp(props) {
   }
   function apagarOpcao(id) {
     var o = opcoes.filter(function (x) { return x.id === id; })[0];
-    var removerFoto = (o && o.foto_path) ? db.storage.from(FI_BUCKET).remove([o.foto_path]) : Promise.resolve();
-    removerFoto.then(function () {
+    var removerFoto = (o && o.foto_path) ? db.storage.from(FI_BUCKET).remove([o.foto_path]) : Promise.resolve(null);
+    removerFoto.then(function (resFoto) {
+      if (resFoto && resFoto.error) { console.error('[fitness] apagar foto opção:', resFoto.error); window.mostrarErro('Fitness', resFoto.error); return null; }
       return db.from('fitness_opcoes').delete().eq('id', id);
     }).then(function (res) {
+      if (!res) return;
       if (res.error) { console.error('[fitness] apagar opção:', res.error); window.mostrarErro('Fitness', res.error); return; }
       setConfirmApagarOpcao(null);
       if (receitaOpcaoId === id) setReceitaOpcaoId(null);

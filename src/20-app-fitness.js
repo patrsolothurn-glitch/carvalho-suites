@@ -1349,10 +1349,12 @@ function FitnessApp(props) {
   }
   function apagarOpcao(id) {
     var o = opcoes.filter(function (x) { return x.id === id; })[0];
-    var removerFoto = (o && o.foto_path) ? db.storage.from(FI_BUCKET).remove([o.foto_path]) : Promise.resolve();
-    removerFoto.then(function () {
+    var removerFoto = (o && o.foto_path) ? db.storage.from(FI_BUCKET).remove([o.foto_path]) : Promise.resolve(null);
+    removerFoto.then(function (resFoto) {
+      if (resFoto && resFoto.error) { console.error('[fitness] apagar foto opção:', resFoto.error); window.mostrarErro('Fitness', resFoto.error); return null; }
       return db.from('fitness_opcoes').delete().eq('id', id);
     }).then(function (res) {
+      if (!res) return;
       if (res.error) { console.error('[fitness] apagar opção:', res.error); window.mostrarErro('Fitness', res.error); return; }
       setConfirmApagarOpcao(null);
       if (receitaOpcaoId === id) setReceitaOpcaoId(null);
