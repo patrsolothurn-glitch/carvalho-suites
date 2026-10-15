@@ -1016,6 +1016,12 @@ function EscolarApp(_ref31) {
   var _escolarSaveInFlight = window._escolarSaveInFlight || (window._escolarSaveInFlight = {});
   var _escolarSavePending = window._escolarSavePending || (window._escolarSavePending = {});
   var _escolarSavePendingDomains = window._escolarSavePendingDomains || (window._escolarSavePendingDomains = {});
+  // Verdadeiro só depois de a leitura inicial de escolar_perfil (loadEscolarData)
+  // terminar sem erro pelo menos uma vez nesta sessão. gravarPerfil usa isto
+  // para nunca escrever resp_* a partir de um estado em memória que ainda não
+  // foi confirmado contra a base — evita apagar um responsável real com um
+  // valor vazio só porque a leitura inicial ainda não chegou ou falhou.
+  var _escolarPerfilLoadOk = window._escolarPerfilLoadOk || (window._escolarPerfilLoadOk = { ok: false });
   // domains: lista de quais secoes gravar ('disciplinas','horario','notas','tpc','perfil').
   // Se omitido, grava tudo (usado apenas na semeadura inicial a partir de ALUNOS_DEF).
   // Isto evita que uma edicao pequena (ex: marcar um TPC) reescreva o horario
@@ -1391,29 +1397,25 @@ function EscolarApp(_ref31) {
       return apagarEInserir();
     };
     var gravarPerfil = function gravarPerfil() {
-      return sb.from('escolar_perfil').delete().eq('aluno', key).then(function (delRes) {
-        if (delRes && delRes.error) {
-          console.warn('[escolar] DELETE perfil falhou:', delRes.error.message);
-          window.mostrarErro('Vida Escolar', delRes.error);
+      var row = { aluno: key, klasse: data.klasse || '', cidade: data.cidade || '' };
+      // Só escreve resp_* quando a leitura inicial de escolar_perfil já
+      // confirmou, nesta sessão, que o estado em memória vem da base — caso
+      // contrário o upsert não leva estas colunas, e o que já está gravado
+      // no servidor fica intacto (upsert só toca nas colunas que lhe dão).
+      if (_escolarPerfilLoadOk.ok) {
+        var resp = data.responsavel || {};
+        row.resp_nome = resp.nome || '';
+        row.resp_sala = resp.sala || '';
+        row.resp_tel = resp.tel || '';
+        row.resp_email = resp.email || '';
+      }
+      return sb.from('escolar_perfil').upsert(row, { onConflict: 'aluno' }).then(function (res) {
+        logIns('perfil')(res);
+        if (res && res.error) {
+          window.mostrarErro('Vida Escolar', res.error);
           return false;
         }
-        var resp = data.responsavel || {};
-        return sb.from('escolar_perfil').insert({
-          aluno: key,
-          klasse: data.klasse || '',
-          cidade: data.cidade || '',
-          resp_nome: resp.nome || '',
-          resp_sala: resp.sala || '',
-          resp_tel: resp.tel || '',
-          resp_email: resp.email || ''
-        }).then(function (insRes) {
-          logIns('perfil')(insRes);
-          if (insRes && insRes.error) {
-            window.mostrarErro('Vida Escolar', insRes.error);
-            return false;
-          }
-          return true;
-        });
+        return true;
       }).catch(function (e) {
         console.warn('[escolar] erro perfil:', e);
         window.mostrarErro('Vida Escolar', e);
@@ -1926,6 +1928,7 @@ function EscolarApp(_ref31) {
       [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes], ['eventos', eventosRes]].forEach(function (p) {
         if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
       });
+      if (perfilRes && !perfilRes.error) _escolarPerfilLoadOk.ok = true;
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
       if (!anyData) {
         // Já não repomos os dados de exemplo (ALUNOS_DEF) automaticamente.
