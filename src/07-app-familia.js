@@ -710,7 +710,7 @@ function FamiliaApp(_ref19) {
               body: ev.t + (ev.hora ? ' · ' + ev.hora : ''),
               profileIds: ids
             }
-          }).then(function (res) { if (res && res.error) famLog('enviar push (novo evento)', res.error); }).catch(function (err) { famLog('enviar push (novo evento)', err); });
+          }).then(function (res) { if (res && res.error) famAvisar('enviar push (novo evento)', res.error); }).catch(function (err) { famAvisar('enviar push (novo evento)', err); });
         });
       } catch (e) {}
       setForm({
@@ -2096,7 +2096,7 @@ function FamiliaApp(_ref19) {
                     body: '\uD83D\uDDD1\uFE0F ' + ev.t + ' foi apagado',
                     profileIds: ids
                   }
-                }).then(function (res) { if (res && res.error) famLog('enviar push (evento apagado)', res.error); }).catch(function (err) { famLog('enviar push (evento apagado)', err); });
+                }).then(function (res) { if (res && res.error) famAvisar('enviar push (evento apagado)', res.error); }).catch(function (err) { famAvisar('enviar push (evento apagado)', err); });
               });
             } catch (e) {}
             (verArquivados ? setEventsArquivados : setEvents)(function (p) {
@@ -2575,7 +2575,7 @@ function FamiliaApp(_ref19) {
                   body: '\u270F\uFE0F ' + titulo + (hora ? ' \u00b7 ' + hora : ''),
                   profileIds: ids
                 }
-              }).then(function (res) { if (res && res.error) famLog('enviar push (evento editado)', res.error); }).catch(function (err) { famLog('enviar push (evento editado)', err); });
+              }).then(function (res) { if (res && res.error) famAvisar('enviar push (evento editado)', res.error); }).catch(function (err) { famAvisar('enviar push (evento editado)', err); });
             });
           } catch (e) {}
         }).catch(function (e) {
