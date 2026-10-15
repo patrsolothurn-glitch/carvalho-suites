@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-15T16:03:53.036Z
+  Gerado em: 2026-10-15T16:09:58.227Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-432";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-433";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -15903,6 +15903,21 @@ var EventoRow = function EventoRow(_ref33) {
     style: { background: 'none', border: 'none', color: '#EF4444', fontSize: 15, cursor: 'pointer', padding: '0 4px' }
   }, "🗑️"))));
 };
+// Grelha de ícones (emoji) e cores do editor "✏️" (ícone/cor) do cartão do
+// aluno. Personalização por aluno: escolar_perfil.emoji/cor, NULL = usa o
+// valor de ALUNOS_DEF (ver gravarIconCor/salvarIconCor em EscolarApp). Sem
+// dados pessoais — só emoji e código hex.
+var ESCOLAR_EMOJI_GRID = ['👦', '👧', '🧒', '👶', '🧑', '😀', '🎒', '📚', '✏️', '🔬', '🎨', '🧮', '⚽', '🏀', '🎾', '🏈', '🏐', '🚴', '🐶', '🐱', '🦁', '🐸', '🦄', '🐻'];
+var ESCOLAR_COR_GRID = ['#F97316', '#22C55E', '#3B82F6', '#EC4899', '#A855F7', '#EAB308', '#06B6D4', '#EF4444', '#84CC16', '#F43F5E'];
+// O código concatena al.cor + "20"/"30"/"55", por isso tem de ser sempre
+// hex de 6 dígitos — nunca aceitar nomes de cor, rgb(...) ou hex de 3 dígitos.
+var ESCOLAR_COR_RE = /^#[0-9A-Fa-f]{6}$/;
+// "Válido" = 1 a 8 caracteres, sem letras/dígitos latinos — aceita emoji
+// (inclui sequências multi-codepoint dentro do limite), rejeita texto normal.
+function escolarEmojiValido(s) {
+  var v = (s == null ? '' : String(s)).trim();
+  return v.length > 0 && v.length <= 8 && !/[A-Za-z0-9]/.test(v);
+}
 function EscolarApp(_ref31) {
   var onBack = _ref31.onBack,
     _ref31$sharedDias = _ref31.sharedDias,
@@ -16090,6 +16105,18 @@ function EscolarApp(_ref31) {
     _useStateRespForm2 = _slicedToArray(_useStateRespForm, 2),
     respForm = _useStateRespForm2[0],
     setRespForm = _useStateRespForm2[1];
+  // Painel "Ícone & cor" do cartão do aluno (✏️ sobre o avatar) — mesmo
+  // isAdmin que já controla a edição de turma/responsável. iconEditKey diz
+  // qual aluno está a ser editado; iconCorForm é sempre controlado
+  // (value/onChange), nunca defaultValue+getElementById.
+  var _useStateIconEdit = (0, _react.useState)(null),
+    _useStateIconEdit2 = _slicedToArray(_useStateIconEdit, 2),
+    iconEditKey = _useStateIconEdit2[0],
+    setIconEditKey = _useStateIconEdit2[1];
+  var _useStateIconForm = (0, _react.useState)({ emoji: '', cor: '' }),
+    _useStateIconForm2 = _slicedToArray(_useStateIconForm, 2),
+    iconCorForm = _useStateIconForm2[0],
+    setIconCorForm = _useStateIconForm2[1];
   // Ref único que junta TODOS os formulários de adicionar/editar desta app
   // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
   // aberto, o reload automático (visibilitychange) fica bloqueado — evita
@@ -16103,7 +16130,8 @@ function EscolarApp(_ref31) {
     editAula !== null || showAddAula ||
     editKlasse || editKlasseKey !== null ||
     editNotaKey !== null ||
-    respEditor !== null
+    respEditor !== null ||
+    iconEditKey !== null
   );
   var addEscolarToast = function addEscolarToast(msg) {
     var sub = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
@@ -16724,6 +16752,73 @@ function EscolarApp(_ref31) {
       addEscolarToast('Não foi possível guardar os dados da turma.');
     });
   };
+  // Abre/fecha o editor "Ícone & cor" (✏️ sobre o avatar do cartão) — mesmo
+  // isAdmin que já controla a edição de turma/responsável. Fecha os outros
+  // painéis do cartão para não haver dois abertos ao mesmo tempo no mesmo k.
+  var abrirIconCor = function abrirIconCor(key) {
+    var al = alunosData[key] || {};
+    setIconCorForm({ emoji: al.emoji || '', cor: al.cor || '' });
+    setEditKlasseKey(null);
+    fecharResponsavel();
+    setIconEditKey(key);
+  };
+  var fecharIconCor = function fecharIconCor() {
+    setIconEditKey(null);
+  };
+  // Upsert próprio, só {aluno, emoji, cor} (onConflict:'aluno') — NUNCA
+  // passa por gravarPerfil/savePerfilOnly, para nunca acrescentar emoji/cor
+  // às colunas que essas funções já gravam. Atualização otimista do estado
+  // local só depois de a leitura inicial confirmar (_escolarPerfilLoadOk.ok),
+  // como o resto do perfil; se a gravação devolver erro ou lançar, reverte
+  // o estado local para o valor anterior e mostra um aviso (nunca delete+insert).
+  var gravarIconCor = function gravarIconCor(key, dbVals, localVals) {
+    if (!window.supabaseClient) return;
+    var sb = window.supabaseClient;
+    var atualAntes = alunosData[key] || {};
+    var anterior = { emoji: atualAntes.emoji, cor: atualAntes.cor };
+    var aplicarLocal = function aplicarLocal(vals) {
+      setAlunosData(function (p) {
+        var atual = p[key] || {};
+        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), vals)));
+      });
+    };
+    if (_escolarPerfilLoadOk.ok) aplicarLocal(localVals);
+    sb.from('escolar_perfil').upsert(_objectSpread({ aluno: key }, dbVals), { onConflict: 'aluno' }).then(function (res) {
+      if (res && res.error) {
+        console.error('[escolar] upsert icone/cor falhou:', res.error.message);
+        if (_escolarPerfilLoadOk.ok) aplicarLocal(anterior);
+        addEscolarToast('Não foi possível guardar o ícone/cor.');
+      }
+    }).catch(function (e) {
+      console.error('[escolar] erro icone/cor:', e);
+      if (_escolarPerfilLoadOk.ok) aplicarLocal(anterior);
+      addEscolarToast('Não foi possível guardar o ícone/cor.');
+    });
+  };
+  // Guarda o ícone/cor escolhidos no editor — valida ambos antes de gravar
+  // (emoji sem texto, cor hex de 6 dígitos; o código concatena al.cor+"20"
+  // etc., por isso nunca aceitar outro formato).
+  var salvarIconCor = function salvarIconCor(key) {
+    var emoji = (iconCorForm.emoji || '').trim();
+    var cor = (iconCorForm.cor || '').trim();
+    if (!escolarEmojiValido(emoji)) {
+      addEscolarToast('Escolhe um ícone (emoji) válido.');
+      return;
+    }
+    if (!ESCOLAR_COR_RE.test(cor)) {
+      addEscolarToast('A cor tem de ser um código hex de 6 dígitos (ex: #22C55E).');
+      return;
+    }
+    gravarIconCor(key, { emoji: emoji, cor: cor }, { emoji: emoji, cor: cor });
+    setIconEditKey(null);
+  };
+  // "Repor padrão" = apagar a personalização: grava NULL em emoji/cor e o
+  // estado local volta aos valores de ALUNOS_DEF desse aluno.
+  var reporIconCorPadrao = function reporIconCorPadrao(key) {
+    var def = ALUNOS_DEF[key] || {};
+    gravarIconCor(key, { emoji: null, cor: null }, { emoji: def.emoji, cor: def.cor });
+    setIconEditKey(null);
+  };
   // Campo controlado (value/onChange) do painel "Responsável de turma" —
   // nunca defaultValue+getElementById, para nunca ler o DOM a destempo.
   var respCampo = function respCampo(label, value, onChange, placeholder, type) {
@@ -17274,6 +17369,16 @@ function EscolarApp(_ref31) {
           if (perfilRow) {
             if (perfilRow.klasse) updated.klasse = perfilRow.klasse;
             if (perfilRow.cidade) updated.cidade = perfilRow.cidade;
+            // Ícone/cor personalizados: colunas podem não existir ainda
+            // (perfilRow.emoji/cor undefined) — nesse caso mantém o padrão
+            // de ALUNOS_DEF já presente em updated. Só sobrepõe quando AMBOS
+            // são válidos (sempre gravados em par por gravarIconCor) — nunca
+            // um emoji válido com uma cor corrompida, ou vice-versa.
+            if (typeof perfilRow.emoji === 'string' && escolarEmojiValido(perfilRow.emoji) &&
+              typeof perfilRow.cor === 'string' && ESCOLAR_COR_RE.test(perfilRow.cor)) {
+              updated.emoji = perfilRow.emoji.trim();
+              updated.cor = perfilRow.cor;
+            }
             // "Tocado" = pelo menos uma coluna resp_* não é NULL na base —
             // inclui um '' explícito (apagar legítimo). Só quando as 5
             // colunas estão a NULL (nunca ninguém gravou o responsável
@@ -18070,7 +18175,212 @@ function EscolarApp(_ref31) {
         cursor: 'pointer',
         flexShrink: 0
       }
-    }, "\u270E"));
+    }, "\u270E"), isAdmin && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick(e) {
+        e.stopPropagation();
+        var abrir = iconEditKey !== k;
+        if (abrir) abrirIconCor(k); else fecharIconCor();
+      },
+      'aria-label': 'Editar \u00EDcone e cor de ' + al.nome,
+      style: {
+        position: 'absolute',
+        top: 6,
+        left: 8,
+        width: 22,
+        height: 22,
+        borderRadius: '50%',
+        background: E.surface,
+        border: "1px solid ".concat(E.purple, "88"),
+        color: E.purple,
+        fontSize: 10,
+        lineHeight: '20px',
+        padding: 0,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 5
+      }
+    }, "\u270F\uFE0F"), isAdmin && iconEditKey === k && /*#__PURE__*/React.createElement("div", {
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      },
+      style: {
+        position: 'absolute',
+        top: '105%',
+        left: 0,
+        right: 0,
+        background: E.surface,
+        border: "1px solid ".concat(E.purple),
+        borderRadius: 12,
+        padding: 10,
+        zIndex: 410,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: E.muted,
+        fontSize: 9,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        marginBottom: 6
+      }
+    }, "\u00CDcone \u00B7 ", al.nome), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        background: ESCOLAR_COR_RE.test(iconCorForm.cor) ? "".concat(iconCorForm.cor, "30") : E.surface2,
+        border: "2px solid ".concat(ESCOLAR_COR_RE.test(iconCorForm.cor) ? "".concat(iconCorForm.cor, "55") : E.border),
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { fontSize: 20 }
+    }, iconCorForm.emoji || al.emoji)), /*#__PURE__*/React.createElement("p", {
+      style: { color: E.muted, fontSize: 10 }
+    }, "Pr\u00E9-visualiza\u00E7\u00E3o")), /*#__PURE__*/React.createElement("p", {
+      style: { color: E.muted, fontSize: 8, fontWeight: 700, marginBottom: 3 }
+    }, "ESCOLHE UM \u00CDCONE"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }
+    }, ESCOLAR_EMOJI_GRID.map(function (em) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: em,
+        onClick: function onClick() {
+          return setIconCorForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { emoji: em }); });
+        },
+        style: {
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: iconCorForm.emoji === em ? "".concat(E.purple, "33") : E.surface2,
+          border: "2px solid ".concat(iconCorForm.emoji === em ? E.purple : E.border),
+          fontSize: 16,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0
+        }
+      }, em);
+    })), /*#__PURE__*/React.createElement("input", {
+      value: iconCorForm.emoji,
+      onChange: function onChange(e) {
+        return setIconCorForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { emoji: e.target.value }); });
+      },
+      maxLength: 8,
+      autoComplete: "off",
+      placeholder: "ou escreve um \u00E9moji",
+      style: {
+        width: '100%',
+        background: E.surface2,
+        border: "1px solid ".concat(E.purple),
+        borderRadius: 8,
+        padding: '7px 9px',
+        color: E.text,
+        fontSize: 13,
+        outline: 'none',
+        boxSizing: 'border-box',
+        marginBottom: 8
+      }
+    }), /*#__PURE__*/React.createElement("p", {
+      style: { color: E.muted, fontSize: 8, fontWeight: 700, marginBottom: 3 }
+    }, "ESCOLHE UMA COR"), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }
+    }, ESCOLAR_COR_GRID.map(function (c) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: c,
+        onClick: function onClick() {
+          return setIconCorForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { cor: c }); });
+        },
+        'aria-label': c,
+        style: {
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          background: c,
+          border: iconCorForm.cor.toLowerCase() === c.toLowerCase() ? "2px solid ".concat(E.text) : '2px solid transparent',
+          cursor: 'pointer',
+          padding: 0
+        }
+      });
+    })), /*#__PURE__*/React.createElement("input", {
+      value: iconCorForm.cor,
+      onChange: function onChange(e) {
+        return setIconCorForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { cor: e.target.value }); });
+      },
+      maxLength: 7,
+      autoComplete: "off",
+      placeholder: "#RRGGBB",
+      style: {
+        width: '100%',
+        background: E.surface2,
+        border: "1px solid ".concat(E.purple),
+        borderRadius: 8,
+        padding: '7px 9px',
+        color: E.text,
+        fontSize: 13,
+        outline: 'none',
+        boxSizing: 'border-box',
+        marginBottom: 8,
+        fontFamily: 'monospace'
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: { display: 'flex', gap: 6 }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return reporIconCorPadrao(k);
+      },
+      style: {
+        flex: 1,
+        background: 'rgba(220,38,38,0.1)',
+        border: '1px solid rgba(220,38,38,0.3)',
+        borderRadius: 8,
+        padding: '10px 4px',
+        color: E.red,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\u21BA Repor padr\u00E3o"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return fecharIconCor();
+      },
+      style: {
+        flex: 1,
+        background: E.surface2,
+        border: "1px solid ".concat(E.border),
+        borderRadius: 8,
+        padding: '10px 4px',
+        color: E.muted,
+        fontSize: 12,
+        cursor: 'pointer'
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return salvarIconCor(k);
+      },
+      style: {
+        flex: 2,
+        background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
+        border: 'none',
+        borderRadius: 8,
+        padding: '10px 4px',
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: 'pointer'
+      }
+    }, "\u2713 Guardar"))));
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
