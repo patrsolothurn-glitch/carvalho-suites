@@ -29,7 +29,7 @@ var USERS_DEF = [{
   pwd: 'Pc12345'
 }, {
   id: 'esposa',
-  name: 'Esposa',
+  name: 'Cristina',
   role: 'Família',
   emoji: '👩',
   pwd: 'Esposa123'
