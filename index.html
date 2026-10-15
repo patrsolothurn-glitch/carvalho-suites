@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-14T14:50:04.822Z
+  Gerado em: 2026-10-14T17:03:31.410Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-424";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-425";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -37319,8 +37319,8 @@ function WochenplanApp(props) {
       try {
         wpMigrarHaken(db, linhasT).then(function(feitos) {
           if (feitos.length) setTasks(function(prev) { return prev.map(function(t) { var f = feitos.filter(function(x) { return x.id === t.id; })[0]; return f ? Object.assign({}, t, { status_vor_haken: f.status_vor_haken, gehakt_am: f.gehakt_am }) : t; }); });
-        }).catch(function() {});
-      } catch (e) {}
+        }).catch(function(e) { console.warn('[wochenplan] migração das marcas falhou (tenta de novo no próximo arranque):', e); });
+      } catch (e) { console.warn('[wochenplan] migração das marcas falhou (tenta de novo no próximo arranque):', e); }
       setTagRows(gRes.data || []);
       // Pensum: sem ele o Soll cai no Grundwert antigo (std_tag/arbeitstage), por isso avisa em vez de falhar calado
       if (pRes.error) { setErro('Pensum konnte nicht geladen werden: ' + pRes.error.message); setPensum([]); }

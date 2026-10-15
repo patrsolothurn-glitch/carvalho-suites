@@ -1921,8 +1921,8 @@ function WochenplanApp(props) {
       try {
         wpMigrarHaken(db, linhasT).then(function(feitos) {
           if (feitos.length) setTasks(function(prev) { return prev.map(function(t) { var f = feitos.filter(function(x) { return x.id === t.id; })[0]; return f ? Object.assign({}, t, { status_vor_haken: f.status_vor_haken, gehakt_am: f.gehakt_am }) : t; }); });
-        }).catch(function() {});
-      } catch (e) {}
+        }).catch(function(e) { console.warn('[wochenplan] migração das marcas falhou (tenta de novo no próximo arranque):', e); });
+      } catch (e) { console.warn('[wochenplan] migração das marcas falhou (tenta de novo no próximo arranque):', e); }
       setTagRows(gRes.data || []);
       // Pensum: sem ele o Soll cai no Grundwert antigo (std_tag/arbeitstage), por isso avisa em vez de falhar calado
       if (pRes.error) { setErro('Pensum konnte nicht geladen werden: ' + pRes.error.message); setPensum([]); }
