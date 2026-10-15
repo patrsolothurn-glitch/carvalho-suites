@@ -2522,7 +2522,7 @@ function CarvalhoSuite() {
       }),
       React.createElement("p", { style: { color: T.muted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 } }, "Quem é na Família (para \"Só eu\" funcionar certo)"),
       React.createElement("div", { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 } },
-        [{ id: 'patricio', label: 'Pai' }, { id: 'esposa', label: 'Mãe' }, { id: 'lucas', label: 'Lucas' }, { id: 'liam', label: 'Liam' }].map(function (opt) {
+        [{ id: 'patricio', label: 'Patricio' }, { id: 'esposa', label: 'Cristina' }, { id: 'lucas', label: 'Lucas' }, { id: 'liam', label: 'Liam' }].map(function (opt) {
           var on = newMemberMemberId === opt.id;
           return React.createElement("button", {
             key: opt.id,
@@ -2942,7 +2942,7 @@ function CarvalhoSuite() {
         }),
         React.createElement("p", { style: { color: T.muted, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 } }, "Quem é na Família (para \"Só eu\" funcionar certo)"),
         React.createElement("div", { style: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 } },
-          [{ id: 'patricio', label: 'Pai' }, { id: 'esposa', label: 'Mãe' }, { id: 'lucas', label: 'Lucas' }, { id: 'liam', label: 'Liam' }].map(function (opt) {
+          [{ id: 'patricio', label: 'Patricio' }, { id: 'esposa', label: 'Cristina' }, { id: 'lucas', label: 'Lucas' }, { id: 'liam', label: 'Liam' }].map(function (opt) {
             var on = editingMember.member_id === opt.id;
             return React.createElement("button", {
               key: opt.id,
