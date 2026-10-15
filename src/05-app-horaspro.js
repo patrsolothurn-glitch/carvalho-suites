@@ -886,10 +886,16 @@ function HorasProApp(_ref9) {
     if (!window.supabaseClient) return;
     window.supabaseClient.from('horas_entries').update({
       hours: novoJanMar
-    }).eq('tipo', 'Saldo Jan-Mar (Abaclick)').gte('data', '2026-01-01').lte('data', '2026-03-31').then(function () {
+    }).eq('tipo', 'Saldo Jan-Mar (Abaclick)').gte('data', '2026-01-01').lte('data', '2026-03-31').then(function (res) {
+      if (res && res.error) {
+        console.warn('[horaspro] Erro ao guardar Saldo Abaclick — tenta outra vez.');
+        setEditandoSaldoJanAbr(true);
+        return;
+      }
       loadEntries();
     }).catch(function () {
       console.warn('[horaspro] Erro ao guardar Saldo Abaclick — tenta outra vez.');
+      setEditandoSaldoJanAbr(true);
     });
   };
   var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMesDisplay;
