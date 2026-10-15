@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-15T16:09:58.227Z
+  Gerado em: 2026-10-15T16:24:51.293Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-433";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-434";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -10454,6 +10454,7 @@ function FamiliaApp(_ref19) {
     setHorasMesData = _useStateHorasMes2[1];
   var loadHorasMes = function loadHorasMes() {
     if (!window.supabaseClient) return;
+    if (currentMemberId !== 'patricio') { setHorasMesData([]); return; }
     var y = curMonth.getFullYear();
     var mo2 = curMonth.getMonth();
     var ini = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-01");
@@ -12662,7 +12663,7 @@ function FamiliaApp(_ref19) {
     }), /*#__PURE__*/React.createElement("span", {
       style: { fontSize: 14 }
     }, cat.emoji));
-  }))), /*#__PURE__*/React.createElement(FCard, {
+  }))), currentMemberId === 'patricio' && /*#__PURE__*/React.createElement(FCard, {
     style: {
       padding: '16px',
       marginBottom: 12

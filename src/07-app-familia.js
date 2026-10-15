@@ -490,6 +490,7 @@ function FamiliaApp(_ref19) {
     setHorasMesData = _useStateHorasMes2[1];
   var loadHorasMes = function loadHorasMes() {
     if (!window.supabaseClient) return;
+    if (currentMemberId !== 'patricio') { setHorasMesData([]); return; }
     var y = curMonth.getFullYear();
     var mo2 = curMonth.getMonth();
     var ini = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-01");
@@ -2698,7 +2699,7 @@ function FamiliaApp(_ref19) {
     }), /*#__PURE__*/React.createElement("span", {
       style: { fontSize: 14 }
     }, cat.emoji));
-  }))), /*#__PURE__*/React.createElement(FCard, {
+  }))), currentMemberId === 'patricio' && /*#__PURE__*/React.createElement(FCard, {
     style: {
       padding: '16px',
       marginBottom: 12
