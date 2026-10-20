@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-20T16:04:47.685Z
+  Gerado em: 2026-10-20T16:07:49.979Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-439";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-440";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -33029,6 +33029,7 @@ function RpLabel(props) { return React.createElement('label', { style: rpS.label
 function RpInput(props) {
   return React.createElement('input', {
     type: props.type || 'text',
+    autoComplete: props.type === 'time' ? undefined : 'off',
     value: props.value,
     placeholder: props.placeholder || '',
     onChange: function(e) { props.onChange(e.target.value); },
@@ -33051,6 +33052,7 @@ function RpIoToggle(props) {
 }
 function RpTextarea(props) {
   return React.createElement('textarea', {
+    autoComplete: 'off',
     value: props.value,
     placeholder: props.placeholder || '',
     rows: props.rows || 3,
