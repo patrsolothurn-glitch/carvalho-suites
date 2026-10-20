@@ -2586,6 +2586,7 @@ function LucasApp(_ref) {
         marginBottom: 10
       }
     }, "Novo visitante"), /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
       value: nome,
       onChange: function onChange(e) {
         setNome(e.target.value);
@@ -2602,6 +2603,7 @@ function LucasApp(_ref) {
         marginBottom: 8
       }
     }), /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
       value: code,
       onChange: function onChange(e) {
         setCode(e.target.value);
@@ -2676,6 +2678,7 @@ function LucasApp(_ref) {
       if (val !== (visitante.access_code || '')) setVisitanteCode(visitante.id, val);
     }
     if (editing) return /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
       autoFocus: true,
       value: val,
       onChange: function onChange(e) {
@@ -2736,6 +2739,7 @@ function LucasApp(_ref) {
     if (showCode) return /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }
     }, /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
       value: authCode,
       autoFocus: true,
       placeholder: "Código de acesso",
@@ -2985,6 +2989,7 @@ function LucasApp(_ref) {
       if (val !== (driver.access_code || '')) onSave(driver.id, val);
     }
     if (editing) return /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
       autoFocus: true,
       value: val,
       onChange: function onChange(e) {
@@ -3101,6 +3106,7 @@ function LucasApp(_ref) {
         marginBottom: 10
       }
     }, "Novo condutor"), /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
       value: nome,
       onChange: function onChange(e) {
         setNome(e.target.value);
@@ -3698,6 +3704,7 @@ function LucasApp(_ref) {
       flex: 1
     }
   }, isSuperAdmin && editField === 'nome' ? /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     autoFocus: true,
     value: editVal,
     onChange: function onChange(e) {
@@ -3743,6 +3750,7 @@ function LucasApp(_ref) {
       opacity: 0.5
     }
   }, "\u270F\uFE0F")), isSuperAdmin && editField === 'morada' ? /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     autoFocus: true,
     value: editVal,
     onChange: function onChange(e) {
