@@ -247,6 +247,7 @@ function HwFld(props) {
   return React.createElement('div', { style: { marginBottom: 12 } },
     React.createElement('label', { style: { display: 'block', fontSize: 12, color: '#64748b', marginBottom: 4 } }, label),
     React.createElement('input', {
+      autoComplete: 'off',
       type: type, step: step, min: min, inputMode: inputMode,
       value: value || '', placeholder: placeholder,
       onChange: function(e) { onChange(e.target.value); },
