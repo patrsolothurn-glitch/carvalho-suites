@@ -496,7 +496,7 @@ function FamiliaApp(_ref19) {
     var ini = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-01");
     var lastDay = new Date(y, mo2 + 1, 0).getDate();
     var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-").concat(String(lastDay).padStart(2, '0'));
-    window.supabaseClient.from('horas_entries').select('entry_date,hours').gte('entry_date', ini).lte('entry_date', fim2).then(function (res) {
+    window.supabaseClient.from('horas_entries').select('data,hours').gte('data', ini).lte('data', fim2).then(function (res) {
       if (res && res.error) { famAvisarRes('carregar as horas do mês (horas_entries)', res.error); }
       setHorasMesData(res.data || []);
     }).catch(function (err) { famAvisar('carregar as horas do mês (horas_entries)', err); });
@@ -524,7 +524,8 @@ function FamiliaApp(_ref19) {
     var semanas = [0, 0, 0, 0, 0];
     var semanasEscola = [0, 0, 0, 0, 0];
     horasMesData.forEach(function (row) {
-      var dia = parseInt(row.entry_date.slice(8, 10));
+      if (!row.data) return;
+      var dia = parseInt(row.data.slice(8, 10));
       var w = Math.min(4, Math.floor((dia - 1) / 7));
       semanas[w] += Number(row.hours) || 0;
     });
