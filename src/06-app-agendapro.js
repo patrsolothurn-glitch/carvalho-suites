@@ -1426,6 +1426,7 @@ function AgendaProApp(_ref13) {
       fontSize: 16
     }
   }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: search,
     onChange: function onChange(e) {
       return setSearch(e.target.value);
@@ -2620,6 +2621,7 @@ function AgendaProApp(_ref13) {
       }
     }, e);
   })), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: mForm.name,
     onChange: function onChange(e) {
       return setMForm(function (p) {
@@ -2642,6 +2644,7 @@ function AgendaProApp(_ref13) {
       boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: mForm.tel,
     onChange: function onChange(e) {
       return setMForm(function (p) {
@@ -2988,6 +2991,7 @@ function AgendaProApp(_ref13) {
       marginBottom: 12
     }
   }, editProjId === 'new' ? 'Novo projeto' : 'Editar projeto'), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: pFormName,
     onChange: function onChange(e) {
       return setPFormName(e.target.value);
@@ -3006,6 +3010,7 @@ function AgendaProApp(_ref13) {
       boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: pFormRate,
     onChange: function onChange(e) {
       return setPFormRate(e.target.value);
@@ -3522,6 +3527,7 @@ function AgendaProApp(_ref13) {
       marginBottom: 6
     }
   }, /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: newProjNameInline,
     onChange: function onChange(e) {
       return setNewProjNameInline(e.target.value);
