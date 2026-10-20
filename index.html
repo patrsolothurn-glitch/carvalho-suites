@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-20T16:07:49.979Z
+  Gerado em: 2026-10-20T16:08:55.312Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-440";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-441";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -34390,23 +34390,23 @@ function ViagensApp(props) {
         ),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'TÍTULO'),
-          React.createElement('input', { value: formData.titulo, onChange: function(e) { setFormData(Object.assign({}, formData, { titulo: e.target.value })); }, placeholder: 'Ex: Férias em família', style: inp })
+          React.createElement('input', { autoComplete: 'off', value: formData.titulo, onChange: function(e) { setFormData(Object.assign({}, formData, { titulo: e.target.value })); }, placeholder: 'Ex: Férias em família', style: inp })
         ),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'LOCAL'),
-          React.createElement('input', { value: formData.local, onChange: function(e) { setFormData(Object.assign({}, formData, { local: e.target.value })); }, placeholder: 'Ex: Barcelona, Espanha', style: inp })
+          React.createElement('input', { autoComplete: 'off', value: formData.local, onChange: function(e) { setFormData(Object.assign({}, formData, { local: e.target.value })); }, placeholder: 'Ex: Barcelona, Espanha', style: inp })
         ),
         React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 } },
-          React.createElement('div', null, React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'DIA INÍCIO'), React.createElement('input', { type: 'number', min: 1, max: 31, value: formData.dia_inicio, onChange: function(e) { setFormData(Object.assign({}, formData, { dia_inicio: e.target.value })); }, placeholder: '1', style: inp })),
-          React.createElement('div', null, React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'DIA FIM'), React.createElement('input', { type: 'number', min: 1, max: 31, value: formData.dia_fim, onChange: function(e) { setFormData(Object.assign({}, formData, { dia_fim: e.target.value })); }, placeholder: '31', style: inp }))
+          React.createElement('div', null, React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'DIA INÍCIO'), React.createElement('input', { autoComplete: 'off', type: 'number', min: 1, max: 31, value: formData.dia_inicio, onChange: function(e) { setFormData(Object.assign({}, formData, { dia_inicio: e.target.value })); }, placeholder: '1', style: inp })),
+          React.createElement('div', null, React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'DIA FIM'), React.createElement('input', { autoComplete: 'off', type: 'number', min: 1, max: 31, value: formData.dia_fim, onChange: function(e) { setFormData(Object.assign({}, formData, { dia_fim: e.target.value })); }, placeholder: '31', style: inp }))
         ),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'ÁLBUM GOOGLE FOTOS'),
-          React.createElement('input', { value: formData.album_url || '', onChange: function(e) { setFormData(Object.assign({}, formData, { album_url: e.target.value })); }, placeholder: 'https://photos.app.goo.gl/...', style: inp })
+          React.createElement('input', { autoComplete: 'off', value: formData.album_url || '', onChange: function(e) { setFormData(Object.assign({}, formData, { album_url: e.target.value })); }, placeholder: 'https://photos.app.goo.gl/...', style: inp })
         ),
         React.createElement('div', { style: { marginBottom: 12 } },
           React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: T.muted, marginBottom: 5, letterSpacing: '0.06em' } }, 'NOTAS'),
-          React.createElement('textarea', { value: formData.notas, onChange: function(e) { setFormData(Object.assign({}, formData, { notas: e.target.value })); }, placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inp, { resize: 'vertical' }) })
+          React.createElement('textarea', { autoComplete: 'off', value: formData.notas, onChange: function(e) { setFormData(Object.assign({}, formData, { notas: e.target.value })); }, placeholder: 'Quem foi, o que fizeram...', rows: 3, style: Object.assign({}, inp, { resize: 'vertical' }) })
         ),
         React.createElement('button', { onClick: saveTrip, disabled: !valid || saving, style: { width: '100%', padding: 14, marginTop: 8, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 16, cursor: 'pointer', background: 'linear-gradient(135deg,' + T.gold + ',' + T.goldL + ')', color: T.bg, opacity: (!valid || saving) ? 0.45 : 1 } },
           saving ? 'A guardar…' : (form === 'new' ? '✚ Adicionar' : 'Guardar Alterações')
