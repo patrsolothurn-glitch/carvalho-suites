@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-15T16:52:38.941Z
+  Gerado em: 2026-10-20T16:04:47.685Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-435";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-439";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -7130,6 +7130,7 @@ function AgendaProApp(_ref13) {
       fontSize: 16
     }
   }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: search,
     onChange: function onChange(e) {
       return setSearch(e.target.value);
@@ -8324,6 +8325,7 @@ function AgendaProApp(_ref13) {
       }
     }, e);
   })), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: mForm.name,
     onChange: function onChange(e) {
       return setMForm(function (p) {
@@ -8346,6 +8348,7 @@ function AgendaProApp(_ref13) {
       boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: mForm.tel,
     onChange: function onChange(e) {
       return setMForm(function (p) {
@@ -8692,6 +8695,7 @@ function AgendaProApp(_ref13) {
       marginBottom: 12
     }
   }, editProjId === 'new' ? 'Novo projeto' : 'Editar projeto'), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: pFormName,
     onChange: function onChange(e) {
       return setPFormName(e.target.value);
@@ -8710,6 +8714,7 @@ function AgendaProApp(_ref13) {
       boxSizing: 'border-box'
     }
   }), /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: pFormRate,
     onChange: function onChange(e) {
       return setPFormRate(e.target.value);
@@ -9226,6 +9231,7 @@ function AgendaProApp(_ref13) {
       marginBottom: 6
     }
   }, /*#__PURE__*/React.createElement("input", {
+    autoComplete: "off",
     value: newProjNameInline,
     onChange: function onChange(e) {
       return setNewProjNameInline(e.target.value);
@@ -10460,7 +10466,7 @@ function FamiliaApp(_ref19) {
     var ini = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-01");
     var lastDay = new Date(y, mo2 + 1, 0).getDate();
     var fim2 = "".concat(y, "-").concat(String(mo2 + 1).padStart(2, '0'), "-").concat(String(lastDay).padStart(2, '0'));
-    window.supabaseClient.from('horas_entries').select('entry_date,hours').gte('entry_date', ini).lte('entry_date', fim2).then(function (res) {
+    window.supabaseClient.from('horas_entries').select('data,hours').gte('data', ini).lte('data', fim2).then(function (res) {
       if (res && res.error) { famAvisarRes('carregar as horas do mês (horas_entries)', res.error); }
       setHorasMesData(res.data || []);
     }).catch(function (err) { famAvisar('carregar as horas do mês (horas_entries)', err); });
@@ -10488,7 +10494,8 @@ function FamiliaApp(_ref19) {
     var semanas = [0, 0, 0, 0, 0];
     var semanasEscola = [0, 0, 0, 0, 0];
     horasMesData.forEach(function (row) {
-      var dia = parseInt(row.entry_date.slice(8, 10));
+      if (!row.data) return;
+      var dia = parseInt(row.data.slice(8, 10));
       var w = Math.min(4, Math.floor((dia - 1) / 7));
       semanas[w] += Number(row.hours) || 0;
     });
@@ -22513,7 +22520,7 @@ var SubbyApp = function SubbyApp(_ref) {
           ),
           /*#__PURE__*/React.createElement("div", { style:{ flex:1 } },
             /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Nome *"),
-            /*#__PURE__*/React.createElement("input", { style:_objectSpread({},inputStyle,{marginBottom:0}), value:fNome, onChange:function(e){handleNomeChange(e.target.value);}, placeholder:"ex: Netflix" })
+            /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:_objectSpread({},inputStyle,{marginBottom:0}), value:fNome, onChange:function(e){handleNomeChange(e.target.value);}, placeholder:"ex: Netflix" })
           )
         ),
 
@@ -22545,10 +22552,10 @@ var SubbyApp = function SubbyApp(_ref) {
         ),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Emoji personalizado"),
-        /*#__PURE__*/React.createElement("input", { style:inputStyle, value:fIconeManual&&!fIcone.startsWith('__logo__')?fIcone:'', onChange:function(e){ setFIcone(e.target.value); setFIconeManual(true); }, placeholder:"Ou escreve qualquer emoji aqui" }),
+        /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, value:fIconeManual&&!fIcone.startsWith('__logo__')?fIcone:'', onChange:function(e){ setFIcone(e.target.value); setFIconeManual(true); }, placeholder:"Ou escreve qualquer emoji aqui" }),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Categoria"),
-        /*#__PURE__*/React.createElement("input", { style:inputStyle, value:fCat, onChange:function(e){setFCat(e.target.value);}, placeholder:"ex: Streaming, Cloud, Internet..." }),
+        /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, value:fCat, onChange:function(e){setFCat(e.target.value);}, placeholder:"ex: Streaming, Cloud, Internet..." }),
 
         /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:8 } },
           /*#__PURE__*/React.createElement("div", { style:{ flex:1 } },
@@ -22559,14 +22566,14 @@ var SubbyApp = function SubbyApp(_ref) {
           ),
           fCiclo==='custom' && /*#__PURE__*/React.createElement("div", { style:{ flex:1 } },
             /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Dias"),
-            /*#__PURE__*/React.createElement("input", { style:inputStyle, type:"number", min:"1", value:fCicloDias, onChange:function(e){setFCicloDias(e.target.value);}, placeholder:"ex: 45" })
+            /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, type:"number", min:"1", value:fCicloDias, onChange:function(e){setFCicloDias(e.target.value);}, placeholder:"ex: 45" })
           )
         ),
 
         /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:8 } },
           /*#__PURE__*/React.createElement("div", { style:{ flex:2 } },
             /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Valor *"),
-            /*#__PURE__*/React.createElement("input", { style:inputStyle, type:"number", step:"0.01", value:fValor, onChange:function(e){setFValor(e.target.value);}, placeholder:"0.00" })
+            /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, type:"number", step:"0.01", value:fValor, onChange:function(e){setFValor(e.target.value);}, placeholder:"0.00" })
           ),
           /*#__PURE__*/React.createElement("div", { style:{ flex:1 } },
             /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Moeda"),
@@ -22583,10 +22590,10 @@ var SubbyApp = function SubbyApp(_ref) {
         ),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Banco / Conta"),
-        /*#__PURE__*/React.createElement("input", { style:inputStyle, value:fBanco, onChange:function(e){setFBanco(e.target.value);}, placeholder:"ex: Raiffeisen, Neon..." }),
+        /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, value:fBanco, onChange:function(e){setFBanco(e.target.value);}, placeholder:"ex: Raiffeisen, Neon..." }),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Últimos 4 dígitos do cartão"),
-        /*#__PURE__*/React.createElement("input", { style:inputStyle, type:"number", maxLength:4, value:fCartao, onChange:function(e){setFCartao(e.target.value.slice(0,4));}, placeholder:"1234" }),
+        /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, type:"number", maxLength:4, value:fCartao, onChange:function(e){setFCartao(e.target.value.slice(0,4));}, placeholder:"1234" }),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "País"),
         /*#__PURE__*/React.createElement("select", { style:_objectSpread({},inputStyle), value:fPais, onChange:function(e){setFPais(e.target.value);} },
@@ -22596,19 +22603,19 @@ var SubbyApp = function SubbyApp(_ref) {
         /*#__PURE__*/React.createElement("div", { style:{ display:'flex', gap:8 } },
           /*#__PURE__*/React.createElement("div", { style:{ flex:1 } },
             /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Data início"),
-            /*#__PURE__*/React.createElement("input", { style:inputStyle, type:"date", value:fDataIni, onChange:function(e){setFDataIni(e.target.value);} })
+            /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, type:"date", value:fDataIni, onChange:function(e){setFDataIni(e.target.value);} })
           ),
           /*#__PURE__*/React.createElement("div", { style:{ flex:1 } },
             /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Próxima cobrança"),
-            /*#__PURE__*/React.createElement("input", { style:inputStyle, type:"date", value:fProxima, onChange:function(e){setFProxima(e.target.value);} })
+            /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, type:"date", value:fProxima, onChange:function(e){setFProxima(e.target.value);} })
           )
         ),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Aviso (dias antes)"),
-        /*#__PURE__*/React.createElement("input", { style:inputStyle, type:"number", min:"0", max:"30", value:fLemb, onChange:function(e){setFLemb(e.target.value);} }),
+        /*#__PURE__*/React.createElement("input", { autoComplete:"off", style:inputStyle, type:"number", min:"0", max:"30", value:fLemb, onChange:function(e){setFLemb(e.target.value);} }),
 
         /*#__PURE__*/React.createElement("label", { style:labelStyle }, "Notas"),
-        /*#__PURE__*/React.createElement("textarea", { style:_objectSpread({},inputStyle,{height:70,resize:'none'}), value:fNotas, onChange:function(e){setFNotas(e.target.value);}, placeholder:"Notas opcionais..." }),
+        /*#__PURE__*/React.createElement("textarea", { autoComplete:"off", style:_objectSpread({},inputStyle,{height:70,resize:'none'}), value:fNotas, onChange:function(e){setFNotas(e.target.value);}, placeholder:"Notas opcionais..." }),
 
         // Ativa/Inativa
         /*#__PURE__*/React.createElement("div", { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 } },
@@ -35981,7 +35988,7 @@ var WP_CSS = '\
 .wp-app button,.wp-app input,.wp-app select,.wp-app textarea{font:inherit;color:inherit}\
 .wp-app h1,.wp-app h2,.wp-app h3,.wp-app h4{margin:0;font-weight:600}\
 .wp-wrap{max-width:1240px;margin:0 auto;padding:0 12px}\
-.wp-top{background:#0E0F10;color:#fff;position:sticky;top:0;z-index:40;padding:9px 0 10px;border-bottom:3px solid var(--or)}\
+.wp-top{background:#0E0F10;color:#fff;position:sticky;top:max(var(--wp-topo,0px),env(safe-area-inset-top,0px));z-index:40;padding:9px 0 10px;border-bottom:3px solid var(--or)}\
 .wp-topin{display:flex;align-items:center;gap:11px;flex-wrap:wrap}\
 .wp-mk{width:24px;height:24px;background:var(--or);flex:none;border-radius:2px}\
 .wp-tt{font-size:16px;font-weight:600;letter-spacing:-.01em}\
@@ -36114,7 +36121,7 @@ var WP_CSS = '\
 .wp-vnb{display:block;min-height:32px;margin:2px 0 4px;padding:4px 8px;border:1px solid var(--line2);border-radius:6px;background:var(--card);cursor:pointer}\
 .wp-chip.wp-pchip{min-height:44px;font-size:15px;padding:0 14px}\
 .wp-dia-aviso{margin:0 0 10px;padding:10px 12px;border-radius:8px;background:#FAF0DA;color:#7A4A00;border:1px solid #E4C27A;font-size:15px;font-weight:700}\
-.wp-desc{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px}\
+.wp-desc{position:fixed;top:max(var(--wp-topo,0px),env(safe-area-inset-top,0px));left:0;right:0;bottom:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px}\
 .wp-desc>div{background:var(--bg);border-radius:12px;padding:16px;width:100%;max-width:360px}\
 .wp-desc h3{font-size:16px;margin-bottom:12px}\
 .wp-desc .wp-acts button{min-height:44px;height:auto}\
@@ -36126,9 +36133,9 @@ var WP_CSS = '\
 .wp-prog:disabled{cursor:default;opacity:.55}\
 .wp-ptime{flex:none;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}\
 .wp-trans{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2)}\
-.wp-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:70}\
+.wp-ov{position:fixed;top:max(var(--wp-topo,0px),env(safe-area-inset-top,0px));left:0;right:0;bottom:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:70}\
 @media(min-width:620px){.wp-ov{align-items:center;padding:20px}}\
-.wp-sheet{background:var(--bg);width:100%;max-width:540px;max-height:92vh;overflow:auto;border-radius:12px 12px 0 0;padding:15px}\
+.wp-sheet{background:var(--bg);width:100%;max-width:540px;max-height:calc(92vh - var(--wp-topo,0px));overflow:auto;border-radius:12px 12px 0 0;padding:15px}\
 @media(min-width:620px){.wp-sheet{border-radius:12px}}\
 .wp-sheet h2{font-size:16px;margin-bottom:10px}\
 .wp-app label{display:block;font-size:11.5px;color:var(--ink2);margin:9px 0 3px}\
@@ -36184,7 +36191,7 @@ var WP_CSS = '\
 .wp-nur .wp-dia .wp-pl{flex:1 1 auto;align-items:center;max-height:24mm}\
 .wp-spaetbox{font-size:12.5px;display:flex;align-items:center;gap:4px}\
 .wp-pfoot{margin-top:6px;font-size:7pt;color:#666;text-align:right;flex:none}\
-.wp-vorschau{position:fixed;inset:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
+.wp-vorschau{position:fixed;top:max(var(--wp-topo,0px),env(safe-area-inset-top,0px));left:0;right:0;bottom:0;background:#fff;z-index:70;display:flex;flex-direction:column}\
 .wp-vorschau-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);flex:none}\
 .wp-vorschau-top .wp-mini:first-child{margin-right:auto}\
 .wp-panel{border-bottom:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;flex:none;font-size:12.5px}\
@@ -36204,6 +36211,8 @@ var WP_CSS = '\
   body{background:#fff;color:#000;padding:0;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}\
   .wp-app{--bg:#fff;background:#fff;min-height:0;padding-bottom:0}\
   .wp-top,.wp-bar,.wp-kpis,.wp-cols,.wp-scroll,.wp-alarm,.wp-legend,.wp-abs,.wp-ov,.wp-week,.wp-noprint,.wp-vorschau,.wp-team-narrow{display:none!important}\
+  #__cs_offline_banner{display:none!important}\
+  body{padding-top:0!important}\
   #wp-printArea{display:block!important}\
   #wp-printInner{display:none!important}\
   .wp-pbreak{break-before:page;page-break-before:always}\
@@ -37600,6 +37609,7 @@ function WochenplanApp(props) {
   var _n2 = React.useState(''); var toast = _n2[0], setToast = _n2[1];
   var toastTimerRef = React.useRef(null);
   var hojeRef = React.useRef(wpTodayIso()); // o "hoje" que a app conhece; muda à meia-noite / ao voltar a ficar visível
+  var _b1 = React.useState(0); var topoBanner = _b1[0], setTopoBanner = _b1[1]; // px tapados pelo banner "Sem rede" da suite
 
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
   var _s30 = React.useState(function() { return { nur: false, spaet: false, pro: false, person: undefined, excl: [], tage: [true, true, true, true, true, true, true], ohne: [], druck: wpLoadDruck() }; }); var printOpt = _s30[0], setPrintOpt = _s30[1];
@@ -38108,6 +38118,32 @@ function WochenplanApp(props) {
     };
   }, []);
 
+  // Banner "Sem rede" (src/head.html, position:fixed no topo, z-index 99998): mede onde acaba
+  // e passa-o à barra de topo, Vorschau e modais (--wp-topo), para nada ficar tapado.
+  // Segue o banner a aparecer/desaparecer e a mudar de altura (texto em duas linhas).
+  React.useEffect(function() {
+    var observado = null, ro = null;
+    function medir() {
+      var bn = document.getElementById('__cs_offline_banner');
+      setTopoBanner(bn ? Math.ceil(bn.getBoundingClientRect().bottom) : 0);
+      if (ro && bn !== observado) { if (observado) ro.unobserve(observado); if (bn) ro.observe(bn); observado = bn; }
+    }
+    if (window.ResizeObserver) ro = new ResizeObserver(medir);
+    var mo = window.MutationObserver ? new MutationObserver(medir) : null;
+    if (mo) mo.observe(document.body, { childList: true });
+    window.addEventListener('resize', medir);
+    window.addEventListener('online', medir);
+    window.addEventListener('offline', medir);
+    medir();
+    return function() {
+      if (mo) mo.disconnect();
+      if (ro) ro.disconnect();
+      window.removeEventListener('resize', medir);
+      window.removeEventListener('online', medir);
+      window.removeEventListener('offline', medir);
+    };
+  }, []);
+
   // Leitor da Sprachnotiz: segue o estado do WP_LEITOR; ao sair da Wochenplan pára e liberta o áudio
   React.useEffect(function() {
     var desligar = WP_LEITOR.ouvir(setLeitorSt);
@@ -38160,7 +38196,7 @@ function WochenplanApp(props) {
   var diaAtualObj = { tasks: tasks, tagRows: tagRows, leute: leute, cur: cur, who: who, mVon: lunch.von, mBis: lunch.bis };
   var notaDoDia = who !== 'alle' ? encontrarNota(cur, who) : null;
 
-  return React.createElement('div', { className: 'wp-app' },
+  return React.createElement('div', { className: 'wp-app', style: { '--wp-topo': topoBanner + 'px' } },
     React.createElement('style', null, WP_CSS),
     React.createElement(WpTop, {
       cur: cur, mode: mode, rolle: rolle,
