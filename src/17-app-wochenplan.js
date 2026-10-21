@@ -54,6 +54,38 @@ function wpMigrarHaken(db, rows) {
   });
 }
 var WP_DRUCK_KEY = 'wplan_druck';
+// Cache da última leitura boa da base (wplan_leute/tasks/tag/pensum + Notizen já vistas), só para
+// VER a Wochenplan sem rede. Ligada ao utilizador (uid): outro utilizador → ignorada e apagada;
+// fim de sessão (SIGNED_OUT) → apagada. Nunca é usada para escrever na base.
+var WP_CACHE_KEY = 'wplan_cache_v1';
+function wpCacheLer(uid) {
+  try {
+    var o = JSON.parse(localStorage.getItem(WP_CACHE_KEY) || 'null');
+    if (!o || !o.ts) return null;
+    if (!uid || o.uid !== uid) { localStorage.removeItem(WP_CACHE_KEY); return null; }
+    return o;
+  } catch (e) { return null; }
+}
+function wpCacheGravar(uid, patch) {
+  if (!uid) return null;
+  try {
+    var o = wpCacheLer(uid) || { uid: uid, notizen: {} };
+    o = Object.assign(o, patch);
+    localStorage.setItem(WP_CACHE_KEY, JSON.stringify(o));
+    return o;
+  } catch (e) { return null; } // quota cheia / armazenamento bloqueado: a app continua sem cache
+}
+function wpCacheApagar() { try { localStorage.removeItem(WP_CACHE_KEY); } catch (e) {} }
+// Falha de rede (não erro do servidor): sem ligação ou pedido que nem chegou à base
+function wpErroDeRede(err) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  var m = String((err && (err.message || err.details)) || err || '');
+  return /Failed to fetch|NetworkError|Load failed|network|fetch/i.test(m);
+}
+function wpFmtStand(ts) {
+  var d = new Date(ts), z = function(n) { return String(n).padStart(2, '0'); };
+  return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '. ' + z(d.getHours()) + ':' + z(d.getMinutes());
+}
 var WP_NEU = { team: 1, pers: 1, admin: 1 };
 var WP_DRUCK_DEF = {
   team: { nur: true, notizen: false, sig: false, orient: 'landscape', beide: false },
@@ -383,6 +415,7 @@ var WP_CSS = '\
 .wp-mic.wp-recon i{border-radius:5px;width:18px;height:18px}\
 .wp-mic.wp-play i{background:none;width:0;height:0;border-left:14px solid var(--ink);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px;border-radius:0}\
 .wp-mic.wp-lb{width:44px;height:44px}\
+.wp-offline{margin-top:8px;padding:9px 12px;border-radius:8px;background:#FAF0DA;color:#7A4A00;border:1px solid #E4C27A;font-size:15px;line-height:1.35}\
 .wp-vnm{display:inline-block;font-size:11.5px;font-weight:600;color:var(--ink2);white-space:nowrap}\
 .wp-vnb{display:block;min-height:32px;margin:2px 0 4px;padding:4px 8px;border:1px solid var(--line2);border-radius:6px;background:var(--card);cursor:pointer}\
 .wp-chip.wp-pchip{min-height:44px;font-size:15px;padding:0 14px}\
@@ -1876,6 +1909,11 @@ function WochenplanApp(props) {
   var toastTimerRef = React.useRef(null);
   var hojeRef = React.useRef(wpTodayIso()); // o "hoje" que a app conhece; muda à meia-noite / ao voltar a ficar visível
   var _b1 = React.useState(0); var topoBanner = _b1[0], setTopoBanner = _b1[1]; // px tapados pelo banner "Sem rede" da suite
+  var uid = (props.profile && props.profile.id) || null;
+  var _o1 = React.useState(function() { return typeof navigator !== 'undefined' && navigator.onLine === false; }); var modoOffline = _o1[0], setModoOffline = _o1[1];
+  var _o2 = React.useState(null); var standOffline = _o2[0], setStandOffline = _o2[1]; // ts da última leitura boa que está no ecrã
+  var temDadosRef = React.useRef(false); // já há dados no ecrã (base ou cache): uma falha nunca os apaga
+  var ultimaLeituraRef = React.useRef(null);
 
   var _s26 = React.useState(null); var printJob = _s26[0], setPrintJob = _s26[1];
   var _s30 = React.useState(function() { return { nur: false, spaet: false, pro: false, person: undefined, excl: [], tage: [true, true, true, true, true, true, true], ohne: [], druck: wpLoadDruck() }; }); var printOpt = _s30[0], setPrintOpt = _s30[1];
@@ -1904,9 +1942,25 @@ function WochenplanApp(props) {
   var _p5 = React.useState(false); var guardandoPensum = _p5[0], setGuardandoPensum = _p5[1];
   WP_PENSUM = pensum; // as contas (Soll, Frei, Kategorie) leem o Pensum carregado — ver wpPensumAm
 
+  // Sem rede: mantém o que está no ecrã; se ainda não há nada, mostra a última leitura boa guardada
+  function entrarOffline() {
+    setModoOffline(true);
+    if (!temDadosRef.current) {
+      var c = wpCacheLer(uid);
+      if (c) {
+        setLeute((c.leute || []).filter(function(p) { return p.aktiv !== false; }));
+        setTasks((c.tasks || []).map(wpNormalizarTarefa));
+        setTagRows(c.tag || []);
+        setPensum(c.pensum || []);
+        temDadosRef.current = true; ultimaLeituraRef.current = c.ts;
+      }
+    }
+    setStandOffline(ultimaLeituraRef.current);
+    setLoading(false);
+  }
   function carregar() {
     if (!db) { setLoading(false); setErro('Sem ligação à base de dados.'); return; }
-    setLoading(true);
+    if (!temDadosRef.current) setLoading(true); // a recarregar com dados no ecrã: não os esconde
     Promise.all([
       db.from('wplan_leute').select('*').order('name', { ascending: true }),
       db.from('wplan_tasks').select('*'),
@@ -1914,6 +1968,8 @@ function WochenplanApp(props) {
       db.from('wplan_pensum').select('*')
     ]).then(function(res) {
       var lRes = res[0], tRes = res[1], gRes = res[2], pRes = res[3];
+      var falha = lRes.error || tRes.error || gRes.error;
+      if (falha && wpErroDeRede(falha)) { entrarOffline(); return; }
       if (lRes.error) { setErro('Falha ao carregar equipa: ' + lRes.error.message); setLoading(false); return; }
       if (tRes.error) { setErro('Falha ao carregar tarefas: ' + tRes.error.message); setLoading(false); return; }
       if (gRes.error) { setErro('Falha ao carregar estados do dia: ' + gRes.error.message); setLoading(false); return; }
@@ -1927,11 +1983,19 @@ function WochenplanApp(props) {
         }).catch(function(e) { console.warn('[wochenplan] migração das marcas falhou (tenta de novo no próximo arranque):', e); });
       } catch (e) { console.warn('[wochenplan] migração das marcas falhou (tenta de novo no próximo arranque):', e); }
       setTagRows(gRes.data || []);
-      // Pensum: sem ele o Soll cai no Grundwert antigo (std_tag/arbeitstage), por isso avisa em vez de falhar calado
-      if (pRes.error) { setErro('Pensum konnte nicht geladen werden: ' + pRes.error.message); setPensum([]); }
+      // Pensum: sem ele o Soll cai no Grundwert antigo (std_tag/arbeitstage), por isso avisa em vez de falhar calado.
+      // Falhou: fica o Pensum que já estava no ecrã (nunca esvaziar).
+      if (pRes.error) setErro('Pensum konnte nicht geladen werden: ' + pRes.error.message);
       else setPensum(pRes.data || []);
+      var agora = Date.now();
+      var cachePatch = { ts: agora, leute: lRes.data || [], tasks: tRes.data || [], tag: gRes.data || [] };
+      if (!pRes.error) cachePatch.pensum = pRes.data || [];
+      wpCacheGravar(uid, cachePatch);
+      temDadosRef.current = true; ultimaLeituraRef.current = agora;
+      setModoOffline(false); setStandOffline(null);
       setLoading(false);
     }).catch(function(e) {
+      if (wpErroDeRede(e)) { entrarOffline(); return; }
       setErro('Falha ao carregar: ' + (e && e.message ? e.message : e));
       setLoading(false);
     });
@@ -1940,6 +2004,24 @@ function WochenplanApp(props) {
   React.useEffect(function () {
     return window.csAoVoltarRede(function () { carregar(); });
   }, []);
+  // Rede caiu a meio: passa a só leitura com o que está no ecrã (a volta da rede recarrega via csAoVoltarRede)
+  React.useEffect(function() {
+    function aoFicarOffline() { entrarOffline(); }
+    window.addEventListener('offline', aoFicarOffline);
+    return function() { window.removeEventListener('offline', aoFicarOffline); };
+  }, []);
+  // Fim de sessão: a cache local da Wochenplan é apagada
+  React.useEffect(function() {
+    if (!db || !db.auth || !db.auth.onAuthStateChange) return;
+    var r = db.auth.onAuthStateChange(function(ev) { if (ev === 'SIGNED_OUT') wpCacheApagar(); });
+    return function() { try { r && r.data && r.data.subscription && r.data.subscription.unsubscribe(); } catch (e) {} };
+  }, []);
+  // Sem rede não se escreve nada: aviso curto em vez de perder dados em silêncio
+  function podeEscrever() {
+    if (!modoOffline) return true;
+    mostrarToast('Offline – nur Ansicht. Änderungen erst wieder mit Netz.');
+    return false;
+  }
 
   // ── Notizen da semana (wplan_notizen) ──────────────────────────
   // Uma linha por (datum_montag, wer) — wer='alle' quando o filtro "who"
@@ -1949,20 +2031,28 @@ function WochenplanApp(props) {
     if (!db) return;
     var mondayIso = wpIso(wpMon(wpMk(cur)));
     var wer = who === 'alle' ? 'alle' : who;
+    var chaveN = mondayIso + '|' + wer;
+    function daCache() { var c = wpCacheLer(uid); setNotizSemana((c && c.notizen && c.notizen[chaveN]) || ''); }
+    if (modoOffline) { daCache(); return; }
     db.from('wplan_notizen').select('texto').eq('datum_montag', mondayIso).eq('wer', wer).then(function(res) {
+      if (res.error && wpErroDeRede(res.error)) { daCache(); return; }
       if (res.error) {
         console.error('[wochenplan] falha ao carregar Notizen:', res.error);
         window.mostrarErro('Wochenplan', res.error);
         return;
       }
-      setNotizSemana((res.data && res.data[0] && res.data[0].texto) || '');
+      var tx = (res.data && res.data[0] && res.data[0].texto) || '';
+      setNotizSemana(tx);
+      var c = wpCacheLer(uid); if (c) { var nn = Object.assign({}, c.notizen || {}); nn[chaveN] = tx; wpCacheGravar(uid, { notizen: nn }); }
     }).catch(function(e) {
+      if (wpErroDeRede(e)) { daCache(); return; }
       console.error('[wochenplan] falha ao carregar Notizen:', e);
       window.mostrarErro('Wochenplan', e);
     });
   }
-  React.useEffect(function() { carregarNotizSemana(); }, [cur, who]);
+  React.useEffect(function() { carregarNotizSemana(); }, [cur, who, modoOffline]);
   function mudarNotizSemana(texto) {
+    if (!podeEscrever()) return;
     setNotizSemana(texto);
     var mondayIso = wpIso(wpMon(wpMk(cur)));
     var wer = who === 'alle' ? 'alle' : who;
@@ -2014,6 +2104,7 @@ function WochenplanApp(props) {
 
   // ── Tarefas ──
   function abrirNovaTarefa(pre) {
+    if (!podeEscrever()) return;
     var ultimo = wpLoadUltimoTrabalho();
     setEditTaskId(null);
     setEditTaskErro('');
@@ -2036,6 +2127,7 @@ function WochenplanApp(props) {
   }
   function fecharTarefa() { setEditTaskId(null); setEditTaskDraft(null); setEditTaskErro(''); }
   function guardarTarefa() {
+    if (!podeEscrever()) return;
     var d = editTaskDraft;
     var titel = (d.titel || '').trim();
     if (!titel) { setEditTaskErro('Einsatzort fehlt.'); return; }
@@ -2066,6 +2158,7 @@ function WochenplanApp(props) {
     });
   }
   function apagarTarefa() {
+    if (!podeEscrever()) return;
     if (!confirm('Auftrag löschen?')) return;
     var id = editTaskId;
     db.from('wplan_tasks').delete().eq('id', id).then(function(res) {
@@ -2082,6 +2175,7 @@ function WochenplanApp(props) {
   function alternarDiaPerson(i) { setEditPerson(function(prev) { var t = prev.arbeitstage.slice(); t[i] = t[i] ? 0 : 1; return Object.assign({}, prev, { arbeitstage: t }); }); }
   function cancelarPerson() { setEditPerson(null); setEditPersonErro(''); }
   function guardarPerson() {
+    if (!podeEscrever()) return;
     var e = editPerson;
     var nome = (e.name || '').trim();
     if (!nome) { setEditPersonErro('Name eingeben.'); return; }
@@ -2118,6 +2212,7 @@ function WochenplanApp(props) {
   // ── ✓ em "Nicht erledigt": marca erledigt (grava em wplan_tasks) e guarda o estado anterior; desmarcar repõe-o ──
   // ✓ em "Nicht erledigt": o estado vem SEMPRE da linha lida agora na base (não do estado local nem do localStorage).
   function alternarHaken(a) {
+    if (!podeEscrever()) return;
     var querDesfazer = a.status === 'erledigt'; // o que o utilizador vê e quer fazer (linha na secção Erledigt, com ou sem ✓)
     db.from('wplan_tasks').select('id,status,status_vor_haken,gehakt_am').eq('id', a.id).then(function(lr) {
       if (lr.error) throw lr.error;
@@ -2156,6 +2251,7 @@ function WochenplanApp(props) {
   function mudarCampoPensum(k, v) { setPensumDraft(function(prev) { var n = Object.assign({}, prev); n[k] = v; return n; }); }
   function alternarDiaPensum(i) { setPensumDraft(function(prev) { var t = prev.arbeitstage.slice(); t[i] = t[i] ? 0 : 1; return Object.assign({}, prev, { arbeitstage: t }); }); }
   function guardarPensum() {
+    if (!podeEscrever()) return;
     var d = pensumDraft, pe = pensumPessoa;
     if (!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(d.gueltig_ab || '')) { setPensumErro('Monat wählen.'); return; }
     var pr = parseFloat(d.pensum_prozent);
@@ -2179,6 +2275,7 @@ function WochenplanApp(props) {
     });
   }
   function apagarPensum(r) {
+    if (!podeEscrever()) return;
     if (!confirm('Pensum ab ' + wpPensumMes(r.gueltig_ab) + ' löschen?')) return;
     setPensumErro('');
     db.from('wplan_pensum').delete().eq('id', r.id).then(function(res) {
@@ -2187,6 +2284,7 @@ function WochenplanApp(props) {
     }).catch(function(e) { setPensumErro('Löschen fehlgeschlagen: ' + (e && e.message ? e.message : e)); });
   }
   function apagarPersonagem(pe) {
+    if (!podeEscrever()) return;
     var c = tasks.filter(function(t) { return wpHat(t, pe.name); }).length;
     if (c && !confirm(pe.name + ' hat ' + c + ' Aufträge. Sie bleiben ohne Name. Löschen?')) return;
     db.from('wplan_leute').delete().eq('id', pe.id).then(function(res) {
@@ -2200,6 +2298,7 @@ function WochenplanApp(props) {
 
   // ── Estado do dia (Frei/Krank/Ferien/Schule) ──
   function definirEstadoDia(datum, wer, estado) {
+    if (!podeEscrever()) return;
     if (!wer) return;
     db.from('wplan_tag').upsert({ datum: datum, wer: wer, tag_status: estado }, { onConflict: 'datum,wer' }).select().then(function(res) {
       if (res.error) throw res.error;
@@ -2249,6 +2348,7 @@ function WochenplanApp(props) {
   function alternarGravacaoNota() {
     if (notaGravando) { if (notaMediaRef.current) notaMediaRef.current.stop(); return; }
     if (notaRecordedUrl) { tocarGravacaoNova(); return; }
+    if (!podeEscrever()) return; // sem rede não se grava (não haveria onde guardar)
     WP_LEITOR.parar(); // gravação nova: pára qualquer reprodução antes de gravar
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setErro('Este browser não suporta gravação de áudio.'); return; }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
@@ -2274,6 +2374,7 @@ function WochenplanApp(props) {
     }).catch(function(e) { setErro('Permissão de microfone negada ou indisponível: ' + (e && e.message ? e.message : e)); });
   }
   function guardarNota() {
+    if (!podeEscrever()) return;
     WP_LEITOR.parar(); // Speichern: pára antes de guardar e fechar
     var alvo = notaAberta;
     var texto = notaTexto.trim();
@@ -2310,6 +2411,7 @@ function WochenplanApp(props) {
     });
   }
   function apagarNota() {
+    if (!podeEscrever()) return;
     var alvo = notaAberta;
     WP_LEITOR.parar(); // nunca apagar uma nota que esteja a tocar
     db.from('wplan_tag').update({ notiz: null, audio_url: null, dauer: null }).eq('datum', alvo.datum).eq('wer', alvo.wer).then(function(res) {
@@ -2336,6 +2438,7 @@ function WochenplanApp(props) {
     var n = encontrarNota(datum, wer);
     if (!n || !n.audio_url) { alert('Keine Audiodatei — nur Notiz.'); return; }
     if (!db) { WP_LEITOR.parar(); return; }
+    if (modoOffline) { WP_LEITOR.parar(); mostrarToast('Offline – die Sprachnotiz kann ohne Netz nicht geladen werden.'); return; }
     WP_LEITOR.alternar(chaveDaNota(n), { path: n.audio_url, pedirUrl: pedirUrlNota, dauer: wpDauerSeg(n.dauer) });
   }
 
@@ -2472,7 +2575,10 @@ function WochenplanApp(props) {
     }),
     React.createElement('div', { className: 'wp-wrap' },
       React.createElement('div', { className: 'wp-noprint', style: { padding: '8px 0 0' } }, React.createElement('button', { className: 'wp-mini', onClick: onBack }, '← Zurück')),
-      erro && React.createElement('div', { className: 'wp-errmsg wp-noprint', style: { marginTop: 8 } }, '⚠ ' + erro),
+      modoOffline && React.createElement('div', { className: 'wp-offline wp-noprint', role: 'status' },
+        React.createElement('b', null, standOffline ? 'Offline – letzter Stand: ' + wpFmtStand(standOffline) : 'Offline – noch keine gespeicherten Daten'),
+        React.createElement('span', null, ' · Nur Ansicht, Änderungen erst wieder mit Netz.')),
+      erro && !modoOffline && React.createElement('div', { className: 'wp-errmsg wp-noprint', style: { marginTop: 8 } }, '⚠ ' + erro),
       React.createElement(WpBar, {
         rolle: rolle, who: who, leute: leute, mode: mode, wl: wl,
         onRolle: setRolle, onWho: setWho, onTeam: function() { setTeamModalAberto(true); },
