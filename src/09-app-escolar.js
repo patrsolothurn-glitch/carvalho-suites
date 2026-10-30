@@ -2899,7 +2899,9 @@ function EscolarApp(_ref31) {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setEditKlasseKey(null);
+      setEditKlasseKey(null);
+      fecharResponsavel();
+      setIconEditKey(null);
     },
     style: {
       flex: 1,
@@ -2926,6 +2928,8 @@ function EscolarApp(_ref31) {
       });
       if (novoDado) savePerfilOnly(editKlasseKey, { klasse: novoDado.klasse, cidade: novoDado.cidade });
       setEditKlasseKey(null);
+      fecharResponsavel();
+      setIconEditKey(null);
     },
     style: {
       flex: 2,

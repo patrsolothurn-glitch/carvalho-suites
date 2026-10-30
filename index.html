@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-30T11:09:20.150Z
+  Gerado em: 2026-10-30T15:50:06.942Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-445";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-446";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -18163,7 +18163,9 @@ function EscolarApp(_ref31) {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setEditKlasseKey(null);
+      setEditKlasseKey(null);
+      fecharResponsavel();
+      setIconEditKey(null);
     },
     style: {
       flex: 1,
@@ -18190,6 +18192,8 @@ function EscolarApp(_ref31) {
       });
       if (novoDado) savePerfilOnly(editKlasseKey, { klasse: novoDado.klasse, cidade: novoDado.cidade });
       setEditKlasseKey(null);
+      fecharResponsavel();
+      setIconEditKey(null);
     },
     style: {
       flex: 2,
