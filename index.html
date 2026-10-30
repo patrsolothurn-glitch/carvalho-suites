@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-10-30T16:05:38.925Z
+  Gerado em: 2026-10-30T16:16:20.765Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-448";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-449";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -16995,6 +16995,87 @@ function EscolarApp(_ref31) {
     addEscolarToast('Responsável de turma apagado.');
     setRespEditor(null);
   };
+  // Painel único do aluno (✏️ do cartão): um só Guardar para Turma/Cidade +
+  // Responsável + Ícone/cor, numa única operação — upsert em escolar_perfil,
+  // onConflict 'aluno'. Nunca apaga a linha para a reinserir, nunca passa
+  // por saveAlunoSnapshot. Nenhum campo é obrigatório: Turma/Cidade/
+  // responsável vazios gravam '' de propósito (limpar); ícone/cor, quando o
+  // utilizador não mexe neles, gravam os valores ATUAIS do aluno (nunca
+  // null — "Repor padrão", à parte, continua a ser o único sítio que grava
+  // null). O estado local só é atualizado DEPOIS de o upsert confirmar
+  // sucesso — se falhar, o painel fica aberto e nada do que o utilizador
+  // escreveu se perde.
+  var guardarPainelAluno = function guardarPainelAluno() {
+    var key = editKlasseKey;
+    if (!key || !window.supabaseClient) return;
+    var sb = window.supabaseClient;
+    var elKlasse = document.getElementById("klasse-inp-".concat(key));
+    var elCidade = document.getElementById("cidade-inp-".concat(key));
+    var klasse = ((elKlasse && elKlasse.value) || '').trim();
+    var cidade = ((elCidade && elCidade.value) || '').trim();
+    var respNome = (respForm.nome || '').trim();
+    var respTel = (respForm.tel || '').trim();
+    var respEmail = (respForm.email || '').trim();
+    var respObs = (respForm.obs || '').trim();
+    var emoji = (iconCorForm.emoji || '').trim();
+    var cor = (iconCorForm.cor || '').trim();
+    if (!escolarEmojiValido(emoji)) {
+      addEscolarToast('Escolhe um ícone (emoji) válido.');
+      return;
+    }
+    if (!ESCOLAR_COR_RE.test(cor)) {
+      addEscolarToast('A cor tem de ser um código hex de 6 dígitos (ex: #22C55E).');
+      return;
+    }
+    var row = {
+      aluno: key,
+      klasse: klasse,
+      cidade: cidade,
+      resp_nome: respNome,
+      resp_sala: '',
+      resp_tel: respTel,
+      resp_email: respEmail,
+      resp_obs: respObs,
+      emoji: emoji,
+      cor: cor
+    };
+    sb.from('escolar_perfil').upsert(row, { onConflict: 'aluno' }).then(function (res) {
+      if (res && res.error) {
+        console.error('[escolar] upsert painel do aluno falhou:', res.error.message);
+        addEscolarToast('Não foi possível guardar. Tenta outra vez.');
+        return;
+      }
+      setAlunosData(function (p) {
+        var atual = p[key] || {};
+        var respAtual = atual.responsavel || {};
+        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
+          klasse: klasse,
+          cidade: cidade,
+          responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
+            nome: respNome,
+            sala: '',
+            tel: respTel,
+            email: respEmail,
+            obs: respObs
+          }),
+          emoji: emoji,
+          cor: cor
+        })));
+      });
+      addEscolarToast('Dados do aluno guardados.');
+      setEditKlasseKey(null);
+      fecharResponsavel();
+      setIconEditKey(null);
+    }).catch(function (e) {
+      console.error('[escolar] erro a guardar painel do aluno:', e);
+      addEscolarToast('Não foi possível guardar. Tenta outra vez.');
+    });
+  };
+  var cancelarPainelAluno = function cancelarPainelAluno() {
+    setEditKlasseKey(null);
+    fecharResponsavel();
+    setIconEditKey(null);
+  };
   // onDone(err) opcional: chamado quando ESTA gravação específica ficou
   // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
   // tenha sido absorvida por uma gravação seguinte por já haver uma em
@@ -18162,57 +18243,7 @@ function EscolarApp(_ref31) {
         cursor: 'pointer'
       }
     }, c);
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      setEditKlasseKey(null);
-      fecharResponsavel();
-      setIconEditKey(null);
-    },
-    style: {
-      flex: 1,
-      background: E.surface2,
-      border: "1px solid ".concat(E.border),
-      borderRadius: 8,
-      padding: '8px',
-      color: E.muted,
-      fontSize: 12,
-      cursor: 'pointer'
-    }
-  }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var _document$getElementB7, _document$getElementB8;
-      var klasse = (((_document$getElementB7 = document.getElementById("klasse-inp-".concat(editKlasseKey))) === null || _document$getElementB7 === void 0 ? void 0 : _document$getElementB7.value) || '').trim();
-      var cidade = (((_document$getElementB8 = document.getElementById("cidade-inp-".concat(editKlasseKey))) === null || _document$getElementB8 === void 0 ? void 0 : _document$getElementB8.value) || '').trim();
-      var novoDado = null;
-      setAlunosData(function (p) {
-        novoDado = _objectSpread(_objectSpread({}, p[editKlasseKey]), {}, {
-          klasse: klasse || p[editKlasseKey].klasse,
-          cidade: cidade || p[editKlasseKey].cidade
-        });
-        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, editKlasseKey, novoDado));
-      });
-      if (novoDado) savePerfilOnly(editKlasseKey, { klasse: novoDado.klasse, cidade: novoDado.cidade });
-      setEditKlasseKey(null);
-      fecharResponsavel();
-      setIconEditKey(null);
-    },
-    style: {
-      flex: 2,
-      background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
-      border: 'none',
-      borderRadius: 8,
-      padding: '8px',
-      color: '#fff',
-      fontSize: 12,
-      fontWeight: 800,
-      cursor: 'pointer'
-    }
-  }, "✓ Guardar")), respEditor && respEditor.key === editKlasseKey && respEditor.origem === 'chip' && /*#__PURE__*/React.createElement("div", {
+  })), respEditor && respEditor.key === editKlasseKey && respEditor.origem === 'chip' && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
       paddingTop: 10,
@@ -18234,7 +18265,20 @@ function EscolarApp(_ref31) {
     return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { email: v }); });
   }, 'nome@escola.ch', 'email'), respCampo('Observação', respForm.obs, function (v) {
     return setRespForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { obs: v }); });
-  }, 'Ex: só recebe SMS'), respBotoes()), /*#__PURE__*/React.createElement("div", {
+  }, 'Ex: só recebe SMS'), /*#__PURE__*/React.createElement("button", {
+    onClick: apagarResponsavel,
+    style: {
+      marginTop: 2,
+      background: 'rgba(220,38,38,0.1)',
+      border: '1px solid rgba(220,38,38,0.3)',
+      borderRadius: 8,
+      padding: '6px 10px',
+      color: E.red,
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: 'pointer'
+    }
+  }, "🗑 Apagar responsável")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 10,
       paddingTop: 10,
@@ -18357,53 +18401,59 @@ function EscolarApp(_ref31) {
       marginBottom: 8,
       fontFamily: 'monospace'
     }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: 6 }
-  }, /*#__PURE__*/React.createElement("button", {
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       return reporIconCorPadrao(editKlasseKey);
     },
     style: {
-      flex: 1,
+      marginTop: 2,
       background: 'rgba(220,38,38,0.1)',
       border: '1px solid rgba(220,38,38,0.3)',
       borderRadius: 8,
-      padding: '10px 4px',
+      padding: '6px 10px',
       color: E.red,
       fontSize: 11,
       fontWeight: 700,
       cursor: 'pointer'
     }
-  }, "↺ Repor padrão"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return fecharIconCor();
-    },
+  }, "↺ Repor padrão")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'sticky',
+      bottom: 0,
+      marginTop: 12,
+      paddingTop: 10,
+      paddingBottom: 2,
+      background: E.surface,
+      borderTop: "1px solid ".concat(E.border),
+      display: 'flex',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: cancelarPainelAluno,
     style: {
       flex: 1,
       background: E.surface2,
       border: "1px solid ".concat(E.border),
       borderRadius: 8,
-      padding: '10px 4px',
+      padding: '10px',
       color: E.muted,
-      fontSize: 12,
+      fontSize: 13,
       cursor: 'pointer'
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return salvarIconCor(editKlasseKey);
-    },
+    onClick: guardarPainelAluno,
     style: {
       flex: 2,
       background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
       border: 'none',
       borderRadius: 8,
-      padding: '10px 4px',
+      padding: '10px',
       color: '#fff',
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "✓ Guardar")))), /*#__PURE__*/React.createElement("div", {
+  }, "✓ Guardar"))), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '0 14px 12px',
       background: E.surface,
