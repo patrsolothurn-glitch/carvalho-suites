@@ -5870,12 +5870,12 @@ function EscolarApp(_ref31) {
     testesImportantes.forEach(function (t) {
       if (t.data && t.data < hojeImportante) passadosTestes.push(t);else proximosTestes.push(t);
     });
-    // "Sem nota" s\u00F3 pode ser calculado com o que j\u00E1 existe: as notas n\u00E3o
-    // ficam ligadas a um teste espec\u00EDfico (al.notas \u00E9 s\u00F3 por disciplina +
-    // semestre), por isso um teste passado s\u00F3 conta como "sem nota" aqui
-    // se nem sequer foi marcado Feito \u2014 o \u00FAnico caso em que \u00E9 certo que
-    // n\u00E3o tem nota nenhuma guardada.
-    var passadosSemNota = passadosTestes.filter(function (t) {
+    // As notas n\u00E3o ficam ligadas a um teste espec\u00EDfico (al.notas \u00E9 s\u00F3 por
+    // disciplina + semestre, sem id de teste nem data) \u2014 por isso o aviso
+    // n\u00E3o pode dizer "sem nota" (n\u00E3o h\u00E1 forma de saber). Diz s\u00F3 o que os
+    // dados de facto garantem: quantos testes passados ainda n\u00E3o foram
+    // marcados Feito.
+    var passadosPorMarcar = passadosTestes.filter(function (t) {
       return !t.feito;
     }).length;
     var renderTesteImportante = function renderTesteImportante(t) {
@@ -6004,8 +6004,8 @@ function EscolarApp(_ref31) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: passadosSemNota > 0 ? "".concat(E.red, "18") : E.surface,
-        border: "1px solid ".concat(passadosSemNota > 0 ? "".concat(E.red, "55") : E.border),
+        background: passadosPorMarcar > 0 ? "".concat(E.red, "18") : E.surface,
+        border: "1px solid ".concat(passadosPorMarcar > 0 ? "".concat(E.red, "55") : E.border),
         borderRadius: 12,
         padding: '10px 14px',
         marginTop: 16,
@@ -6015,13 +6015,13 @@ function EscolarApp(_ref31) {
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        color: passadosSemNota > 0 ? E.red : E.text,
+        color: passadosPorMarcar > 0 ? E.red : E.text,
         fontSize: 13,
         fontWeight: 700
       }
-    }, "Passados (", passadosTestes.length, ")", passadosSemNota > 0 ? " \xB7 \u26A0\uFE0F ".concat(passadosSemNota, " sem nota") : ''), /*#__PURE__*/React.createElement("span", {
+    }, "Passados (", passadosTestes.length, ")", passadosPorMarcar > 0 ? " \xB7 \u26A0\uFE0F ".concat(passadosPorMarcar, " por marcar como feito") : ''), /*#__PURE__*/React.createElement("span", {
       style: {
-        color: passadosSemNota > 0 ? E.red : E.muted,
+        color: passadosPorMarcar > 0 ? E.red : E.muted,
         fontSize: 14
       }
     }, testesPassadosAbertos ? '\u25BE' : '\u25B8')), testesPassadosAbertos && passadosTestes.map(renderTesteImportante));
