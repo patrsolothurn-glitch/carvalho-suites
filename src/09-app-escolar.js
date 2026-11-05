@@ -2831,17 +2831,24 @@ function EscolarApp(_ref31) {
       }
     }, "\uD83C\uDFEB ", /*#__PURE__*/React.createElement("b", {
       style: { color: E.text, fontWeight: 800 }
-    }, al.responsavel.nome)), (al.responsavel.tel || al.responsavel.email) && /*#__PURE__*/React.createElement("p", {
+    }, al.responsavel.nome)), (al.responsavel.tel || al.responsavel.email || (al.responsavel.obs || '').trim()) && /*#__PURE__*/React.createElement("p", {
+      // Linha do telefone / e-mail / observação: flex com quebra — se a observação
+      // (resp_obs) não couber ao lado do e-mail passa para a linha de baixo, sem cortar.
       style: {
         fontSize: 9.5,
         color: E.purpleL,
         lineHeight: 1.3,
         marginTop: 1,
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
-        gap: 6,
+        columnGap: 6,
+        rowGap: 1,
         minWidth: 0
       }
+    }, (al.responsavel.tel || al.responsavel.email) && /*#__PURE__*/React.createElement("span", {
+      // Telefone + e-mail ficam juntos, como antes (o e-mail corta com reticencias se faltar espaco).
+      style: { display: 'flex', alignItems: 'center', columnGap: 6, minWidth: 0, flex: '0 1 auto', marginRight: (al.responsavel.obs || '').trim() ? 6 : 0 }
     }, al.responsavel.tel && /*#__PURE__*/React.createElement("a", {
       href: "tel:".concat(al.responsavel.tel),
       onClick: function onClick(e) { return e.stopPropagation(); },
@@ -2860,7 +2867,18 @@ function EscolarApp(_ref31) {
         textOverflow: 'ellipsis',
         fontSize: 9
       }
-    }, "\u2709\uFE0F ", al.responsavel.email))) : isAdmin && /*#__PURE__*/React.createElement("p", {
+    }, "\u2709\uFE0F ", al.responsavel.email)), (al.responsavel.obs || '').trim() && /*#__PURE__*/React.createElement("span", {
+      // Observa\u00E7\u00E3o do respons\u00E1vel (resp_obs): s\u00F3 com texto real; mais discreta que o e-mail.
+      style: {
+        fontSize: 9,
+        color: E.muted,
+        flex: '0 1 auto',
+        minWidth: 0,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        wordBreak: 'break-word'
+      }
+    }, "\uD83D\uDCDD ", al.responsavel.obs.trim()))) : isAdmin && /*#__PURE__*/React.createElement("p", {
       onClick: function onClick(e) {
         e.stopPropagation();
         if (!_escolarPerfilLoadOk.ok) {
