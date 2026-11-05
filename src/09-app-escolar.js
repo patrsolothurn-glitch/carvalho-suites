@@ -885,6 +885,18 @@ function EscolarApp(_ref31) {
     guardandoPainel = _useStateGuardandoPainel2[0],
     setGuardandoPainel = _useStateGuardandoPainel2[1];
   var guardandoPainelRef = (0, _react.useRef)(false);
+  // Editor "Nome da turma" do selo do cabeçalho: input controlado (klasseHdr) e trava
+  // própria de duplo clique. klasseHdr é recarregado de alunosData ao abrir o editor e
+  // ao mudar de aluno (efeito abaixo), nunca de um valor por omissão.
+  var _useStateKlasseHdr = (0, _react.useState)(''),
+    _useStateKlasseHdr2 = _slicedToArray(_useStateKlasseHdr, 2),
+    klasseHdr = _useStateKlasseHdr2[0],
+    setKlasseHdr = _useStateKlasseHdr2[1];
+  var _useStateGuardandoKlasse = (0, _react.useState)(false),
+    _useStateGuardandoKlasse2 = _slicedToArray(_useStateGuardandoKlasse, 2),
+    guardandoKlasse = _useStateGuardandoKlasse2[0],
+    setGuardandoKlasse = _useStateGuardandoKlasse2[1];
+  var guardandoKlasseRef = (0, _react.useRef)(false);
   // Ref único que junta TODOS os formulários de adicionar/editar desta app
   // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
   // aberto, o reload automático (visibilitychange) fica bloqueado — evita
@@ -1840,6 +1852,52 @@ function EscolarApp(_ref31) {
     fecharResponsavel();
     setIconEditKey(null);
   };
+  // Guardar do editor "Nome da turma" (selo do cabeçalho). Mesma regra do painel único:
+  // compara com o valor GUARDADO em alunosData (NULL e '' são ambos "vazio"); se nada
+  // mudou não faz pedido; só grava a coluna klasse; nunca grava um valor por omissão;
+  // não grava se o perfil ainda não carregou; apagar o texto de propósito É uma
+  // alteração. O estado local só muda depois do sucesso; em erro o editor fica aberto.
+  var guardarKlasseCabecalho = function guardarKlasseCabecalho() {
+    var key = alunoKey;
+    if (!key) return;
+    if (guardandoKlasseRef.current) return;
+    if (!window.supabaseClient) {
+      addEscolarToast('Sem ligação ao servidor — não foi guardado.');
+      return;
+    }
+    if (!_escolarPerfilLoadOk.ok) {
+      addEscolarToast('Dados do aluno ainda não carregaram, tenta de novo.');
+      return;
+    }
+    var val = (klasseHdr || '').trim();
+    if (val === ((alunosData[key] || {}).klasse || '')) {
+      // Nada mudou: nenhum pedido ao servidor, só fecha o editor.
+      setEditKlasse(false);
+      return;
+    }
+    guardandoKlasseRef.current = true;
+    setGuardandoKlasse(true);
+    window.supabaseClient.from('escolar_perfil').upsert({ aluno: key, klasse: val }, { onConflict: 'aluno' }).then(function (res) {
+      guardandoKlasseRef.current = false;
+      setGuardandoKlasse(false);
+      if (res && res.error) {
+        console.error('[escolar] upsert turma (cabeçalho) falhou:', res.error.message);
+        window.mostrarErro('Vida Escolar', res.error);
+        addEscolarToast('Não foi possível guardar a turma. Tenta outra vez.');
+        return;
+      }
+      setAlunosData(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, p[key] || {}), {}, { klasse: val })));
+      });
+      setEditKlasse(false);
+    }).catch(function (e) {
+      guardandoKlasseRef.current = false;
+      setGuardandoKlasse(false);
+      console.error('[escolar] erro a guardar turma (cabeçalho):', e);
+      window.mostrarErro('Vida Escolar', e);
+      addEscolarToast('Não foi possível guardar a turma. Tenta outra vez.');
+    });
+  };
   // onDone(err) opcional: chamado quando ESTA gravação específica ficou
   // persistida (err=null) ou falhou (err definido) — mesmo que, entretanto,
   // tenha sido absorvida por uma gravação seguinte por já haver uma em
@@ -2320,6 +2378,10 @@ function EscolarApp(_ref31) {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [editKlasseKey]);
   (0, _react.useEffect)(function () {
+    if (!editKlasse) return;
+    setKlasseHdr((alunosData[alunoKey] || {}).klasse || '');
+  }, [alunoKey, editKlasse]);
+  (0, _react.useEffect)(function () {
     return window.csAoVoltarRede(function () { recarregarQuandoLivre(); });
   }, []);
   // Refetch quando a app volta a ficar visivel apos background.
@@ -2588,7 +2650,7 @@ function EscolarApp(_ref31) {
       fontWeight: 800,
       color: E.gold
     }
-  }, aluno.klasse || 'SEK P', " \u270E"), editKlasse && /*#__PURE__*/React.createElement("div", {
+  }, aluno.klasse || 'Turma por definir', " \u270E"), editKlasse && /*#__PURE__*/React.createElement("div", {
     onClick: function onClick(e) {
       return e.stopPropagation();
     },
@@ -2613,8 +2675,10 @@ function EscolarApp(_ref31) {
       marginBottom: 6
     }
   }, "Nome da turma"), /*#__PURE__*/React.createElement("input", {
-    defaultValue: aluno.klasse || 'SEK P',
-    id: "klasse-input",
+    value: klasseHdr,
+    onChange: function onChange(e) {
+      return setKlasseHdr(e.target.value);
+    },
     autoComplete: "off",
     placeholder: "Ex: SEK B, Pri 5, 3b...",
     style: {
@@ -2640,8 +2704,7 @@ function EscolarApp(_ref31) {
     return /*#__PURE__*/React.createElement("button", {
       key: k,
       onClick: function onClick() {
-        var inp = document.getElementById('klasse-input');
-        if (inp) inp.value = k;
+        return setKlasseHdr(k);
       },
       style: {
         background: E.surface2,
@@ -2654,19 +2717,8 @@ function EscolarApp(_ref31) {
       }
     }, k);
   })), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      var _document$getElementB6;
-      var val = (((_document$getElementB6 = document.getElementById('klasse-input')) === null || _document$getElementB6 === void 0 ? void 0 : _document$getElementB6.value) || '').trim();
-      var novoDado = null;
-      if (val) setAlunosData(function (p) {
-        novoDado = _objectSpread(_objectSpread({}, p[alunoKey]), {}, {
-          klasse: val
-        });
-        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, alunoKey, novoDado));
-      });
-      if (novoDado) savePerfilOnly(alunoKey, { klasse: novoDado.klasse });
-      setEditKlasse(false);
-    },
+    onClick: guardarKlasseCabecalho,
+    disabled: guardandoKlasse,
     style: {
       width: '100%',
       background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
@@ -2676,9 +2728,10 @@ function EscolarApp(_ref31) {
       color: '#fff',
       fontSize: 13,
       fontWeight: 800,
-      cursor: 'pointer'
+      cursor: guardandoKlasse ? 'default' : 'pointer',
+      opacity: guardandoKlasse ? 0.6 : 1
     }
-  }, "\u2713 Guardar")))), /*#__PURE__*/React.createElement("div", {
+  }, guardandoKlasse ? "A guardar\u2026" : "\u2713 Guardar")))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '10px 14px',
       display: 'flex',
