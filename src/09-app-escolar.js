@@ -605,6 +605,13 @@ var E = {
 // 480px. Os cartões (quando abertos) ocupam sempre a largura toda.
 var ESC_BTNS_GRID_CSS = '.esc-btns-grid{display:grid;grid-template-columns:1fr;gap:8px}' +
   '@media(min-width:480px){.esc-btns-grid{grid-template-columns:1fr 1fr 1fr}}';
+// Cartões dos dois alunos (acesso total): até 700px empilham, cada um com a largura toda
+// (senão o e-mail e a observação do responsável ficam espremidos a ~124px), e o selo
+// "Online" passa para uma linha própria, à direita. Acima de 700px nada muda.
+var ESC_CARTOES_CSS = '@media(max-width:700px){' +
+  '.esc-cartoes-2{flex-direction:column !important}' +
+  '.esc-cartoes-2>.esc-cartao{flex:0 0 auto !important}' +
+  '.esc-cartoes-2>.esc-online{align-self:flex-end !important}}';
 var ECard = function ECard(_ref32) {
   var children = _ref32.children,
     _ref32$style = _ref32.style,
@@ -2732,6 +2739,7 @@ function EscolarApp(_ref31) {
       opacity: guardandoKlasse ? 0.6 : 1
     }
   }, guardandoKlasse ? "A guardar\u2026" : "\u2713 Guardar")))), /*#__PURE__*/React.createElement("div", {
+    className: isAdmin ? 'esc-cartoes-2' : undefined,
     style: {
       padding: '10px 14px',
       display: 'flex',
@@ -2739,11 +2747,12 @@ function EscolarApp(_ref31) {
       alignItems: 'stretch',
       overflow: 'visible'
     }
-  }, (isAdmin ? ['lucas', 'liam'] : [alunoKey]).map(function (k) {
+  }, isAdmin && /*#__PURE__*/React.createElement("style", null, ESC_CARTOES_CSS), (isAdmin ? ['lucas', 'liam'] : [alunoKey]).map(function (k) {
     var al = alunosData[k];
     var isSel = alunoKey === k;
     return /*#__PURE__*/React.createElement("div", {
       key: k,
+      className: 'esc-cartao',
       style: {
         display: 'flex',
         flexDirection: 'column',
@@ -2948,6 +2957,7 @@ function EscolarApp(_ref31) {
       }
     }, "\u270F\uFE0F"));
   }), /*#__PURE__*/React.createElement("div", {
+    className: 'esc-online',
     style: {
       display: 'flex',
       alignItems: 'center',
