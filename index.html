@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-05T19:52:03.978Z
+  Gerado em: 2026-11-05T19:55:43.472Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-452";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-454";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -16144,6 +16144,18 @@ function EscolarApp(_ref31) {
     _useStateIconForm2 = _slicedToArray(_useStateIconForm, 2),
     iconCorForm = _useStateIconForm2[0],
     setIconCorForm = _useStateIconForm2[1];
+  // Turma/Cidade do painel único do aluno — controlados (value/onChange), carregados de
+  // alunosData ao abrir o painel (abrirResponsavel). Vazio = "sem valor", nunca um
+  // valor de exemplo. guardandoPainel(+Ref) trava o duplo clique no Guardar.
+  var _useStateTurmaForm = (0, _react.useState)({ klasse: '', cidade: '' }),
+    _useStateTurmaForm2 = _slicedToArray(_useStateTurmaForm, 2),
+    turmaForm = _useStateTurmaForm2[0],
+    setTurmaForm = _useStateTurmaForm2[1];
+  var _useStateGuardandoPainel = (0, _react.useState)(false),
+    _useStateGuardandoPainel2 = _slicedToArray(_useStateGuardandoPainel, 2),
+    guardandoPainel = _useStateGuardandoPainel2[0],
+    setGuardandoPainel = _useStateGuardandoPainel2[1];
+  var guardandoPainelRef = (0, _react.useRef)(false);
   // Ref único que junta TODOS os formulários de adicionar/editar desta app
   // (disciplina, nota, TPC, aula, turma). Enquanto qualquer um estiver
   // aberto, o reload automático (visibilitychange) fica bloqueado — evita
@@ -16939,6 +16951,7 @@ function EscolarApp(_ref31) {
       email: resp.email || '',
       obs: resp.obs || ''
     });
+    setTurmaForm({ klasse: al.klasse || '', cidade: al.cidade || '' });
     setRespEditor({ key: key, origem: origem });
   };
   var fecharResponsavel = function fecharResponsavel() {
@@ -17003,78 +17016,93 @@ function EscolarApp(_ref31) {
     setRespEditor(null);
   };
   // Painel único do aluno (✏️ do cartão): um só Guardar para Turma/Cidade +
-  // Responsável + Ícone/cor, numa única operação — upsert em escolar_perfil,
-  // onConflict 'aluno'. Nunca apaga a linha para a reinserir, nunca passa
-  // por saveAlunoSnapshot. Nenhum campo é obrigatório: Turma/Cidade/
-  // responsável vazios gravam '' de propósito (limpar); ícone/cor, quando o
-  // utilizador não mexe neles, gravam os valores ATUAIS do aluno (nunca
-  // null — "Repor padrão", à parte, continua a ser o único sítio que grava
-  // null). O estado local só é atualizado DEPOIS de o upsert confirmar
-  // sucesso — se falhar, o painel fica aberto e nada do que o utilizador
-  // escreveu se perde.
+  // Responsável + Ícone/cor — upsert em escolar_perfil (onConflict 'aluno'), nunca
+  // apaga a linha para a reinserir e nunca passa por saveAlunoSnapshot.
+  // Grava SÓ as colunas que o utilizador ALTEROU, comparando cada campo com o valor
+  // GUARDADO em alunosData (nunca com o que o ecrã mostra por omissão). NULL e ''
+  // contam ambos como "vazio": trocar um pelo outro não é alteração. Apagar o texto
+  // de propósito (valor guardado -> vazio) É uma alteração e grava ''. resp_sala
+  // NUNCA é gravada aqui (o painel não a edita). Nunca grava se a leitura do perfil
+  // ainda não confirmou (_escolarPerfilLoadOk.ok). Nada mudou -> nenhum pedido, só
+  // fecha. O estado local só muda DEPOIS do sucesso; em erro o painel fica aberto
+  // com o que o utilizador escreveu.
   var guardarPainelAluno = function guardarPainelAluno() {
     var key = editKlasseKey;
-    if (!key || !window.supabaseClient) return;
+    if (!key) return;
+    if (guardandoPainelRef.current) return;
+    if (!window.supabaseClient) {
+      addEscolarToast('Sem ligação ao servidor — não foi guardado.');
+      return;
+    }
+    if (!_escolarPerfilLoadOk.ok) {
+      addEscolarToast('Dados do aluno ainda não carregaram, tenta de novo.');
+      return;
+    }
     var sb = window.supabaseClient;
-    var elKlasse = document.getElementById("klasse-inp-".concat(key));
-    var elCidade = document.getElementById("cidade-inp-".concat(key));
-    var klasse = ((elKlasse && elKlasse.value) || '').trim();
-    var cidade = ((elCidade && elCidade.value) || '').trim();
-    var respNome = (respForm.nome || '').trim();
-    var respTel = (respForm.tel || '').trim();
-    var respEmail = (respForm.email || '').trim();
-    var respObs = (respForm.obs || '').trim();
-    var emoji = (iconCorForm.emoji || '').trim();
-    var cor = (iconCorForm.cor || '').trim();
-    if (!escolarEmojiValido(emoji)) {
-      addEscolarToast('Escolhe um ícone (emoji) válido.');
+    var al = alunosData[key] || {};
+    var resp = al.responsavel || {};
+    var row = { aluno: key };
+    var localPatch = {};
+    var respPatch = {};
+    // [coluna na base, valor novo (trim), valor guardado, onde aplicar no estado local]
+    var campos = [
+      ['klasse', (turmaForm.klasse || '').trim(), al.klasse || '', function (v) { localPatch.klasse = v; }],
+      ['cidade', (turmaForm.cidade || '').trim(), al.cidade || '', function (v) { localPatch.cidade = v; }],
+      ['resp_nome', (respForm.nome || '').trim(), resp.nome || '', function (v) { respPatch.nome = v; }],
+      ['resp_tel', (respForm.tel || '').trim(), resp.tel || '', function (v) { respPatch.tel = v; }],
+      ['resp_email', (respForm.email || '').trim(), resp.email || '', function (v) { respPatch.email = v; }],
+      ['resp_obs', (respForm.obs || '').trim(), resp.obs || '', function (v) { respPatch.obs = v; }],
+      ['emoji', (iconCorForm.emoji || '').trim(), al.emoji || '', function (v) { localPatch.emoji = v; }],
+      ['cor', (iconCorForm.cor || '').trim(), al.cor || '', function (v) { localPatch.cor = v; }]
+    ];
+    var mudadas = campos.filter(function (c) { return c[1] !== c[2]; });
+    // Validar só o que mudou (ícone/cor ficam como estão se ninguém lhes mexeu).
+    for (var i = 0; i < mudadas.length; i++) {
+      if (mudadas[i][0] === 'emoji' && !escolarEmojiValido(mudadas[i][1])) {
+        addEscolarToast('Escolhe um ícone (emoji) válido.');
+        return;
+      }
+      if (mudadas[i][0] === 'cor' && !ESCOLAR_COR_RE.test(mudadas[i][1])) {
+        addEscolarToast('A cor tem de ser um código hex de 6 dígitos (ex: #22C55E).');
+        return;
+      }
+    }
+    if (mudadas.length === 0) {
+      // Nada mudou: nenhum pedido ao servidor, só fecha o painel.
+      cancelarPainelAluno();
       return;
     }
-    if (!ESCOLAR_COR_RE.test(cor)) {
-      addEscolarToast('A cor tem de ser um código hex de 6 dígitos (ex: #22C55E).');
-      return;
+    mudadas.forEach(function (c) {
+      row[c[0]] = c[1];
+      c[3](c[1]);
+    });
+    if (Object.keys(respPatch).length > 0) {
+      localPatch.responsavel = _objectSpread(_objectSpread({}, resp), respPatch);
     }
-    var row = {
-      aluno: key,
-      klasse: klasse,
-      cidade: cidade,
-      resp_nome: respNome,
-      resp_sala: '',
-      resp_tel: respTel,
-      resp_email: respEmail,
-      resp_obs: respObs,
-      emoji: emoji,
-      cor: cor
-    };
+    guardandoPainelRef.current = true;
+    setGuardandoPainel(true);
     sb.from('escolar_perfil').upsert(row, { onConflict: 'aluno' }).then(function (res) {
+      guardandoPainelRef.current = false;
+      setGuardandoPainel(false);
       if (res && res.error) {
         console.error('[escolar] upsert painel do aluno falhou:', res.error.message);
+        window.mostrarErro('Vida Escolar', res.error);
         addEscolarToast('Não foi possível guardar. Tenta outra vez.');
         return;
       }
       setAlunosData(function (p) {
         var atual = p[key] || {};
-        var respAtual = atual.responsavel || {};
-        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), {}, {
-          klasse: klasse,
-          cidade: cidade,
-          responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
-            nome: respNome,
-            sala: '',
-            tel: respTel,
-            email: respEmail,
-            obs: respObs
-          }),
-          emoji: emoji,
-          cor: cor
-        })));
+        return _objectSpread(_objectSpread({}, p), {}, _defineProperty({}, key, _objectSpread(_objectSpread({}, atual), localPatch)));
       });
       addEscolarToast('Dados do aluno guardados.');
       setEditKlasseKey(null);
       fecharResponsavel();
       setIconEditKey(null);
     }).catch(function (e) {
+      guardandoPainelRef.current = false;
+      setGuardandoPainel(false);
       console.error('[escolar] erro a guardar painel do aluno:', e);
+      window.mostrarErro('Vida Escolar', e);
       addEscolarToast('Não foi possível guardar. Tenta outra vez.');
     });
   };
@@ -18043,6 +18071,10 @@ function EscolarApp(_ref31) {
     }, "\u2709\uFE0F ", al.responsavel.email))) : isAdmin && /*#__PURE__*/React.createElement("p", {
       onClick: function onClick(e) {
         e.stopPropagation();
+        if (!_escolarPerfilLoadOk.ok) {
+          addEscolarToast('Dados do aluno ainda não carregaram, tenta de novo.');
+          return;
+        }
         setEditKlasseKey(k);
         setAlunoKey(k);
         abrirResponsavel(k, 'chip');
@@ -18069,6 +18101,10 @@ function EscolarApp(_ref31) {
       onClick: function onClick(e) {
         e.stopPropagation();
         var abrir = editKlasseKey !== k;
+        if (abrir && !_escolarPerfilLoadOk.ok) {
+          addEscolarToast('Dados do aluno ainda não carregaram, tenta de novo.');
+          return;
+        }
         setEditKlasseKey(abrir ? k : null);
         setAlunoKey(k);
         if (abrir) {
@@ -18160,8 +18196,11 @@ function EscolarApp(_ref31) {
       marginBottom: 3
     }
   }, "TURMA"), /*#__PURE__*/React.createElement("input", {
-    id: "klasse-inp-".concat(editKlasseKey),
-    defaultValue: (alunosData[editKlasseKey] || {}).klasse || 'SEK P',
+    value: turmaForm.klasse,
+    onChange: function onChange(e) {
+      var v = e.target.value;
+      return setTurmaForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { klasse: v }); });
+    },
     autoComplete: "off",
     placeholder: "Ex: SEK B",
     style: {
@@ -18187,8 +18226,11 @@ function EscolarApp(_ref31) {
       marginBottom: 3
     }
   }, "CIDADE"), /*#__PURE__*/React.createElement("input", {
-    id: "cidade-inp-".concat(editKlasseKey),
-    defaultValue: (alunosData[editKlasseKey] || {}).cidade || 'Grenchen',
+    value: turmaForm.cidade,
+    onChange: function onChange(e) {
+      var v = e.target.value;
+      return setTurmaForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { cidade: v }); });
+    },
     autoComplete: "off",
     placeholder: "Ex: Selzach",
     style: {
@@ -18213,8 +18255,7 @@ function EscolarApp(_ref31) {
     return /*#__PURE__*/React.createElement("button", {
       key: p,
       onClick: function onClick() {
-        var i = document.getElementById("klasse-inp-".concat(editKlasseKey));
-        if (i) i.value = p;
+        return setTurmaForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { klasse: p }); });
       },
       style: {
         background: E.surface2,
@@ -18237,8 +18278,7 @@ function EscolarApp(_ref31) {
     return /*#__PURE__*/React.createElement("button", {
       key: c,
       onClick: function onClick() {
-        var i = document.getElementById("cidade-inp-".concat(editKlasseKey));
-        if (i) i.value = c;
+        return setTurmaForm(function (f) { return _objectSpread(_objectSpread({}, f), {}, { cidade: c }); });
       },
       style: {
         background: E.surface2,
@@ -18437,6 +18477,7 @@ function EscolarApp(_ref31) {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: cancelarPainelAluno,
+    disabled: guardandoPainel,
     style: {
       flex: 1,
       background: E.surface2,
@@ -18445,10 +18486,12 @@ function EscolarApp(_ref31) {
       padding: '10px',
       color: E.muted,
       fontSize: 13,
-      cursor: 'pointer'
+      cursor: guardandoPainel ? 'default' : 'pointer',
+      opacity: guardandoPainel ? 0.6 : 1
     }
   }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
     onClick: guardarPainelAluno,
+    disabled: guardandoPainel,
     style: {
       flex: 2,
       background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
@@ -18458,9 +18501,10 @@ function EscolarApp(_ref31) {
       color: '#fff',
       fontSize: 13,
       fontWeight: 800,
-      cursor: 'pointer'
+      cursor: guardandoPainel ? 'default' : 'pointer',
+      opacity: guardandoPainel ? 0.6 : 1
     }
-  }, "✓ Guardar"))), /*#__PURE__*/React.createElement("div", {
+  }, guardandoPainel ? "A guardar…" : "✓ Guardar"))), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '0 14px 12px',
       background: E.surface,
