@@ -1690,9 +1690,10 @@ function EscolarApp(_ref31) {
   // passa pelo saveAlunoSnapshot. Só o ponto de entrada "grid" edita
   // Klasse aqui (no "chip" a Klasse já se edita ao lado, no editor
   // existente, para não haver dois campos de Klasse a dar informação
-  // diferente no mesmo cartão). resp_sala deixou de fazer parte deste
-  // painel (a sala já existe por aula) — grava-se sempre vazio, para a
-  // linha ficar coerente (nunca aparece "sala" no cartão do aluno).
+  // diferente no mesmo cartão). resp_sala NÃO faz parte deste painel (a sala
+  // já existe por aula) — nunca é gravada aqui, nem alterada no estado local,
+  // para não apagar a que já está na base (ex.: a sala do Lucas). Só o
+  // apagarResponsavel a limpa, de propósito, ao apagar o responsável todo.
   var salvarResponsavel = function salvarResponsavel() {
     if (!respEditor) return;
     var key = respEditor.key;
@@ -1709,14 +1710,13 @@ function EscolarApp(_ref31) {
         klasse: origem === 'grid' ? klasse : atual.klasse,
         responsavel: _objectSpread(_objectSpread({}, respAtual), {}, {
           nome: nome,
-          sala: '',
           tel: tel,
           email: email,
           obs: obs
         })
       })));
     });
-    var fields = { resp_nome: nome, resp_sala: '', resp_tel: tel, resp_email: email, resp_obs: obs };
+    var fields = { resp_nome: nome, resp_tel: tel, resp_email: email, resp_obs: obs };
     if (origem === 'grid') fields.klasse = klasse;
     savePerfilOnly(key, fields);
     addEscolarToast('Responsável de turma guardado.');
@@ -2126,6 +2126,10 @@ function EscolarApp(_ref31) {
     }
     window._escolarLoadTries = 0;
     var sb = window.supabaseClient;
+    // O flag só vale para ESTE carregamento: começa a false e só passa a true
+    // quando o perfil foi aplicado ao estado, ou quando a consulta ao perfil
+    // correu sem erro e não há nenhuma linha (nada por aplicar).
+    _escolarPerfilLoadOk.ok = false;
     Promise.all([sb.from('escolar_disciplinas').select('*'), sb.from('escolar_horario').select('*'), sb.from('escolar_notas').select('*'), sb.from('escolar_tpc').select('*'), sb.from('escolar_perfil').select('*'), sb.from('escolar_eventos').select('*')]).then(function (resArr) {
       var discRes = resArr[0],
         horRes = resArr[1],
@@ -2138,7 +2142,7 @@ function EscolarApp(_ref31) {
       [['disciplinas', discRes], ['horario', horRes], ['notas', notasRes], ['tpc', tpcRes], ['perfil', perfilRes], ['eventos', eventosRes]].forEach(function (p) {
         if (p[1] && p[1].error) console.warn('[escolar] erro a ler ' + p[0] + ':', p[1].error.message || p[1].error);
       });
-      if (perfilRes && !perfilRes.error) _escolarPerfilLoadOk.ok = true;
+      var perfilConsultaOk = !!(perfilRes && !perfilRes.error);
       var anyData = discRes.data && discRes.data.length > 0 || horRes.data && horRes.data.length > 0 || tpcRes.data && tpcRes.data.length > 0;
       if (!anyData) {
         // Já não repomos os dados de exemplo (ALUNOS_DEF) automaticamente.
@@ -2148,6 +2152,9 @@ function EscolarApp(_ref31) {
         // Agora, se as tabelas estiverem mesmo vazias, ficamos com o que
         // já está em memória e avisamos na consola, sem inserir nada.
         console.warn('[escolar] escolar_disciplinas/escolar_horario/escolar_tpc vieram vazios — NAO reponho dados de exemplo automaticamente.');
+        // O perfil NÃO é aplicado neste ramo: só se confirma o flag se a consulta
+        // correu bem e não existe nenhuma linha de perfil (nada ficou por aplicar).
+        if (perfilConsultaOk && (perfilRes.data || []).length === 0) _escolarPerfilLoadOk.ok = true;
         return;
       }
       setAlunosData(function (prev) {
@@ -2266,6 +2273,8 @@ function EscolarApp(_ref31) {
         });
         return next;
       });
+      // Perfil aplicado ao estado (setAlunosData acima) — só agora o flag fica true.
+      if (perfilConsultaOk) _escolarPerfilLoadOk.ok = true;
     }).catch(function (err) {
       console.warn('[escolar] loadEscolarData falhou:', err && err.message || err);
     });
@@ -2740,11 +2749,12 @@ function EscolarApp(_ref31) {
       style: {
         fontSize: 10,
         color: E.muted,
+        fontStyle: al.klasse || al.cidade ? 'normal' : 'italic',
         whiteSpace: 'normal',
         overflowWrap: 'break-word',
         lineHeight: 1.2
       }
-    }, al.klasse || 'SEK P', " \xB7 ", al.cidade || 'Grenchen')), isSel && /*#__PURE__*/React.createElement("div", {
+    }, [al.klasse, al.cidade].filter(Boolean).join(' \xB7 ') || 'Turma por definir')), isSel && /*#__PURE__*/React.createElement("div", {
       style: {
         width: 7,
         height: 7,
