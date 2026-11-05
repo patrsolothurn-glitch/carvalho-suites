@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-05T19:21:48.249Z
+  Gerado em: 2026-11-05T19:34:03.744Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-450";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-451";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -46726,7 +46726,7 @@ function NotasApp(props) {
   var _n = React.useState([]); var notas = _n[0], setNotas = _n[1];
   var _l = React.useState(true); var loading = _l[0], setLoading = _l[1];
   var _e = React.useState(''); var erroCarga = _e[0], setErroCarga = _e[1];
-  var _c = React.useState(NT_MEMBROS.indexOf(myId) !== -1 ? myId : null); var cartao = _c[0], setCartao = _c[1]; // entra automático no seu
+  var _c = React.useState(!isAdmin && NT_MEMBROS.indexOf(myId) !== -1 ? myId : null); var cartao = _c[0], setCartao = _c[1]; // não-admin entra direto no seu; admin abre na lista de cartões
   var _v = React.useState('lista'); var vista = _v[0], setVista = _v[1]; // lista | nota | form | lixo
   var _sel = React.useState(null); var selId = _sel[0], setSelId = _sel[1];
   var _ed = React.useState(null); var editId = _ed[0], setEditId = _ed[1];
