@@ -231,4 +231,11 @@ var APPS_DATA = [{
   badge: null,
   color: '#1E8E3E',
   adminOnly: true
+}, {
+  id: 'notas',
+  emoji: '📒',
+  name: 'Notas Carvalho',
+  desc: 'Notas da família',
+  badge: null,
+  color: '#EC4899'
 }];
