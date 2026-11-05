@@ -1497,6 +1497,7 @@ function CarvalhoSuite() {
     if (activeApp === 'wochenplan' && isAdmin) return /*#__PURE__*/React.createElement(WochenplanApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'horasvoz' && isAdmin) return /*#__PURE__*/React.createElement(HorasVozApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'pollen' && (isAdmin || myAllowedApps.includes('pollen'))) return /*#__PURE__*/React.createElement(PollenApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'notas' && (isAdmin || myAllowedApps.includes('notas'))) return /*#__PURE__*/React.createElement(NotasApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'fitness' && isAdmin) return /*#__PURE__*/React.createElement(FitnessApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,

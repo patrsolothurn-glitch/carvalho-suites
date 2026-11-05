@@ -45,6 +45,7 @@ const JS_SECTIONS = [
   '19-app-pollen.js', // app Pólen — previsão e diário de alergias ao pólen (admin only)
   '20-app-fitness.js', // app Carvalho Fitness — plano alimentar, progresso e treino (só Patricio)
   '22-home-extras.js', // Home: popup Kompliment des Tages, tempo, painel admin do Kompliment
+  '23-app-notas.js', // app Notas Carvalho
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
