@@ -299,7 +299,7 @@ function NotasApp(props) {
   var _n = React.useState([]); var notas = _n[0], setNotas = _n[1];
   var _l = React.useState(true); var loading = _l[0], setLoading = _l[1];
   var _e = React.useState(''); var erroCarga = _e[0], setErroCarga = _e[1];
-  var _c = React.useState(NT_MEMBROS.indexOf(myId) !== -1 ? myId : null); var cartao = _c[0], setCartao = _c[1]; // entra automático no seu
+  var _c = React.useState(!isAdmin && NT_MEMBROS.indexOf(myId) !== -1 ? myId : null); var cartao = _c[0], setCartao = _c[1]; // não-admin entra direto no seu; admin abre na lista de cartões
   var _v = React.useState('lista'); var vista = _v[0], setVista = _v[1]; // lista | nota | form | lixo
   var _sel = React.useState(null); var selId = _sel[0], setSelId = _sel[1];
   var _ed = React.useState(null); var editId = _ed[0], setEditId = _ed[1];
