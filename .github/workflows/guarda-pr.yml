@@ -13,9 +13,19 @@ on:
 permissions:
   contents: read
 
+# Uma só execução por PR: um commit novo cancela a execução antiga (já
+# substituída) do MESMO PR. Não afeta outros PRs nem o workflow de deploy
+# (que tem o seu próprio grupo, "pages").
+concurrency:
+  group: guarda-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   guarda:
     runs-on: ubuntu-24.04
+    # Rede de segurança: um passo preso nunca ocupa o runner mais de 10 minutos
+    # (por omissão seriam 6 horas). O normal são ~45 s.
+    timeout-minutes: 10
     steps:
       - name: Checkout do PR
         uses: actions/checkout@v5.1.0
@@ -169,13 +179,28 @@ jobs:
           NODEEOF
 
       - name: "4) Preparar Playwright (Chromium) para o teste de fumo"
+        # O apt (espelho azure.archive.ubuntu.com) prende às vezes durante minutos
+        # sem dar erro. Normal: ~20 s. Até 3 tentativas, cada uma limitada a 120 s,
+        # com 5 s de pausa; só falha (a vermelho) se as 3 falharem. A repetição
+        # envolve APENAS a instalação. Limite do passo: 3x(120+10) + 2x5 = 400 s,
+        # por isso 7 minutos (com 4 a terceira tentativa nunca chegava ao fim).
+        timeout-minutes: 7
         run: |
           set -euo pipefail
           mkdir -p /tmp/pwtools
           cd /tmp/pwtools
           npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.48.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium
+          for tentativa in 1 2 3; do
+            echo "Instalar Playwright: tentativa ${tentativa}/3"
+            if timeout --kill-after=10 120 bash -c 'set -euo pipefail; npm install --no-audit --no-fund playwright@1.48.0 >/dev/null 2>&1; npx playwright install --with-deps chromium'; then
+              echo "✓ Playwright instalado (tentativa ${tentativa}/3)"
+              exit 0
+            fi
+            echo "⚠ tentativa ${tentativa}/3 falhou ou excedeu 120 s"
+            if [ "${tentativa}" -lt 3 ]; then sleep 5; fi
+          done
+          echo "::error::Não foi possível instalar o Playwright em 3 tentativas"
+          exit 1
 
       - name: "4) Servir o index.html do PR localmente"
         run: |
