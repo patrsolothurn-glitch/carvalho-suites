@@ -2,8 +2,8 @@
 // APP NOTAS CARVALHO — Notas da família. Tabela public.notas_notas
 // (ver sql/33_notas_notas.sql). Cada pessoa tem o seu cartão + o cartão
 // "Família" (partilhado por quem tem a app). O admin vê ainda os cartões
-// do Lucas e do Liam, SÓ LEITURA; o cartão da esposa nunca aparece ao
-// admin. A RLS é que manda — o código só espelha-a (esconde botões).
+// da Cristina (esposa), do Lucas e do Liam, SÓ LEITURA (ver sql/34).
+// A RLS é que manda — o código só espelha-a (esconde botões).
 // Organização: Ano > Mês > Semana ISO (por created_at), tudo minimizável;
 // por omissão só o ano/mês/semana atuais ficam abertos.
 // Apagar = Lixo (deleted_at); Lixo por cartão com restaurar e apagar
@@ -13,7 +13,7 @@
 
 var NT_ACENTO = '#EC4899';
 var NT_DIAS_LIXO = 30;
-var NT_NOMES = { patricio: 'Patricio', esposa: 'Esposa', lucas: 'Lucas', liam: 'Liam', familia: 'Família' };
+var NT_NOMES = { patricio: 'Patricio', esposa: 'Cristina', lucas: 'Lucas', liam: 'Liam', familia: 'Família' };
 var NT_EMOJIS = { patricio: '👨‍💼', esposa: '👩', lucas: '🧒', liam: '👦', familia: '🏠' };
 var NT_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 var NT_MEMBROS = ['patricio', 'esposa', 'lucas', 'liam'];
@@ -51,13 +51,14 @@ function ntNovoId() {
   });
 }
 
-// Cartões que a pessoa pode ver (a RLS decide o resto). Nunca 'esposa' para quem não é a esposa.
+// Cartões que a pessoa pode ver (a RLS decide o resto). Admin: próprio, Família, Cristina, Lucas, Liam
+// (os três últimos só leitura). Quem não é admin nunca vê o cartão de outra pessoa.
 function ntDonosVisiveis(myId, isAdmin) {
   var out = [];
   if (NT_MEMBROS.indexOf(myId) !== -1) out.push(myId);
   out.push('familia');
   if (isAdmin) {
-    ['lucas', 'liam'].forEach(function (k) { if (out.indexOf(k) === -1) out.push(k); });
+    ['esposa', 'lucas', 'liam'].forEach(function (k) { if (out.indexOf(k) === -1) out.push(k); });
   }
   return out;
 }

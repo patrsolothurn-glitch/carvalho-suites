@@ -2,6 +2,8 @@
 -- Cópia de documentação da tabela da app Notas Carvalho (src/23-app-notas.js).
 -- JÁ CORRIDA no Supabase pelo utilizador — NÃO correr outra vez e NÃO foi corrida
 -- pelo Claude Code.
+-- NOTA: a política "notas: admin lê filhos" abaixo foi substituída por "notas: admin lê família"
+-- (lê também a 'esposa') — ver sql/34_notas_admin_le_familia.sql.
 create table public.notas_notas (id uuid primary key default gen_random_uuid(), dono text not null check (dono in ('patricio','esposa','lucas','liam','familia')), titulo text not null, texto text not null default '', created_at timestamptz not null default now(), updated_at timestamptz not null default now(), deleted_at timestamptz);
 create index notas_notas_dono_idx on public.notas_notas (dono, created_at desc);
 alter table public.notas_notas enable row level security;
