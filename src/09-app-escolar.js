@@ -2860,7 +2860,24 @@ function EscolarApp(_ref31) {
         textOverflow: 'ellipsis',
         fontSize: 9
       }
-    }, "\u2709\uFE0F ", al.responsavel.email))) : isAdmin && /*#__PURE__*/React.createElement("p", {
+    }, "\u2709\uFE0F ", al.responsavel.email)), (al.responsavel.obs || '').trim() && /*#__PURE__*/React.createElement("p", {
+      // Observa\u00E7\u00E3o do respons\u00E1vel (resp_obs): s\u00F3 quando h\u00E1 texto real; quebra linha
+      // e corta com retic\u00EAncias ao fim de 3 linhas, sem alargar o cart\u00E3o.
+      style: {
+        fontSize: 9.5,
+        color: E.muted,
+        whiteSpace: 'normal',
+        overflowWrap: 'break-word',
+        wordBreak: 'break-word',
+        lineHeight: 1.3,
+        marginTop: 1,
+        minWidth: 0,
+        display: '-webkit-box',
+        WebkitLineClamp: 3,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden'
+      }
+    }, "\uD83D\uDCDD ", al.responsavel.obs.trim())) : isAdmin && /*#__PURE__*/React.createElement("p", {
       onClick: function onClick(e) {
         e.stopPropagation();
         if (!_escolarPerfilLoadOk.ok) {
