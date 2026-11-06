@@ -31,6 +31,9 @@ var NT_IMP = {
 var NT_IMP_ORDEM = ['urgente', 'importante', 'normal'];
 var NT_VISTA_KEY = 'notas_vista';
 var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
+// Na vista "Por data": com menos notas visíveis do que isto (depois de pesquisa e filtros) a lista é direta,
+// da mais recente para a mais antiga, sem cabeçalhos Ano > Mês > Semana. Com este número ou mais, agrupa.
+var NT_LIMITE_LISTA = 15;
 
 function ntLog(op, err) {
   console.error('[notas] falha ao ' + op + ':', err);
@@ -315,12 +318,11 @@ function NtCopiar(p) {
 // Etiqueta de importância: cor + ícone + texto.
 function NtBadge(p) {
   var d = NT_IMP[p.imp] || NT_IMP.normal;
-  var normal = !d.texto;
+  if (!d.texto) return null; // "Normal" não tem selo: só Importante e Urgente (o formulário continua a oferecer os três)
   return React.createElement('span', {
     style: {
       display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, lineHeight: 1,
-      padding: '3px 8px', borderRadius: 999, background: normal ? 'transparent' : d.fundo,
-      color: normal ? T.muted : d.texto, border: '1px solid ' + (normal ? T.border : d.fundo)
+      padding: '3px 8px', borderRadius: 999, background: d.fundo, color: d.texto, border: '1px solid ' + d.fundo
     }
   }, d.icone + ' ' + d.rot);
 }
@@ -512,19 +514,25 @@ function NtLista(p) {
       p.readOnly ? 'Sem notas.' : 'Ainda não há notas. Toca em “+ Nova nota”.');
   }
   var cur = ntChavesDe(new Date().toISOString());
-  var linha = function (n, key) {
-    return React.createElement(NtLinha, { key: key, nota: n, recuo: 20, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]) });
+  var linha = function (n, key, recuo) {
+    return React.createElement(NtLinha, { key: key, nota: n, recuo: recuo == null ? 20 : recuo, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]) });
   };
   var filhos = [React.createElement('div', { key: 'topo', id: 'nt-topo', style: { scrollMarginTop: 70 } })];
+  // Uma nota fixada aparece SÓ no bloco "Fixadas" (nas duas vistas); o resto é organizado abaixo.
   var fixadas = p.notas.filter(ntFixada).sort(ntPorDataDesc);
+  var resto = p.notas.filter(function (n) { return !ntFixada(n); });
+  // Poucas notas (visíveis, depois de pesquisa e filtros): lista direta, sem cabeçalhos Ano > Mês > Semana.
+  var direta = p.modo !== 'imp' && p.notas.length < NT_LIMITE_LISTA;
   if (fixadas.length) {
     var fMin = minim.has('fixadas');
     filhos.push(React.createElement(NtGrupoCab, { key: 'g-fixadas', nivel: 0, label: '📌 Fixadas', count: fixadas.length, minimizado: fMin, onToggle: function () { toggle('fixadas'); } }));
     if (!fMin) fixadas.forEach(function (n) { filhos.push(linha(n, 'fx-' + n.id)); });
   }
-  if (p.modo === 'imp') {
+  if (direta) {
+    resto.slice().sort(ntPorDataDesc).forEach(function (n) { filhos.push(linha(n, n.id, 0)); });
+  } else if (p.modo === 'imp') {
     NT_IMP_ORDEM.forEach(function (nivel) {
-      var doNivel = p.notas.filter(function (n) { return ntImp(n) === nivel; }).sort(ntPorDataDesc);
+      var doNivel = resto.filter(function (n) { return ntImp(n) === nivel; }).sort(ntPorDataDesc);
       if (!doNivel.length) return;
       var k = 'i-' + nivel, kMin = minim.has(k), d = NT_IMP[nivel];
       filhos.push(React.createElement(NtGrupoCab, { key: k, nivel: 0, label: d.icone + ' ' + d.rot, count: doNivel.length, minimizado: kMin, cor: d.fundo || NT_ACENTO, corTexto: d.texto || '#fff', onToggle: function () { toggle(k); } }));
@@ -532,7 +540,7 @@ function NtLista(p) {
       doNivel.forEach(function (n) { filhos.push(linha(n, n.id)); });
     });
   } else {
-    ntAgrupar(p.notas).forEach(function (a) {
+    ntAgrupar(resto).forEach(function (a) {
       var aMin = minim.has(a.key);
       filhos.push(React.createElement(NtGrupoCab, { key: a.key, nivel: 0, label: a.label, count: a.n, minimizado: aMin, onToggle: function () { toggle(a.key); } }));
       if (aMin) return;
@@ -551,7 +559,7 @@ function NtLista(p) {
   }
   // Botões flutuantes discretos: só quando a lista é comprida. "Hoje" só na vista por data.
   var longa = p.notas.length >= 8;
-  var temHoje = p.modo !== 'imp' && p.notas.some(function (n) { return ntChavesDe(n.created_at).kS === cur.kS; });
+  var temHoje = p.modo !== 'imp' && !direta && resto.some(function (n) { return ntChavesDe(n.created_at).kS === cur.kS; });
   var flut = { minHeight: 40, minWidth: 40, borderRadius: 999, border: '2px solid ' + NT_ACENTO, background: T.surface, color: NT_ACENTO, fontSize: 14, fontWeight: 900, cursor: 'pointer', opacity: 0.92, boxShadow: '0 2px 8px rgba(0,0,0,0.35)', padding: '0 12px' };
   var irHoje = function () {
     pend.current = true;
