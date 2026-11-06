@@ -23,12 +23,26 @@ var NT_MEMBROS = ['patricio', 'esposa', 'lucas', 'liam'];
 // Importância (colunas importancia/fixada: sql/35; regra com 'baixo': sql/36). A cor NUNCA vai sozinha: sempre com o número.
 //   1 · Importante = vermelho, 2 · Normal = âmbar (por omissão), 3 · Baixo = verde.
 var NT_IMP = {
-  importante: { num: '1', rot: 'Importante', cor: '#EF4444' },
-  normal: { num: '2', rot: 'Normal', cor: '#F59E0B' },
-  baixo: { num: '3', rot: 'Baixo', cor: '#22C55E' }
+  importante: { num: '1', rot: 'Importante', cor: '#EF4444', corClara: '#DC2626' },
+  normal: { num: '2', rot: 'Normal', cor: '#F59E0B', corClara: '#B45309' },
+  baixo: { num: '3', rot: 'Baixo', cor: '#22C55E', corClara: '#15803D' }
 };
-var NT_IMP_TEXTO = '#111111'; // texto escuro (contraste alto) sobre as três cores
+// Aspeto: contorno fino na cor do nível (nunca blocos de cor cheia). No tema claro usa-se um tom mais escuro para o
+// contorno e o número continuarem legíveis sobre o fundo claro.
+function ntCor(k) {
+  var d = NT_IMP[k] || NT_IMP.normal;
+  return T.bg === T_LIGHT.bg ? d.corClara : d.cor;
+}
+function ntAlfa(hex, a) {
+  var h = String(hex).replace('#', '');
+  return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+}
 var NT_IMP_ORDEM = ['importante', 'normal', 'baixo'];
+// Pastas (coluna pasta, sql/38): só no cartão do Patricio, duas caixas. null/em falta/desconhecido = 'privado'.
+var NT_PASTAS = [
+  { key: 'privado', nome: 'Privado', icone: '🔒' },
+  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' }
+];
 var NT_VISTA_KEY = 'notas_vista';
 var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
 // Na vista "Por data": com menos notas visíveis do que isto (depois de pesquisa e filtros) a lista é direta,
@@ -156,6 +170,8 @@ function ntImp(n) {
   if (v === 'urgente') return 'importante';
   return v === 'importante' || v === 'baixo' ? v : 'normal';
 }
+function ntPasta(n) { return n && n.pasta === 'geschaeft' ? 'geschaeft' : 'privado'; }
+function ntNomePasta(k) { return k === 'geschaeft' ? 'Geschäft' : 'Privado'; }
 function ntFixada(n) { return !!(n && n.fixada === true); }
 function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
 
@@ -333,12 +349,13 @@ function NtCopiar(p) {
 // Selo de importância. Na lista só o número ("curto"); na nota aberta o nome completo: "1 · Importante". Cor + número.
 function NtBadge(p) {
   var d = NT_IMP[p.imp] || NT_IMP.normal;
+  var cor = ntCor(p.imp);
   return React.createElement('span', {
     title: d.num + ' · ' + d.rot,
     style: {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, lineHeight: 1,
-      minWidth: p.curto ? 18 : undefined, padding: p.curto ? '3px 5px' : '3px 8px', borderRadius: 999,
-      background: d.cor, color: NT_IMP_TEXTO, border: '1px solid ' + d.cor
+      minWidth: p.curto ? 18 : undefined, padding: p.curto ? '2px 5px' : '2px 8px', borderRadius: 999,
+      background: 'transparent', color: cor, border: '1.5px solid ' + cor
     }
   }, p.curto ? d.num : d.num + ' · ' + d.rot);
 }
@@ -346,6 +363,7 @@ function NtBadge(p) {
 // Botão-pílula (vistas, filtros, importância no formulário).
 function NtChip(p) {
   var cor = p.cor || NT_ACENTO;
+  var suave = !!p.suave; // contorno na cor; selecionado = fundo muito suave (15%), nunca um bloco cheio
   return React.createElement('button', {
     type: 'button',
     onClick: p.onClick,
@@ -353,8 +371,10 @@ function NtChip(p) {
     disabled: !!p.disabled,
     style: {
       minHeight: 38, padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: p.disabled ? 'default' : 'pointer',
-      flex: p.grow ? 1 : undefined, background: p.ativo ? cor : T.surface2, color: p.ativo ? (p.corTexto || '#fff') : T.text,
-      border: (p.borda ? '2px' : '1px') + ' solid ' + (p.ativo ? cor : (p.borda || T.border))
+      flex: p.grow ? 1 : undefined,
+      background: suave ? (p.ativo ? ntAlfa(cor, 0.15) : 'transparent') : (p.ativo ? cor : T.surface2),
+      color: suave ? T.text : (p.ativo ? (p.corTexto || '#fff') : T.text),
+      border: suave ? ((p.ativo ? '2px' : '1.5px') + ' solid ' + cor) : ((p.borda ? '2px' : '1px') + ' solid ' + (p.ativo ? cor : (p.borda || T.border)))
     }
   }, p.children);
 }
@@ -373,7 +393,7 @@ function NtFiltros(p) {
   var linha = { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 };
   var rot = { fontSize: 12, fontWeight: 800, color: T.muted, marginRight: 2 };
   var chipImp = function (k, txt, cor, corTexto) {
-    return React.createElement(NtChip, { key: k, ativo: f.imp === k, cor: cor, corTexto: corTexto, borda: k === 'todas' ? undefined : cor, onClick: function () { set('imp', k); } }, txt);
+    return React.createElement(NtChip, { key: k, ativo: f.imp === k, cor: cor, suave: true, onClick: function () { set('imp', k); } }, txt);
   };
   var datas = [['todas', 'Todas'], ['hoje', 'Hoje'], ['semana', 'Esta semana'], ['mes', 'Este mês'], ['ano', 'Este ano'], ['escolher', 'Escolher datas']];
   return React.createElement('div', null,
@@ -399,10 +419,10 @@ function NtFiltros(p) {
     ),
     aberto ? React.createElement('div', { style: linha },
       React.createElement('span', { style: rot }, 'Importância:'),
-      chipImp('todas', 'Todas', NT_ACENTO, '#fff'),
-      chipImp('importante', '1 · Importante', NT_IMP.importante.cor, NT_IMP_TEXTO),
-      chipImp('normal', '2 · Normal', NT_IMP.normal.cor, NT_IMP_TEXTO),
-      chipImp('baixo', '3 · Baixo', NT_IMP.baixo.cor, NT_IMP_TEXTO)
+      chipImp('todas', 'Todas', NT_ACENTO),
+      chipImp('importante', '1 · Importante', ntCor('importante')),
+      chipImp('normal', '2 · Normal', ntCor('normal')),
+      chipImp('baixo', '3 · Baixo', ntCor('baixo'))
     ) : null,
     aberto ? React.createElement('div', { style: linha },
       React.createElement('span', { style: rot }, 'Datas:'),
@@ -449,21 +469,60 @@ function NtCartaoDono(p) {
 
 function NtGrupoCab(p) {
   var tam = p.nivel === 0 ? 20 : p.nivel === 1 ? 16 : 13;
+  // Ano / Fixadas / níveis: barra só com contorno fino (ano 2px, os outros 1,5px). Mês e semana: só uma linha por baixo.
+  // (sem chaves com undefined: o React poria borderBottom = '' e apagava a borda de baixo do contorno)
+  var bordas = p.nivel === 0
+    ? { border: (p.fino ? '1.5px' : '2px') + ' solid ' + (p.cor || NT_ACENTO) }
+    : { border: 'none', borderBottom: '1px solid ' + T.border };
   return React.createElement('button', {
     id: p.id,
     onClick: p.onToggle,
-    style: {
+    style: Object.assign({
       display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', scrollMarginTop: 70,
-      background: p.nivel === 0 ? (p.cor || NT_ACENTO) : 'transparent', color: p.nivel === 0 ? (p.corTexto || '#fff') : T.text,
-      border: 'none', borderBottom: p.nivel === 0 ? 'none' : '1px solid ' + T.border,
+      background: p.nivel === 0 ? T.surface : 'transparent', color: T.text,
       borderRadius: p.nivel === 0 ? 12 : 0, padding: p.nivel === 0 ? '10px 14px' : '8px 4px',
       marginTop: p.nivel === 0 ? 14 : 8, marginLeft: p.nivel * 10, cursor: 'pointer',
       width: 'calc(100% - ' + (p.nivel * 10) + 'px)'
-    }
+    }, bordas)
   },
     React.createElement('span', { style: { fontSize: 12, width: 14 } }, p.minimizado ? '▶' : '▼'),
     React.createElement('span', { style: { flex: 1, fontWeight: 900, fontSize: tam } }, p.label),
     React.createElement('span', { style: { fontSize: 12, fontWeight: 700, opacity: 0.8 } }, p.count)
+  );
+}
+
+// Ecrã das caixas (só no cartão do Patricio): uma caixa grande por pasta. Padrão visual da Voz (src/16-app-voz.js,
+// VZ_CATEGORIAS 💼/🏠 e VzCategoriaTabs) e do cartão de dono das Notas, mas maior; distinguem-se pelo ícone e pelo nome.
+function NtCaixas(p) {
+  var contas = {};
+  NT_PASTAS.forEach(function (pa) {
+    var daPasta = p.notas.filter(function (n) { return ntPasta(n) === pa.key; });
+    contas[pa.key] = { total: daPasta.length, imp: daPasta.filter(function (n) { return ntImp(n) === 'importante'; }).length };
+  });
+  return React.createElement('div', null,
+    p.podeEditar ? React.createElement(NtBtn, { onClick: p.onNova }, '+ Nova nota') : null,
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: p.podeEditar ? 16 : 0 } },
+      NT_PASTAS.map(function (pa) {
+        var c = contas[pa.key];
+        return React.createElement('button', {
+          key: pa.key, type: 'button', 'aria-label': 'Abrir ' + pa.nome, onClick: function () { p.onAbrir(pa.key); },
+          style: {
+            flex: '1 1 240px', minHeight: 170, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            textAlign: 'left', background: T.surface, color: T.text, border: '2px solid ' + NT_ACENTO, borderRadius: 20, padding: '22px 22px', cursor: 'pointer'
+          }
+        },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+            React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: 46, lineHeight: 1 } }, pa.icone),
+            React.createElement('span', { style: { color: NT_ACENTO, fontSize: 30, fontWeight: 900 } }, '›')),
+          React.createElement('div', null,
+            React.createElement('div', { style: { fontSize: 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2 } }, pa.nome),
+            React.createElement('div', { style: { fontSize: 15, color: T.muted, fontWeight: 700, marginTop: 6 } }, c.total + (c.total === 1 ? ' nota' : ' notas')),
+            c.imp > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 } },
+              React.createElement(NtBadge, { imp: 'importante', curto: true }),
+              React.createElement('span', { style: { fontSize: 14, fontWeight: 800 } }, c.imp + (c.imp === 1 ? ' importante' : ' importantes'))) : null
+          ));
+      })
+    )
   );
 }
 
@@ -549,8 +608,8 @@ function NtArquivo(p) {
           React.createElement('button', {
             onClick: function () { p.onOpen(n); },
             style: {
-              display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: T.surface, border: '1px solid ' + T.border,
-              borderLeft: '5px solid ' + NT_IMP[ntImp(n)].cor, borderRadius: 12, padding: '11px 56px 11px 13px', cursor: 'pointer', color: T.text,
+              display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: T.surface,
+              border: '1.5px solid ' + ntCor(ntImp(n)), borderRadius: 12, padding: '11px 56px ' + (p.readOnly ? '11px' : '52px') + ' 13px', cursor: 'pointer', color: T.text,
               minHeight: p.readOnly ? undefined : 104
             }
           },
@@ -576,10 +635,10 @@ function NtLinha(p) {
   var n = p.nota;
   var resumo = ntResumo(n.texto);
   var imp = ntImp(n), fix = ntFixada(n);
-  var cor = NT_IMP[imp].cor;
+  var cor = ntCor(imp);
   // Wrapper (não é um <button> dentro de outro): o cartão abre a nota; copiar e fixar ficam por cima, no canto.
   return React.createElement('div', {
-    style: { display: 'flex', alignItems: 'center', gap: 2, width: 'calc(100% - ' + (p.recuo || 0) + 'px)', marginLeft: p.recuo || 0, marginTop: 8 }
+    style: { display: 'flex', alignItems: 'center', gap: 2, width: 'calc(100% - ' + (p.podeEditar ? 0 : (p.recuo || 0)) + 'px)', marginLeft: p.podeEditar ? 0 : (p.recuo || 0), marginTop: 8 }
   },
     p.podeEditar ? React.createElement(NtCirculo, { nota: n, busy: p.feitaBusy, onFeita: p.onFeita }) : null,
     React.createElement('div', { style: { position: 'relative', flex: 1, minWidth: 0 } },
@@ -587,7 +646,7 @@ function NtLinha(p) {
       onClick: function () { p.onOpen(n); },
       style: {
         display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
-        background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + cor,
+        background: T.surface, border: '1.5px solid ' + cor,
         borderRadius: 12, padding: '11px ' + (p.podeEditar ? 108 : 56) + 'px 11px 13px', cursor: 'pointer', color: T.text,
         minHeight: p.podeEditar ? 104 : undefined // espaço para copiar/fixar em cima e o caixote em baixo, sem encostarem
       }
@@ -653,7 +712,7 @@ function NtLista(p) {
   var direta = p.modo !== 'imp' && p.notas.length < NT_LIMITE_LISTA;
   if (fixadas.length) {
     var fMin = minim.has('fixadas');
-    filhos.push(React.createElement(NtGrupoCab, { key: 'g-fixadas', nivel: 0, label: '📌 Fixadas', count: fixadas.length, minimizado: fMin, onToggle: function () { toggle('fixadas'); } }));
+    filhos.push(React.createElement(NtGrupoCab, { key: 'g-fixadas', nivel: 0, fino: true, label: '📌 Fixadas', count: fixadas.length, minimizado: fMin, onToggle: function () { toggle('fixadas'); } }));
     if (!fMin) fixadas.forEach(function (n) { filhos.push(linha(n, 'fx-' + n.id)); });
   }
   if (direta) {
@@ -663,7 +722,7 @@ function NtLista(p) {
       var doNivel = resto.filter(function (n) { return ntImp(n) === nivel; }).sort(ntPorDataDesc);
       if (!doNivel.length) return;
       var k = 'i-' + nivel, kMin = minim.has(k), d = NT_IMP[nivel];
-      filhos.push(React.createElement(NtGrupoCab, { key: k, nivel: 0, label: d.num + ' · ' + d.rot, count: doNivel.length, minimizado: kMin, cor: d.cor, corTexto: NT_IMP_TEXTO, onToggle: function () { toggle(k); } }));
+      filhos.push(React.createElement(NtGrupoCab, { key: k, nivel: 0, label: d.num + ' · ' + d.rot, count: doNivel.length, minimizado: kMin, cor: ntCor(nivel), fino: true, onToggle: function () { toggle(k); } }));
       if (kMin) return;
       doNivel.forEach(function (n) { filhos.push(linha(n, n.id)); });
     });
@@ -745,12 +804,12 @@ function NtVista(p) {
   var n = p.nota;
   var cp = ntUseCopia();
   var imp = ntImp(n), fix = ntFixada(n);
-  var cor = NT_IMP[imp].cor;
+  var cor = ntCor(imp);
   // Ações secundárias: pequenas e discretas. Editar é o botão principal; Apagar vai para o fundo, separado.
   var peq = { minHeight: 36, padding: '6px 12px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: T.muted, border: '1px solid ' + T.border };
   var ativo = { background: NT_ACENTO, color: '#fff', border: '1px solid ' + NT_ACENTO };
   return React.createElement('div', null,
-    React.createElement('div', { style: { fontSize: 24, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word', borderLeft: '6px solid ' + cor, paddingLeft: 12 } }, n.titulo),
+    React.createElement('div', { style: { fontSize: 24, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word', borderLeft: '3px solid ' + cor, paddingLeft: 12 } }, n.titulo),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 } },
       React.createElement('span', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } },
         'Criada ' + ntDataFmt(n.created_at) + (n.updated_at && n.updated_at !== n.created_at ? ' · editada ' + ntDataFmt(n.updated_at) : '') + (n.feita_em ? ' · feita em ' + ntDataFmt(n.feita_em) : '')),
@@ -801,14 +860,43 @@ function NtForm(p) {
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
       NT_IMP_ORDEM.map(function (k) {
         var d = NT_IMP[k];
-        return React.createElement(NtChip, { key: k, ativo: p.imp === k, cor: d.cor, corTexto: NT_IMP_TEXTO, borda: d.cor, disabled: p.saving, onClick: function () { p.onImp(k); } }, d.num + ' · ' + d.rot);
+        return React.createElement(NtChip, { key: k, ativo: p.imp === k, cor: ntCor(k), suave: true, disabled: p.saving, onClick: function () { p.onImp(k); } }, d.num + ' · ' + d.rot);
       })
     ),
+    p.mostrarPasta ? React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Pasta') : null,
+    p.mostrarPasta ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+      NT_PASTAS.map(function (pa) {
+        return React.createElement(NtChip, { key: pa.key, ativo: p.pasta === pa.key, disabled: p.saving, onClick: function () { p.onPasta(pa.key); } }, pa.icone + ' ' + pa.nome);
+      })
+    ) : null,
     p.erro ? React.createElement('div', { style: { color: T.red, fontSize: 13, fontWeight: 700, marginTop: 10 } }, p.erro) : null,
     React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
       React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: p.saving, onClick: p.onCancelar }, 'Cancelar'),
       React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim(), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : 'Criar nota'))
     )
+  );
+}
+
+// Barra de topo das Notas. Só aspeto e área de toque: o voltar faz exactamente o mesmo de antes (onBack).
+function NtTopBar(p) {
+  return React.createElement('div', {
+    style: {
+      position: 'sticky', top: 0, zIndex: 200, boxSizing: 'border-box', minHeight: 56, display: 'flex', alignItems: 'center',
+      background: T.surface, borderBottom: '1px solid ' + T.goldBrd, padding: '0 12px 0 4px'
+    }
+  },
+    p.onBack ? React.createElement('button', {
+      type: 'button', 'aria-label': 'Voltar', onClick: p.onBack,
+      style: {
+        flex: '1 1 auto', minWidth: 48, height: 56, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 6,
+        background: 'none', border: 'none', padding: '0 8px', margin: 0, textAlign: 'left', cursor: 'pointer', color: T.text
+      }
+    },
+      React.createElement('svg', { width: 30, height: 30, viewBox: '0 0 24 24', fill: 'none', stroke: T.gold, strokeWidth: 3.2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', style: { flex: '0 0 30px' } },
+        React.createElement('path', { d: 'M15 5 L8 12 L15 19' })),
+      React.createElement('span', { style: { flex: '1 1 auto', minWidth: 0, fontWeight: 800, fontSize: 17, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, p.title)
+    ) : React.createElement('span', { style: { flex: '1 1 auto', minWidth: 0, padding: '0 14px', fontWeight: 800, fontSize: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, p.title),
+    p.right ? React.createElement('div', { style: { flex: '0 0 auto', marginLeft: 8 } }, p.right) : null
   );
 }
 
@@ -837,6 +925,8 @@ function NotasApp(props) {
   var purgaFeita = React.useRef(false);
   var carregarRef = React.useRef(null);
   var _fi = React.useState('normal'); var fImp = _fi[0], setFImp = _fi[1];
+  var _ps = React.useState(null); var pasta = _ps[0], setPasta = _ps[1];        // pasta aberta no cartão do Patricio (null = ecrã das caixas)
+  var _fp = React.useState('privado'); var fPasta = _fp[0], setFPasta = _fp[1]; // pasta escolhida no formulário
   var _md = React.useState(ntLerVista); var modo = _md[0], setModoRaw = _md[1]; // data | imp (guardado só neste aparelho)
   var _bs = React.useState(''); var busca = _bs[0], setBusca = _bs[1];
   var _ff = React.useState(NT_FILTROS_VAZIOS); var filtros = _ff[0], setFiltros = _ff[1];
@@ -890,11 +980,13 @@ function NotasApp(props) {
   React.useEffect(function () { return window.csAoVoltarRede(function () { carregarRef.current(); }); }, []);
 
   var podeEditar = cartao ? ntPodeEditar(cartao, myId) : false;
-  var doCartao = cartao ? notas.filter(function (n) { return n.dono === cartao; }) : [];
+  var usaPastas = cartao === 'patricio'; // só o cartão do Patricio tem caixas; os outros ficam como estão
+  var doTodos = cartao ? notas.filter(function (n) { return n.dono === cartao; }) : [];
+  var doCartao = usaPastas && pasta ? doTodos.filter(function (n) { return ntPasta(n) === pasta; }) : doTodos;
   var ativas = doCartao.filter(ntNaLista); // as arquivadas (feita_em) NÃO entram na lista, filtros, pesquisa, Fixadas nem por importância
   var arquivadas = doCartao.filter(ntNoArquivo).sort(function (a, b) { return new Date(b.feita_em) - new Date(a.feita_em); });
   var arquivadasVis = ntFiltrar(arquivadas, NT_FILTROS_VAZIOS, buscaArq, new Date());
-  var lixo = doCartao.filter(function (n) { return !ntAtiva(n); }).sort(function (a, b) { return new Date(b.deleted_at) - new Date(a.deleted_at); });
+  var lixo = doTodos.filter(function (n) { return !ntAtiva(n); }).sort(function (a, b) { return new Date(b.deleted_at) - new Date(a.deleted_at); });
   var notaSel = null;
   if (selId) { for (var i = 0; i < notas.length; i++) { if (notas[i].id === selId) { notaSel = notas[i]; break; } } }
 
@@ -903,11 +995,11 @@ function NotasApp(props) {
 
   function abrirNova() {
     if (!podeEditar) return;
-    setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFErro(''); setVista('form');
+    setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro(''); setVista('form');
   }
   function abrirEditar(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
-    setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFErro(''); setVista('form');
+    setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFPasta(ntPasta(n)); setFErro(''); setVista('form');
   }
   function cancelarForm() {
     if (savingRef.current) return;
@@ -936,6 +1028,7 @@ function NotasApp(props) {
       if (titulo !== anterior.titulo) { patch.titulo = titulo; mudouConteudo = true; }
       if (fTexto !== (anterior.texto || '')) { patch.texto = fTexto; mudouConteudo = true; }
       if (fImp !== ntImp(anterior)) patch.importancia = fImp;
+      if (usaPastas && fPasta !== ntPasta(anterior)) patch.pasta = fPasta; // mudar só a pasta envia só id e pasta
       if (mudouConteudo) patch.updated_at = agoraIso;
       if (!Object.keys(patch).length) { // nada mudou: fecha sem pedir nada
         setFErro(''); setFTitulo(''); setFTexto(''); setFImp('normal'); setEditId(null); setVista('nota');
@@ -953,13 +1046,14 @@ function NotasApp(props) {
       removeOptimistic = function () {};
       consulta = db.from('notas_notas').update(patch).eq('id', idEd).select('id');
     } else {
-      var nova = { id: ntNovoId(), dono: cartao, titulo: titulo, texto: fTexto, importancia: fImp, fixada: false, created_at: agoraIso, updated_at: agoraIso, deleted_at: null };
+      var nova = { id: ntNovoId(), dono: cartao, titulo: titulo, texto: fTexto, importancia: fImp, fixada: false, pasta: usaPastas ? fPasta : 'privado', created_at: agoraIso, updated_at: agoraIso, deleted_at: null };
       setNotas(function (p) { return [nova].concat(p); });
       removeOptimistic = function () {
         setNotas(function (p) { return p.filter(function (n) { return n.id !== nova.id; }); });
       };
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
+      if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
       consulta = db.from('notas_notas').insert(linhaNova);
     }
     var ok = false;
@@ -982,6 +1076,7 @@ function NotasApp(props) {
       setFTitulo(''); setFTexto(''); setFImp('normal');
       var idFinal = editId;
       setEditId(null);
+      if (usaPastas && !idFinal) setPasta(fPasta); // nota nova: abre a pasta onde ficou
       setVista(idFinal ? 'nota' : 'lista');
       carregarRef.current();
     }).catch(function (e) {
@@ -1159,6 +1254,7 @@ function NotasApp(props) {
     if (vista === 'form') { cancelarForm(); return; }
     if (vista === 'nota') { setSelId(null); setVista(notaOrigem === 'arquivo' ? 'arquivo' : 'lista'); return; }
     if (vista === 'lixo' || vista === 'arquivo') { setSelId(null); setVista('lista'); return; }
+    if (usaPastas && pasta) { resetFiltros(); setPasta(null); return; } // da pasta volta às caixas
     setErroGrav('');
     resetFiltros();
     setCartao(null);
@@ -1166,13 +1262,13 @@ function NotasApp(props) {
 
   var titulo = 'Notas Carvalho';
   if (cartao) {
-    titulo = (cartao === myId && profile.display_name ? profile.display_name : NT_NOMES[cartao]) + (vista === 'lixo' ? ' · Lixo' : vista === 'arquivo' ? ' · Arquivo' : '');
+    titulo = (usaPastas && pasta ? ntNomePasta(pasta) : (cartao === myId && profile.display_name ? profile.display_name : NT_NOMES[cartao])) + (vista === 'lixo' ? ' · Lixo' : vista === 'arquivo' ? ' · Arquivo' : '');
   }
   var direita = null;
   if (cartao && vista === 'lista') {
-    var estiloTopo = { background: 'none', border: '1px solid ' + T.border, color: T.text, borderRadius: 10, padding: '6px 10px', fontSize: 13, fontWeight: 800, cursor: 'pointer' };
+    var estiloTopo = { background: 'none', border: '1px solid ' + T.border, color: T.text, borderRadius: 10, padding: '6px 9px', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
     direita = React.createElement('div', { style: { display: 'flex', gap: 6 } },
-      React.createElement('button', { onClick: function () { setBuscaArq(''); setVista('arquivo'); }, style: estiloTopo }, '📦 Arquivo' + (arquivadas.length ? ' (' + arquivadas.length + ')' : '')),
+      usaPastas && !pasta ? null : React.createElement('button', { onClick: function () { setBuscaArq(''); setVista('arquivo'); }, style: estiloTopo }, '📦 Arquivo' + (arquivadas.length ? ' (' + arquivadas.length + ')' : '')),
       React.createElement('button', { onClick: function () { setVista('lixo'); }, style: estiloTopo }, '🗑 Lixo' + (lixo.length ? ' (' + lixo.length + ')' : ''))
     );
   }
@@ -1190,11 +1286,12 @@ function NotasApp(props) {
         var n = notas.filter(function (x) { return x.dono === d && ntNaLista(x); }).length;
         var nome = d === myId && profile.display_name ? profile.display_name : NT_NOMES[d];
         var sub = (d === myId ? 'As minhas notas' : d === 'familia' ? 'Partilhadas por todos' : 'Só leitura') + ' · ' + n + (n === 1 ? ' nota' : ' notas');
-        return React.createElement(NtCartaoDono, { key: d, emoji: NT_EMOJIS[d], nome: nome, sub: sub, onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setCartao(d); } });
+        return React.createElement(NtCartaoDono, { key: d, emoji: NT_EMOJIS[d], nome: nome, sub: sub, onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setPasta(null); setCartao(d); } });
       }));
   } else if (vista === 'form') {
     corpo = React.createElement(NtForm, {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
+      mostrarPasta: usaPastas && podeEditar, pasta: fPasta, onPasta: setFPasta,
       onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm
     });
   } else if (vista === 'nota') {
@@ -1209,6 +1306,8 @@ function NotasApp(props) {
     });
   } else if (vista === 'lixo') {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
+  } else if (usaPastas && !pasta) {
+    corpo = React.createElement(NtCaixas, { notas: doTodos.filter(ntNaLista), podeEditar: podeEditar, onNova: abrirNova, onAbrir: function (k) { resetFiltros(); setPasta(k); } });
   } else {
     // Vista, pesquisa e filtros são só estado do ecrã: nunca gravam nem pedem nada ao Supabase.
     var filtrando = ntFiltrosAtivos(filtros, busca);
@@ -1228,7 +1327,7 @@ function NotasApp(props) {
   }
 
   return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 60 }) },
-    React.createElement(TopBar, { onBack: voltar, title: titulo, right: direita }),
+    React.createElement(NtTopBar, { onBack: voltar, title: titulo, right: direita }),
     React.createElement('div', { style: { padding: '16px 16px 0', maxWidth: 640, margin: '0 auto' } },
       erroGrav && vista !== 'form' ? React.createElement(NtAvisoErro, { texto: erroGrav, onFechar: function () { setErroGrav(''); } }) : null,
       corpo),
