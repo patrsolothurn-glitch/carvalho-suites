@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T15:29:27.375Z
+  Gerado em: 2026-11-06T16:36:45.229Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-462";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-463";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -47114,7 +47114,8 @@ function NtLinha(p) {
       style: {
         display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
         background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + cor,
-        borderRadius: 12, padding: '11px ' + (p.podeEditar ? 108 : 56) + 'px 11px 13px', cursor: 'pointer', color: T.text
+        borderRadius: 12, padding: '11px ' + (p.podeEditar ? 108 : 56) + 'px 11px 13px', cursor: 'pointer', color: T.text,
+        minHeight: p.podeEditar ? 104 : undefined // espaço para copiar/fixar em cima e o caixote em baixo, sem encostarem
       }
     },
       React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
@@ -47140,7 +47141,26 @@ function NtLinha(p) {
         border: '2px solid ' + (fix ? NT_ACENTO : T.border), borderRadius: 12, fontSize: 20, lineHeight: 1,
         cursor: p.fixBusy ? 'default' : 'pointer', opacity: p.fixBusy ? 0.55 : (fix ? 1 : 0.8)
       }
-    }, '📌') : null
+    }, '📌') : null,
+    // Apagar (canto inferior direito, afastado de copiar e fixar): pede confirmação; só em cartões editáveis.
+    p.podeEditar ? React.createElement('button', {
+      type: 'button',
+      disabled: !!p.apagarBusy,
+      'aria-label': 'Mover para o Lixo',
+      title: 'Mover para o Lixo',
+      onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); p.onApagar(n); },
+      style: {
+        position: 'absolute', bottom: 4, right: 4, width: 40, height: 40, boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+        background: T.surface2, color: T.red, border: '2px solid ' + T.red, borderRadius: 12,
+        cursor: p.apagarBusy ? 'default' : 'pointer', opacity: p.apagarBusy ? 0.55 : 1
+      }
+    }, React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+      React.createElement('path', { d: 'M3 6h18' }),
+      React.createElement('path', { d: 'M8 6V4h8v2' }),
+      React.createElement('path', { d: 'M6 6l1 14h10l1-14' }),
+      React.createElement('path', { d: 'M10 11v6' }),
+      React.createElement('path', { d: 'M14 11v6' }))) : null
   );
 }
 
@@ -47165,7 +47185,7 @@ function NtLista(p) {
   }
   var cur = ntChavesDe(new Date().toISOString());
   var linha = function (n, key, recuo) {
-    return React.createElement(NtLinha, { key: key, nota: n, recuo: recuo == null ? 20 : recuo, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]) });
+    return React.createElement(NtLinha, { key: key, nota: n, recuo: recuo == null ? 20 : recuo, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]), onApagar: p.onApagar, apagarBusy: p.busyId === n.id });
   };
   var filhos = [React.createElement('div', { key: 'topo', id: 'nt-topo', style: { scrollMarginTop: 70 } })];
   // Uma nota fixada aparece SÓ no bloco "Fixadas" (nas duas vistas); o resto é organizado abaixo.
@@ -47549,29 +47569,50 @@ function NotasApp(props) {
     });
   }
 
-  // Atualização por id (apagar para o Lixo / restaurar), otimista, com reverter.
+  // Mover para o Lixo / restaurar: UPDATE só de deleted_at, por id, com .select('id'). SEM atualização otimista: a nota só
+  // sai da lista (ou do Lixo) DEPOIS de a base confirmar 1 linha. Erro ou 0 linhas afetadas = erro visível (ntAvisar + faixa
+  // NtAvisoErro com a mensagem real). .then com verificação, .catch depois do .then, trava contra duplo clique.
   function mudarDeletedAt(n, valor, op, depois) {
     if (!ntPodeEditar(n.dono, myId)) return;
     if (!db || busyRef.current[n.id]) return;
     busyRef.current[n.id] = true; setBusyId(n.id);
-    setNotas(function (p) { return p.map(function (x) { return x.id === n.id ? Object.assign({}, x, { deleted_at: valor }) : x; }); });
-    var reverter = function () { setNotas(function (p) { return p.map(function (x) { return x.id === n.id ? n : x; }); }); };
+    setErroGrav('');
+    var soltar = function () { busyRef.current[n.id] = false; setBusyId(null); };
+    var oQue = valor ? 'mover a nota para o Lixo' : 'restaurar a nota';
     var ok = false;
-    db.from('notas_notas').update({ deleted_at: valor }).eq('id', n.id).then(function (res) {
-      busyRef.current[n.id] = false; setBusyId(null);
-      if (res && res.error) { ntAvisarRes(op, res.error); reverter(); return; }
+    db.from('notas_notas').update({ deleted_at: valor }).eq('id', n.id).select('id').then(function (res) {
+      soltar();
+      if (res && res.error) {
+        ntAvisarRes(op, res.error);
+        setErroGrav('Não foi possível ' + oQue + ': ' + ntMsgErro(res.error));
+        return;
+      }
+      if (!res || !res.data || !res.data.length) {
+        ntAvisar(op, new Error(NT_ZERO_LINHAS));
+        setErroGrav('Não foi possível ' + oQue + ': ' + NT_ZERO_LINHAS);
+        return;
+      }
       ok = true;
+      setNotas(function (p) { return p.map(function (x) { return x.id === n.id ? Object.assign({}, x, { deleted_at: valor }) : x; }); });
       if (depois) depois();
     }).catch(function (e) {
-      busyRef.current[n.id] = false; setBusyId(null);
+      soltar();
       if (ok) { ntLog('depois de ' + op, e); return; }
-      ntAvisar(op, e); reverter();
+      ntAvisar(op, e);
+      setErroGrav('Não foi possível ' + oQue + ': ' + ntMsgErro(e));
     });
   }
   function apagarParaLixo(n) {
     mudarDeletedAt(n, new Date().toISOString(), 'apagar nota', function () { setSelId(null); setVista('lista'); });
   }
   function restaurar(n) { mudarDeletedAt(n, null, 'restaurar nota'); }
+  // Mesmo caminho para o "Apagar nota" da nota aberta e para o caixote da lista: confirmação e depois gravação honesta.
+  function pedirApagar(n) {
+    if (!ntPodeEditar(n.dono, myId)) return;
+    if (busyRef.current[n.id]) return;
+    if (typeof window.confirm === 'function' && !window.confirm('Mover “' + n.titulo + '” para o Lixo?')) return;
+    apagarParaLixo(n);
+  }
 
   function apagarDefinitivo(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
@@ -47636,7 +47677,7 @@ function NotasApp(props) {
     });
   } else if (vista === 'nota') {
     corpo = notaSel && ntAtiva(notaSel)
-      ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar, busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { if (typeof window.confirm === 'function' && !window.confirm('Mover “' + notaSel.titulo + '” para o Lixo?')) return; apagarParaLixo(notaSel); } })
+      ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar, busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { pedirApagar(notaSel); } })
       : React.createElement('div', { style: { color: T.muted, textAlign: 'center', padding: 30 } }, 'Nota não encontrada.');
   } else if (vista === 'lixo') {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
@@ -47654,7 +47695,7 @@ function NotasApp(props) {
         ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, 'Nenhuma nota com estes filtros')
         : React.createElement(NtLista, {
             key: cartao + '|' + modo + '|' + (filtrando ? 'f' : 'n'), notas: filtradas, readOnly: !podeEditar, modo: modo, filtrando: filtrando,
-            onOpen: abrirNota, onFixar: alternarFixada, fixBusy: fixBusy
+            onOpen: abrirNota, onFixar: alternarFixada, fixBusy: fixBusy, onApagar: pedirApagar, busyId: busyId
           }));
   }
 
