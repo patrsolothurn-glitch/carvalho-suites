@@ -1,0 +1,8 @@
+-- ===================== SQL para correr (JÁ CORRIDO) =====================
+-- Cópia de documentação (escrita a partir da descrição, não é o ficheiro corrido): política nova
+-- "cofre: admin lê" em public.notas_cofre. JÁ CORRIDO no Supabase pelo utilizador — NÃO correr outra
+-- vez e NÃO foi corrido pelo Claude Code.
+-- Efeito: quem tem profiles.is_admin pode LER (select) as entradas de qualquer dono. Escrever
+-- (insert/update/delete) continua só para o dono. Substitui a regra anterior (sql/39) de que o admin
+-- não lê os cofres dos outros. Usado pelo painel só de leitura "Cofres da família" (src/23-app-notas.js).
+-- (a definição exata da política foi escrita pelo utilizador; não se repete aqui)

@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T21:06:34.536Z
+  Gerado em: 2026-11-06T21:28:29.340Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-465";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-466";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -47207,7 +47207,8 @@ function NtCaixas(p) {
   return React.createElement('div', null,
     p.podeEditar ? React.createElement(NtBtn, { onClick: p.onNova }, '+ Nova nota') : null,
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: p.podeEditar ? 16 : 0 } },
-      p.cofre ? React.createElement(NtCaixaCofre, { key: 'cofre', onAbrir: p.cofre.onAbrir, }) : null,
+      p.cofre ? React.createElement(NtCaixaCofre, { key: 'cofre', onAbrir: p.cofre.onAbrir }) : null,
+      p.cofre && p.cofre.onFamilia ? React.createElement(NtCaixaCofre, { key: 'familia', rotulo: 'Cofres da família', icone: '👪🔑', onAbrir: p.cofre.onFamilia }) : null,
       NT_PASTAS.map(function (pa) {
         var c = contas[pa.key];
         return React.createElement('button', {
@@ -47667,11 +47668,11 @@ function NtCaixaCofre(p) {
     border: '2px solid ' + NT_ACENTO, borderRadius: 20, padding: p.compacta ? '14px 18px' : '22px 22px', cursor: 'pointer', width: p.compacta ? '100%' : undefined
   };
   return React.createElement('div', { style: { position: 'relative', flex: p.compacta ? undefined : '1 1 240px', display: 'flex', width: p.compacta ? '100%' : undefined, marginBottom: p.compacta ? 14 : 0 } },
-    React.createElement('button', { type: 'button', 'aria-label': 'Abrir Passwords', onClick: p.onAbrir, style: base },
+    React.createElement('button', { type: 'button', 'aria-label': 'Abrir ' + (p.rotulo || 'Passwords'), onClick: p.onAbrir, style: base },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', width: p.compacta ? undefined : '100%' } },
-        React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: p.compacta ? 34 : 46, lineHeight: 1 } }, '🔑'),
+        React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: p.compacta ? 34 : 46, lineHeight: 1 } }, p.icone || '🔑'),
         p.compacta ? null : React.createElement('span', { style: { color: NT_ACENTO, fontSize: 30, fontWeight: 900 } }, '›')),
-      React.createElement('div', { style: { fontSize: p.compacta ? 22 : 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2 } }, 'Passwords'))
+      React.createElement('div', { style: { fontSize: p.compacta ? 22 : 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2 } }, p.rotulo || 'Passwords'))
   );
 }
 
@@ -47951,6 +47952,196 @@ function NtCofre(p) {
     corpo);
 }
 
+// Painel "Cofres da família" — SÓ para o admin e SÓ LEITURA. Abre com o código do PRÓPRIO admin (notas_cofre_pin do admin).
+// Lê as entradas de Cristina/Lucas/Liam (política "cofre: admin lê"). Não faz NENHUM pedido de escrita.
+// É um cadeado de ecrã, NÃO encriptação. Ao trancar, sair ou ir para segundo plano, limpa tudo da memória.
+var NT_FAMILIA_PESSOAS = ['esposa', 'lucas', 'liam'];
+function NtCofresFamilia(p) {
+  var db = p.db, adminId = p.adminId;
+  var _c = React.useState('a-carregar'); var estado = _c[0], setEstado = _c[1];   // a-carregar | sem-codigo | pedir | erro
+  var _pn = React.useState(null); var pin = _pn[0], setPin = _pn[1];
+  var _u = React.useState(false); var aberto = _u[0], setAberto = _u[1];
+  var _ct = React.useState(null); var contas = _ct[0], setContas = _ct[1];       // { dono: nº de entradas }
+  var _ps = React.useState(null); var pessoa = _ps[0], setPessoa = _ps[1];
+  var _en = React.useState([]); var entradas = _en[0], setEntradas = _en[1];
+  var _ce = React.useState(false); var carregaEnt = _ce[0], setCarregaEnt = _ce[1];
+  var _bq = React.useState(''); var busca = _bq[0], setBusca = _bq[1];
+  var _vm = React.useState({}); var mostrar = _vm[0], setMostrar = _vm[1];
+  var _cp = React.useState(''); var copiado = _cp[0], setCopiado = _cp[1];
+  var _er = React.useState(''); var erro = _er[0], setErro = _er[1];
+  var _vr = React.useState(''); var verif = _vr[0], setVerif = _vr[1];
+  var _tk = React.useState(0); var tick = _tk[0], setTick = _tk[1];
+  var _aa = React.useState(''); var aviso = _aa[0], setAviso = _aa[1];
+  var vivo = React.useRef(true);
+  var tTranca = React.useRef(null);
+  var tVer = React.useRef({});
+  var tCopia = React.useRef(null);
+
+  function limparTimersVer() { Object.keys(tVer.current).forEach(function (k) { clearTimeout(tVer.current[k]); }); tVer.current = {}; }
+  function trancar() {
+    if (tTranca.current) { clearTimeout(tTranca.current); tTranca.current = null; }
+    limparTimersVer();
+    if (tCopia.current) { clearTimeout(tCopia.current); tCopia.current = null; }
+    if (!vivo.current) return;
+    setAberto(false); setContas(null); setPessoa(null); setEntradas([]); setMostrar({}); setCopiado('');
+    setErro(''); setBusca(''); setAviso('');
+  }
+  function atividade() {
+    if (!aberto) return;
+    if (tTranca.current) clearTimeout(tTranca.current);
+    tTranca.current = setTimeout(trancar, NT_COFRE_TRANCA_MS);
+  }
+  React.useEffect(function () {
+    if (aberto) { if (tTranca.current) clearTimeout(tTranca.current); tTranca.current = setTimeout(trancar, NT_COFRE_TRANCA_MS); }
+  }, [aberto]);
+  React.useEffect(function () {
+    var oculta = function () { if (document.hidden) trancar(); };
+    document.addEventListener('visibilitychange', oculta);
+    window.addEventListener('pagehide', trancar);
+    return function () {
+      vivo.current = false;
+      document.removeEventListener('visibilitychange', oculta);
+      window.removeEventListener('pagehide', trancar);
+      if (tTranca.current) clearTimeout(tTranca.current);
+      if (tCopia.current) clearTimeout(tCopia.current);
+      Object.keys(tVer.current).forEach(function (k) { clearTimeout(tVer.current[k]); });
+    };
+  }, []);
+
+  React.useEffect(function () {
+    if (!db) { setEstado('erro'); setErro('Sem ligação ao servidor.'); return; }
+    db.from('notas_cofre_pin').select('salt,hash').eq('dono', adminId).then(function (res) {
+      if (!vivo.current) return;
+      if (res && res.error) { ntCofreAvisar('ler o código do cofre', res.error); setErro('Não foi possível abrir o painel: ' + ntCofreMsg(res.error)); setEstado('erro'); return; }
+      var r = res && res.data && res.data[0];
+      if (!r || !r.salt || !r.hash) { setEstado('sem-codigo'); return; }
+      setPin({ salt: r.salt, hash: r.hash }); setEstado('pedir');
+    }).catch(function (e) { ntCofreAvisar('ler o código do cofre', e); if (vivo.current) { setErro('Não foi possível abrir o painel: ' + ntCofreMsg(e)); setEstado('erro'); } });
+  }, []);
+
+  var tent = NT_COFRE_TENT[adminId] || { n: 0, ate: 0 };
+  var restante = Math.max(0, Math.ceil((tent.ate - Date.now()) / 1000));
+  React.useEffect(function () {
+    if (!restante) return;
+    var iv = setInterval(function () { setTick(function (t) { return t + 1; }); }, 1000);
+    return function () { clearInterval(iv); };
+  }, [restante > 0]);
+
+  function carregarContas() {
+    db.from('notas_cofre').select('dono').in('dono', NT_FAMILIA_PESSOAS).then(function (res) {
+      if (!vivo.current) return;
+      if (res && res.error) { ntCofreAvisar('contar entradas dos cofres', res.error); setErro('Não foi possível ler os cofres: ' + ntCofreMsg(res.error)); setContas({}); return; }
+      var m = {}; ((res && res.data) || []).forEach(function (r) { m[r.dono] = (m[r.dono] || 0) + 1; }); setContas(m);
+    }).catch(function (e) { ntCofreAvisar('contar entradas dos cofres', e); if (vivo.current) { setErro('Não foi possível ler os cofres: ' + ntCofreMsg(e)); setContas({}); } });
+  }
+  function abrirPessoa(d) {
+    setPessoa(d); setEntradas([]); setBusca(''); setMostrar({}); limparTimersVer(); setErro(''); setCarregaEnt(true);
+    db.from('notas_cofre').select('id,titulo,utilizador,segredo,nota,created_at').eq('dono', d).order('titulo', { ascending: true }).then(function (res) {
+      if (!vivo.current) return;
+      setCarregaEnt(false);
+      if (res && res.error) { ntCofreAvisar('ler o cofre de outra pessoa', res.error); setErro('Não foi possível ler as entradas: ' + ntCofreMsg(res.error)); return; }
+      setEntradas((res && res.data) || []);
+    }).catch(function (e) { ntCofreAvisar('ler o cofre de outra pessoa', e); if (vivo.current) { setCarregaEnt(false); setErro('Não foi possível ler as entradas: ' + ntCofreMsg(e)); } });
+  }
+  function fecharPessoa() { limparTimersVer(); setPessoa(null); setEntradas([]); setMostrar({}); setBusca(''); setCopiado(''); carregarContas(); }
+
+  function tentar(codigo) {
+    if (!pin || verif || restante) return;
+    setVerif('a-verificar'); setAviso('');
+    ntCofreHash(codigo, pin.salt).then(function (h) {
+      if (!vivo.current) return;
+      setVerif('');
+      if (ntCofreIgual(h, pin.hash)) { NT_COFRE_TENT[adminId] = { n: 0, ate: 0 }; setErro(''); setAberto(true); carregarContas(); return; }
+      var t = NT_COFRE_TENT[adminId] || { n: 0, ate: 0 };
+      var n = t.n + 1;
+      if (n >= NT_COFRE_TENTATIVAS) { NT_COFRE_TENT[adminId] = { n: 0, ate: Date.now() + NT_COFRE_BLOQUEIO_S * 1000 }; setAviso(''); }
+      else { NT_COFRE_TENT[adminId] = { n: n, ate: 0 }; setAviso('Código errado (' + n + ' de ' + NT_COFRE_TENTATIVAS + ').'); }
+      setTick(function (x) { return x + 1; });
+    }).catch(function (e) { ntCofreAvisar('verificar o código do cofre', e); if (vivo.current) { setVerif(''); setErro('Não foi possível verificar o código: ' + ntCofreMsg(e)); } });
+  }
+
+  function ver(id) {
+    setMostrar(function (m) { var n = Object.assign({}, m); n[id] = true; return n; });
+    if (tVer.current[id]) clearTimeout(tVer.current[id]);
+    tVer.current[id] = setTimeout(function () {
+      delete tVer.current[id];
+      if (vivo.current) setMostrar(function (m) { var n = Object.assign({}, m); delete n[id]; return n; });
+    }, NT_COFRE_VER_MS);
+  }
+  function esconder(id) {
+    if (tVer.current[id]) { clearTimeout(tVer.current[id]); delete tVer.current[id]; }
+    setMostrar(function (m) { var n = Object.assign({}, m); delete n[id]; return n; });
+  }
+  function copiar(e, campo) {
+    ntCopiarTexto((campo === 'segredo' ? e.segredo : e.utilizador) || '').then(function () {
+      if (!vivo.current) return;
+      setCopiado(e.id + ':' + campo);
+      if (tCopia.current) clearTimeout(tCopia.current);
+      tCopia.current = setTimeout(function () { tCopia.current = null; if (vivo.current) setCopiado(''); }, 1500);
+    }, function () {
+      ntAvisar('copiar do cofre', { message: 'Não foi possível copiar para a área de transferência.' });
+      if (vivo.current) setErro('Não foi possível copiar para a área de transferência.');
+    });
+  }
+
+  var nota = function (txt, cor) { return React.createElement('div', { style: { textAlign: 'center', color: cor || T.muted, fontWeight: 700, fontSize: 14, padding: '24px 10px' } }, txt); };
+  var corpo;
+  if (estado === 'a-carregar') corpo = nota('A carregar…');
+  else if (estado === 'erro') corpo = erro ? null : nota('Não foi possível abrir o painel.');
+  else if (estado === 'sem-codigo') corpo = nota('O Patricio ainda não definiu o teu código');
+  else if (!aberto) {
+    corpo = React.createElement('div', { style: { padding: '8px 0' } },
+      React.createElement(NtCofreTeclado, { titulo: restante ? 'Painel bloqueado' : 'Introduz o teu código', onCompleto: tentar, disabled: !!restante || !!verif }),
+      restante ? React.createElement('div', { role: 'alert', style: { textAlign: 'center', color: T.red, fontWeight: 800, marginTop: 14 } }, 'Demasiados erros. Espera ' + restante + ' s.') :
+        aviso ? React.createElement('div', { role: 'alert', style: { textAlign: 'center', color: T.red, fontWeight: 800, marginTop: 14 } }, aviso) : null);
+  } else {
+    var aviso2 = React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 10 } }, 'Estás a ver passwords de outra pessoa. Só para ajudar, não as partilhes.');
+    var lerSo = React.createElement('div', { style: { display: 'inline-block', fontSize: 12, fontWeight: 800, color: T.muted, border: '1px solid ' + T.border, borderRadius: 8, padding: '3px 8px', marginBottom: 10 } }, '👁 Só leitura');
+    var trancarBtn = React.createElement('div', { style: { textAlign: 'center', marginTop: 8 } }, React.createElement('button', { type: 'button', style: ntCofreMini, onClick: trancar }, '🔒 Trancar agora'));
+    if (!pessoa) {
+      corpo = React.createElement('div', null, aviso2, lerSo,
+        NT_FAMILIA_PESSOAS.map(function (d) {
+          var c = contas ? (contas[d] || 0) : null;
+          return React.createElement('button', { key: d, type: 'button', 'aria-label': 'Abrir cofre de ' + NT_NOMES[d], onClick: function () { abrirPessoa(d); },
+            style: { display: 'flex', alignItems: 'center', gap: 12, width: '100%', boxSizing: 'border-box', textAlign: 'left', background: T.surface, color: T.text, border: '2px solid ' + NT_ACENTO, borderRadius: 16, padding: '14px 14px', minHeight: 64, marginBottom: 10, cursor: 'pointer' } },
+            React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: 30 } }, NT_EMOJIS[d]),
+            React.createElement('span', { style: { flex: 1, minWidth: 0 } },
+              React.createElement('div', { style: { fontSize: 18, fontWeight: 900 } }, NT_NOMES[d]),
+              React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 600 } }, c === null ? '…' : c + (c === 1 ? ' entrada' : ' entradas'))),
+            React.createElement('span', { style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900 } }, '›'));
+        }), trancarBtn);
+    } else {
+      var q = ntNorm(busca.trim());
+      var vis = entradas.filter(function (e) { return !q || ntNorm(e.titulo).indexOf(q) !== -1; });
+      corpo = React.createElement('div', null, aviso2,
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 } },
+          React.createElement('button', { type: 'button', style: ntCofreMini, onClick: fecharPessoa }, '‹ Pessoas'),
+          React.createElement('div', { style: { fontWeight: 900, fontSize: 17 } }, 'Cofre de ' + NT_NOMES[pessoa])),
+        lerSo,
+        entradas.length ? React.createElement('input', { type: 'search', name: 'cofre-pesquisa', value: busca, autoComplete: 'off', placeholder: 'Pesquisar por título', 'aria-label': 'Pesquisar por título', onChange: function (e) { setBusca(e.target.value); }, style: Object.assign({}, ntCofreInp, { marginBottom: 12 }) }) : null,
+        carregaEnt ? nota('A carregar…') : null,
+        !carregaEnt && !entradas.length && !erro ? nota('Sem entradas.') : null,
+        !carregaEnt && entradas.length && !vis.length ? nota('Nenhuma entrada com esse título.') : null,
+        vis.map(function (e) {
+          var visivel = !!mostrar[e.id];
+          return React.createElement('div', { key: e.id, style: { background: T.surface, border: '1px solid ' + T.border, borderRadius: 14, padding: '12px 14px', marginBottom: 10 } },
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 16, wordBreak: 'break-word' } }, e.titulo),
+            e.utilizador ? React.createElement('div', { style: { fontSize: 14, color: T.muted, fontWeight: 600, wordBreak: 'break-word', marginTop: 2 } }, e.utilizador) : null,
+            React.createElement('div', { style: { fontSize: 16, fontWeight: 700, fontFamily: 'monospace', marginTop: 6, wordBreak: 'break-all' } }, visivel ? (e.segredo || '(vazia)') : '••••••'),
+            e.nota ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, e.nota) : null,
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 } },
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { if (visivel) esconder(e.id); else ver(e.id); } }, visivel ? 'Esconder' : 'Ver'),
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { copiar(e, 'utilizador'); } }, copiado === e.id + ':utilizador' ? '✓ Copiado' : 'Copiar utilizador'),
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { copiar(e, 'segredo'); } }, copiado === e.id + ':segredo' ? '✓ Copiado' : 'Copiar password')));
+        }),
+        trancarBtn);
+    }
+  }
+  return React.createElement('div', { 'data-cofre-familia': aberto ? 'aberto' : 'fechado', onPointerDown: atividade, onKeyDown: atividade, onClick: atividade, onInput: atividade },
+    erro ? React.createElement(NtAvisoErro, { texto: erro, onFechar: function () { setErro(''); } }) : null,
+    corpo);
+}
+
 // ── APP ─────────────────────────────────────────────────────────────
 function NotasApp(props) {
   var onBack = props.onBack, profile = props.profile || {};
@@ -47987,7 +48178,7 @@ function NotasApp(props) {
   var _bd = React.useState(null); var desfazer = _bd[0], setDesfazer = _bd[1];   // barra "Nota arquivada · Anular"
   var _ba = React.useState(''); var buscaArq = _ba[0], setBuscaArq = _ba[1];     // pesquisa dentro do Arquivo
   var _no = React.useState('lista'); var notaOrigem = _no[0], setNotaOrigem = _no[1]; // de onde se abriu a nota
-  var _cm = React.useState(null); var cofreModo = _cm[0], setCofreModo = _cm[1]; // null | 'cofre' (cofre de passwords)
+  var _cm = React.useState(null); var cofreModo = _cm[0], setCofreModo = _cm[1]; // null | 'cofre' | 'familia' (cofre de passwords; 'familia' = painel só leitura do admin)
   var _cd = React.useState(null); var codigos = _cd[0], setCodigos = _cd[1];   // admin: { dono: true } de quem tem código (só colunas dono, updated_at)
   var desfazerTimer = React.useRef(null);
   React.useEffect(function () { return function () { if (desfazerTimer.current) clearTimeout(desfazerTimer.current); }; }, []);
@@ -48328,7 +48519,7 @@ function NotasApp(props) {
 
   var titulo = 'Notas Carvalho';
   if (cartao && cofreModo && temCofre) {
-    titulo = 'Passwords';
+    titulo = cofreModo === 'familia' && isAdmin ? 'Cofres da família' : 'Passwords';
   } else if (cartao) {
     titulo = (usaPastas && pasta ? ntNomePasta(pasta) : (cartao === myId && profile.display_name ? profile.display_name : NT_NOMES[cartao])) + (vista === 'lixo' ? ' · Lixo' : vista === 'arquivo' ? ' · Arquivo' : '');
   }
@@ -48361,7 +48552,9 @@ function NotasApp(props) {
           onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setPasta(null); setCartao(d); } });
       }));
   } else if (cofreModo && temCofre) {
-    corpo = React.createElement(NtCofre, { key: 'cofre|' + myId, db: db, dono: myId });
+    corpo = cofreModo === 'familia'
+      ? (isAdmin ? React.createElement(NtCofresFamilia, { key: 'familia|' + myId, db: db, adminId: myId }) : null)
+      : React.createElement(NtCofre, { key: 'cofre|' + myId, db: db, dono: myId });
   } else if (vista === 'form') {
     corpo = React.createElement(NtForm, {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
@@ -48382,7 +48575,7 @@ function NotasApp(props) {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
   } else if (usaPastas && !pasta) {
     corpo = React.createElement(NtCaixas, { notas: doTodos.filter(ntNaLista), podeEditar: podeEditar, onNova: abrirNova, onAbrir: function (k) { resetFiltros(); setPasta(k); },
-      cofre: temCofre ? { onAbrir: function () { setCofreModo('cofre'); } } : null });
+      cofre: temCofre ? { onAbrir: function () { setCofreModo('cofre'); }, onFamilia: isAdmin ? function () { setCofreModo('familia'); } : null } : null });
   } else {
     // Vista, pesquisa e filtros são só estado do ecrã: nunca gravam nem pedem nada ao Supabase.
     var filtrando = ntFiltrosAtivos(filtros, busca);
