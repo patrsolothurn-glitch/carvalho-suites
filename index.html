@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T10:31:26.838Z
+  Gerado em: 2026-11-06T10:47:05.718Z
 -->
 <html lang="pt">
 <head>
@@ -46621,6 +46621,9 @@ function KotdAdmin() {
 // Apagar = Lixo (deleted_at); Lixo por cartão com restaurar e apagar
 // definitivo; no Lixo há mais de 30 dias apaga-se definitivamente ao abrir
 // (só as do próprio e da Família). Componentes todos ao nível do módulo.
+// Cada nota tem importância (normal/importante/urgente) e pode ser fixada (sql/35); a lista tem
+// copiar, pesquisa, vistas (por data / por importância) e filtros — tudo só estado do ecrã, sem
+// pedidos ao Supabase. Só fixar e mudar a importância gravam, e só a coluna alterada, por id.
 // ══════════════════════════════════════════════════════════════════
 
 var NT_ACENTO = '#EC4899';
@@ -46629,6 +46632,17 @@ var NT_NOMES = { patricio: 'Patricio', esposa: 'Cristina', lucas: 'Lucas', liam:
 var NT_EMOJIS = { patricio: '👨‍💼', esposa: '👩', lucas: '🧒', liam: '👦', familia: '🏠' };
 var NT_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 var NT_MEMBROS = ['patricio', 'esposa', 'lucas', 'liam'];
+// Importância (colunas importancia/fixada: sql/35). Cor E texto/ícone, nunca só a cor.
+var NT_URGENTE = '#DC2626';
+var NT_IMPORTANTE = '#F97316';
+var NT_IMP = {
+  normal: { rot: 'Normal', icone: '○', cor: NT_ACENTO, fundo: null, texto: null },
+  importante: { rot: 'Importante', icone: '▲', cor: NT_IMPORTANTE, fundo: NT_IMPORTANTE, texto: '#1A0F00' },
+  urgente: { rot: 'Urgente', icone: '❗', cor: NT_URGENTE, fundo: NT_URGENTE, texto: '#FFFFFF' }
+};
+var NT_IMP_ORDEM = ['urgente', 'importante', 'normal'];
+var NT_VISTA_KEY = 'notas_vista';
+var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
 
 function ntLog(op, err) {
   console.error('[notas] falha ao ' + op + ':', err);
@@ -46731,6 +46745,76 @@ function ntDataFmt(iso) {
   return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
+// Notas antigas (sem coluna / null) tratam-se como 'normal' e não fixada.
+function ntImp(n) {
+  var v = n && n.importancia;
+  return v === 'importante' || v === 'urgente' ? v : 'normal';
+}
+function ntFixada(n) { return !!(n && n.fixada === true); }
+function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
+
+// Pesquisa: sem maiúsculas nem acentos; todas as palavras têm de aparecer (título + texto).
+function ntNorm(s) {
+  var t = String(s == null ? '' : s);
+  try { t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+  return t.toLowerCase();
+}
+function ntDiaLocal(d) {
+  var p = function (x) { return (x < 10 ? '0' : '') + x; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function ntFiltrosAtivos(f, busca) {
+  return f.imp !== 'todas' || f.datas !== 'todas' || !!f.fix || !!String(busca || '').trim();
+}
+// Filtro de datas sobre created_at (hora local). Semana = segunda a domingo.
+function ntPassaData(n, f, agora) {
+  var d = new Date(n.created_at);
+  if (f.datas === 'hoje') return ntDiaLocal(d) === ntDiaLocal(agora);
+  if (f.datas === 'semana') {
+    var ini = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - ((agora.getDay() + 6) % 7));
+    var fim = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + 7);
+    return d >= ini && d < fim;
+  }
+  if (f.datas === 'mes') return d.getFullYear() === agora.getFullYear() && d.getMonth() === agora.getMonth();
+  if (f.datas === 'ano') return d.getFullYear() === agora.getFullYear();
+  if (f.datas === 'escolher') {
+    var de = f.de || '', ate = f.ate || '';
+    if (de && ate && de > ate) { var t = de; de = ate; ate = t; }
+    var dia = ntDiaLocal(d);
+    if (de && dia < de) return false;
+    if (ate && dia > ate) return false;
+  }
+  return true;
+}
+function ntFiltrar(notas, f, busca, agora) {
+  var palavras = ntNorm(busca).split(/\s+/).filter(Boolean);
+  return notas.filter(function (n) {
+    if (f.imp !== 'todas' && ntImp(n) !== f.imp) return false;
+    if (f.fix && !ntFixada(n)) return false;
+    if (!ntPassaData(n, f, agora)) return false;
+    if (palavras.length) {
+      var h = ntNorm((n.titulo || '') + ' ' + (n.texto || ''));
+      for (var i = 0; i < palavras.length; i++) { if (h.indexOf(palavras[i]) === -1) return false; }
+    }
+    return true;
+  });
+}
+// A vista escolhida fica só neste aparelho; sem localStorage (ou a falhar) a app funciona na mesma.
+function ntLerVista() {
+  try { return window.localStorage.getItem(NT_VISTA_KEY) === 'imp' ? 'imp' : 'data'; } catch (e) { return 'data'; }
+}
+function ntGuardarVista(v) {
+  try { window.localStorage.setItem(NT_VISTA_KEY, v); } catch (e) {}
+}
+function ntRolarPara(id) {
+  var el = typeof document !== 'undefined' ? document.getElementById(id) : null;
+  if (el && typeof el.scrollIntoView === 'function') {
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { el.scrollIntoView(); }
+  } else if (id === 'nt-topo' && typeof window.scrollTo === 'function') {
+    try { window.scrollTo(0, 0); } catch (e2) {}
+  }
+}
+
 // Texto copiado: título, linha em branco e o texto inteiro. Sem texto, só o título.
 function ntTextoParaCopiar(n) {
   var titulo = String(n.titulo || '');
@@ -46774,6 +46858,36 @@ function ntCopiarTexto(texto) {
   return ntCopiarPlanoB(texto) ? Promise.resolve() : falhaPlanoB();
 }
 
+// Hook de copiar (módulo): feedback ✓ ~1,5 s; se falhar tudo, window.mostrarErro('Notas', err) e nunca finge.
+function ntUseCopia() {
+  var _f = React.useState(false); var feito = _f[0], setFeito = _f[1];
+  var timer = React.useRef(null);
+  React.useEffect(function () { return function () { if (timer.current) clearTimeout(timer.current); }; }, []);
+  var marcar = function () {
+    setFeito(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(function () { timer.current = null; setFeito(false); }, 1500);
+  };
+  var falhar = function (err) {
+    setFeito(false);
+    ntLog('copiar a nota', err);
+    if (typeof window.mostrarErro === 'function') window.mostrarErro('Notas', err);
+  };
+  var copiar = function (n) { return ntCopiarTexto(ntTextoParaCopiar(n)).then(marcar, falhar); };
+  return { feito: feito, copiar: copiar };
+}
+// Partilhar: navigator.share (título + texto); sem ele (ou se falhar) cai para copiar. Não grava nada.
+function ntPartilhar(n, cp) {
+  var nav = typeof navigator !== 'undefined' ? navigator : null;
+  if (!nav || typeof nav.share !== 'function') return cp.copiar(n);
+  var pr;
+  try { pr = nav.share({ title: String(n.titulo || ''), text: String(n.texto || '').trim() ? String(n.texto) : String(n.titulo || '') }); } catch (e) { pr = Promise.reject(e); }
+  return Promise.resolve(pr).catch(function (err) {
+    if (err && err.name === 'AbortError') return undefined; // a pessoa fechou a folha de partilha
+    return cp.copiar(n);
+  });
+}
+
 // ── COMPONENTES (todos ao nível do módulo) ──────────────────────────
 function NtBtn(p) {
   var kind = p.kind || 'accent';
@@ -46793,24 +46907,11 @@ function NtBtn(p) {
 
 // Botão de copiar a nota (lista e Lixo). Não grava nada nem fala com o Supabase.
 function NtCopiar(p) {
-  var _f = React.useState(false); var feito = _f[0], setFeito = _f[1];
-  var timer = React.useRef(null);
-  React.useEffect(function () { return function () { if (timer.current) clearTimeout(timer.current); }; }, []);
-  function copiar(e) {
-    if (e && e.stopPropagation) e.stopPropagation();
-    ntCopiarTexto(ntTextoParaCopiar(p.nota)).then(function () {
-      setFeito(true);
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(function () { timer.current = null; setFeito(false); }, 1500);
-    }).catch(function (err) {
-      setFeito(false);
-      ntLog('copiar a nota', err);
-      if (typeof window.mostrarErro === 'function') window.mostrarErro('Notas', err);
-    });
-  }
+  var cp = ntUseCopia();
+  var feito = cp.feito;
   return React.createElement('button', {
     type: 'button',
-    onClick: copiar,
+    onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); cp.copiar(p.nota); },
     'aria-label': feito ? 'Nota copiada' : 'Copiar a nota',
     title: feito ? 'Nota copiada' : 'Copiar a nota',
     style: {
@@ -46821,6 +46922,104 @@ function NtCopiar(p) {
       lineHeight: 1, cursor: 'pointer'
     }
   }, feito ? '✓' : '📋');
+}
+
+// Etiqueta de importância: cor + ícone + texto.
+function NtBadge(p) {
+  var d = NT_IMP[p.imp] || NT_IMP.normal;
+  var normal = !d.texto;
+  return React.createElement('span', {
+    style: {
+      display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, lineHeight: 1,
+      padding: '3px 8px', borderRadius: 999, background: normal ? 'transparent' : d.fundo,
+      color: normal ? T.muted : d.texto, border: '1px solid ' + (normal ? T.border : d.fundo)
+    }
+  }, d.icone + ' ' + d.rot);
+}
+
+// Botão-pílula (vistas, filtros, importância no formulário).
+function NtChip(p) {
+  var cor = p.cor || NT_ACENTO;
+  return React.createElement('button', {
+    type: 'button',
+    onClick: p.onClick,
+    'aria-pressed': !!p.ativo,
+    disabled: !!p.disabled,
+    style: {
+      minHeight: 38, padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: p.disabled ? 'default' : 'pointer',
+      flex: p.grow ? 1 : undefined, background: p.ativo ? cor : T.surface2, color: p.ativo ? (p.corTexto || '#fff') : T.text,
+      border: '1px solid ' + (p.ativo ? cor : T.border)
+    }
+  }, p.children);
+}
+
+// Vista, pesquisa e filtros (só estado do ecrã: NUNCA grava nem pede nada ao Supabase).
+function NtFiltros(p) {
+  var f = p.filtros;
+  // Os filtros ficam recolhidos por omissão (num telemóvel ocupam muito); abrem sozinhos se já houver filtros ativos.
+  var _a = React.useState(!!p.filtrando); var aberto = _a[0], setAberto = _a[1];
+  var nAtivos = (f.imp !== 'todas' ? 1 : 0) + (f.datas !== 'todas' ? 1 : 0) + (f.fix ? 1 : 0);
+  var set = function (campo, valor) { var n = Object.assign({}, f); n[campo] = valor; p.onFiltros(n); };
+  var inp = {
+    boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.border,
+    borderRadius: 12, padding: '10px 12px', fontSize: 16, fontFamily: 'inherit', outline: 'none', minWidth: 0
+  };
+  var linha = { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 };
+  var rot = { fontSize: 12, fontWeight: 800, color: T.muted, marginRight: 2 };
+  var chipImp = function (k, txt, cor, corTexto) {
+    return React.createElement(NtChip, { key: k, ativo: f.imp === k, cor: cor, corTexto: corTexto, onClick: function () { set('imp', k); } }, txt);
+  };
+  var datas = [['todas', 'Todas'], ['hoje', 'Hoje'], ['semana', 'Esta semana'], ['mes', 'Este mês'], ['ano', 'Este ano'], ['escolher', 'Escolher datas']];
+  return React.createElement('div', null,
+    React.createElement('div', { style: { display: 'flex', gap: 6, marginTop: 12 } },
+      React.createElement(NtChip, { grow: true, ativo: p.modo === 'data', onClick: function () { p.onModo('data'); } }, 'Por data'),
+      React.createElement(NtChip, { grow: true, ativo: p.modo === 'imp', onClick: function () { p.onModo('imp'); } }, 'Por importância')
+    ),
+    React.createElement('div', { style: { position: 'relative', marginTop: 10 } },
+      React.createElement('input', {
+        type: 'text', value: p.busca, autoComplete: 'off', placeholder: 'Pesquisar no título e no texto…', 'aria-label': 'Pesquisar notas',
+        onChange: function (e) { p.onBusca(e.target.value); }, style: Object.assign({}, inp, { width: '100%', paddingRight: 48 })
+      }),
+      p.busca ? React.createElement('button', {
+        type: 'button', 'aria-label': 'Limpar pesquisa', onClick: function () { p.onBusca(''); },
+        style: { position: 'absolute', top: 3, right: 3, width: 40, height: 40, borderRadius: 10, border: 'none', background: 'transparent', color: T.text, fontSize: 18, fontWeight: 900, cursor: 'pointer' }
+      }, '✕') : null
+    ),
+    React.createElement('div', { style: linha },
+      React.createElement('button', {
+        type: 'button', 'aria-expanded': aberto, onClick: function () { setAberto(!aberto); },
+        style: { minHeight: 38, padding: '6px 12px', borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: 'pointer', background: nAtivos ? NT_ACENTO : T.surface2, color: nAtivos ? '#fff' : T.text, border: '1px solid ' + (nAtivos ? NT_ACENTO : T.border) }
+      }, 'Filtros ' + (aberto ? '▴' : '▾') + (nAtivos ? ' (' + nAtivos + ')' : ''))
+    ),
+    aberto ? React.createElement('div', { style: linha },
+      React.createElement('span', { style: rot }, 'Importância:'),
+      chipImp('todas', 'Todas', NT_ACENTO, '#fff'),
+      chipImp('importante', '▲ Importante', NT_IMPORTANTE, '#1A0F00'),
+      chipImp('urgente', '❗ Urgente', NT_URGENTE, '#fff')
+    ) : null,
+    aberto ? React.createElement('div', { style: linha },
+      React.createElement('span', { style: rot }, 'Datas:'),
+      datas.map(function (d) {
+        return React.createElement(NtChip, { key: d[0], ativo: f.datas === d[0], onClick: function () { set('datas', d[0]); } }, d[1]);
+      })
+    ) : null,
+    aberto && f.datas === 'escolher' ? React.createElement('div', { style: linha },
+      React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: T.muted } }, 'De',
+        React.createElement('input', { type: 'date', value: f.de, autoComplete: 'off', 'aria-label': 'Data inicial', onChange: function (e) { set('de', e.target.value); }, style: Object.assign({}, inp, { width: 150 }) })),
+      React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: T.muted } }, 'até',
+        React.createElement('input', { type: 'date', value: f.ate, autoComplete: 'off', 'aria-label': 'Data final', onChange: function (e) { set('ate', e.target.value); }, style: Object.assign({}, inp, { width: 150 }) }))
+    ) : null,
+    aberto ? React.createElement('div', { style: linha },
+      React.createElement(NtChip, { ativo: !!f.fix, onClick: function () { set('fix', !f.fix); } }, '📌 Só fixadas')
+    ) : null,
+    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 10 } },
+      React.createElement('span', { 'aria-live': 'polite', style: { fontSize: 13, fontWeight: 700, color: T.muted } },
+        p.filtrando
+          ? p.mostradas + (p.mostradas === 1 ? ' nota coincide' : ' notas coincidem') + ' (de ' + p.total + ')'
+          : p.total + (p.total === 1 ? ' nota' : ' notas')),
+      p.filtrando ? React.createElement(NtBtn, { small: true, kind: 'ghost', onClick: p.onLimpar }, 'Limpar filtros') : null
+    )
+  );
 }
 
 function NtCartaoDono(p) {
@@ -46844,10 +47043,11 @@ function NtCartaoDono(p) {
 function NtGrupoCab(p) {
   var tam = p.nivel === 0 ? 20 : p.nivel === 1 ? 16 : 13;
   return React.createElement('button', {
+    id: p.id,
     onClick: p.onToggle,
     style: {
-      display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
-      background: p.nivel === 0 ? NT_ACENTO : 'transparent', color: p.nivel === 0 ? '#fff' : T.text,
+      display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', scrollMarginTop: 70,
+      background: p.nivel === 0 ? (p.cor || NT_ACENTO) : 'transparent', color: p.nivel === 0 ? (p.corTexto || '#fff') : T.text,
       border: 'none', borderBottom: p.nivel === 0 ? 'none' : '1px solid ' + T.border,
       borderRadius: p.nivel === 0 ? 12 : 0, padding: p.nivel === 0 ? '10px 14px' : '8px 4px',
       marginTop: p.nivel === 0 ? 14 : 8, marginLeft: p.nivel * 10, cursor: 'pointer',
@@ -46863,7 +47063,9 @@ function NtGrupoCab(p) {
 function NtLinha(p) {
   var n = p.nota;
   var resumo = ntResumo(n.texto);
-  // Wrapper (não é um <button> dentro de outro): o cartão abre a nota, o botão de copiar fica por cima, no canto.
+  var imp = ntImp(n), fix = ntFixada(n);
+  var cor = imp === 'normal' ? NT_ACENTO : NT_IMP[imp].cor;
+  // Wrapper (não é um <button> dentro de outro): o cartão abre a nota; copiar e fixar ficam por cima, no canto.
   return React.createElement('div', {
     style: { position: 'relative', width: 'calc(100% - ' + (p.recuo || 0) + 'px)', marginLeft: p.recuo || 0, marginTop: 8 }
   },
@@ -46871,23 +47073,45 @@ function NtLinha(p) {
       onClick: function () { p.onOpen(n); },
       style: {
         display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
-        background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + NT_ACENTO,
-        borderRadius: 12, padding: '11px 56px 11px 13px', cursor: 'pointer', color: T.text
+        background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + cor,
+        borderRadius: 12, padding: '11px ' + (p.podeEditar ? 108 : 56) + 'px 11px 13px', cursor: 'pointer', color: T.text
       }
     },
       React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
-      React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700 } }, ntDataFmt(n.created_at)),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 } },
+        React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, ntDataFmt(n.created_at)),
+        React.createElement(NtBadge, { imp: imp }),
+        fix ? React.createElement('span', { style: { fontSize: 11, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
+      ),
       resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
     ),
-    React.createElement(NtCopiar, { nota: n })
+    React.createElement(NtCopiar, { nota: n }),
+    p.podeEditar ? React.createElement('button', {
+      type: 'button',
+      disabled: !!p.fixBusy,
+      'aria-pressed': fix,
+      'aria-label': fix ? 'Desafixar nota' : 'Fixar nota',
+      title: fix ? 'Desafixar nota' : 'Fixar nota',
+      onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); p.onFixar(n); },
+      style: {
+        position: 'absolute', top: 4, right: 52, width: 44, height: 44, boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+        background: fix ? NT_ACENTO : T.surface2, color: fix ? '#fff' : T.text,
+        border: '2px solid ' + (fix ? NT_ACENTO : T.border), borderRadius: 12, fontSize: 20, lineHeight: 1,
+        cursor: p.fixBusy ? 'default' : 'pointer', opacity: p.fixBusy ? 0.55 : (fix ? 1 : 0.8)
+      }
+    }, '📌') : null
   );
 }
 
-// Lista Ano > Mês > Semana. Só é montada depois de as notas carregarem, para o
-// useState inicial já poder calcular o Set de minimizadas (tudo menos o atual).
+// Lista. "Por data": Ano > Mês > Semana. "Por importância": Urgente, Importante, Normal (por data dentro).
+// O bloco "Fixadas" fica no topo nas duas vistas. Só é montada depois de as notas carregarem, para o useState
+// inicial já poder calcular o Set de minimizadas (tudo menos o atual; com filtros/pesquisa tudo aberto).
 function NtLista(p) {
-  var _s = React.useState(function () { return ntMinimizadasIniciais(p.notas, new Date()); });
+  var _s = React.useState(function () { return p.filtrando ? new Set() : ntMinimizadasIniciais(p.notas, new Date()); });
   var minim = _s[0], setMinim = _s[1];
+  var pend = React.useRef(false);
+  React.useEffect(function () { if (pend.current) { pend.current = false; ntRolarPara('nt-sem-atual'); } });
   var toggle = function (key) {
     setMinim(function (prev) {
       var next = new Set(prev);
@@ -46895,31 +47119,66 @@ function NtLista(p) {
       return next;
     });
   };
-  var anos = ntAgrupar(p.notas);
-  var filhos = [];
-  anos.forEach(function (a) {
-    var aMin = minim.has(a.key);
-    filhos.push(React.createElement(NtGrupoCab, { key: a.key, nivel: 0, label: a.label, count: a.n, minimizado: aMin, onToggle: function () { toggle(a.key); } }));
-    if (aMin) return;
-    a.meses.forEach(function (m) {
-      var mMin = minim.has(m.key);
-      filhos.push(React.createElement(NtGrupoCab, { key: m.key, nivel: 1, label: m.label, count: m.n, minimizado: mMin, onToggle: function () { toggle(m.key); } }));
-      if (mMin) return;
-      m.semanas.forEach(function (s) {
-        var sMin = minim.has(s.key);
-        filhos.push(React.createElement(NtGrupoCab, { key: s.key, nivel: 2, label: s.label, count: s.n, minimizado: sMin, onToggle: function () { toggle(s.key); } }));
-        if (sMin) return;
-        s.notas.forEach(function (n) {
-          filhos.push(React.createElement(NtLinha, { key: n.id, nota: n, recuo: 20, onOpen: p.onOpen }));
-        });
-      });
-    });
-  });
-  if (!anos.length) {
+  if (!p.notas.length) {
     return React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } },
       p.readOnly ? 'Sem notas.' : 'Ainda não há notas. Toca em “+ Nova nota”.');
   }
-  return React.createElement('div', null, filhos);
+  var cur = ntChavesDe(new Date().toISOString());
+  var linha = function (n, key) {
+    return React.createElement(NtLinha, { key: key, nota: n, recuo: 20, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]) });
+  };
+  var filhos = [React.createElement('div', { key: 'topo', id: 'nt-topo', style: { scrollMarginTop: 70 } })];
+  var fixadas = p.notas.filter(ntFixada).sort(ntPorDataDesc);
+  if (fixadas.length) {
+    var fMin = minim.has('fixadas');
+    filhos.push(React.createElement(NtGrupoCab, { key: 'g-fixadas', nivel: 0, label: '📌 Fixadas', count: fixadas.length, minimizado: fMin, onToggle: function () { toggle('fixadas'); } }));
+    if (!fMin) fixadas.forEach(function (n) { filhos.push(linha(n, 'fx-' + n.id)); });
+  }
+  if (p.modo === 'imp') {
+    NT_IMP_ORDEM.forEach(function (nivel) {
+      var doNivel = p.notas.filter(function (n) { return ntImp(n) === nivel; }).sort(ntPorDataDesc);
+      if (!doNivel.length) return;
+      var k = 'i-' + nivel, kMin = minim.has(k), d = NT_IMP[nivel];
+      filhos.push(React.createElement(NtGrupoCab, { key: k, nivel: 0, label: d.icone + ' ' + d.rot, count: doNivel.length, minimizado: kMin, cor: d.fundo || NT_ACENTO, corTexto: d.texto || '#fff', onToggle: function () { toggle(k); } }));
+      if (kMin) return;
+      doNivel.forEach(function (n) { filhos.push(linha(n, n.id)); });
+    });
+  } else {
+    ntAgrupar(p.notas).forEach(function (a) {
+      var aMin = minim.has(a.key);
+      filhos.push(React.createElement(NtGrupoCab, { key: a.key, nivel: 0, label: a.label, count: a.n, minimizado: aMin, onToggle: function () { toggle(a.key); } }));
+      if (aMin) return;
+      a.meses.forEach(function (m) {
+        var mMin = minim.has(m.key);
+        filhos.push(React.createElement(NtGrupoCab, { key: m.key, nivel: 1, label: m.label, count: m.n, minimizado: mMin, onToggle: function () { toggle(m.key); } }));
+        if (mMin) return;
+        m.semanas.forEach(function (s) {
+          var sMin = minim.has(s.key);
+          filhos.push(React.createElement(NtGrupoCab, { key: s.key, id: s.key === cur.kS ? 'nt-sem-atual' : undefined, nivel: 2, label: s.label, count: s.n, minimizado: sMin, onToggle: function () { toggle(s.key); } }));
+          if (sMin) return;
+          s.notas.forEach(function (n) { filhos.push(linha(n, n.id)); });
+        });
+      });
+    });
+  }
+  // Botões flutuantes discretos: só quando a lista é comprida. "Hoje" só na vista por data.
+  var longa = p.notas.length >= 8;
+  var temHoje = p.modo !== 'imp' && p.notas.some(function (n) { return ntChavesDe(n.created_at).kS === cur.kS; });
+  var flut = { minHeight: 40, minWidth: 40, borderRadius: 999, border: '2px solid ' + NT_ACENTO, background: T.surface, color: NT_ACENTO, fontSize: 14, fontWeight: 900, cursor: 'pointer', opacity: 0.92, boxShadow: '0 2px 8px rgba(0,0,0,0.35)', padding: '0 12px' };
+  var irHoje = function () {
+    pend.current = true;
+    setMinim(function (prev) {
+      var next = new Set(prev);
+      [cur.kA, cur.kM, cur.kS].forEach(function (k) { next.delete(k); });
+      return next;
+    });
+  };
+  return React.createElement('div', null, filhos,
+    longa ? React.createElement('div', { style: { position: 'fixed', right: 12, bottom: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, zIndex: 20 } },
+      temHoje ? React.createElement('button', { type: 'button', 'aria-label': 'Ir para a semana de hoje', onClick: irHoje, style: flut }, 'Hoje') : null,
+      React.createElement('button', { type: 'button', 'aria-label': 'Ir ao topo', onClick: function () { ntRolarPara('nt-topo'); }, style: flut }, '↑')
+    ) : null
+  );
 }
 
 function NtLixoLista(p) {
@@ -46946,11 +47205,29 @@ function NtLixoLista(p) {
 
 function NtVista(p) {
   var n = p.nota;
+  var cp = ntUseCopia();
+  var imp = ntImp(n), fix = ntFixada(n);
+  var cor = imp === 'normal' ? NT_ACENTO : NT_IMP[imp].cor;
+  var acao = { flex: '1 1 120px', minHeight: 44, borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', background: T.surface2, color: T.text, border: '2px solid ' + NT_ACENTO };
   return React.createElement('div', null,
-    React.createElement('div', { style: { fontSize: 24, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word', borderLeft: '6px solid ' + NT_ACENTO, paddingLeft: 12 } }, n.titulo),
-    React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 8, fontWeight: 700 } },
-      'Criada ' + ntDataFmt(n.created_at) + (n.updated_at && n.updated_at !== n.created_at ? ' · editada ' + ntDataFmt(n.updated_at) : '')),
+    React.createElement('div', { style: { fontSize: 24, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word', borderLeft: '6px solid ' + cor, paddingLeft: 12 } }, n.titulo),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 } },
+      React.createElement('span', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } },
+        'Criada ' + ntDataFmt(n.created_at) + (n.updated_at && n.updated_at !== n.created_at ? ' · editada ' + ntDataFmt(n.updated_at) : '')),
+      React.createElement(NtBadge, { imp: imp }),
+      fix ? React.createElement('span', { style: { fontSize: 12, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
+    ),
     React.createElement('div', { style: { fontSize: 16, color: T.text, marginTop: 16, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, n.texto || ''),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 } },
+      React.createElement('button', { type: 'button', 'aria-label': cp.feito ? 'Nota copiada' : 'Copiar a nota', onClick: function () { cp.copiar(n); },
+        style: Object.assign({}, acao, cp.feito ? { background: NT_ACENTO, color: '#fff' } : {}) }, cp.feito ? '✓ Copiada' : '📋 Copiar'),
+      React.createElement('button', { type: 'button', 'aria-label': 'Partilhar a nota', onClick: function () { ntPartilhar(n, cp); }, style: acao }, '📤 Partilhar'),
+      p.readOnly ? null : React.createElement('button', {
+        type: 'button', disabled: !!p.fixBusy, 'aria-pressed': fix, 'aria-label': fix ? 'Desafixar nota' : 'Fixar nota', onClick: p.onFixar,
+        style: Object.assign({}, acao, fix ? { background: NT_ACENTO, color: '#fff' } : {}, p.fixBusy ? { opacity: 0.55, cursor: 'default' } : {})
+      }, fix ? '📌 Desafixar' : '📌 Fixar')
+    ),
+    cp.feito ? React.createElement('div', { 'aria-live': 'polite', style: { marginTop: 8, fontSize: 13, fontWeight: 800, color: NT_ACENTO } }, 'Nota copiada') : null,
     p.readOnly ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 24 } },
       React.createElement(NtBtn, { flex: true, onClick: p.onEditar }, 'Editar'),
       React.createElement(NtBtn, { flex: true, kind: 'danger', disabled: p.busy, onClick: p.onApagar }, 'Apagar')
@@ -46974,6 +47251,13 @@ function NtForm(p) {
       value: p.texto, autoComplete: 'off', placeholder: 'Escreve aqui…', rows: 12,
       onChange: function (e) { p.onTexto(e.target.value); }, style: Object.assign({}, inp, { resize: 'vertical', lineHeight: 1.45 })
     }),
+    React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Importância'),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+      NT_IMP_ORDEM.slice().reverse().map(function (k) {
+        var d = NT_IMP[k];
+        return React.createElement(NtChip, { key: k, ativo: p.imp === k, cor: d.fundo || NT_ACENTO, corTexto: d.texto || '#fff', disabled: p.saving, onClick: function () { p.onImp(k); } }, d.icone + ' ' + d.rot);
+      })
+    ),
     p.erro ? React.createElement('div', { style: { color: T.red, fontSize: 13, fontWeight: 700, marginTop: 10 } }, p.erro) : null,
     React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
       React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: p.saving, onClick: p.onCancelar }, 'Cancelar'),
@@ -47006,6 +47290,11 @@ function NotasApp(props) {
   var busyRef = React.useRef({});
   var purgaFeita = React.useRef(false);
   var carregarRef = React.useRef(null);
+  var _fi = React.useState('normal'); var fImp = _fi[0], setFImp = _fi[1];
+  var _md = React.useState(ntLerVista); var modo = _md[0], setModoRaw = _md[1]; // data | imp (guardado só neste aparelho)
+  var _bs = React.useState(''); var busca = _bs[0], setBusca = _bs[1];
+  var _ff = React.useState(NT_FILTROS_VAZIOS); var filtros = _ff[0], setFiltros = _ff[1];
+  var _fb = React.useState({}); var fixBusy = _fb[0], setFixBusy = _fb[1];
 
   var db = window.supabaseClient;
 
@@ -47054,13 +47343,16 @@ function NotasApp(props) {
   var notaSel = null;
   if (selId) { for (var i = 0; i < notas.length; i++) { if (notas[i].id === selId) { notaSel = notas[i]; break; } } }
 
+  function setModo(m) { setModoRaw(m); ntGuardarVista(m); }
+  function resetFiltros() { setBusca(''); setFiltros(NT_FILTROS_VAZIOS); }
+
   function abrirNova() {
     if (!podeEditar) return;
-    setEditId(null); setFTitulo(''); setFTexto(''); setFErro(''); setVista('form');
+    setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFErro(''); setVista('form');
   }
   function abrirEditar(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
-    setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFErro(''); setVista('form');
+    setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFErro(''); setVista('form');
   }
   function cancelarForm() {
     if (savingRef.current) return;
@@ -47077,30 +47369,45 @@ function NotasApp(props) {
     if (savingRef.current) return;
     if (!cartao || !ntPodeEditar(cartao, myId)) return;
     if (!db) { setFErro('Sem ligação ao servidor — não foi guardado.'); return; }
+    var agoraIso = new Date().toISOString();
+    var anterior = null;
+    var patch = null;
+    if (editId) {
+      for (var j = 0; j < notas.length; j++) { if (notas[j].id === editId) { anterior = notas[j]; break; } }
+      if (!anterior) return;
+      // Só as colunas que mudaram (importancia só quando muda; updated_at só se mudou o conteúdo).
+      patch = {};
+      var mudouConteudo = false;
+      if (titulo !== anterior.titulo) { patch.titulo = titulo; mudouConteudo = true; }
+      if (fTexto !== (anterior.texto || '')) { patch.texto = fTexto; mudouConteudo = true; }
+      if (fImp !== ntImp(anterior)) patch.importancia = fImp;
+      if (mudouConteudo) patch.updated_at = agoraIso;
+      if (!Object.keys(patch).length) { // nada mudou: fecha sem pedir nada
+        setFErro(''); setFTitulo(''); setFTexto(''); setFImp('normal'); setEditId(null); setVista('nota');
+        return;
+      }
+    }
     savingRef.current = true;
     setSaving(true);
     setFErro('');
-    var agoraIso = new Date().toISOString();
-    var anterior = null;
     var removeOptimistic;
     var consulta;
     if (editId) {
       var idEd = editId;
-      for (var j = 0; j < notas.length; j++) { if (notas[j].id === idEd) { anterior = notas[j]; break; } }
-      if (!anterior) { savingRef.current = false; setSaving(false); return; }
-      var patch = { titulo: titulo, texto: fTexto, updated_at: agoraIso };
       setNotas(function (p) { return p.map(function (n) { return n.id === idEd ? Object.assign({}, n, patch) : n; }); });
       removeOptimistic = function () {
         setNotas(function (p) { return p.map(function (n) { return n.id === idEd ? anterior : n; }); });
       };
       consulta = db.from('notas_notas').update(patch).eq('id', idEd);
     } else {
-      var nova = { id: ntNovoId(), dono: cartao, titulo: titulo, texto: fTexto, created_at: agoraIso, updated_at: agoraIso, deleted_at: null };
+      var nova = { id: ntNovoId(), dono: cartao, titulo: titulo, texto: fTexto, importancia: fImp, fixada: false, created_at: agoraIso, updated_at: agoraIso, deleted_at: null };
       setNotas(function (p) { return [nova].concat(p); });
       removeOptimistic = function () {
         setNotas(function (p) { return p.filter(function (n) { return n.id !== nova.id; }); });
       };
-      consulta = db.from('notas_notas').insert({ id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso });
+      var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
+      if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
+      consulta = db.from('notas_notas').insert(linhaNova);
     }
     var ok = false;
     consulta.then(function (res) {
@@ -47114,7 +47421,7 @@ function NotasApp(props) {
       }
       ok = true;
       setFErro('');
-      setFTitulo(''); setFTexto('');
+      setFTitulo(''); setFTexto(''); setFImp('normal');
       var idFinal = editId;
       setEditId(null);
       setVista(idFinal ? 'nota' : 'lista');
@@ -47126,6 +47433,37 @@ function NotasApp(props) {
       ntAvisar(editId ? 'editar nota' : 'criar nota', e);
       setFErro('Erro de ligação: ' + ((e && e.message) || String(e)));
       removeOptimistic();
+    });
+  }
+
+  // Fixar/desafixar: UPDATE só da coluna fixada, por id. Molde addEvent: otimista, .then com res.error
+  // (reverte), .catch depois do .then, trava contra duplo clique.
+  function alternarFixada(n) {
+    if (!ntPodeEditar(n.dono, myId)) return;
+    if (!db) return;
+    var chave = 'fix:' + n.id;
+    if (busyRef.current[chave]) return;
+    var anterior = ntFixada(n);
+    var novo = !anterior;
+    busyRef.current[chave] = true;
+    setFixBusy(function (p) { var x = Object.assign({}, p); x[n.id] = true; return x; });
+    var soltar = function () {
+      busyRef.current[chave] = false;
+      setFixBusy(function (p) { var x = Object.assign({}, p); delete x[n.id]; return x; });
+    };
+    var aplicar = function (v) {
+      setNotas(function (p) { return p.map(function (x) { return x.id === n.id ? Object.assign({}, x, { fixada: v }) : x; }); });
+    };
+    aplicar(novo);
+    var ok = false;
+    db.from('notas_notas').update({ fixada: novo }).eq('id', n.id).then(function (res) {
+      soltar();
+      if (res && res.error) { ntAvisarRes('fixar nota', res.error); aplicar(anterior); return; }
+      ok = true;
+    }).catch(function (e) {
+      soltar();
+      if (ok) { ntLog('depois de fixar', e); return; }
+      ntAvisar('fixar nota', e); aplicar(anterior);
     });
   }
 
@@ -47177,6 +47515,7 @@ function NotasApp(props) {
     if (!cartao) { onBack(); return; }
     if (vista === 'form') { cancelarForm(); return; }
     if (vista === 'nota' || vista === 'lixo') { setSelId(null); setVista('lista'); return; }
+    resetFiltros();
     setCartao(null);
   }
 
@@ -47205,23 +47544,35 @@ function NotasApp(props) {
         var n = notas.filter(function (x) { return x.dono === d && ntAtiva(x); }).length;
         var nome = d === myId && profile.display_name ? profile.display_name : NT_NOMES[d];
         var sub = (d === myId ? 'As minhas notas' : d === 'familia' ? 'Partilhadas por todos' : 'Só leitura') + ' · ' + n + (n === 1 ? ' nota' : ' notas');
-        return React.createElement(NtCartaoDono, { key: d, emoji: NT_EMOJIS[d], nome: nome, sub: sub, onClick: function () { setVista('lista'); setSelId(null); setCartao(d); } });
+        return React.createElement(NtCartaoDono, { key: d, emoji: NT_EMOJIS[d], nome: nome, sub: sub, onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setCartao(d); } });
       }));
   } else if (vista === 'form') {
     corpo = React.createElement(NtForm, {
-      titulo: fTitulo, texto: fTexto, erro: fErro, saving: saving, editando: !!editId,
-      onTitulo: setFTitulo, onTexto: setFTexto, onGuardar: guardar, onCancelar: cancelarForm
+      titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
+      onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm
     });
   } else if (vista === 'nota') {
     corpo = notaSel && ntAtiva(notaSel)
-      ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar, busy: busyId === notaSel.id, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { apagarParaLixo(notaSel); } })
+      ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar, busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { apagarParaLixo(notaSel); } })
       : React.createElement('div', { style: { color: T.muted, textAlign: 'center', padding: 30 } }, 'Nota não encontrada.');
   } else if (vista === 'lixo') {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
   } else {
+    // Vista, pesquisa e filtros são só estado do ecrã: nunca gravam nem pedem nada ao Supabase.
+    var filtrando = ntFiltrosAtivos(filtros, busca);
+    var filtradas = ntFiltrar(ativas, filtros, busca, new Date());
     corpo = React.createElement('div', null,
       podeEditar ? React.createElement(NtBtn, { onClick: abrirNova }, '+ Nova nota') : React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } }, '👁 Só leitura'),
-      React.createElement(NtLista, { key: cartao, notas: ativas, readOnly: !podeEditar, onOpen: abrirNota }));
+      ativas.length ? React.createElement(NtFiltros, {
+        modo: modo, onModo: setModo, busca: busca, onBusca: setBusca, filtros: filtros, onFiltros: setFiltros,
+        total: ativas.length, mostradas: filtradas.length, filtrando: filtrando, onLimpar: resetFiltros
+      }) : null,
+      ativas.length && !filtradas.length
+        ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, 'Nenhuma nota com estes filtros')
+        : React.createElement(NtLista, {
+            key: cartao + '|' + modo + '|' + (filtrando ? 'f' : 'n'), notas: filtradas, readOnly: !podeEditar, modo: modo, filtrando: filtrando,
+            onOpen: abrirNota, onFixar: alternarFixada, fixBusy: fixBusy
+          }));
   }
 
   return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 60 }) },
