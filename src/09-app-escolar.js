@@ -2460,6 +2460,16 @@ function EscolarApp(_ref31) {
   // SEK P Grenchen (Lucas): média mínima 4.0 e 19 pontos nas 5 notas mais
   // baixas. O Liam está na primária de Selzach, onde esta regra não existe.
   var temRegraSekP = alunoKey === 'lucas';
+  // Arredonda à meia nota (resto <0,25 -> inteiro; 0,25-0,74 -> x,5; >=0,75
+  // -> inteiro seguinte) — usado SÓ no cartão "5 tiefste Noten"/"min. 19P"
+  // da aba Gráficos, nunca em calcMediaGeral nem no resto da app. Limpa
+  // primeiro o ruído de vírgula flutuante (ex. 4.2499999999999996 vindo de
+  // uma média por divisão), para não cair do lado errado de um limite
+  // exato como 4.25 ou 4.75 só por causa desse ruído.
+  var arredondarMeioPonto = function arredondarMeioPonto(x) {
+    var limpo = Math.round(x * 1e6) / 1e6;
+    return Math.round(limpo * 2) / 2;
+  };
   var calcMediaGeral = function calcMediaGeral(sem) {
     var todas = aluno.disciplinas.map(function (d) {
       return {
@@ -6581,11 +6591,27 @@ function EscolarApp(_ref31) {
   })), function () {
     var mg = calcMediaGeral(semestre);
     if (!temRegraSekP || !mg) return null;
+    // Pontos SEK P: arredonda a média de cada disciplina à meia nota ANTES
+    // de escolher as 5 mais baixas e de somar — só aqui, só neste cartão.
+    // Não mexe em mg.durchschnitt nem em mg.cincoMaisBaixas (a aba Notas
+    // usa-os e tem de continuar a mostrar os valores crus, sem arredondar).
+    var cincoArredondadas = mg.todas.map(function (d) {
+      return _objectSpread(_objectSpread({}, d), {}, {
+        m: arredondarMeioPonto(d.m)
+      });
+    }).sort(function (a, b) {
+      return a.m - b.m;
+    }).slice(0, 5);
+    var somaCincoArred = cincoArredondadas.reduce(function (s, d) {
+      return s + d.m;
+    }, 0);
+    var passaCincoArred = somaCincoArred >= 19;
+    var passaArred = mg.passaDurchschnitt && passaCincoArred;
     return /*#__PURE__*/React.createElement(ECard, {
       style: {
         padding: '14px',
         marginBottom: 12,
-        border: "2px solid ".concat(mg.passa ? E.green : E.red)
+        border: "2px solid ".concat(passaArred ? E.green : E.red)
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
@@ -6636,9 +6662,9 @@ function EscolarApp(_ref31) {
         flex: 1,
         textAlign: 'center',
         padding: '10px',
-        background: mg.passaCinco ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
+        background: passaCincoArred ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
         borderRadius: 12,
-        border: "1px solid ".concat(mg.passaCinco ? E.green : E.red, "44")
+        border: "1px solid ".concat(passaCincoArred ? E.green : E.red, "44")
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
@@ -6651,13 +6677,13 @@ function EscolarApp(_ref31) {
       style: {
         fontSize: 28,
         fontWeight: 900,
-        color: mg.passaCinco ? E.green : E.red,
+        color: passaCincoArred ? E.green : E.red,
         margin: '3px 0'
       }
-    }, mg.somaCinco), /*#__PURE__*/React.createElement("p", {
+    }, somaCincoArred.toFixed(1)), /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 9,
-        color: mg.passaCinco ? E.green : E.red,
+        color: passaCincoArred ? E.green : E.red,
         fontWeight: 700
       }
     }, "min. 19P"))), /*#__PURE__*/React.createElement("div", {
@@ -6668,7 +6694,7 @@ function EscolarApp(_ref31) {
         flexWrap: 'wrap',
         marginBottom: 10
       }
-    }, mg.cincoMaisBaixas.map(function (d, i) {
+    }, cincoArredondadas.map(function (d, i) {
       return /*#__PURE__*/React.createElement("div", {
         key: i,
         style: {
@@ -6690,22 +6716,22 @@ function EscolarApp(_ref31) {
           fontWeight: 900,
           color: notaColor(d.m)
         }
-      }, d.m.toFixed(2)));
+      }, d.m));
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
         padding: '8px',
-        background: mg.passa ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.12)',
+        background: passaArred ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.12)',
         borderRadius: 10,
-        border: "1px solid ".concat(mg.passa ? E.green : E.red)
+        border: "1px solid ".concat(passaArred ? E.green : E.red)
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
         fontSize: 15,
         fontWeight: 900,
-        color: mg.passa ? E.green : E.red
+        color: passaArred ? E.green : E.red
       }
-    }, mg.passa ? '✅ APROVADO' : '❌ NÃO APROVADO')));
+    }, passaArred ? '✅ APROVADO' : '❌ NÃO APROVADO')));
   }(), /*#__PURE__*/React.createElement(ECard, {
     style: {
       padding: '14px',
