@@ -23,9 +23,9 @@ concurrency:
 jobs:
   guarda:
     runs-on: ubuntu-24.04
-    # Rede de segurança: um passo preso nunca ocupa o runner mais de 10 minutos
+    # Rede de segurança: um passo preso nunca ocupa o runner mais de 12 minutos
     # (por omissão seriam 6 horas). O normal são ~45 s.
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout do PR
         uses: actions/checkout@v5.1.0
@@ -180,13 +180,39 @@ jobs:
 
       - name: "4) Preparar Playwright (Chromium) para o teste de fumo"
         # O apt (espelho azure.archive.ubuntu.com) prende às vezes durante minutos
-        # sem dar erro. Normal: ~20 s. Até 3 tentativas, cada uma limitada a 120 s,
-        # com 5 s de pausa; só falha (a vermelho) se as 3 falharem. A repetição
-        # envolve APENAS a instalação. Limite do passo: 3x(120+10) + 2x5 = 400 s,
-        # por isso 7 minutos (com 4 a terceira tentativa nunca chegava ao fim).
-        timeout-minutes: 7
+        # sem dar erro. Normal: ~20 s. Até 3 tentativas, cada uma limitada a 120 s;
+        # só falha (a vermelho) se as 3 falharem. A repetição envolve APENAS a instalação.
+        # O timeout só corta o processo que lança: o apt-get (root, via sudo) fica
+        # órfão a segurar o lock do dpkg e as tentativas seguintes falhavam logo com
+        # "Could not get lock". Por isso: (1) DPkg::Lock::Timeout=60 faz o apt esperar
+        # pelo lock em vez de falhar logo; (2) entre tentativas mata-se qualquer
+        # apt/apt-get/dpkg que tenha ficado vivo e repara-se o dpkg se foi morto.
+        # Pior caso: 3x(120+10) + 2x(5+10+20) = 460 s (~7 min 40 s), por isso 9 minutos.
+        timeout-minutes: 9
         run: |
           set -euo pipefail
+          # apt/apt-get/dpkg vivos (os zombies, já mortos, não contam: não seguram o lock)
+          apt_vivos() {
+            ps -eo pid=,stat=,comm= | awk '$2 !~ /^Z/ && ($3 == "apt-get" || $3 == "apt" || $3 == "dpkg") { print $1 ":" $3 }'
+          }
+          limpar_apt() {
+            local havia=0
+            if [ -n "$(apt_vivos)" ]; then
+              havia=1
+              echo "⚠ apt/dpkg ainda vivos de uma tentativa anterior: $(apt_vivos | head -5 | tr '\n' ' ')"
+              sudo -n pkill -9 -x apt-get || true
+              sudo -n pkill -9 -x apt || true
+              sudo -n pkill -9 -x dpkg || true
+            fi
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+              if [ -z "$(apt_vivos)" ]; then break; fi
+              sleep 1
+            done
+            if [ "${havia}" = 1 ]; then
+              sudo -n timeout 20 dpkg --configure -a >/dev/null 2>&1 || echo "⚠ dpkg --configure -a não terminou limpo (a seguir em frente)"
+            fi
+          }
+          echo 'DPkg::Lock::Timeout "60";' | sudo -n tee /etc/apt/apt.conf.d/99-guarda-lock-timeout >/dev/null || echo "⚠ não foi possível definir DPkg::Lock::Timeout (a seguir em frente)"
           mkdir -p /tmp/pwtools
           cd /tmp/pwtools
           npm init -y >/dev/null 2>&1
@@ -197,7 +223,10 @@ jobs:
               exit 0
             fi
             echo "⚠ tentativa ${tentativa}/3 falhou ou excedeu 120 s"
-            if [ "${tentativa}" -lt 3 ]; then sleep 5; fi
+            if [ "${tentativa}" -lt 3 ]; then
+              sleep 5
+              limpar_apt
+            fi
           done
           echo "::error::Não foi possível instalar o Playwright em 3 tentativas"
           exit 1
