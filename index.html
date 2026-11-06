@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T11:20:40.022Z
+  Gerado em: 2026-11-06T11:23:54.187Z
 -->
 <html lang="pt">
 <head>
@@ -47216,7 +47216,9 @@ function NtVista(p) {
   var cp = ntUseCopia();
   var imp = ntImp(n), fix = ntFixada(n);
   var cor = imp === 'normal' ? NT_ACENTO : NT_IMP[imp].cor;
-  var acao = { flex: '1 1 120px', minHeight: 44, borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', background: T.surface2, color: T.text, border: '2px solid ' + NT_ACENTO };
+  // Ações secundárias: pequenas e discretas. Editar é o botão principal; Apagar vai para o fundo, separado.
+  var peq = { minHeight: 36, padding: '6px 12px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: T.muted, border: '1px solid ' + T.border };
+  var ativo = { background: NT_ACENTO, color: '#fff', border: '1px solid ' + NT_ACENTO };
   return React.createElement('div', null,
     React.createElement('div', { style: { fontSize: 24, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word', borderLeft: '6px solid ' + cor, paddingLeft: 12 } }, n.titulo),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 } },
@@ -47228,17 +47230,22 @@ function NtVista(p) {
     React.createElement('div', { style: { fontSize: 16, color: T.text, marginTop: 16, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, n.texto || ''),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 } },
       React.createElement('button', { type: 'button', 'aria-label': cp.feito ? 'Nota copiada' : 'Copiar a nota', onClick: function () { cp.copiar(n); },
-        style: Object.assign({}, acao, cp.feito ? { background: NT_ACENTO, color: '#fff' } : {}) }, cp.feito ? '✓ Copiada' : '📋 Copiar'),
-      React.createElement('button', { type: 'button', 'aria-label': 'Partilhar a nota', onClick: function () { ntPartilhar(n, cp); }, style: acao }, '📤 Partilhar'),
+        style: Object.assign({}, peq, cp.feito ? ativo : {}) }, cp.feito ? '✓ Copiada' : '📋 Copiar'),
+      React.createElement('button', { type: 'button', 'aria-label': 'Partilhar a nota', onClick: function () { ntPartilhar(n, cp); }, style: peq }, '📤 Partilhar'),
       p.readOnly ? null : React.createElement('button', {
         type: 'button', disabled: !!p.fixBusy, 'aria-pressed': fix, 'aria-label': fix ? 'Desafixar nota' : 'Fixar nota', onClick: p.onFixar,
-        style: Object.assign({}, acao, fix ? { background: NT_ACENTO, color: '#fff' } : {}, p.fixBusy ? { opacity: 0.55, cursor: 'default' } : {})
+        style: Object.assign({}, peq, fix ? ativo : {}, p.fixBusy ? { opacity: 0.55, cursor: 'default' } : {})
       }, fix ? '📌 Desafixar' : '📌 Fixar')
     ),
     cp.feito ? React.createElement('div', { 'aria-live': 'polite', style: { marginTop: 8, fontSize: 13, fontWeight: 800, color: NT_ACENTO } }, 'Nota copiada') : null,
-    p.readOnly ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 24 } },
-      React.createElement(NtBtn, { flex: true, onClick: p.onEditar }, 'Editar'),
-      React.createElement(NtBtn, { flex: true, kind: 'danger', disabled: p.busy, onClick: p.onApagar }, 'Apagar')
+    p.readOnly ? null : React.createElement('div', { style: { display: 'flex', marginTop: 16 } },
+      React.createElement(NtBtn, { flex: true, onClick: p.onEditar }, 'Editar')
+    ),
+    p.readOnly ? null : React.createElement('div', { style: { marginTop: 56, paddingTop: 14, borderTop: '1px solid ' + T.border, textAlign: 'center' } },
+      React.createElement('button', {
+        type: 'button', disabled: !!p.busy, onClick: p.onApagar,
+        style: { background: 'none', border: 'none', color: T.red, fontSize: 13, fontWeight: 700, minHeight: 36, padding: '6px 12px', cursor: p.busy ? 'default' : 'pointer', opacity: p.busy ? 0.55 : 1 }
+      }, 'Apagar nota')
     )
   );
 }
@@ -47561,7 +47568,7 @@ function NotasApp(props) {
     });
   } else if (vista === 'nota') {
     corpo = notaSel && ntAtiva(notaSel)
-      ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar, busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { apagarParaLixo(notaSel); } })
+      ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar, busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { if (typeof window.confirm === 'function' && !window.confirm('Mover “' + notaSel.titulo + '” para o Lixo?')) return; apagarParaLixo(notaSel); } })
       : React.createElement('div', { style: { color: T.muted, textAlign: 'center', padding: 30 } }, 'Nota não encontrada.');
   } else if (vista === 'lixo') {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
