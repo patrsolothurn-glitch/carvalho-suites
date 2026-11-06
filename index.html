@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T11:23:54.187Z
+  Gerado em: 2026-11-06T11:34:56.165Z
 -->
 <html lang="pt">
 <head>
@@ -46661,6 +46661,15 @@ function ntAvisarRes(op, err) {
   else ntAvisar(op, err);
 }
 
+// Texto visível ao utilizador com a mensagem REAL devolvida pelo Supabase: "[código] mensagem — detalhes".
+function ntMsgErro(err) {
+  var c = err && err.code;
+  var m = (err && (err.message || err.msg)) || String(err);
+  var d = err && (err.details || err.hint);
+  return (c ? '[' + c + '] ' : '') + m + (d ? ' — ' + d : '');
+}
+var NT_ZERO_LINHAS = 'A base não atualizou nenhuma linha (0 linhas afetadas)';
+
 // Semana ISO — cópia do helper de src/07-app-familia.js (não há helper partilhado)
 var ntGetISOWeek = function ntGetISOWeek(date) {
   var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -47211,6 +47220,20 @@ function NtLixoLista(p) {
   );
 }
 
+// Aviso de erro de gravação, visível no ecrã (não só na consola), com a mensagem real do Supabase.
+function NtAvisoErro(p) {
+  return React.createElement('div', {
+    role: 'alert',
+    style: { background: '#7f1d1d', border: '1px solid #ef4444', borderRadius: 12, padding: '10px 12px', color: '#fff', marginBottom: 12, display: 'flex', alignItems: 'flex-start', gap: 10 }
+  },
+    React.createElement('div', { style: { flex: 1, fontSize: 13, fontWeight: 700, wordBreak: 'break-word' } },
+      React.createElement('div', { style: { fontWeight: 900, marginBottom: 2 } }, '⚠️ Não foi gravado'),
+      p.texto),
+    React.createElement('button', { type: 'button', 'aria-label': 'Fechar aviso', onClick: p.onFechar,
+      style: { background: 'none', border: 'none', color: '#fff', fontSize: 18, fontWeight: 900, cursor: 'pointer', minWidth: 32, minHeight: 32 } }, '✕')
+  );
+}
+
 function NtVista(p) {
   var n = p.nota;
   var cp = ntUseCopia();
@@ -47310,6 +47333,7 @@ function NotasApp(props) {
   var _bs = React.useState(''); var busca = _bs[0], setBusca = _bs[1];
   var _ff = React.useState(NT_FILTROS_VAZIOS); var filtros = _ff[0], setFiltros = _ff[1];
   var _fb = React.useState({}); var fixBusy = _fb[0], setFixBusy = _fb[1];
+  var _eg = React.useState(''); var erroGrav = _eg[0], setErroGrav = _eg[1]; // erro de gravação visível (fixar)
 
   var db = window.supabaseClient;
 
@@ -47409,11 +47433,9 @@ function NotasApp(props) {
     var consulta;
     if (editId) {
       var idEd = editId;
-      setNotas(function (p) { return p.map(function (n) { return n.id === idEd ? Object.assign({}, n, patch) : n; }); });
-      removeOptimistic = function () {
-        setNotas(function (p) { return p.map(function (n) { return n.id === idEd ? anterior : n; }); });
-      };
-      consulta = db.from('notas_notas').update(patch).eq('id', idEd);
+      // Sem atualização otimista: só se mostra o resultado depois de a base confirmar (carregar a seguir).
+      removeOptimistic = function () {};
+      consulta = db.from('notas_notas').update(patch).eq('id', idEd).select('id');
     } else {
       var nova = { id: ntNovoId(), dono: cartao, titulo: titulo, texto: fTexto, importancia: fImp, fixada: false, created_at: agoraIso, updated_at: agoraIso, deleted_at: null };
       setNotas(function (p) { return [nova].concat(p); });
@@ -47430,8 +47452,13 @@ function NotasApp(props) {
       setSaving(false);
       if (res && res.error) {
         ntAvisarRes(editId ? 'editar nota' : 'criar nota', res.error);
-        setFErro('Erro ao guardar: ' + res.error.message);
+        setFErro('Erro ao guardar: ' + ntMsgErro(res.error));
         removeOptimistic();
+        return;
+      }
+      if (editId && (!res || !res.data || !res.data.length)) { // 0 linhas afetadas = erro (formulário fica aberto)
+        ntAvisar('editar nota', new Error(NT_ZERO_LINHAS));
+        setFErro('Erro ao guardar: ' + NT_ZERO_LINHAS);
         return;
       }
       ok = true;
@@ -47451,17 +47478,18 @@ function NotasApp(props) {
     });
   }
 
-  // Fixar/desafixar: UPDATE só da coluna fixada, por id. Molde addEvent: otimista, .then com res.error
-  // (reverte), .catch depois do .then, trava contra duplo clique.
+  // Fixar/desafixar: UPDATE só da coluna fixada, por id, com .select('id'). SEM atualização otimista: o ecrã só
+  // muda DEPOIS de a base confirmar (1 linha). Erro ou 0 linhas afetadas = erro visível; nunca mostra "Fixada" sem gravar.
+  // .then com verificação, .catch depois do .then, trava contra duplo clique.
   function alternarFixada(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
     if (!db) return;
     var chave = 'fix:' + n.id;
     if (busyRef.current[chave]) return;
-    var anterior = ntFixada(n);
-    var novo = !anterior;
+    var novo = !ntFixada(n);
     busyRef.current[chave] = true;
     setFixBusy(function (p) { var x = Object.assign({}, p); x[n.id] = true; return x; });
+    setErroGrav('');
     var soltar = function () {
       busyRef.current[chave] = false;
       setFixBusy(function (p) { var x = Object.assign({}, p); delete x[n.id]; return x; });
@@ -47469,16 +47497,26 @@ function NotasApp(props) {
     var aplicar = function (v) {
       setNotas(function (p) { return p.map(function (x) { return x.id === n.id ? Object.assign({}, x, { fixada: v }) : x; }); });
     };
-    aplicar(novo);
     var ok = false;
-    db.from('notas_notas').update({ fixada: novo }).eq('id', n.id).then(function (res) {
+    db.from('notas_notas').update({ fixada: novo }).eq('id', n.id).select('id').then(function (res) {
       soltar();
-      if (res && res.error) { ntAvisarRes('fixar nota', res.error); aplicar(anterior); return; }
+      if (res && res.error) {
+        ntAvisarRes('fixar nota', res.error);
+        setErroGrav('Não foi possível ' + (novo ? 'fixar' : 'desafixar') + ' a nota: ' + ntMsgErro(res.error));
+        return;
+      }
+      if (!res || !res.data || !res.data.length) {
+        ntAvisar('fixar nota', new Error(NT_ZERO_LINHAS));
+        setErroGrav('Não foi possível ' + (novo ? 'fixar' : 'desafixar') + ' a nota: ' + NT_ZERO_LINHAS);
+        return;
+      }
       ok = true;
+      aplicar(novo);
     }).catch(function (e) {
       soltar();
       if (ok) { ntLog('depois de fixar', e); return; }
-      ntAvisar('fixar nota', e); aplicar(anterior);
+      ntAvisar('fixar nota', e);
+      setErroGrav('Não foi possível ' + (novo ? 'fixar' : 'desafixar') + ' a nota: ' + ntMsgErro(e));
     });
   }
 
@@ -47530,6 +47568,7 @@ function NotasApp(props) {
     if (!cartao) { onBack(); return; }
     if (vista === 'form') { cancelarForm(); return; }
     if (vista === 'nota' || vista === 'lixo') { setSelId(null); setVista('lista'); return; }
+    setErroGrav('');
     resetFiltros();
     setCartao(null);
   }
@@ -47592,7 +47631,9 @@ function NotasApp(props) {
 
   return React.createElement('div', { style: Object.assign({}, wrap, { paddingBottom: 60 }) },
     React.createElement(TopBar, { onBack: voltar, title: titulo, right: direita }),
-    React.createElement('div', { style: { padding: '16px 16px 0', maxWidth: 640, margin: '0 auto' } }, corpo)
+    React.createElement('div', { style: { padding: '16px 16px 0', maxWidth: 640, margin: '0 auto' } },
+      erroGrav && vista !== 'form' ? React.createElement(NtAvisoErro, { texto: erroGrav, onFechar: function () { setErroGrav(''); } }) : null,
+      corpo)
   );
 }
 
