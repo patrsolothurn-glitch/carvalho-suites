@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T11:34:56.165Z
+  Gerado em: 2026-11-06T11:59:10.741Z
 -->
 <html lang="pt">
 <head>
@@ -46621,7 +46621,7 @@ function KotdAdmin() {
 // Apagar = Lixo (deleted_at); Lixo por cartão com restaurar e apagar
 // definitivo; no Lixo há mais de 30 dias apaga-se definitivamente ao abrir
 // (só as do próprio e da Família). Componentes todos ao nível do módulo.
-// Cada nota tem importância (normal/importante/urgente) e pode ser fixada (sql/35); a lista tem
+// Cada nota tem importância (1 importante / 2 normal / 3 baixo) e pode ser fixada (sql/35, sql/36); a lista tem
 // copiar, pesquisa, vistas (por data / por importância) e filtros — tudo só estado do ecrã, sem
 // pedidos ao Supabase. Só fixar e mudar a importância gravam, e só a coluna alterada, por id.
 // ══════════════════════════════════════════════════════════════════
@@ -46632,15 +46632,15 @@ var NT_NOMES = { patricio: 'Patricio', esposa: 'Cristina', lucas: 'Lucas', liam:
 var NT_EMOJIS = { patricio: '👨‍💼', esposa: '👩', lucas: '🧒', liam: '👦', familia: '🏠' };
 var NT_MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 var NT_MEMBROS = ['patricio', 'esposa', 'lucas', 'liam'];
-// Importância (colunas importancia/fixada: sql/35). Cor E texto/ícone, nunca só a cor.
-var NT_URGENTE = '#DC2626';
-var NT_IMPORTANTE = '#F97316';
+// Importância (colunas importancia/fixada: sql/35; regra com 'baixo': sql/36). A cor NUNCA vai sozinha: sempre com o número.
+//   1 · Importante = vermelho, 2 · Normal = âmbar (por omissão), 3 · Baixo = verde.
 var NT_IMP = {
-  normal: { rot: 'Normal', icone: '○', cor: NT_ACENTO, fundo: null, texto: null },
-  importante: { rot: 'Importante', icone: '▲', cor: NT_IMPORTANTE, fundo: NT_IMPORTANTE, texto: '#1A0F00' },
-  urgente: { rot: 'Urgente', icone: '❗', cor: NT_URGENTE, fundo: NT_URGENTE, texto: '#FFFFFF' }
+  importante: { num: '1', rot: 'Importante', cor: '#EF4444' },
+  normal: { num: '2', rot: 'Normal', cor: '#F59E0B' },
+  baixo: { num: '3', rot: 'Baixo', cor: '#22C55E' }
 };
-var NT_IMP_ORDEM = ['urgente', 'importante', 'normal'];
+var NT_IMP_TEXTO = '#111111'; // texto escuro (contraste alto) sobre as três cores
+var NT_IMP_ORDEM = ['importante', 'normal', 'baixo'];
 var NT_VISTA_KEY = 'notas_vista';
 var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
 // Na vista "Por data": com menos notas visíveis do que isto (depois de pesquisa e filtros) a lista é direta,
@@ -46757,10 +46757,11 @@ function ntDataFmt(iso) {
   return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
-// Notas antigas (sem coluna / null) tratam-se como 'normal' e não fixada.
+// 'urgente' (valor antigo) conta como 'importante'; null/em falta/desconhecido = 'normal'. Não fixada se null.
 function ntImp(n) {
   var v = n && n.importancia;
-  return v === 'importante' || v === 'urgente' ? v : 'normal';
+  if (v === 'urgente') return 'importante';
+  return v === 'importante' || v === 'baixo' ? v : 'normal';
 }
 function ntFixada(n) { return !!(n && n.fixada === true); }
 function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
@@ -46936,16 +46937,17 @@ function NtCopiar(p) {
   }, feito ? '✓' : '📋');
 }
 
-// Etiqueta de importância: cor + ícone + texto.
+// Selo de importância. Na lista só o número ("curto"); na nota aberta o nome completo: "1 · Importante". Cor + número.
 function NtBadge(p) {
   var d = NT_IMP[p.imp] || NT_IMP.normal;
-  if (!d.texto) return null; // "Normal" não tem selo: só Importante e Urgente (o formulário continua a oferecer os três)
   return React.createElement('span', {
+    title: d.num + ' · ' + d.rot,
     style: {
-      display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, lineHeight: 1,
-      padding: '3px 8px', borderRadius: 999, background: d.fundo, color: d.texto, border: '1px solid ' + d.fundo
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, lineHeight: 1,
+      minWidth: p.curto ? 18 : undefined, padding: p.curto ? '3px 5px' : '3px 8px', borderRadius: 999,
+      background: d.cor, color: NT_IMP_TEXTO, border: '1px solid ' + d.cor
     }
-  }, d.icone + ' ' + d.rot);
+  }, p.curto ? d.num : d.num + ' · ' + d.rot);
 }
 
 // Botão-pílula (vistas, filtros, importância no formulário).
@@ -46959,7 +46961,7 @@ function NtChip(p) {
     style: {
       minHeight: 38, padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 800, cursor: p.disabled ? 'default' : 'pointer',
       flex: p.grow ? 1 : undefined, background: p.ativo ? cor : T.surface2, color: p.ativo ? (p.corTexto || '#fff') : T.text,
-      border: '1px solid ' + (p.ativo ? cor : T.border)
+      border: (p.borda ? '2px' : '1px') + ' solid ' + (p.ativo ? cor : (p.borda || T.border))
     }
   }, p.children);
 }
@@ -46978,7 +46980,7 @@ function NtFiltros(p) {
   var linha = { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 };
   var rot = { fontSize: 12, fontWeight: 800, color: T.muted, marginRight: 2 };
   var chipImp = function (k, txt, cor, corTexto) {
-    return React.createElement(NtChip, { key: k, ativo: f.imp === k, cor: cor, corTexto: corTexto, onClick: function () { set('imp', k); } }, txt);
+    return React.createElement(NtChip, { key: k, ativo: f.imp === k, cor: cor, corTexto: corTexto, borda: k === 'todas' ? undefined : cor, onClick: function () { set('imp', k); } }, txt);
   };
   var datas = [['todas', 'Todas'], ['hoje', 'Hoje'], ['semana', 'Esta semana'], ['mes', 'Este mês'], ['ano', 'Este ano'], ['escolher', 'Escolher datas']];
   return React.createElement('div', null,
@@ -47005,8 +47007,9 @@ function NtFiltros(p) {
     aberto ? React.createElement('div', { style: linha },
       React.createElement('span', { style: rot }, 'Importância:'),
       chipImp('todas', 'Todas', NT_ACENTO, '#fff'),
-      chipImp('importante', '▲ Importante', NT_IMPORTANTE, '#1A0F00'),
-      chipImp('urgente', '❗ Urgente', NT_URGENTE, '#fff')
+      chipImp('importante', '1 · Importante', NT_IMP.importante.cor, NT_IMP_TEXTO),
+      chipImp('normal', '2 · Normal', NT_IMP.normal.cor, NT_IMP_TEXTO),
+      chipImp('baixo', '3 · Baixo', NT_IMP.baixo.cor, NT_IMP_TEXTO)
     ) : null,
     aberto ? React.createElement('div', { style: linha },
       React.createElement('span', { style: rot }, 'Datas:'),
@@ -47075,7 +47078,7 @@ function NtLinha(p) {
   var n = p.nota;
   var resumo = ntResumo(n.texto);
   var imp = ntImp(n), fix = ntFixada(n);
-  var cor = imp === 'normal' ? NT_ACENTO : NT_IMP[imp].cor;
+  var cor = NT_IMP[imp].cor;
   // Wrapper (não é um <button> dentro de outro): o cartão abre a nota; copiar e fixar ficam por cima, no canto.
   return React.createElement('div', {
     style: { position: 'relative', width: 'calc(100% - ' + (p.recuo || 0) + 'px)', marginLeft: p.recuo || 0, marginTop: 8 }
@@ -47091,7 +47094,7 @@ function NtLinha(p) {
       React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
       React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 } },
         React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, ntDataFmt(n.created_at)),
-        React.createElement(NtBadge, { imp: imp }),
+        React.createElement(NtBadge, { imp: imp, curto: true }),
         fix ? React.createElement('span', { style: { fontSize: 11, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
       ),
       resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
@@ -47115,7 +47118,7 @@ function NtLinha(p) {
   );
 }
 
-// Lista. "Por data": Ano > Mês > Semana. "Por importância": Urgente, Importante, Normal (por data dentro).
+// Lista. "Por data": Ano > Mês > Semana. "Por importância": 1 Importante, 2 Normal, 3 Baixo (por data dentro).
 // O bloco "Fixadas" fica no topo nas duas vistas. Só é montada depois de as notas carregarem, para o useState
 // inicial já poder calcular o Set de minimizadas (tudo menos o atual; com filtros/pesquisa tudo aberto).
 function NtLista(p) {
@@ -47156,7 +47159,7 @@ function NtLista(p) {
       var doNivel = resto.filter(function (n) { return ntImp(n) === nivel; }).sort(ntPorDataDesc);
       if (!doNivel.length) return;
       var k = 'i-' + nivel, kMin = minim.has(k), d = NT_IMP[nivel];
-      filhos.push(React.createElement(NtGrupoCab, { key: k, nivel: 0, label: d.icone + ' ' + d.rot, count: doNivel.length, minimizado: kMin, cor: d.fundo || NT_ACENTO, corTexto: d.texto || '#fff', onToggle: function () { toggle(k); } }));
+      filhos.push(React.createElement(NtGrupoCab, { key: k, nivel: 0, label: d.num + ' · ' + d.rot, count: doNivel.length, minimizado: kMin, cor: d.cor, corTexto: NT_IMP_TEXTO, onToggle: function () { toggle(k); } }));
       if (kMin) return;
       doNivel.forEach(function (n) { filhos.push(linha(n, n.id)); });
     });
@@ -47238,7 +47241,7 @@ function NtVista(p) {
   var n = p.nota;
   var cp = ntUseCopia();
   var imp = ntImp(n), fix = ntFixada(n);
-  var cor = imp === 'normal' ? NT_ACENTO : NT_IMP[imp].cor;
+  var cor = NT_IMP[imp].cor;
   // Ações secundárias: pequenas e discretas. Editar é o botão principal; Apagar vai para o fundo, separado.
   var peq = { minHeight: 36, padding: '6px 12px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: T.muted, border: '1px solid ' + T.border };
   var ativo = { background: NT_ACENTO, color: '#fff', border: '1px solid ' + NT_ACENTO };
@@ -47291,9 +47294,9 @@ function NtForm(p) {
     }),
     React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Importância'),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
-      NT_IMP_ORDEM.slice().reverse().map(function (k) {
+      NT_IMP_ORDEM.map(function (k) {
         var d = NT_IMP[k];
-        return React.createElement(NtChip, { key: k, ativo: p.imp === k, cor: d.fundo || NT_ACENTO, corTexto: d.texto || '#fff', disabled: p.saving, onClick: function () { p.onImp(k); } }, d.icone + ' ' + d.rot);
+        return React.createElement(NtChip, { key: k, ativo: p.imp === k, cor: d.cor, corTexto: NT_IMP_TEXTO, borda: d.cor, disabled: p.saving, onClick: function () { p.onImp(k); } }, d.num + ' · ' + d.rot);
       })
     ),
     p.erro ? React.createElement('div', { style: { color: T.red, fontSize: 13, fontWeight: 700, marginTop: 10 } }, p.erro) : null,
