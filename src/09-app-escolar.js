@@ -6622,7 +6622,7 @@ function EscolarApp(_ref31) {
         letterSpacing: '0.8px',
         marginBottom: 10
       }
-    }, "📋 Resultados SEK P \xB7 ", semestre, "\xBA Semestre"), /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDCCB Resultados SEK P \xB7 ", semestre, "\xBA Semestre"), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         gap: 10,
