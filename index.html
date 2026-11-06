@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-05T22:55:45.178Z
+  Gerado em: 2026-11-06T10:31:26.838Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-458";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-459";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -46731,6 +46731,49 @@ function ntDataFmt(iso) {
   return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 
+// Texto copiado: título, linha em branco e o texto inteiro. Sem texto, só o título.
+function ntTextoParaCopiar(n) {
+  var titulo = String(n.titulo || '');
+  var texto = String(n.texto || '');
+  return texto.trim() ? titulo + '\n\n' + texto : titulo;
+}
+// Plano B (PWA instalada / sem navigator.clipboard): textarea escondido + execCommand('copy').
+// Devolve true só se o navegador confirmou a cópia.
+function ntCopiarPlanoB(texto) {
+  var ta = null, ok = false;
+  try {
+    ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.setAttribute('readonly', '');
+    ta.setAttribute('aria-hidden', 'true');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, texto.length);
+    ok = !!document.execCommand('copy');
+  } catch (e) {
+    ok = false;
+  }
+  if (ta && ta.parentNode) ta.parentNode.removeChild(ta);
+  return ok;
+}
+// Devolve uma Promise: resolve só se copiou mesmo; rejeita se os dois caminhos falharem.
+function ntCopiarTexto(texto) {
+  var falhaPlanoB = function (primeiro) {
+    return Promise.reject(primeiro || new Error('Não foi possível copiar para a área de transferência.'));
+  };
+  var nav = typeof navigator !== 'undefined' ? navigator : null;
+  if (nav && nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+    var p;
+    try { p = nav.clipboard.writeText(texto); } catch (e) { p = Promise.reject(e); }
+    return Promise.resolve(p).catch(function (err) {
+      return ntCopiarPlanoB(texto) ? undefined : falhaPlanoB(err);
+    });
+  }
+  return ntCopiarPlanoB(texto) ? Promise.resolve() : falhaPlanoB();
+}
+
 // ── COMPONENTES (todos ao nível do módulo) ──────────────────────────
 function NtBtn(p) {
   var kind = p.kind || 'accent';
@@ -46746,6 +46789,38 @@ function NtBtn(p) {
       flex: p.flex ? 1 : undefined
     }
   }, p.children);
+}
+
+// Botão de copiar a nota (lista e Lixo). Não grava nada nem fala com o Supabase.
+function NtCopiar(p) {
+  var _f = React.useState(false); var feito = _f[0], setFeito = _f[1];
+  var timer = React.useRef(null);
+  React.useEffect(function () { return function () { if (timer.current) clearTimeout(timer.current); }; }, []);
+  function copiar(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    ntCopiarTexto(ntTextoParaCopiar(p.nota)).then(function () {
+      setFeito(true);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(function () { timer.current = null; setFeito(false); }, 1500);
+    }).catch(function (err) {
+      setFeito(false);
+      ntLog('copiar a nota', err);
+      if (typeof window.mostrarErro === 'function') window.mostrarErro('Notas', err);
+    });
+  }
+  return React.createElement('button', {
+    type: 'button',
+    onClick: copiar,
+    'aria-label': feito ? 'Nota copiada' : 'Copiar a nota',
+    title: feito ? 'Nota copiada' : 'Copiar a nota',
+    style: {
+      position: 'absolute', top: 4, right: 4, width: 44, height: 44, boxSizing: 'border-box',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+      background: feito ? NT_ACENTO : T.surface2, color: feito ? '#fff' : NT_ACENTO,
+      border: '2px solid ' + NT_ACENTO, borderRadius: 12, fontSize: feito ? 22 : 20, fontWeight: 900,
+      lineHeight: 1, cursor: 'pointer'
+    }
+  }, feito ? '✓' : '📋');
 }
 
 function NtCartaoDono(p) {
@@ -46788,17 +46863,23 @@ function NtGrupoCab(p) {
 function NtLinha(p) {
   var n = p.nota;
   var resumo = ntResumo(n.texto);
-  return React.createElement('button', {
-    onClick: function () { p.onOpen(n); },
-    style: {
-      display: 'block', width: 'calc(100% - ' + (p.recuo || 0) + 'px)', marginLeft: p.recuo || 0, textAlign: 'left',
-      background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + NT_ACENTO,
-      borderRadius: 12, padding: '11px 13px', marginTop: 8, cursor: 'pointer', color: T.text
-    }
+  // Wrapper (não é um <button> dentro de outro): o cartão abre a nota, o botão de copiar fica por cima, no canto.
+  return React.createElement('div', {
+    style: { position: 'relative', width: 'calc(100% - ' + (p.recuo || 0) + 'px)', marginLeft: p.recuo || 0, marginTop: 8 }
   },
-    React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
-    React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700 } }, ntDataFmt(n.created_at)),
-    resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
+    React.createElement('button', {
+      onClick: function () { p.onOpen(n); },
+      style: {
+        display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left',
+        background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + NT_ACENTO,
+        borderRadius: 12, padding: '11px 56px 11px 13px', cursor: 'pointer', color: T.text
+      }
+    },
+      React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
+      React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700 } }, ntDataFmt(n.created_at)),
+      resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
+    ),
+    React.createElement(NtCopiar, { nota: n })
   );
 }
 
@@ -46849,10 +46930,11 @@ function NtLixoLista(p) {
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 4 } },
       'As notas no Lixo há mais de ' + NT_DIAS_LIXO + ' dias são apagadas definitivamente.'),
     p.notas.map(function (n) {
-      return React.createElement('div', { key: n.id, style: { background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + T.muted, borderRadius: 12, padding: '11px 13px', marginTop: 8 } },
-        React.createElement('div', { style: { fontSize: 16, fontWeight: 900, wordBreak: 'break-word' } }, n.titulo),
-        React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700 } }, 'Apagada em ' + ntDataFmt(n.deleted_at)),
-        ntResumo(n.texto) ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, wordBreak: 'break-word' } }, ntResumo(n.texto)) : null,
+      return React.createElement('div', { key: n.id, style: { position: 'relative', background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + T.muted, borderRadius: 12, padding: '11px 13px', marginTop: 8 } },
+        React.createElement(NtCopiar, { nota: n }),
+        React.createElement('div', { style: { fontSize: 16, fontWeight: 900, wordBreak: 'break-word', paddingRight: 44 } }, n.titulo),
+        React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700, paddingRight: 44 } }, 'Apagada em ' + ntDataFmt(n.deleted_at)),
+        ntResumo(n.texto) ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, wordBreak: 'break-word', paddingRight: 44 } }, ntResumo(n.texto)) : null,
         p.readOnly ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 10 } },
           React.createElement(NtBtn, { small: true, flex: true, disabled: p.busyId === n.id, onClick: function () { p.onRestaurar(n); } }, 'Restaurar'),
           React.createElement(NtBtn, { small: true, flex: true, kind: 'danger', disabled: p.busyId === n.id, onClick: function () { p.onApagarDef(n); } }, 'Apagar de vez')
