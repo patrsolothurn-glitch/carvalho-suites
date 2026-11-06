@@ -449,21 +449,88 @@ function NtFiltros(p) {
   );
 }
 
+// Bloco do código do cofre, no cartão de cada PESSOA (só o admin o vê). Grava só salt + hash (PBKDF2); o código em claro
+// nunca é guardado, registado nem enviado. Tocar aqui NÃO abre o cartão.
+function NtCodigoCartao(p) {
+  var _v = React.useState(''); var val = _v[0], setVal = _v[1];
+  var _c = React.useState(false); var conf = _c[0], setConf = _c[1];
+  var _b = React.useState(false); var busy = _b[0], setBusy = _b[1];
+  var busyRef = React.useRef(false);
+  var vivo = React.useRef(true);
+  React.useEffect(function () { return function () { vivo.current = false; }; }, []);
+  var parar = function (e) { if (e && e.stopPropagation) e.stopPropagation(); };
+  var tem = p.tem === true;
+
+  function gravar() {
+    if (busyRef.current || val.length !== 4) return;
+    busyRef.current = true; setBusy(true); p.onErro('');
+    var codigo = val;
+    var salt = ntCofreSaltNovo();
+    ntCofreHash(codigo, salt).then(function (hash) {
+      return p.db.from('notas_cofre_pin').upsert({ dono: p.dono, salt: salt, hash: hash, updated_at: new Date().toISOString() }, { onConflict: 'dono' }).select('dono').then(function (res) {
+        if (!vivo.current) return;
+        if (res && res.error) { ntCofreAvisar('guardar código do cofre', res.error); p.onErro('Não foi possível guardar o código de ' + p.nome + ': ' + ntCofreMsg(res.error)); return; }
+        if (!res || !res.data || !res.data.length) { ntAvisar('guardar código do cofre', { message: NT_ZERO_LINHAS }); p.onErro('Não foi possível guardar o código de ' + p.nome + ': ' + NT_ZERO_LINHAS); return; }
+        setVal(''); setConf(false); p.onGravado(p.dono);
+      });
+    }).catch(function (e) {
+      ntCofreAvisar('guardar código do cofre', e);
+      if (vivo.current) p.onErro('Não foi possível guardar o código de ' + p.nome + ': ' + ntCofreMsg(e));
+    }).then(function () { busyRef.current = false; if (vivo.current) setBusy(false); });
+  }
+  function aoGuardar() { if (busyRef.current || val.length !== 4) return; if (tem && !conf) { setConf(true); return; } gravar(); }
+
+  var mini = { minHeight: 40, boxSizing: 'border-box', border: '1px solid ' + T.border, borderRadius: 10, padding: '6px 10px', fontSize: 13, fontWeight: 800, cursor: 'pointer', background: T.surface2, color: T.text, whiteSpace: 'nowrap' };
+  return React.createElement('div', { onClick: parar, onPointerDown: parar, style: { flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 4, width: 84 } },
+    React.createElement('input', {
+      type: 'text', name: 'cs-cod-' + p.dono, value: val, inputMode: 'numeric', pattern: '[0-9]*', maxLength: 4, autoComplete: 'off', autoCorrect: 'off', spellCheck: false,
+      placeholder: '••••', 'aria-label': 'Código do cofre de ' + p.nome, disabled: busy,
+      onChange: function (e) { setVal(String(e.target.value).replace(/[^0-9]/g, '').slice(0, 4)); setConf(false); },
+      style: { width: '100%', height: 48, boxSizing: 'border-box', textAlign: 'center', letterSpacing: 3, fontSize: 18, fontWeight: 800, background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 10, padding: '0 4px' }
+    }),
+    p.tem === null ? React.createElement('div', { style: { textAlign: 'center', fontSize: 11, fontWeight: 700, color: T.muted } }, '…')
+      : tem ? React.createElement('div', { 'aria-label': 'Código definido', style: { textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#16a34a' } }, '✓ definido')
+        : React.createElement('div', { 'aria-label': 'Sem código', style: { textAlign: 'center', fontSize: 11, fontWeight: 700, color: T.muted } }, '○ sem código'),
+    val.length === 4 && !conf ? React.createElement('button', { type: 'button', disabled: busy, onClick: aoGuardar, style: Object.assign({}, mini, { background: NT_ACENTO, color: '#fff', border: 'none' }) }, busy ? 'A guardar…' : 'Guardar') : null,
+    conf ? React.createElement('div', { role: 'alertdialog', style: { fontSize: 12, fontWeight: 700 } },
+      React.createElement('div', { style: { marginBottom: 4 } }, 'Substituir o código de ' + p.nome + '?'),
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 4 } },
+        React.createElement('button', { type: 'button', disabled: busy, onClick: gravar, style: Object.assign({}, mini, { background: NT_ACENTO, color: '#fff', border: 'none' }) }, busy ? 'A guardar…' : 'Substituir'),
+        React.createElement('button', { type: 'button', disabled: busy, onClick: function () { setConf(false); }, style: mini }, 'Cancelar'))) : null
+  );
+}
+
 function NtCartaoDono(p) {
-  return React.createElement('button', {
+  var corpoCartao = [
+    React.createElement('span', { key: 'e', style: { fontSize: 34 } }, p.emoji),
+    React.createElement('span', { key: 't', style: { flex: 1, minWidth: 0, overflow: 'hidden' } },
+      React.createElement('div', { style: Object.assign({ fontSize: 20, fontWeight: 900 }, p.codigo ? { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}) }, p.nome),
+      React.createElement('div', { style: Object.assign({ fontSize: 12, color: T.muted, marginTop: 3, fontWeight: 600 }, p.codigo ? { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}) }, p.sub)
+    )
+  ];
+  var seta = React.createElement('span', { key: 's', style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900 } }, '›');
+  if (!p.codigo) {
+    return React.createElement('button', {
+      onClick: p.onClick,
+      style: {
+        display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
+        background: T.surface, border: '2px solid ' + NT_ACENTO, borderRadius: 18, padding: '18px 16px',
+        cursor: 'pointer', color: T.text, marginBottom: 12
+      }
+    }, corpoCartao, seta);
+  }
+  // Cartão com bloco de código (admin): o cartão inteiro abre ao tocar; o bloco pára o clique (stopPropagation).
+  return React.createElement('div', {
     onClick: p.onClick,
     style: {
-      display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
-      background: T.surface, border: '2px solid ' + NT_ACENTO, borderRadius: 18, padding: '18px 16px',
+      display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', textAlign: 'left', overflow: 'hidden',
+      background: T.surface, border: '2px solid ' + NT_ACENTO, borderRadius: 18, padding: '14px 12px',
       cursor: 'pointer', color: T.text, marginBottom: 12
     }
   },
-    React.createElement('span', { style: { fontSize: 34 } }, p.emoji),
-    React.createElement('span', { style: { flex: 1 } },
-      React.createElement('div', { style: { fontSize: 20, fontWeight: 900 } }, p.nome),
-      React.createElement('div', { style: { fontSize: 12, color: T.muted, marginTop: 3, fontWeight: 600 } }, p.sub)
-    ),
-    React.createElement('span', { style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900 } }, '›')
+    React.createElement('button', { type: 'button', 'aria-label': 'Abrir ' + p.nome, style: { flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, margin: 0, textAlign: 'left', color: T.text, cursor: 'pointer' } }, corpoCartao),
+    p.codigo,
+    React.createElement('span', { style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900, flex: '0 0 auto' } }, '›')
   );
 }
 
@@ -502,6 +569,7 @@ function NtCaixas(p) {
   return React.createElement('div', null,
     p.podeEditar ? React.createElement(NtBtn, { onClick: p.onNova }, '+ Nova nota') : null,
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: p.podeEditar ? 16 : 0 } },
+      p.cofre ? React.createElement(NtCaixaCofre, { key: 'cofre', onAbrir: p.cofre.onAbrir, }) : null,
       NT_PASTAS.map(function (pa) {
         var c = contas[pa.key];
         return React.createElement('button', {
@@ -900,6 +968,351 @@ function NtTopBar(p) {
   );
 }
 
+// ── COFRE DE PASSWORDS ──────────────────────────────────────────────
+// ATENÇÃO: o código de 4 dígitos é um CADEADO DE ECRÃ, NÃO é encriptação. As passwords ficam em claro na tabela
+// notas_cofre (protegida só por RLS: cada pessoa só lê as suas). Guardar aqui só passwords sem importância.
+// Regras firmes: nada disto vai para localStorage/sessionStorage/IndexedDB/cache; nada vai para a consola nem para
+// window.mostrarErro (só código + mensagem do Supabase, sem o conteúdo dos campos); as tabelas não entram no backup.
+var NT_COFRE_ITER = 200000;
+var NT_COFRE_BLOQUEIO_S = 60;
+var NT_COFRE_TENTATIVAS = 5;
+var NT_COFRE_TRANCA_MS = 60000;
+var NT_COFRE_VER_MS = 10000;
+var NT_COFRE_TENT = {}; // só em memória: { dono: { n, ate } } (contagem de erros seguidos e fim do bloqueio)
+
+// Erro seguro para mostrar/registar: só código e mensagem (nunca details/hint, que podem trazer valores da linha).
+function ntCofreErr(err) {
+  var m = err && (err.message || err.msg);
+  return { code: err && err.code ? err.code : undefined, message: m ? String(m) : 'Erro desconhecido' };
+}
+function ntCofreMsg(err) {
+  var e = ntCofreErr(err);
+  return (e.code ? '[' + e.code + '] ' : '') + e.message;
+}
+function ntCofreAvisar(op, err) { ntAvisar(op, ntCofreErr(err)); }
+
+function ntBytesParaHex(buf) {
+  var b = new Uint8Array(buf), s = '';
+  for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+  return s;
+}
+function ntHexParaBytes(h) {
+  var out = new Uint8Array(Math.floor(h.length / 2));
+  for (var i = 0; i < out.length; i++) out[i] = parseInt(h.substr(i * 2, 2), 16);
+  return out;
+}
+// PBKDF2-SHA256 (Web Crypto) do código com o salt (hex). Devolve Promise do hash em hex.
+function ntCofreHash(pin, saltHex) {
+  var c = window.crypto && window.crypto.subtle;
+  if (!c) return Promise.reject(new Error('Este navegador não suporta Web Crypto.'));
+  return c.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']).then(function (k) {
+    return c.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: ntHexParaBytes(saltHex), iterations: NT_COFRE_ITER }, k, 256);
+  }).then(ntBytesParaHex);
+}
+function ntCofreSaltNovo() {
+  var b = new Uint8Array(16);
+  window.crypto.getRandomValues(b);
+  return ntBytesParaHex(b);
+}
+function ntCofreIgual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  var r = 0;
+  for (var i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+// Caixa "Passwords" (🔑). Sem contagem nem selos. Admin tem um botão pequeno "Códigos" (fora do botão principal).
+function NtCaixaCofre(p) {
+  var base = {
+    flex: '1 1 240px', minHeight: p.compacta ? 84 : 170, boxSizing: 'border-box', display: 'flex', flexDirection: p.compacta ? 'row' : 'column',
+    alignItems: p.compacta ? 'center' : 'stretch', justifyContent: 'space-between', textAlign: 'left', background: T.surface, color: T.text,
+    border: '2px solid ' + NT_ACENTO, borderRadius: 20, padding: p.compacta ? '14px 18px' : '22px 22px', cursor: 'pointer', width: p.compacta ? '100%' : undefined
+  };
+  return React.createElement('div', { style: { position: 'relative', flex: p.compacta ? undefined : '1 1 240px', display: 'flex', width: p.compacta ? '100%' : undefined, marginBottom: p.compacta ? 14 : 0 } },
+    React.createElement('button', { type: 'button', 'aria-label': 'Abrir Passwords', onClick: p.onAbrir, style: base },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', width: p.compacta ? undefined : '100%' } },
+        React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: p.compacta ? 34 : 46, lineHeight: 1 } }, '🔑'),
+        p.compacta ? null : React.createElement('span', { style: { color: NT_ACENTO, fontSize: 30, fontWeight: 900 } }, '›')),
+      React.createElement('div', { style: { fontSize: p.compacta ? 22 : 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2 } }, 'Passwords'))
+  );
+}
+
+// Teclado numérico: botões 0-9 e apagar, 4 pontos. Sem <input> (não abre o teclado do sistema, sem autocomplete).
+function NtCofreTeclado(p) {
+  var _d = React.useState(''); var dig = _d[0], setDig = _d[1];
+  var toque = function (k) {
+    if (p.disabled) return;
+    if (k === 'del') { setDig(function (d) { return d.slice(0, -1); }); return; }
+    var novo = dig + k;
+    if (novo.length >= 4) { setDig(''); p.onCompleto(novo.slice(0, 4)); return; }
+    setDig(novo);
+  };
+  var teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
+  return React.createElement('div', { style: { maxWidth: 300, margin: '0 auto', textAlign: 'center' } },
+    p.titulo ? React.createElement('div', { style: { fontSize: 16, fontWeight: 800, marginBottom: 12 } }, p.titulo) : null,
+    React.createElement('div', { role: 'img', 'aria-label': dig.length + ' de 4 dígitos', style: { display: 'flex', justifyContent: 'center', gap: 14, marginBottom: 16 } },
+      [0, 1, 2, 3].map(function (i) {
+        return React.createElement('span', { key: i, style: { width: 16, height: 16, borderRadius: 8, boxSizing: 'border-box', border: '2px solid ' + NT_ACENTO, background: i < dig.length ? NT_ACENTO : 'transparent' } });
+      })),
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 } },
+      teclas.map(function (k, i) {
+        if (k === '') return React.createElement('span', { key: i });
+        return React.createElement('button', {
+          key: i, type: 'button', disabled: !!p.disabled, 'aria-label': k === 'del' ? 'Apagar' : k, onClick: function () { toque(k); },
+          style: { minHeight: 60, boxSizing: 'border-box', background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 14, fontSize: 24, fontWeight: 800, cursor: p.disabled ? 'default' : 'pointer', opacity: p.disabled ? 0.5 : 1 }
+        }, k === 'del' ? '⌫' : k);
+      }))
+  );
+}
+
+var ntCofreInp = { width: '100%', boxSizing: 'border-box', background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 10, padding: '11px 12px', fontSize: 16, fontFamily: 'inherit' };
+var ntCofreMini = { background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 10, padding: '8px 12px', minHeight: 40, fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
+
+// Cofre da própria pessoa. Montado só no cartão próprio. Ao sair do ecrã (desmontar) tudo desaparece da memória.
+function NtCofre(p) {
+  var db = p.db, dono = p.dono;
+  var _c = React.useState('a-carregar'); var estado = _c[0], setEstado = _c[1];   // a-carregar | sem-codigo | pedir | erro
+  var _pn = React.useState(null); var pin = _pn[0], setPin = _pn[1];             // { salt, hash } (só memória)
+  var _u = React.useState(false); var aberto = _u[0], setAberto = _u[1];
+  var _en = React.useState([]); var entradas = _en[0], setEntradas = _en[1];
+  var _ce = React.useState(false); var carregaEnt = _ce[0], setCarregaEnt = _ce[1];
+  var _bq = React.useState(''); var busca = _bq[0], setBusca = _bq[1];
+  var _vm = React.useState({}); var mostrar = _vm[0], setMostrar = _vm[1];       // id -> true enquanto a password está visível
+  var _cp = React.useState(''); var copiado = _cp[0], setCopiado = _cp[1];       // "id:campo" com visto
+  var _f = React.useState(null); var form = _f[0], setForm = _f[1];              // { id, titulo, utilizador, segredo, nota }
+  var _fe = React.useState(''); var formErro = _fe[0], setFormErro = _fe[1];
+  var _er = React.useState(''); var erro = _er[0], setErro = _er[1];
+  var _ap = React.useState(null); var apagarId = _ap[0], setApagarId = _ap[1];
+  var _bz = React.useState(false); var busy = _bz[0], setBusy = _bz[1];
+  var _vr = React.useState(''); var verif = _vr[0], setVerif = _vr[1];           // '' | 'a-verificar'
+  var _tk = React.useState(0); var tick = _tk[0], setTick = _tk[1];
+  var _aa = React.useState(''); var aviso = _aa[0], setAviso = _aa[1];           // erro do teclado (código errado)
+  var busyRef = React.useRef(false);
+  var vivo = React.useRef(true);
+  var tTranca = React.useRef(null);
+  var tVer = React.useRef({});
+  var tCopia = React.useRef(null);
+
+  function limparTimersVer() { Object.keys(tVer.current).forEach(function (k) { clearTimeout(tVer.current[k]); }); tVer.current = {}; }
+  // Tranca: LIMPA entradas, passwords mostradas, formulário e pesquisa da memória e volta a pedir o código.
+  function trancar() {
+    if (tTranca.current) { clearTimeout(tTranca.current); tTranca.current = null; }
+    limparTimersVer();
+    if (tCopia.current) { clearTimeout(tCopia.current); tCopia.current = null; }
+    if (!vivo.current) return;
+    setAberto(false); setEntradas([]); setMostrar({}); setCopiado(''); setForm(null); setFormErro('');
+    setErro(''); setApagarId(null); setBusca(''); setAviso('');
+  }
+  function atividade() {
+    if (!aberto) return;
+    if (tTranca.current) clearTimeout(tTranca.current);
+    tTranca.current = setTimeout(trancar, NT_COFRE_TRANCA_MS);
+  }
+  React.useEffect(function () {
+    if (aberto) { if (tTranca.current) clearTimeout(tTranca.current); tTranca.current = setTimeout(trancar, NT_COFRE_TRANCA_MS); }
+  }, [aberto]);
+  React.useEffect(function () {
+    var oculta = function () { if (document.hidden) trancar(); };
+    document.addEventListener('visibilitychange', oculta);
+    window.addEventListener('pagehide', trancar);
+    return function () {
+      vivo.current = false;
+      document.removeEventListener('visibilitychange', oculta);
+      window.removeEventListener('pagehide', trancar);
+      if (tTranca.current) clearTimeout(tTranca.current);
+      if (tCopia.current) clearTimeout(tCopia.current);
+      Object.keys(tVer.current).forEach(function (k) { clearTimeout(tVer.current[k]); });
+    };
+  }, []);
+
+  React.useEffect(function () {
+    if (!db) { setEstado('erro'); setErro('Sem ligação ao servidor.'); return; }
+    db.from('notas_cofre_pin').select('salt,hash').eq('dono', dono).then(function (res) {
+      if (!vivo.current) return;
+      if (res && res.error) { ntCofreAvisar('ler o código do cofre', res.error); setErro('Não foi possível abrir o cofre: ' + ntCofreMsg(res.error)); setEstado('erro'); return; }
+      var r = res && res.data && res.data[0];
+      if (!r || !r.salt || !r.hash) { setEstado('sem-codigo'); return; }
+      setPin({ salt: r.salt, hash: r.hash }); setEstado('pedir');
+    }).catch(function (e) { ntCofreAvisar('ler o código do cofre', e); if (vivo.current) { setErro('Não foi possível abrir o cofre: ' + ntCofreMsg(e)); setEstado('erro'); } });
+  }, []);
+
+  // Bloqueio por erros seguidos: contador visível a descer.
+  var tent = NT_COFRE_TENT[dono] || { n: 0, ate: 0 };
+  var restante = Math.max(0, Math.ceil((tent.ate - Date.now()) / 1000));
+  React.useEffect(function () {
+    if (!restante) return;
+    var iv = setInterval(function () { setTick(function (t) { return t + 1; }); }, 1000);
+    return function () { clearInterval(iv); };
+  }, [restante > 0]);
+
+  function carregarEntradas() {
+    setCarregaEnt(true);
+    db.from('notas_cofre').select('id,titulo,utilizador,segredo,nota,created_at').eq('dono', dono).order('titulo', { ascending: true }).then(function (res) {
+      if (!vivo.current) return;
+      setCarregaEnt(false);
+      if (res && res.error) { ntCofreAvisar('carregar o cofre', res.error); setErro('Não foi possível carregar as entradas: ' + ntCofreMsg(res.error)); return; }
+      setEntradas((res && res.data) || []);
+    }).catch(function (e) { ntCofreAvisar('carregar o cofre', e); if (vivo.current) { setCarregaEnt(false); setErro('Não foi possível carregar as entradas: ' + ntCofreMsg(e)); } });
+  }
+
+  function tentar(codigo) {
+    if (!pin || verif || restante) return;
+    setVerif('a-verificar'); setAviso('');
+    ntCofreHash(codigo, pin.salt).then(function (h) {
+      if (!vivo.current) return;
+      setVerif('');
+      if (ntCofreIgual(h, pin.hash)) {
+        NT_COFRE_TENT[dono] = { n: 0, ate: 0 };
+        setErro(''); setAberto(true); carregarEntradas();
+        return;
+      }
+      var t = NT_COFRE_TENT[dono] || { n: 0, ate: 0 };
+      var n = t.n + 1;
+      if (n >= NT_COFRE_TENTATIVAS) { NT_COFRE_TENT[dono] = { n: 0, ate: Date.now() + NT_COFRE_BLOQUEIO_S * 1000 }; setAviso(''); }
+      else { NT_COFRE_TENT[dono] = { n: n, ate: 0 }; setAviso('Código errado (' + n + ' de ' + NT_COFRE_TENTATIVAS + ').'); }
+      setTick(function (x) { return x + 1; });
+    }).catch(function (e) { ntCofreAvisar('verificar o código do cofre', e); if (vivo.current) { setVerif(''); setErro('Não foi possível verificar o código: ' + ntCofreMsg(e)); } });
+  }
+
+  function ver(id) {
+    setMostrar(function (m) { var n = Object.assign({}, m); n[id] = true; return n; });
+    if (tVer.current[id]) clearTimeout(tVer.current[id]);
+    tVer.current[id] = setTimeout(function () {
+      delete tVer.current[id];
+      if (vivo.current) setMostrar(function (m) { var n = Object.assign({}, m); delete n[id]; return n; });
+    }, NT_COFRE_VER_MS);
+  }
+  function esconder(id) {
+    if (tVer.current[id]) { clearTimeout(tVer.current[id]); delete tVer.current[id]; }
+    setMostrar(function (m) { var n = Object.assign({}, m); delete n[id]; return n; });
+  }
+  function copiar(e, campo) {
+    var valor = campo === 'segredo' ? e.segredo : e.utilizador;
+    ntCopiarTexto(valor || '').then(function () {
+      if (!vivo.current) return;
+      setCopiado(e.id + ':' + campo);
+      if (tCopia.current) clearTimeout(tCopia.current);
+      tCopia.current = setTimeout(function () { tCopia.current = null; if (vivo.current) setCopiado(''); }, 1500);
+    }, function () {
+      ntAvisar('copiar do cofre', { message: 'Não foi possível copiar para a área de transferência.' });
+      if (vivo.current) setErro('Não foi possível copiar para a área de transferência.');
+    });
+  }
+
+  function abrirNova() { setFormErro(''); setErro(''); setForm({ id: null, titulo: '', utilizador: '', segredo: '', nota: '' }); }
+  function abrirEditar(e) { setFormErro(''); setErro(''); setForm({ id: e.id, titulo: e.titulo || '', utilizador: e.utilizador || '', segredo: e.segredo || '', nota: e.nota || '' }); }
+  function cancelarForm() { setForm(null); setFormErro(''); }
+  function campo(k, v) { setForm(function (f) { var n = Object.assign({}, f); n[k] = v; return n; }); }
+
+  function guardar() {
+    if (busyRef.current || !form) return;
+    var titulo = form.titulo.trim();
+    if (!titulo) { setFormErro('O título é obrigatório.'); return; }
+    busyRef.current = true; setBusy(true); setFormErro('');
+    var dados = { titulo: titulo, utilizador: form.utilizador, segredo: form.segredo, nota: form.nota };
+    var idForm = form.id;
+    var q;
+    if (idForm) q = db.from('notas_cofre').update(Object.assign({}, dados, { updated_at: new Date().toISOString() })).eq('id', idForm).select('id');
+    else { var id = ntNovoId(); dados.id = id; dados.dono = dono; q = db.from('notas_cofre').insert(dados).select('id'); }
+    q.then(function (res) {
+      if (!vivo.current) return;
+      var oQue = idForm ? 'guardar as alterações' : 'criar a entrada';
+      if (res && res.error) { ntCofreAvisar(oQue + ' no cofre', res.error); setFormErro('Não foi possível ' + oQue + ': ' + ntCofreMsg(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { ntAvisar(oQue + ' no cofre', { message: NT_ZERO_LINHAS }); setFormErro('Não foi possível ' + oQue + ': ' + NT_ZERO_LINHAS); return; }
+      var nova = { id: idForm || dados.id, titulo: titulo, utilizador: form.utilizador, segredo: form.segredo, nota: form.nota };
+      setEntradas(function (prev) {
+        var lista = idForm ? prev.map(function (x) { return x.id === idForm ? Object.assign({}, x, nova) : x; }) : prev.concat([nova]);
+        return lista.slice().sort(function (a, b) { return ntNorm(a.titulo) < ntNorm(b.titulo) ? -1 : ntNorm(a.titulo) > ntNorm(b.titulo) ? 1 : 0; });
+      });
+      if (idForm) esconder(idForm);
+      setForm(null);
+    }).catch(function (e) {
+      ntCofreAvisar('gravar no cofre', e);
+      if (vivo.current) setFormErro('Não foi possível gravar: ' + ntCofreMsg(e));
+    }).then(function () { busyRef.current = false; if (vivo.current) setBusy(false); });
+  }
+
+  function apagar(e) {
+    if (busyRef.current) return;
+    busyRef.current = true; setBusy(true); setErro('');
+    db.from('notas_cofre').delete().eq('id', e.id).select('id').then(function (res) {
+      if (!vivo.current) return;
+      if (res && res.error) { ntCofreAvisar('apagar do cofre', res.error); setErro('Não foi possível apagar: ' + ntCofreMsg(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { ntAvisar('apagar do cofre', { message: NT_ZERO_LINHAS }); setErro('Não foi possível apagar: ' + NT_ZERO_LINHAS); return; }
+      esconder(e.id);
+      setEntradas(function (prev) { return prev.filter(function (x) { return x.id !== e.id; }); });
+      setApagarId(null);
+    }).catch(function (er) {
+      ntCofreAvisar('apagar do cofre', er);
+      if (vivo.current) setErro('Não foi possível apagar: ' + ntCofreMsg(er));
+    }).then(function () { busyRef.current = false; if (vivo.current) setBusy(false); });
+  }
+
+  var nota = function (txt, cor) { return React.createElement('div', { style: { textAlign: 'center', color: cor || T.muted, fontWeight: 700, fontSize: 14, padding: '24px 10px' } }, txt); };
+  var corpo;
+  if (estado === 'a-carregar') corpo = nota('A carregar…');
+  else if (estado === 'erro') corpo = erro ? null : nota('Não foi possível abrir o cofre.');
+  else if (estado === 'sem-codigo') corpo = nota('O Patricio ainda não definiu o teu código');
+  else if (!aberto) {
+    corpo = React.createElement('div', { style: { padding: '8px 0' } },
+      React.createElement(NtCofreTeclado, { titulo: restante ? 'Cofre bloqueado' : 'Introduz o código', onCompleto: tentar, disabled: !!restante || !!verif }),
+      restante ? React.createElement('div', { role: 'alert', style: { textAlign: 'center', color: T.red, fontWeight: 800, marginTop: 14 } }, 'Demasiados erros. Espera ' + restante + ' s.') :
+        aviso ? React.createElement('div', { role: 'alert', style: { textAlign: 'center', color: T.red, fontWeight: 800, marginTop: 14 } }, aviso) : null,
+      React.createElement('div', { style: { textAlign: 'center', color: T.muted, fontSize: 12, fontWeight: 600, marginTop: 18 } }, 'Se te esqueceres do código, fala com o Patricio.'));
+  } else if (form) {
+    corpo = React.createElement('div', null,
+      formErro ? React.createElement(NtAvisoErro, { texto: formErro, onFechar: function () { setFormErro(''); } }) : null,
+      React.createElement('div', { style: { fontWeight: 900, fontSize: 17, marginBottom: 10 } }, form.id ? 'Editar entrada' : 'Nova entrada'),
+      React.createElement('label', { style: { display: 'block', fontSize: 12, fontWeight: 800, color: T.muted, marginBottom: 4 } }, 'Título *'),
+      React.createElement('input', { type: 'text', name: 'campo-a', value: form.titulo, autoComplete: 'off', onChange: function (e) { campo('titulo', e.target.value); }, style: Object.assign({}, ntCofreInp, { marginBottom: 10 }) }),
+      React.createElement('label', { style: { display: 'block', fontSize: 12, fontWeight: 800, color: T.muted, marginBottom: 4 } }, 'Utilizador'),
+      React.createElement('input', { type: 'text', name: 'campo-b', value: form.utilizador, autoComplete: 'off', autoCapitalize: 'off', autoCorrect: 'off', spellCheck: false, onChange: function (e) { campo('utilizador', e.target.value); }, style: Object.assign({}, ntCofreInp, { marginBottom: 10 }) }),
+      React.createElement('label', { style: { display: 'block', fontSize: 12, fontWeight: 800, color: T.muted, marginBottom: 4 } }, 'Password'),
+      React.createElement('input', { type: 'text', name: 'campo-c', value: form.segredo, autoComplete: 'off', autoCapitalize: 'off', autoCorrect: 'off', spellCheck: false, onChange: function (e) { campo('segredo', e.target.value); }, style: Object.assign({}, ntCofreInp, { marginBottom: 10 }) }),
+      React.createElement('label', { style: { display: 'block', fontSize: 12, fontWeight: 800, color: T.muted, marginBottom: 4 } }, 'Nota'),
+      React.createElement('textarea', { name: 'campo-d', value: form.nota, autoComplete: 'off', rows: 3, onChange: function (e) { campo('nota', e.target.value); }, style: Object.assign({}, ntCofreInp, { marginBottom: 14, resize: 'vertical' }) }),
+      React.createElement('div', { style: { display: 'flex', gap: 10 } },
+        React.createElement(NtBtn, { onClick: guardar, disabled: busy, flex: true }, busy ? 'A guardar…' : (form.id ? 'Guardar alterações' : 'Criar entrada')),
+        React.createElement(NtBtn, { kind: 'ghost', onClick: cancelarForm, disabled: busy }, 'Cancelar')));
+  } else {
+    var q = ntNorm(busca.trim());
+    var vis = entradas.filter(function (e) { return !q || ntNorm(e.titulo).indexOf(q) !== -1; });
+    corpo = React.createElement('div', null,
+      React.createElement(NtBtn, { onClick: abrirNova }, '+ Nova entrada'),
+      entradas.length ? React.createElement('input', { type: 'search', name: 'cofre-pesquisa', value: busca, autoComplete: 'off', placeholder: 'Pesquisar por título', 'aria-label': 'Pesquisar por título', onChange: function (e) { setBusca(e.target.value); }, style: Object.assign({}, ntCofreInp, { marginTop: 14 }) }) : null,
+      carregaEnt ? nota('A carregar…') : null,
+      !carregaEnt && !entradas.length ? nota('Ainda não há passwords guardadas.') : null,
+      !carregaEnt && entradas.length && !vis.length ? nota('Nenhuma entrada com esse título.') : null,
+      React.createElement('div', { style: { marginTop: 14 } },
+        vis.map(function (e) {
+          var visivel = !!mostrar[e.id];
+          return React.createElement('div', { key: e.id, style: { background: T.surface, border: '1px solid ' + T.border, borderRadius: 14, padding: '12px 14px', marginBottom: 10 } },
+            React.createElement('div', { style: { fontWeight: 800, fontSize: 16, wordBreak: 'break-word' } }, e.titulo),
+            e.utilizador ? React.createElement('div', { style: { fontSize: 14, color: T.muted, fontWeight: 600, wordBreak: 'break-word', marginTop: 2 } }, e.utilizador) : null,
+            React.createElement('div', { 'data-cofre-pw': e.id, style: { fontSize: 16, fontWeight: 700, fontFamily: 'monospace', marginTop: 6, wordBreak: 'break-all' } }, visivel ? (e.segredo || '(vazia)') : '••••••'),
+            e.nota ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, e.nota) : null,
+            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 } },
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { if (visivel) esconder(e.id); else ver(e.id); } }, visivel ? 'Esconder' : 'Ver'),
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { copiar(e, 'utilizador'); } }, copiado === e.id + ':utilizador' ? '✓ Copiado' : 'Copiar utilizador'),
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { copiar(e, 'segredo'); } }, copiado === e.id + ':segredo' ? '✓ Copiado' : 'Copiar password'),
+              React.createElement('button', { type: 'button', style: ntCofreMini, onClick: function () { abrirEditar(e); } }, 'Editar'),
+              React.createElement('button', { type: 'button', style: Object.assign({}, ntCofreMini, { color: T.red }), onClick: function () { setApagarId(e.id); } }, 'Apagar')),
+            apagarId === e.id ? React.createElement('div', { style: { marginTop: 10, border: '1px solid ' + T.red, borderRadius: 10, padding: 10 } },
+              React.createElement('div', { style: { fontSize: 13, fontWeight: 700, marginBottom: 8 } }, 'Apagar de vez? Esta entrada não vai para o Lixo e não se pode desfazer.'),
+              React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                React.createElement(NtBtn, { kind: 'danger', small: true, disabled: busy, onClick: function () { apagar(e); } }, busy ? 'A apagar…' : 'Apagar de vez'),
+                React.createElement(NtBtn, { kind: 'ghost', small: true, disabled: busy, onClick: function () { setApagarId(null); } }, 'Cancelar'))) : null);
+        })),
+      React.createElement('div', { style: { textAlign: 'center', marginTop: 8 } },
+        React.createElement('button', { type: 'button', style: ntCofreMini, onClick: trancar }, '🔒 Trancar agora')),
+      React.createElement('div', { style: { textAlign: 'center', color: T.muted, fontSize: 12, fontWeight: 600, marginTop: 14 } }, 'Tranca sozinho ao fim de 1 minuto sem usar.'));
+  }
+
+  return React.createElement('div', { 'data-cofre': aberto ? 'aberto' : 'fechado', onPointerDown: atividade, onKeyDown: atividade, onClick: atividade, onInput: atividade },
+    erro && !form ? React.createElement(NtAvisoErro, { texto: erro, onFechar: function () { setErro(''); } }) : null,
+    corpo);
+}
+
 // ── APP ─────────────────────────────────────────────────────────────
 function NotasApp(props) {
   var onBack = props.onBack, profile = props.profile || {};
@@ -936,6 +1349,8 @@ function NotasApp(props) {
   var _bd = React.useState(null); var desfazer = _bd[0], setDesfazer = _bd[1];   // barra "Nota arquivada · Anular"
   var _ba = React.useState(''); var buscaArq = _ba[0], setBuscaArq = _ba[1];     // pesquisa dentro do Arquivo
   var _no = React.useState('lista'); var notaOrigem = _no[0], setNotaOrigem = _no[1]; // de onde se abriu a nota
+  var _cm = React.useState(null); var cofreModo = _cm[0], setCofreModo = _cm[1]; // null | 'cofre' (cofre de passwords)
+  var _cd = React.useState(null); var codigos = _cd[0], setCodigos = _cd[1];   // admin: { dono: true } de quem tem código (só colunas dono, updated_at)
   var desfazerTimer = React.useRef(null);
   React.useEffect(function () { return function () { if (desfazerTimer.current) clearTimeout(desfazerTimer.current); }; }, []);
 
@@ -977,9 +1392,21 @@ function NotasApp(props) {
   }
 
   React.useEffect(function () { carregarRef.current(); }, [donosKey]);
+  // Admin: quem já tem código no cofre. Lê SÓ dono e updated_at de notas_cofre_pin (nunca salt nem hash).
+  React.useEffect(function () {
+    if (!isAdmin || !db) return;
+    var vivo = true;
+    db.from('notas_cofre_pin').select('dono,updated_at').then(function (res) {
+      if (!vivo) return;
+      if (res && res.error) { ntCofreAvisar('ver quem tem código do cofre', res.error); setCodigos({}); setErroGrav('Não foi possível ver quem tem código: ' + ntCofreMsg(res.error)); return; }
+      var m = {}; ((res && res.data) || []).forEach(function (r) { m[r.dono] = true; }); setCodigos(m);
+    }).catch(function (e) { ntCofreAvisar('ver quem tem código do cofre', e); if (vivo) setCodigos({}); });
+    return function () { vivo = false; };
+  }, [isAdmin]);
   React.useEffect(function () { return window.csAoVoltarRede(function () { carregarRef.current(); }); }, []);
 
   var podeEditar = cartao ? ntPodeEditar(cartao, myId) : false;
+  var temCofre = !!cartao && cartao === myId && NT_MEMBROS.indexOf(myId) !== -1 && podeEditar; // só o cartão PRÓPRIO; nunca Família nem só leitura
   var usaPastas = cartao === 'patricio'; // só o cartão do Patricio tem caixas; os outros ficam como estão
   var doTodos = cartao ? notas.filter(function (n) { return n.dono === cartao; }) : [];
   var doCartao = usaPastas && pasta ? doTodos.filter(function (n) { return ntPasta(n) === pasta; }) : doTodos;
@@ -1251,6 +1678,7 @@ function NotasApp(props) {
   function abrirNota(n, origem) { setNotaOrigem(origem === 'arquivo' ? 'arquivo' : 'lista'); setSelId(n.id); setVista('nota'); }
   function voltar() {
     if (!cartao) { onBack(); return; }
+    if (cofreModo) { setCofreModo(null); return; } // sair do cofre desmonta-o e tranca-o
     if (vista === 'form') { cancelarForm(); return; }
     if (vista === 'nota') { setSelId(null); setVista(notaOrigem === 'arquivo' ? 'arquivo' : 'lista'); return; }
     if (vista === 'lixo' || vista === 'arquivo') { setSelId(null); setVista('lista'); return; }
@@ -1261,11 +1689,13 @@ function NotasApp(props) {
   }
 
   var titulo = 'Notas Carvalho';
-  if (cartao) {
+  if (cartao && cofreModo && temCofre) {
+    titulo = 'Passwords';
+  } else if (cartao) {
     titulo = (usaPastas && pasta ? ntNomePasta(pasta) : (cartao === myId && profile.display_name ? profile.display_name : NT_NOMES[cartao])) + (vista === 'lixo' ? ' · Lixo' : vista === 'arquivo' ? ' · Arquivo' : '');
   }
   var direita = null;
-  if (cartao && vista === 'lista') {
+  if (cartao && vista === 'lista' && !cofreModo) {
     var estiloTopo = { background: 'none', border: '1px solid ' + T.border, color: T.text, borderRadius: 10, padding: '6px 9px', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
     direita = React.createElement('div', { style: { display: 'flex', gap: 6 } },
       usaPastas && !pasta ? null : React.createElement('button', { onClick: function () { setBuscaArq(''); setVista('arquivo'); }, style: estiloTopo }, '📦 Arquivo' + (arquivadas.length ? ' (' + arquivadas.length + ')' : '')),
@@ -1282,12 +1712,18 @@ function NotasApp(props) {
       React.createElement(NtBtn, { onClick: function () { setLoading(true); carregar(); } }, 'Tentar outra vez'));
   } else if (!cartao) {
     corpo = React.createElement('div', null,
+      isAdmin ? React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 12 } }, 'Códigos de 4 dígitos são um cadeado simples. Guarda só passwords sem importância.') : null,
       donos.map(function (d) {
         var n = notas.filter(function (x) { return x.dono === d && ntNaLista(x); }).length;
         var nome = d === myId && profile.display_name ? profile.display_name : NT_NOMES[d];
         var sub = (d === myId ? 'As minhas notas' : d === 'familia' ? 'Partilhadas por todos' : 'Só leitura') + ' · ' + n + (n === 1 ? ' nota' : ' notas');
-        return React.createElement(NtCartaoDono, { key: d, emoji: NT_EMOJIS[d], nome: nome, sub: sub, onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setPasta(null); setCartao(d); } });
+        var temBloco = isAdmin && NT_MEMBROS.indexOf(d) !== -1;
+        return React.createElement(NtCartaoDono, { key: d, emoji: NT_EMOJIS[d], nome: nome, sub: sub,
+          codigo: temBloco ? React.createElement(NtCodigoCartao, { dono: d, nome: NT_NOMES[d], db: db, tem: codigos === null ? null : !!codigos[d], onErro: setErroGrav, onGravado: function (k) { setErroGrav(''); setCodigos(function (pr) { var n = Object.assign({}, pr || {}); n[k] = true; return n; }); } }) : null,
+          onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setPasta(null); setCartao(d); } });
       }));
+  } else if (cofreModo && temCofre) {
+    corpo = React.createElement(NtCofre, { key: 'cofre|' + myId, db: db, dono: myId });
   } else if (vista === 'form') {
     corpo = React.createElement(NtForm, {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
@@ -1307,12 +1743,14 @@ function NotasApp(props) {
   } else if (vista === 'lixo') {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
   } else if (usaPastas && !pasta) {
-    corpo = React.createElement(NtCaixas, { notas: doTodos.filter(ntNaLista), podeEditar: podeEditar, onNova: abrirNova, onAbrir: function (k) { resetFiltros(); setPasta(k); } });
+    corpo = React.createElement(NtCaixas, { notas: doTodos.filter(ntNaLista), podeEditar: podeEditar, onNova: abrirNova, onAbrir: function (k) { resetFiltros(); setPasta(k); },
+      cofre: temCofre ? { onAbrir: function () { setCofreModo('cofre'); } } : null });
   } else {
     // Vista, pesquisa e filtros são só estado do ecrã: nunca gravam nem pedem nada ao Supabase.
     var filtrando = ntFiltrosAtivos(filtros, busca);
     var filtradas = ntFiltrar(ativas, filtros, busca, new Date());
     corpo = React.createElement('div', null,
+      temCofre && !usaPastas ? React.createElement(NtCaixaCofre, { compacta: true, onAbrir: function () { setCofreModo('cofre'); }}) : null,
       podeEditar ? React.createElement(NtBtn, { onClick: abrirNova }, '+ Nova nota') : React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } }, '👁 Só leitura'),
       ativas.length ? React.createElement(NtFiltros, {
         modo: modo, onModo: setModo, busca: busca, onBusca: setBusca, filtros: filtros, onFiltros: setFiltros,
