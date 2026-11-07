@@ -11,7 +11,7 @@ a partir dos ficheiros em `src/`. Qualquer edição direta é perdida no
 próximo build. Esta nota está também como comentário no topo do próprio
 `index.html`.
 
-## As 15 apps (menu principal)
+## As 16 apps (menu principal)
 
 | App | Ficheiro fonte | Descrição |
 |---|---|---|
@@ -30,6 +30,7 @@ próximo build. Esta nota está também como comentário no topo do próprio
 | Horas por Voz *(admin)* | `18-app-horasvoz.js` | Registo de horas a 70% por voz |
 | Pólen | `19-app-pollen.js` | Previsão e diário de alergias ao pólen |
 | Carvalho Fitness *(admin)* | `20-app-fitness.js` | Plano alimentar, progresso e treino |
+| Notas Carvalho | `23-app-notas.js` | Notas da família: pastas Privado e Geschäft, importância 1/2/3, Arquivo, cofre de passwords com código de 4 dígitos, painel Cofres da família para o admin |
 
 *(admin)* = app marcada `adminOnly: true` em `APPS_DATA`, só visível a
 administradores. A app Hauswart Extra (`21-app-hauswart-extra.js`) não
@@ -62,9 +63,10 @@ src/
   16-app-voz.js            App Voz (gravador + tradutor)
   17-app-wochenplan.js     App Wochenplan
   18-app-horasvoz.js       App Horas por Voz (admin only)
-  19-app-pollen.js         App Pólen (admin only)
+  19-app-pollen.js         App Pólen
   20-app-fitness.js        App Carvalho Fitness (admin only)
   22-home-extras.js        Home: popup Kompliment des Tages, tempo, painel admin do Kompliment
+  23-app-notas.js          App Notas Carvalho (notas, Arquivo, Lixo, cofre de passwords)
   10-shell.js              CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
   tail.html                Scripts finais: montagem do React + registo do Service Worker
 
@@ -78,6 +80,21 @@ Nota sobre `12-app-lucas.js`: ao contrário dos outros ficheiros de
 `src/`, este é gerado por um compilador Babel (usa `_regenerator`,
 `_asyncToGenerator`, etc.). Edições devem ser mínimas e manter o
 estilo compilado — nunca reformatar ou reconverter o ficheiro inteiro.
+
+## Notas Carvalho: tabelas e SQL
+
+- Tabelas Supabase: `notas_notas` (as notas; está no backup diário), `notas_cofre` (entradas do
+  cofre de passwords) e `notas_cofre_pin` (código de cada pessoa, só como salt + hash).
+- O cofre **não entra no backup**: `notas_cofre` e `notas_cofre_pin` não estão na lista `TABLES` de
+  `backup.yml` e não devem ser acrescentadas.
+- O código de 4 dígitos é um cadeado de ecrã, **não encriptação**; as passwords ficam em claro em
+  `notas_cofre`, protegidas só por RLS. Guardar lá só passwords sem importância.
+- Quem define os códigos é o admin (no cartão de cada pessoa). Cada pessoa só lê o seu cofre; o admin
+  lê os dos outros, só em leitura, no painel "Cofres da família".
+- `sql/33_…` a `sql/40_…` (cada um com `_reverter`) são cópias de documentação do SQL que o
+  utilizador já correu no Supabase: 33 tabela das notas, 34 o admin lê também as notas da Cristina (só leitura), 35
+  importância e fixada, 36 nível "baixo", 37 `feita_em` (Arquivo), 38 `pasta` (Privado/Geschäft),
+  39 cofre, 40 política "cofre: admin lê". O SQL é sempre corrido pelo utilizador, nunca pelo código.
 
 ## Pipeline: `src/` → `build.js` → `deploy.js`
 
