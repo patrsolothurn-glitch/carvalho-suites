@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-06T21:28:29.340Z
+  Gerado em: 2026-11-07T07:34:41.230Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-466";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-467";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -47142,8 +47142,8 @@ function NtCartaoDono(p) {
   var corpoCartao = [
     React.createElement('span', { key: 'e', style: { fontSize: 34 } }, p.emoji),
     React.createElement('span', { key: 't', style: { flex: 1, minWidth: 0, overflow: 'hidden' } },
-      React.createElement('div', { style: Object.assign({ fontSize: 20, fontWeight: 900 }, p.codigo ? { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}) }, p.nome),
-      React.createElement('div', { style: Object.assign({ fontSize: 12, color: T.muted, marginTop: 3, fontWeight: 600 }, p.codigo ? { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}) }, p.sub)
+      React.createElement('div', { style: Object.assign({ fontSize: 20, fontWeight: 900 }, p.codigo ? { overflowWrap: 'break-word', lineHeight: 1.15 } : {}) }, p.nome),
+      React.createElement('div', { style: Object.assign({ fontSize: 12, color: T.muted, marginTop: 3, fontWeight: 600 }, p.codigo ? { overflowWrap: 'break-word' } : {}) }, p.sub)
     )
   ];
   var seta = React.createElement('span', { key: 's', style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900 } }, '›');
@@ -47158,17 +47158,19 @@ function NtCartaoDono(p) {
     }, corpoCartao, seta);
   }
   // Cartão com bloco de código (admin): o cartão inteiro abre ao tocar; o bloco pára o clique (stopPropagation).
+  // Bloco + seta ficam sempre juntos, com a seta no fim; se o espaço for muito curto (zoom), passam para a linha de baixo.
   return React.createElement('div', {
     onClick: p.onClick,
     style: {
-      display: 'flex', alignItems: 'center', gap: 8, width: '100%', boxSizing: 'border-box', textAlign: 'left', overflow: 'hidden',
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 8, width: '100%', boxSizing: 'border-box', textAlign: 'left',
       background: T.surface, border: '2px solid ' + NT_ACENTO, borderRadius: 18, padding: '14px 12px',
       cursor: 'pointer', color: T.text, marginBottom: 12
     }
   },
-    React.createElement('button', { type: 'button', 'aria-label': 'Abrir ' + p.nome, style: { flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, margin: 0, textAlign: 'left', color: T.text, cursor: 'pointer' } }, corpoCartao),
-    p.codigo,
-    React.createElement('span', { style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900, flex: '0 0 auto' } }, '›')
+    React.createElement('button', { type: 'button', 'aria-label': 'Abrir ' + p.nome, style: { flex: '1 1 9em', fontSize: 16, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, margin: 0, textAlign: 'left', color: T.text, cursor: 'pointer' } }, corpoCartao),
+    React.createElement('div', { style: { flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' } },
+      p.codigo,
+      React.createElement('span', { style: { color: NT_ACENTO, fontSize: 26, fontWeight: 900 } }, '›'))
   );
 }
 
@@ -47196,9 +47198,54 @@ function NtGrupoCab(p) {
   );
 }
 
+// Só aspeto: ecrã largo (PC) = caixas grandes; ecrã estreito = caixas compactas (ícone | título | seta).
+// Tamanhos com clamp() para o texto e o ícone não crescerem sem limite com o zoom/tamanho de letra do sistema.
+function ntUseLargo() {
+  var ler = function () {
+    try { return window.matchMedia ? window.matchMedia('(min-width: 700px)').matches : (window.innerWidth || 0) >= 700; } catch (e) { return false; }
+  };
+  var _s = React.useState(ler); var largo = _s[0], setLargo = _s[1];
+  React.useEffect(function () {
+    var f = function () { setLargo(ler()); };
+    window.addEventListener('resize', f);
+    return function () { window.removeEventListener('resize', f); };
+  }, []);
+  return largo;
+}
+// Caixa do ecrã inicial do cartão. p.sub / p.extra (opcionais): subtítulo e linha extra por baixo do título.
+function NtCaixa(p) {
+  var borda = '2px solid ' + NT_ACENTO;
+  var icone = function (tam) { return React.createElement('span', { 'aria-hidden': 'true', style: tam }, p.icone); };
+  var texto = function (tit, sub) {
+    return [
+      React.createElement('div', { key: 't', style: { fontSize: tit, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2, overflowWrap: 'anywhere' } }, p.titulo),
+      p.sub ? React.createElement('div', { key: 's', style: { fontSize: sub, color: T.muted, fontWeight: 700, marginTop: 4 } }, p.sub) : null,
+      p.extra || null
+    ];
+  };
+  if (p.largo) {
+    return React.createElement('button', {
+      type: 'button', 'aria-label': p.aria, onClick: p.onAbrir,
+      style: { flex: '1 1 240px', minHeight: 170, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', textAlign: 'left', background: T.surface, color: T.text, border: borda, borderRadius: 20, padding: '22px 22px', cursor: 'pointer' }
+    },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 } },
+        icone({ fontSize: 46, lineHeight: 1 }),
+        React.createElement('span', { style: { color: NT_ACENTO, fontSize: 30, fontWeight: 900 } }, '›')),
+      React.createElement('div', null, texto(28, 15)));
+  }
+  return React.createElement('button', {
+    type: 'button', 'aria-label': p.aria, onClick: p.onAbrir,
+    style: { width: '100%', minHeight: 76, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: T.surface, color: T.text, border: borda, borderRadius: 18, padding: '10px 14px', cursor: 'pointer' }
+  },
+    icone({ flex: '0 0 auto', minWidth: '1.3em', textAlign: 'center', whiteSpace: 'nowrap', fontSize: 'clamp(28px, 8vw, 40px)', lineHeight: 1 }),
+    React.createElement('div', { style: { flex: '1 1 auto', minWidth: 0 } }, texto('clamp(17px, 5vw, 22px)', 'clamp(12px, 3.4vw, 14px)')),
+    React.createElement('span', { style: { flex: '0 0 auto', color: NT_ACENTO, fontSize: 'clamp(22px, 6vw, 28px)', fontWeight: 900 } }, '›'));
+}
+
 // Ecrã das caixas (só no cartão do Patricio): uma caixa grande por pasta. Padrão visual da Voz (src/16-app-voz.js,
 // VZ_CATEGORIAS 💼/🏠 e VzCategoriaTabs) e do cartão de dono das Notas, mas maior; distinguem-se pelo ícone e pelo nome.
 function NtCaixas(p) {
+  var largo = ntUseLargo();
   var contas = {};
   NT_PASTAS.forEach(function (pa) {
     var daPasta = p.notas.filter(function (n) { return ntPasta(n) === pa.key; });
@@ -47206,28 +47253,18 @@ function NtCaixas(p) {
   });
   return React.createElement('div', null,
     p.podeEditar ? React.createElement(NtBtn, { onClick: p.onNova }, '+ Nova nota') : null,
-    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: p.podeEditar ? 16 : 0 } },
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', flexDirection: largo ? 'row' : 'column', gap: largo ? 14 : 10, marginTop: p.podeEditar ? 16 : 0 } },
       p.cofre ? React.createElement(NtCaixaCofre, { key: 'cofre', onAbrir: p.cofre.onAbrir }) : null,
       p.cofre && p.cofre.onFamilia ? React.createElement(NtCaixaCofre, { key: 'familia', rotulo: 'Cofres da família', icone: '👪🔑', onAbrir: p.cofre.onFamilia }) : null,
       NT_PASTAS.map(function (pa) {
         var c = contas[pa.key];
-        return React.createElement('button', {
-          key: pa.key, type: 'button', 'aria-label': 'Abrir ' + pa.nome, onClick: function () { p.onAbrir(pa.key); },
-          style: {
-            flex: '1 1 240px', minHeight: 170, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            textAlign: 'left', background: T.surface, color: T.text, border: '2px solid ' + NT_ACENTO, borderRadius: 20, padding: '22px 22px', cursor: 'pointer'
-          }
-        },
-          React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
-            React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: 46, lineHeight: 1 } }, pa.icone),
-            React.createElement('span', { style: { color: NT_ACENTO, fontSize: 30, fontWeight: 900 } }, '›')),
-          React.createElement('div', null,
-            React.createElement('div', { style: { fontSize: 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2 } }, pa.nome),
-            React.createElement('div', { style: { fontSize: 15, color: T.muted, fontWeight: 700, marginTop: 6 } }, c.total + (c.total === 1 ? ' nota' : ' notas')),
-            c.imp > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 } },
-              React.createElement(NtBadge, { imp: 'importante', curto: true }),
-              React.createElement('span', { style: { fontSize: 14, fontWeight: 800 } }, c.imp + (c.imp === 1 ? ' importante' : ' importantes'))) : null
-          ));
+        return React.createElement(NtCaixa, {
+          key: pa.key, largo: largo, aria: 'Abrir ' + pa.nome, icone: pa.icone, titulo: pa.nome, onAbrir: function () { p.onAbrir(pa.key); },
+          sub: c.total + (c.total === 1 ? ' nota' : ' notas'),
+          extra: c.imp > 0 ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: largo ? 10 : 6, flexWrap: 'wrap' } },
+            React.createElement(NtBadge, { imp: 'importante', curto: true }),
+            React.createElement('span', { style: { fontSize: largo ? 14 : 13, fontWeight: 800 } }, c.imp + (c.imp === 1 ? ' importante' : ' importantes'))) : null
+        });
       })
     )
   );
@@ -47242,7 +47279,7 @@ function NtCirculo(p) {
     title: 'Marcar como feita',
     onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); p.onFeita(p.nota); },
     style: {
-      flex: '0 0 40px', width: 40, height: 40, padding: 0, background: 'transparent', border: 'none',
+      flex: '0 0 44px', width: 44, height: 44, padding: 0, background: 'transparent', border: 'none',
       display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: p.busy ? 'default' : 'pointer', opacity: p.busy ? 0.55 : 1
     }
   }, React.createElement('span', { style: { display: 'block', width: 24, height: 24, borderRadius: '50%', border: '2px solid ' + T.text, boxSizing: 'border-box' } }));
@@ -47257,7 +47294,7 @@ function NtCaixote(p) {
     title: 'Mover para o Lixo',
     onClick: function (e) { if (e && e.stopPropagation) e.stopPropagation(); p.onApagar(p.nota); },
     style: {
-      position: 'absolute', bottom: 4, right: 4, width: 40, height: 40, boxSizing: 'border-box',
+      position: 'absolute', bottom: 4, right: 4, width: 44, height: 44, boxSizing: 'border-box',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
       background: T.surface2, color: T.red, border: '2px solid ' + T.red, borderRadius: 12,
       cursor: p.busy ? 'default' : 'pointer', opacity: p.busy ? 0.55 : 1
@@ -47283,7 +47320,7 @@ function NtBarraDesfazer(p) {
     React.createElement('span', { style: { flex: 1, fontSize: 14, fontWeight: 800 } }, 'Nota arquivada ·'),
     React.createElement('button', {
       type: 'button', onClick: p.onDesfazer,
-      style: { minHeight: 40, padding: '0 16px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 14, fontWeight: 900, cursor: 'pointer' }
+      style: { minHeight: 44, padding: '0 16px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 14, fontWeight: 900, cursor: 'pointer' }
     }, 'Anular')
   );
 }
@@ -47330,7 +47367,7 @@ function NtArquivo(p) {
           React.createElement(NtCopiar, { nota: n }),
           p.readOnly ? null : React.createElement('button', {
             type: 'button', disabled: !!(p.feitaBusy && p.feitaBusy[n.id]), 'aria-label': 'Reabrir nota', onClick: function () { p.onReabrir(n); },
-            style: { position: 'absolute', left: 13, bottom: 4, minHeight: 40, padding: '0 14px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.feitaBusy && p.feitaBusy[n.id]) ? 0.55 : 1 }
+            style: { position: 'absolute', left: 13, bottom: 4, minHeight: 44, padding: '0 14px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.feitaBusy && p.feitaBusy[n.id]) ? 0.55 : 1 }
           }, '↩ Reabrir'),
           p.readOnly ? null : React.createElement(NtCaixote, { nota: n, busy: p.busyId === n.id, onApagar: p.onApagar })
         );
@@ -47603,7 +47640,7 @@ function NtTopBar(p) {
         React.createElement('path', { d: 'M15 5 L8 12 L15 19' })),
       React.createElement('span', { style: { flex: '1 1 auto', minWidth: 0, fontWeight: 800, fontSize: 17, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, p.title)
     ) : React.createElement('span', { style: { flex: '1 1 auto', minWidth: 0, padding: '0 14px', fontWeight: 800, fontSize: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, p.title),
-    p.right ? React.createElement('div', { style: { flex: '0 0 auto', marginLeft: 8 } }, p.right) : null
+    p.right ? React.createElement('div', { style: { flex: '0 1 auto', minWidth: 0, marginLeft: 8 } }, p.right) : null
   );
 }
 
@@ -47662,18 +47699,9 @@ function ntCofreIgual(a, b) {
 
 // Caixa "Passwords" (🔑). Sem contagem nem selos. Admin tem um botão pequeno "Códigos" (fora do botão principal).
 function NtCaixaCofre(p) {
-  var base = {
-    flex: '1 1 240px', minHeight: p.compacta ? 84 : 170, boxSizing: 'border-box', display: 'flex', flexDirection: p.compacta ? 'row' : 'column',
-    alignItems: p.compacta ? 'center' : 'stretch', justifyContent: 'space-between', textAlign: 'left', background: T.surface, color: T.text,
-    border: '2px solid ' + NT_ACENTO, borderRadius: 20, padding: p.compacta ? '14px 18px' : '22px 22px', cursor: 'pointer', width: p.compacta ? '100%' : undefined
-  };
-  return React.createElement('div', { style: { position: 'relative', flex: p.compacta ? undefined : '1 1 240px', display: 'flex', width: p.compacta ? '100%' : undefined, marginBottom: p.compacta ? 14 : 0 } },
-    React.createElement('button', { type: 'button', 'aria-label': 'Abrir ' + (p.rotulo || 'Passwords'), onClick: p.onAbrir, style: base },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', width: p.compacta ? undefined : '100%' } },
-        React.createElement('span', { 'aria-hidden': 'true', style: { fontSize: p.compacta ? 34 : 46, lineHeight: 1 } }, p.icone || '🔑'),
-        p.compacta ? null : React.createElement('span', { style: { color: NT_ACENTO, fontSize: 30, fontWeight: 900 } }, '›')),
-      React.createElement('div', { style: { fontSize: p.compacta ? 22 : 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2 } }, p.rotulo || 'Passwords'))
-  );
+  var largo = ntUseLargo();
+  return React.createElement('div', { style: { display: 'flex', flex: p.compacta || !largo ? undefined : '1 1 240px', width: p.compacta || !largo ? '100%' : undefined, marginBottom: p.compacta ? 14 : 0 } },
+    React.createElement(NtCaixa, { largo: largo && !p.compacta, aria: 'Abrir ' + (p.rotulo || 'Passwords'), icone: p.icone || '🔑', titulo: p.rotulo || 'Passwords', onAbrir: p.onAbrir }));
 }
 
 // Teclado numérico: botões 0-9 e apagar, 4 pontos. Sem <input> (não abre o teclado do sistema, sem autocomplete).
@@ -47705,7 +47733,7 @@ function NtCofreTeclado(p) {
 }
 
 var ntCofreInp = { width: '100%', boxSizing: 'border-box', background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 10, padding: '11px 12px', fontSize: 16, fontFamily: 'inherit' };
-var ntCofreMini = { background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 10, padding: '8px 12px', minHeight: 40, fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
+var ntCofreMini = { background: T.surface2, color: T.text, border: '1px solid ' + T.border, borderRadius: 10, padding: '8px 12px', minHeight: 44, fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
 
 // Cofre da própria pessoa. Montado só no cartão próprio. Ao sair do ecrã (desmontar) tudo desaparece da memória.
 function NtCofre(p) {
@@ -48526,7 +48554,7 @@ function NotasApp(props) {
   var direita = null;
   if (cartao && vista === 'lista' && !cofreModo) {
     var estiloTopo = { background: 'none', border: '1px solid ' + T.border, color: T.text, borderRadius: 10, padding: '6px 9px', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
-    direita = React.createElement('div', { style: { display: 'flex', gap: 6 } },
+    direita = React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', padding: '4px 0' } },
       usaPastas && !pasta ? null : React.createElement('button', { onClick: function () { setBuscaArq(''); setVista('arquivo'); }, style: estiloTopo }, '📦 Arquivo' + (arquivadas.length ? ' (' + arquivadas.length + ')' : '')),
       React.createElement('button', { onClick: function () { setVista('lixo'); }, style: estiloTopo }, '🗑 Lixo' + (lixo.length ? ' (' + lixo.length + ')' : ''))
     );
