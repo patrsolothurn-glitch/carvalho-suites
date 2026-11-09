@@ -461,7 +461,7 @@ function NtFiltros(p) {
       React.createElement('span', { 'aria-live': 'polite', style: { fontSize: 13, fontWeight: 700, color: T.muted } },
         p.filtrando
           ? p.mostradas + (p.mostradas === 1 ? ' nota coincide' : ' notas coincidem') + ' (de ' + p.total + ')'
-          : p.total + (p.total === 1 ? ' nota' : ' notas')),
+          : p.total + (p.total === 1 ? ' nota' : ' notas') + (p.imp > 0 ? ' · ' + p.imp + (p.imp === 1 ? ' importante' : ' importantes') : '')),
       p.filtrando ? React.createElement(NtBtn, { small: true, kind: 'ghost', onClick: p.onLimpar }, 'Limpar filtros') : null
     )
   );
@@ -813,6 +813,7 @@ function NtLinha(p) {
 function NtLista(p) {
   var _s = React.useState(function () { return p.filtrando ? new Set() : ntMinimizadasIniciais(p.notas, new Date()); });
   var minim = _s[0], setMinim = _s[1];
+  var largo = ntUseLargo();
   var pend = React.useRef(false);
   React.useEffect(function () { if (pend.current) { pend.current = false; ntRolarPara('nt-sem-atual'); } });
   var toggle = function (key) {
@@ -840,6 +841,8 @@ function NtLista(p) {
     var fMin = minim.has('fixadas');
     filhos.push(React.createElement(NtGrupoCab, { key: 'g-fixadas', nivel: 0, fino: true, label: '📌 Fixadas', count: fixadas.length, minimizado: fMin, onToggle: function () { toggle('fixadas'); } }));
     if (!fMin) fixadas.forEach(function (n) { filhos.push(linha(n, 'fx-' + n.id)); });
+    // Espaço a separar do resto da lista, só no telemóvel (no PC já há bastante respiro visual).
+    if (resto.length && !largo) filhos.push(React.createElement('div', { key: 'sep-fixadas', style: { height: 14 } }));
   }
   if (direta) {
     resto.slice().sort(ntPorImportanciaEDataDesc).forEach(function (n) { filhos.push(linha(n, n.id, 0)); });
@@ -2084,7 +2087,8 @@ function NotasApp(props) {
       podeEditar ? React.createElement(NtBtn, { onClick: abrirNova }, '+ Nova nota') : React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } }, '👁 Só leitura'),
       ativas.length ? React.createElement(NtFiltros, {
         modo: modo, onModo: setModo, busca: busca, onBusca: setBusca, filtros: filtros, onFiltros: setFiltros,
-        total: ativas.length, mostradas: filtradas.length, filtrando: filtrando, onLimpar: resetFiltros
+        total: ativas.length, imp: ativas.filter(function (n) { return ntImp(n) === 'importante'; }).length,
+        mostradas: filtradas.length, filtrando: filtrando, onLimpar: resetFiltros
       }) : null,
       ativas.length && !filtradas.length
         ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, 'Nenhuma nota com estes filtros')
