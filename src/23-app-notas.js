@@ -118,9 +118,11 @@ function ntChavesDe(iso) {
   return { y: y, m: m, w: w, kA: kA, kM: kM, kS: kS };
 }
 
-// Agrupa Ano > Mês > Semana ISO por created_at; tudo do mais recente para o mais antigo.
+// Agrupa Ano > Mês > Semana ISO por created_at (o grupo de cada nota é sempre
+// pela data — isso não muda). Dentro de cada semana, por importância e depois
+// pela mais recente (ntPorImportanciaEDataDesc) — só a ORDEM dentro da semana.
 function ntAgrupar(notas) {
-  var ord = notas.slice().sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+  var ord = notas.slice().sort(ntPorImportanciaEDataDesc);
   var anos = [], mapa = {};
   ord.forEach(function (n) {
     var k = ntChavesDe(n.created_at);
@@ -174,6 +176,17 @@ function ntPasta(n) { return n && n.pasta === 'geschaeft' ? 'geschaeft' : 'priva
 function ntNomePasta(k) { return k === 'geschaeft' ? 'Geschäft' : 'Privado'; }
 function ntFixada(n) { return !!(n && n.fixada === true); }
 function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
+// Vista "Por data": dentro da lista direta e de cada semana, ordena por
+// importância primeiro (1 Importante, 2 Normal, 3 Baixo — NT_IMP_ORDEM) e,
+// dentro de cada nível, a mais recente primeiro. Não usada nas Fixadas
+// (essas continuam só por data) nem na vista "Por importância" (que já
+// agrupa por nível à parte).
+function ntPorImportanciaEDataDesc(a, b) {
+  var oa = NT_IMP_ORDEM.indexOf(ntImp(a));
+  var ob = NT_IMP_ORDEM.indexOf(ntImp(b));
+  if (oa !== ob) return oa - ob;
+  return ntPorDataDesc(a, b);
+}
 
 // Pesquisa: sem maiúsculas nem acentos; todas as palavras têm de aparecer (título + texto).
 function ntNorm(s) {
@@ -750,7 +763,9 @@ function NtLinha(p) {
   );
 }
 
-// Lista. "Por data": Ano > Mês > Semana. "Por importância": 1 Importante, 2 Normal, 3 Baixo (por data dentro).
+// Lista. "Por data": Ano > Mês > Semana; dentro de cada nível (e na lista direta,
+// com menos de NT_LIMITE_LISTA notas), por importância e depois por data (ntPorImportanciaEDataDesc).
+// "Por importância": 1 Importante, 2 Normal, 3 Baixo (por data dentro de cada nível).
 // O bloco "Fixadas" fica no topo nas duas vistas. Só é montada depois de as notas carregarem, para o useState
 // inicial já poder calcular o Set de minimizadas (tudo menos o atual; com filtros/pesquisa tudo aberto).
 function NtLista(p) {
@@ -785,7 +800,7 @@ function NtLista(p) {
     if (!fMin) fixadas.forEach(function (n) { filhos.push(linha(n, 'fx-' + n.id)); });
   }
   if (direta) {
-    resto.slice().sort(ntPorDataDesc).forEach(function (n) { filhos.push(linha(n, n.id, 0)); });
+    resto.slice().sort(ntPorImportanciaEDataDesc).forEach(function (n) { filhos.push(linha(n, n.id, 0)); });
   } else if (p.modo === 'imp') {
     NT_IMP_ORDEM.forEach(function (nivel) {
       var doNivel = resto.filter(function (n) { return ntImp(n) === nivel; }).sort(ntPorDataDesc);
