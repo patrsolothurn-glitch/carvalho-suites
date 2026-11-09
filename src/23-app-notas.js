@@ -156,6 +156,11 @@ function ntLixoVencido(n, agora) {
   if (!n.deleted_at) return false;
   return agora.getTime() - new Date(n.deleted_at).getTime() > NT_DIAS_LIXO * 86400000;
 }
+// Dias que faltam até à purga definitiva (NT_DIAS_LIXO, inalterado); nunca negativo (a purga já a teria apagado).
+function ntDiasParaPurga(n, agora) {
+  var passados = (agora.getTime() - new Date(n.deleted_at).getTime()) / 86400000;
+  return Math.max(0, Math.ceil(NT_DIAS_LIXO - passados));
+}
 function ntResumo(txt) {
   var s = String(txt || '').replace(/\s+/g, ' ').trim();
   return s.length > 110 ? s.slice(0, 110).trim() + '…' : s;
@@ -335,7 +340,7 @@ function NtBtn(p) {
       background: bg, color: cor, border: kind === 'ghost' ? '1px solid ' + T.border : 'none',
       borderRadius: 12, padding: p.small ? '8px 12px' : '13px 18px', fontSize: p.small ? 13 : 15,
       fontWeight: 800, cursor: p.disabled ? 'default' : 'pointer', opacity: p.disabled ? 0.55 : 1,
-      flex: p.flex ? 1 : undefined
+      flex: p.flex ? 1 : undefined, minHeight: 44, boxSizing: 'border-box'
     }
   }, p.children);
 }
@@ -595,7 +600,7 @@ function NtCaixa(p) {
     return [
       React.createElement('div', { key: 't', style: { fontSize: tit, fontWeight: 900, lineHeight: 1.15, letterSpacing: 0.2, overflowWrap: 'anywhere' } }, p.titulo),
       p.sub ? React.createElement('div', { key: 's', style: { fontSize: sub, color: T.muted, fontWeight: 700, marginTop: 4 } }, p.sub) : null,
-      p.extra || null
+      p.extra ? React.createElement(React.Fragment, { key: 'x' }, p.extra) : null
     ];
   };
   if (p.largo) {
@@ -889,14 +894,23 @@ function NtLixoLista(p) {
   if (!p.notas.length) {
     return React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, 'O Lixo está vazio.');
   }
+  var agora = new Date();
+  var aExpirar = p.notas.filter(function (n) { return ntDiasParaPurga(n, agora) <= 5; });
   return React.createElement('div', null,
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 4 } },
       'As notas no Lixo há mais de ' + NT_DIAS_LIXO + ' dias são apagadas definitivamente.'),
+    aExpirar.length ? React.createElement('div', {
+      role: 'alert',
+      style: { background: ntAlfa('#F59E0B', 0.16), border: '1.5px solid #F59E0B', borderRadius: 12, padding: '10px 12px', marginTop: 8, fontSize: 13, fontWeight: 800 }
+    }, '⚠️ ' + aExpirar.length + (aExpirar.length === 1 ? ' nota vai ser apagada definitivamente em 5 dias ou menos.' : ' notas vão ser apagadas definitivamente em 5 dias ou menos.')) : null,
     p.notas.map(function (n) {
+      var dias = ntDiasParaPurga(n, agora);
       return React.createElement('div', { key: n.id, style: { position: 'relative', background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + T.muted, borderRadius: 12, padding: '11px 13px', marginTop: 8 } },
         React.createElement(NtCopiar, { nota: n }),
         React.createElement('div', { style: { fontSize: 16, fontWeight: 900, wordBreak: 'break-word', paddingRight: 44 } }, n.titulo),
         React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700, paddingRight: 44 } }, 'Apagada em ' + ntDataFmt(n.deleted_at)),
+        React.createElement('div', { style: { fontSize: 11, color: dias <= 5 ? '#F59E0B' : T.muted, marginTop: 2, fontWeight: 800, paddingRight: 44 } },
+          dias <= 0 ? 'Apaga definitivamente hoje' : ('Apaga definitivamente em ' + dias + (dias === 1 ? ' dia' : ' dias'))),
         ntResumo(n.texto) ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, wordBreak: 'break-word', paddingRight: 44 } }, ntResumo(n.texto)) : null,
         p.readOnly ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 10 } },
           React.createElement(NtBtn, { small: true, flex: true, disabled: p.busyId === n.id, onClick: function () { p.onRestaurar(n); } }, 'Restaurar'),
@@ -991,10 +1005,34 @@ function NtForm(p) {
       })
     ) : null,
     p.erro ? React.createElement('div', { style: { color: T.red, fontSize: 13, fontWeight: 700, marginTop: 10 } }, p.erro) : null,
+    p.conflito ? React.createElement(NtAvisoConflito, { baseConflito: p.baseConflito, saving: p.saving, onVerBase: p.onVerBase, onGravarPorCima: p.onGravarPorCima }) : null,
     React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
       React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: p.saving, onClick: p.onCancelar }, 'Cancelar'),
-      React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim(), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : 'Criar nota'))
+      p.conflito ? null : React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim(), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : 'Criar nota'))
     )
+  );
+}
+
+// Aviso de conflito entre aparelhos: outro aparelho gravou esta nota depois de o formulário ter aberto aqui.
+// Nunca grava sozinho — só com uma das duas escolhas explícitas, cada uma com área de toque ≥44 px.
+function NtAvisoConflito(p) {
+  var b = p.baseConflito;
+  return React.createElement('div', {
+    style: { background: ntAlfa('#F59E0B', 0.14), border: '1.5px solid #F59E0B', borderRadius: 12, padding: 12, marginTop: 12 }
+  },
+    React.createElement('div', { style: { fontWeight: 800, fontSize: 14, marginBottom: 4 } }, '⚠️ Esta nota foi alterada noutro aparelho'),
+    React.createElement('div', { style: { fontSize: 13, color: T.muted, marginBottom: 10 } }, 'As tuas alterações ainda NÃO foram gravadas. Escolhe uma opção.'),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8 } },
+      React.createElement(NtBtn, { kind: 'ghost', disabled: p.saving, onClick: p.onVerBase }, 'Ver a versão da base'),
+      React.createElement(NtBtn, { kind: 'danger', disabled: p.saving, onClick: p.onGravarPorCima }, p.saving ? 'A gravar…' : 'Gravar por cima mesmo assim')
+    ),
+    b === 'a_carregar' ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 10 } }, 'A carregar a versão da base…') : null,
+    b && b.erro ? React.createElement('div', { style: { color: T.red, fontSize: 13, fontWeight: 700, marginTop: 10 } }, 'Não foi possível ler a base: ' + b.erro) : null,
+    b && b.nota ? React.createElement('div', { style: { background: T.surface, borderRadius: 10, padding: 10, marginTop: 10, fontSize: 13 } },
+      React.createElement('div', { style: { fontWeight: 800, marginBottom: 4 } }, 'Versão da base (' + ntDataFmt(b.nota.updated_at) + '):'),
+      React.createElement('div', { style: { fontWeight: 700, overflowWrap: 'anywhere' } }, b.nota.titulo),
+      b.nota.texto ? React.createElement('div', { style: { color: T.muted, marginTop: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, b.nota.texto) : null
+    ) : null
   );
 }
 
@@ -1585,6 +1623,9 @@ function NotasApp(props) {
   var _no = React.useState('lista'); var notaOrigem = _no[0], setNotaOrigem = _no[1]; // de onde se abriu a nota
   var _cm = React.useState(null); var cofreModo = _cm[0], setCofreModo = _cm[1]; // null | 'cofre' | 'familia' (cofre de passwords; 'familia' = painel só leitura do admin)
   var _cd = React.useState(null); var codigos = _cd[0], setCodigos = _cd[1];   // admin: { dono: true } de quem tem código (só colunas dono, updated_at)
+  var _eu = React.useState(null); var editAbertaEm = _eu[0], setEditAbertaEm = _eu[1]; // updated_at da nota quando o formulário abriu (para detetar conflito)
+  var _cf = React.useState(null); var conflito = _cf[0], setConflito = _cf[1]; // { idEd, patch } quando a base mudou desde que o formulário abriu
+  var _cfb = React.useState(null); var baseConflito = _cfb[0], setBaseConflito = _cfb[1]; // 'a_carregar' | { nota } | { erro }
   var desfazerTimer = React.useRef(null);
   React.useEffect(function () { return function () { if (desfazerTimer.current) clearTimeout(desfazerTimer.current); }; }, []);
 
@@ -1656,15 +1697,19 @@ function NotasApp(props) {
 
   function abrirNova() {
     if (!podeEditar) return;
-    setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro(''); setVista('form');
+    setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro('');
+    setEditAbertaEm(null); setConflito(null); setBaseConflito(null);
+    setVista('form');
   }
   function abrirEditar(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
-    setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFPasta(ntPasta(n)); setFErro(''); setVista('form');
+    setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFPasta(ntPasta(n)); setFErro('');
+    setEditAbertaEm(n.updated_at); setConflito(null); setBaseConflito(null);
+    setVista('form');
   }
   function cancelarForm() {
     if (savingRef.current) return;
-    setFErro('');
+    setFErro(''); setConflito(null); setBaseConflito(null);
     setVista(editId && notaSel ? 'nota' : 'lista');
   }
 
@@ -1701,11 +1746,16 @@ function NotasApp(props) {
     setFErro('');
     var removeOptimistic;
     var consulta;
+    var ehConflito = false; // editId: 0 linhas pode ser conflito (updated_at mudou noutro aparelho) em vez de erro genérico
     if (editId) {
       var idEd = editId;
+      ehConflito = true;
       // Sem atualização otimista: só se mostra o resultado depois de a base confirmar (carregar a seguir).
       removeOptimistic = function () {};
-      consulta = db.from('notas_notas').update(patch).eq('id', idEd).select('id');
+      // Conflito entre aparelhos: só grava se o updated_at da base ainda for o que a nota tinha quando o
+      // formulário abriu. Se outro aparelho gravou primeiro, o updated_at já não bate e vêm 0 linhas — nunca
+      // sobrescreve sozinha (ver abaixo: mostra aviso com "Ver a versão da base" / "Gravar por cima mesmo assim").
+      consulta = db.from('notas_notas').update(patch).eq('id', idEd).eq('updated_at', editAbertaEm).select('id');
     } else {
       var nova = { id: ntNovoId(), dono: cartao, titulo: titulo, texto: fTexto, importancia: fImp, fixada: false, pasta: usaPastas ? fPasta : 'privado', created_at: agoraIso, updated_at: agoraIso, deleted_at: null };
       setNotas(function (p) { return [nova].concat(p); });
@@ -1715,7 +1765,7 @@ function NotasApp(props) {
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
       if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
-      consulta = db.from('notas_notas').insert(linhaNova);
+      consulta = db.from('notas_notas').insert(linhaNova).select('id');
     }
     var ok = false;
     consulta.then(function (res) {
@@ -1727,13 +1777,18 @@ function NotasApp(props) {
         removeOptimistic();
         return;
       }
-      if (editId && (!res || !res.data || !res.data.length)) { // 0 linhas afetadas = erro (formulário fica aberto)
-        ntAvisar('editar nota', new Error(NT_ZERO_LINHAS));
+      if (!res || !res.data || !res.data.length) { // 0 linhas afetadas
+        if (ehConflito) { // conflito: outro aparelho gravou primeiro — nunca sobrescreve sozinha
+          setConflito({ idEd: idEd, patch: patch });
+          return;
+        }
+        ntAvisar(editId ? 'editar nota' : 'criar nota', new Error(NT_ZERO_LINHAS));
         setFErro('Erro ao guardar: ' + NT_ZERO_LINHAS);
+        removeOptimistic();
         return;
       }
       ok = true;
-      setFErro('');
+      setFErro(''); setConflito(null); setBaseConflito(null);
       setFTitulo(''); setFTexto(''); setFImp('normal');
       var idFinal = editId;
       setEditId(null);
@@ -1747,6 +1802,44 @@ function NotasApp(props) {
       ntAvisar(editId ? 'editar nota' : 'criar nota', e);
       setFErro('Erro de ligação: ' + ((e && e.message) || String(e)));
       removeOptimistic();
+    });
+  }
+
+  // "Ver a versão da base": lê a nota tal como está agora na base (sem gravar nada).
+  function verVersaoDaBase() {
+    if (!conflito || !db) return;
+    setBaseConflito('a_carregar');
+    db.from('notas_notas').select('titulo,texto,importancia,updated_at').eq('id', conflito.idEd).maybeSingle().then(function (res) {
+      if (res && res.error) { ntAvisarRes('ver versão da base', res.error); setBaseConflito({ erro: ntMsgErro(res.error) }); return; }
+      if (!res || !res.data) { setBaseConflito({ erro: 'Nota não encontrada na base (pode ter sido apagada).' }); return; }
+      setBaseConflito({ nota: res.data });
+    }).catch(function (e) {
+      ntAvisar('ver versão da base', e);
+      setBaseConflito({ erro: (e && e.message) || String(e) });
+    });
+  }
+
+  // "Gravar por cima mesmo assim": grava o patch sem comparar updated_at — só depois de o utilizador escolher.
+  function gravarPorCimaConflito() {
+    if (!conflito || savingRef.current || !db) return;
+    savingRef.current = true;
+    setSaving(true);
+    var idEd = conflito.idEd, patch = conflito.patch;
+    db.from('notas_notas').update(patch).eq('id', idEd).select('id').then(function (res) {
+      savingRef.current = false;
+      setSaving(false);
+      if (res && res.error) { ntAvisarRes('gravar por cima (conflito)', res.error); setFErro('Erro ao guardar: ' + ntMsgErro(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { ntAvisar('gravar por cima (conflito)', new Error(NT_ZERO_LINHAS)); setFErro('Erro ao guardar: ' + NT_ZERO_LINHAS); return; }
+      setFErro(''); setConflito(null); setBaseConflito(null);
+      setFTitulo(''); setFTexto(''); setFImp('normal');
+      setEditId(null);
+      setVista('nota');
+      carregarRef.current();
+    }).catch(function (e) {
+      savingRef.current = false;
+      setSaving(false);
+      ntAvisar('gravar por cima (conflito)', e);
+      setFErro('Erro de ligação: ' + ((e && e.message) || String(e)));
     });
   }
 
@@ -1964,7 +2057,8 @@ function NotasApp(props) {
     corpo = React.createElement(NtForm, {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
       mostrarPasta: usaPastas && podeEditar, pasta: fPasta, onPasta: setFPasta,
-      onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm
+      onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm,
+      conflito: conflito, baseConflito: baseConflito, onVerBase: verVersaoDaBase, onGravarPorCima: gravarPorCimaConflito
     });
   } else if (vista === 'nota') {
     corpo = notaSel && ntAtiva(notaSel)
