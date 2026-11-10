@@ -25,26 +25,22 @@ var USERS_DEF = [{
   id: 'patricio',
   name: 'Patricio',
   role: 'Admin',
-  emoji: '👨‍💼',
-  pwd: 'Pc12345'
+  emoji: '👨‍💼'
 }, {
   id: 'esposa',
   name: 'Cristina',
   role: 'Família',
-  emoji: '👩',
-  pwd: 'Esposa123'
+  emoji: '👩'
 }, {
   id: 'lucas',
   name: 'Lucas',
   role: 'Filho',
-  emoji: '👦',
-  pwd: 'Lucas123'
+  emoji: '👦'
 }, {
   id: 'liam',
   name: 'Liam',
   role: 'Filho',
-  emoji: '👦',
-  pwd: 'Liam123'
+  emoji: '👦'
 }];
 var PERMS_DEF = {
   patricio: ['horaspr', 'agenda', 'familia', 'nutri', 'escolar', 'subby'],
