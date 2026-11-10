@@ -1197,7 +1197,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_disciplinas').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] disciplinas: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de disciplinas cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] disciplinas: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de disciplinas cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -1270,7 +1276,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_horario').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] horario: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] horario: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -1394,7 +1406,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_tpc').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] tpc: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] tpc: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -1446,7 +1464,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_eventos').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] eventos: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de eventos cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] eventos: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de eventos cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
