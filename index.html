@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-09T19:36:05.469Z
+  Gerado em: 2026-11-10T15:47:25.567Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-470";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-471";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -34509,19 +34509,46 @@ function ViagensApp(props) {
   var _s13 = React.useState(null); var lightbox = _s13[0], setLightbox = _s13[1];
   // Confirmação de apagar
   var _s14 = React.useState(null); var confirmDel = _s14[0], setConfirmDel = _s14[1];
+  // Erros de leitura: aviso visível em vez de lista vazia ("sem dados") quando a leitura falha.
+  var _s15 = React.useState(''); var loadErr = _s15[0], setLoadErr = _s15[1];
+  var _s16 = React.useState(''); var detailErr = _s16[0], setDetailErr = _s16[1];
 
   // Carregar viagens
   function load() {
     if (!db) { setLoading(false); return; }
     setLoading(true);
+    setLoadErr('');
+    var jaRenovou = false;
+    function precisaRenovar(err) {
+      return !!(err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1)));
+    }
+    function falhou(err) {
+      console.error('[viagens] carregar viagens:', err);
+      window.mostrarErro('Viagens Família', err);
+      setLoadErr('Não foi possível carregar as viagens.');
+      setLoading(false);
+    }
     function doLoad() {
       db.from('family_trips_list').select('*').eq('ano', year)
         .order('mes').order('dia_inicio')
-        .then(function(r) { setTrips(r.data || []); setLoading(false); })
+        .then(function(r) {
+          if (r && r.error) {
+            if (!jaRenovou && precisaRenovar(r.error)) {
+              jaRenovou = true;
+              db.auth.refreshSession().then(function() { doLoad(); }).catch(function(e2) { falhou(e2); });
+              return;
+            }
+            falhou(r.error);
+            return;
+          }
+          setLoadErr('');
+          setTrips(r.data || []); setLoading(false);
+        })
         .catch(function(err) {
-          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
-            db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { setLoading(false); });
-          } else { setLoading(false); }
+          if (!jaRenovou && precisaRenovar(err)) {
+            jaRenovou = true;
+            db.auth.refreshSession().then(function() { doLoad(); }).catch(function(e2) { falhou(e2); });
+          } else { falhou(err); }
         });
     }
     db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { doLoad(); });
@@ -34539,9 +34566,24 @@ function ViagensApp(props) {
     setDetailFotos([]);
     setDetailLoading(true);
     setLightbox(null);
+    setDetailErr('');
     db.from('family_trips').select('fotos').eq('id', trip.id).single()
-      .then(function(r) { setDetailFotos((r.data && r.data.fotos) || []); setDetailLoading(false); })
-      .catch(function() { setDetailLoading(false); });
+      .then(function(r) {
+        if (r && r.error) {
+          console.error('[viagens] carregar fotos:', r.error);
+          window.mostrarErro('Viagens Família', r.error);
+          setDetailErr('Não foi possível carregar as fotos.');
+          setDetailLoading(false);
+          return;
+        }
+        setDetailFotos((r.data && r.data.fotos) || []); setDetailLoading(false);
+      })
+      .catch(function(e) {
+        console.error('[viagens] carregar fotos:', e);
+        window.mostrarErro('Viagens Família', e);
+        setDetailErr('Não foi possível carregar as fotos.');
+        setDetailLoading(false);
+      });
   }
 
   // Abrir formulário
@@ -34619,8 +34661,9 @@ function ViagensApp(props) {
         ),
         React.createElement('div', { style: { fontWeight: 700, fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.06em' } }, 'FOTOS' + (detailTrip.fotos_count > 0 ? ' (' + detailTrip.fotos_count + ')' : '')),
         detailLoading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar fotos…'),
-        !detailLoading && detailFotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
-        !detailLoading && detailFotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
+        !detailLoading && detailErr && React.createElement('div', { role: 'alert', style: { textAlign: 'center', padding: '24px 0', color: T.red, fontSize: 13, fontWeight: 700 } }, '⚠️ ' + detailErr),
+        !detailLoading && !detailErr && detailFotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
+        !detailLoading && !detailErr && detailFotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
           detailFotos.map(function(url, idx) {
             return React.createElement('div', { key: idx, onClick: function() { setLightbox({ urls: detailFotos, idx: idx }); }, style: { position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: T.surface2 } },
               React.createElement('img', { src: url, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } })
@@ -34711,12 +34754,16 @@ function ViagensApp(props) {
           React.createElement(GoldBtn, { onClick: function() { openAdd(selMonth); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
         ),
         loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-        !loading && mTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '46px 16px', color: T.muted } },
+        !loading && loadErr && React.createElement('div', { role: 'alert', style: { textAlign: 'center', padding: '46px 16px', color: T.red, fontWeight: 700 } },
+          React.createElement('div', { style: { fontSize: 14, marginBottom: 14 } }, '⚠️ ' + loadErr),
+          React.createElement('button', { onClick: function() { load(); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Tentar outra vez')
+        ),
+        !loading && !loadErr && mTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '46px 16px', color: T.muted } },
           React.createElement('div', { style: { fontSize: 44, marginBottom: 10 } }, '📅'),
           React.createElement('div', { style: { fontSize: 14, marginBottom: 14 } }, 'Nenhuma entrada neste mês'),
           React.createElement('button', { onClick: function() { openAdd(selMonth); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Adicionar entrada')
         ),
-        !loading && mTrips.map(function(t) {
+        !loading && !loadErr && mTrips.map(function(t) {
           var ti = vgType(t.tipo);
           var days = t.dia_inicio ? (t.dia_inicio + (t.dia_fim ? '–' + t.dia_fim : '') + ' ' + VG_SHORT[t.mes]) : VG_SHORT[t.mes];
           return React.createElement(Card, {
@@ -34762,7 +34809,11 @@ function ViagensApp(props) {
         React.createElement('button', { onClick: function() { setYear(year + 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '›')
       ),
       loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-      !loading && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
+      !loading && loadErr && React.createElement('div', { role: 'alert', style: { textAlign: 'center', padding: '16px', color: T.red, fontWeight: 700, fontSize: 14 } },
+        React.createElement('div', { style: { marginBottom: 10 } }, '⚠️ ' + loadErr),
+        React.createElement('button', { onClick: function() { load(); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Tentar outra vez')
+      ),
+      !loading && !loadErr && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
         VG_MONTHS.map(function(_, idx) {
           var mTrips = byMonth(idx);
           var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
