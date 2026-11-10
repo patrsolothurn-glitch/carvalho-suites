@@ -510,6 +510,10 @@ function LucasApp(_ref) {
     _useState16 = _slicedToArray(_useState15, 2),
     toast = _useState16[0],
     setToast = _useState16[1];
+  var _stLoadErr = useState({}),
+    _stLoadErr2 = _slicedToArray(_stLoadErr, 2),
+    loadErr = _stLoadErr2[0],
+    setLoadErr = _stLoadErr2[1];
   var _useState17 = useState(function () {
       return localStorage.getItem('lucas_lang') || 'PT';
     }),
@@ -601,6 +605,24 @@ function LucasApp(_ref) {
     setTimeout(function () {
       setToast(null);
     }, 2000);
+  }
+  // Leitura falhada: aviso visível que fica (banner no cabeçalho) e erro na consola; nunca fingir "sem dados".
+  function loadFalhou(que, err) {
+    console.error('[escola-grenchen] carregar ' + que + ':', err);
+    setLoadErr(function (p) {
+      var n = Object.assign({}, p);
+      n[que] = true;
+      return n;
+    });
+    flash('Não foi possível carregar ' + que, true);
+  }
+  function loadOk(que) {
+    setLoadErr(function (p) {
+      if (!p[que]) return p;
+      var n = Object.assign({}, p);
+      delete n[que];
+      return n;
+    });
   }
   function resizeImage(file, maxSize) {
     return new Promise(function (resolve, reject) {
@@ -806,6 +828,11 @@ function LucasApp(_ref) {
             return supabase.from('lucas_config').select('*');
           case 1:
             _yield$supabase$from$2 = _context5.v;
+            if (_yield$supabase$from$2.error) {
+              loadFalhou('configuração', _yield$supabase$from$2.error);
+              return _context5.a(2);
+            }
+            loadOk('configuração');
             data = _yield$supabase$from$2.data;
             if (data && data.length) {
               map = {};
@@ -914,6 +941,12 @@ function LucasApp(_ref) {
             return supabase.from('lucas_condutores').select('*').order('nome');
           case 1:
             r = _context8.v;
+            if (r.error) {
+              loadFalhou('condutores', r.error);
+              setLoading(false);
+              return _context8.a(2);
+            }
+            loadOk('condutores');
             if (r.data) setDrivers(r.data);
             setLoading(false);
           case 2:
@@ -938,6 +971,11 @@ function LucasApp(_ref) {
             });
           case 1:
             r = _context9.v;
+            if (r.error) {
+              loadFalhou('visitantes', r.error);
+              return _context9.a(2);
+            }
+            loadOk('visitantes');
             if (r.data) setVisitantes(r.data);
           case 2:
             return _context9.a(2);
@@ -996,6 +1034,12 @@ function LucasApp(_ref) {
             _context1b.n = 1;
             return supabase.from('lucas_visitantes').update({ autorizado: true, access_code: code }).eq('id', id);
           case 1:
+            var _res = _context1b.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] autorizar visitante:', _res.error);
+              flash('Não foi possível autorizar visitante: ' + (_res.error.message || 'erro'), true);
+              return _context1b.a(2);
+            }
             setVisitantes(function (p) {
               return p.map(function (v) {
                 return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
@@ -1124,6 +1168,13 @@ function LucasApp(_ref) {
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
             r = _context12.v;
+            if (r.error) {
+              loadFalhou('horário da semana', r.error);
+              setSchedule({});
+              setLoading(false);
+              return _context12.a(2);
+            }
+            loadOk('horário da semana');
             map = {};
             (r.data || []).forEach(function (row) {
               map[row.dia + ':' + row.slot] = {
@@ -1161,6 +1212,12 @@ function LucasApp(_ref) {
             return q;
           case 1:
             r = _context13.v;
+            if (r.error) {
+              loadFalhou('histórico', r.error);
+              setHistory([]);
+              return _context13.a(2);
+            }
+            loadOk('histórico');
             rows = r.data || [];
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
@@ -1277,6 +1334,12 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            var _res = _context15.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] guardar horário (Enea):', _res.error);
+              flash('Não foi possível guardar horário (Enea): ' + (_res.error.message || 'erro'), true);
+              return _context15.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 enea: newEnea
@@ -1314,6 +1377,12 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            var _res = _context16.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] guardar horário (Lucas):', _res.error);
+              flash('Não foi possível guardar horário (Lucas): ' + (_res.error.message || 'erro'), true);
+              return _context16.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 lucas_vai: newLucas
@@ -1351,6 +1420,12 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            var _res = _context17.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] guardar hora:', _res.error);
+              flash('Não foi possível guardar hora: ' + (_res.error.message || 'erro'), true);
+              return _context17.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 hora_override: horaVal
@@ -2236,9 +2311,20 @@ function LucasApp(_ref) {
       _stOpenA2 = _slicedToArray(_stOpenA, 2),
       openA = _stOpenA2[0],
       setOpenA = _stOpenA2[1];
+    var _stMemErr = useState(false),
+      _stMemErr2 = _slicedToArray(_stMemErr, 2),
+      membrosErr = _stMemErr2[0],
+      setMembrosErr = _stMemErr2[1];
     useEffect(function () {
       if (!isGlobalAdmin || !supabase) return;
       supabase.from('profiles').select('id,display_name,member_id,allowed_apps').then(function (res) {
+        if (res && res.error) {
+          console.error('[escola-grenchen] carregar membros:', res.error);
+          setMembrosErr(true);
+          flash('Não foi possível carregar os membros', true);
+          return;
+        }
+        setMembrosErr(false);
         var lista = (res.data || []).filter(function (p) {
           var apps = p.allowed_apps || [];
           return apps.indexOf('escola_lucas') !== -1;
@@ -2279,7 +2365,10 @@ function LucasApp(_ref) {
         borderRadius: '0 0 12px 12px',
         padding: '12px 16px'
       }
-    }, membros.length === 0 && /*#__PURE__*/React.createElement("div", {
+    }, membrosErr && /*#__PURE__*/React.createElement("div", {
+      role: "alert",
+      style: { fontSize: 12, color: '#c62828', fontWeight: 700 }
+    }, "N\u00e3o foi poss\u00edvel carregar os membros."), !membrosErr && membros.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: { fontSize: 12, color: '#999' }
     }, "Ningu\u00e9m com acesso a esta app."), membros.map(function (m) {
       var marcado = adminsDaApp.indexOf(m.member_id) !== -1;
@@ -2878,7 +2967,12 @@ function LucasApp(_ref) {
       if (confirm === 'toggle') {
         toggleDriver(driver.id, driver.autorizado);
       } else if (confirm === 'delete') {
-        supabase.from('lucas_condutores').delete().eq('id', driver.id).then(function () {
+        supabase.from('lucas_condutores').delete().eq('id', driver.id).then(function (res) {
+          if (res && res.error) {
+            console.error('[escola-grenchen] remover condutor:', res.error);
+            flash('Não foi possível remover: ' + (res.error.message || 'erro'), true);
+            return;
+          }
           flash('Removido');
           loadDrivers();
         });
@@ -3817,7 +3911,14 @@ function LucasApp(_ref) {
       color: 'rgba(255,255,255,.5)',
       fontSize: 11
     }
-  }, "..."), toast && /*#__PURE__*/React.createElement("span", {
+  }, "..."), Object.keys(loadErr).length > 0 && /*#__PURE__*/React.createElement("div", {
+    role: "alert",
+    style: {
+      color: '#ffcdd2',
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, "\u26A0\uFE0F N\u00E3o foi poss\u00EDvel carregar: " + Object.keys(loadErr).join(', ')), toast && /*#__PURE__*/React.createElement("span", {
     style: {
       color: toast.err ? '#ffcdd2' : '#a5d6a7',
       fontSize: 12,

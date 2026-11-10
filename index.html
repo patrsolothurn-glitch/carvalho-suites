@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-09T19:36:05.469Z
+  Gerado em: 2026-11-10T16:23:21.478Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-470";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-471";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -546,26 +546,22 @@ var USERS_DEF = [{
   id: 'patricio',
   name: 'Patricio',
   role: 'Admin',
-  emoji: '👨‍💼',
-  pwd: 'Pc12345'
+  emoji: '👨‍💼'
 }, {
   id: 'esposa',
   name: 'Cristina',
   role: 'Família',
-  emoji: '👩',
-  pwd: 'Esposa123'
+  emoji: '👩'
 }, {
   id: 'lucas',
   name: 'Lucas',
   role: 'Filho',
-  emoji: '👦',
-  pwd: 'Lucas123'
+  emoji: '👦'
 }, {
   id: 'liam',
   name: 'Liam',
   role: 'Filho',
-  emoji: '👦',
-  pwd: 'Liam123'
+  emoji: '👦'
 }];
 var PERMS_DEF = {
   patricio: ['horaspr', 'agenda', 'familia', 'nutri', 'escolar', 'subby'],
@@ -16468,7 +16464,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_disciplinas').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] disciplinas: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de disciplinas cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] disciplinas: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de disciplinas cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -16541,7 +16543,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_horario').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] horario: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] horario: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de horário cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -16665,7 +16673,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_tpc').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] tpc: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] tpc: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de tpc cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -16717,7 +16731,13 @@ function EscolarApp(_ref31) {
       };
       if (rows.length === 0) {
         return sb.from('escolar_eventos').select('id', { count: 'exact', head: true }).eq('aluno', key).then(function (cntRes) {
-          var n = (cntRes && cntRes.count) || 0;
+          // Fail-closed: sem contagem confirmada (erro ou count desconhecido) NÃO se grava nada.
+          if (!cntRes || cntRes.error || typeof cntRes.count !== 'number') {
+            console.warn('[escolar] eventos: gravacao cancelada, nao foi possivel confirmar a contagem no servidor:', (cntRes && cntRes.error && cntRes.error.message) || 'contagem desconhecida');
+            window.mostrarErro('Vida Escolar', { message: 'Gravação de eventos cancelada: não foi possível confirmar quantos registos existem no servidor. Os dados no servidor ficaram intactos.' });
+            return false;
+          }
+          var n = cntRes.count;
           if (n >= 2) {
             console.warn('[escolar] eventos: gravacao cancelada, ' + n + ' registos ficariam perdidos');
             window.mostrarErro('Vida Escolar', { message: 'Gravação de eventos cancelada: ' + n + ' registos seriam apagados sem substituto. Os dados no servidor ficaram intactos.' });
@@ -23492,6 +23512,10 @@ function LucasApp(_ref) {
     _useState16 = _slicedToArray(_useState15, 2),
     toast = _useState16[0],
     setToast = _useState16[1];
+  var _stLoadErr = useState({}),
+    _stLoadErr2 = _slicedToArray(_stLoadErr, 2),
+    loadErr = _stLoadErr2[0],
+    setLoadErr = _stLoadErr2[1];
   var _useState17 = useState(function () {
       return localStorage.getItem('lucas_lang') || 'PT';
     }),
@@ -23583,6 +23607,24 @@ function LucasApp(_ref) {
     setTimeout(function () {
       setToast(null);
     }, 2000);
+  }
+  // Leitura falhada: aviso visível que fica (banner no cabeçalho) e erro na consola; nunca fingir "sem dados".
+  function loadFalhou(que, err) {
+    console.error('[escola-grenchen] carregar ' + que + ':', err);
+    setLoadErr(function (p) {
+      var n = Object.assign({}, p);
+      n[que] = true;
+      return n;
+    });
+    flash('Não foi possível carregar ' + que, true);
+  }
+  function loadOk(que) {
+    setLoadErr(function (p) {
+      if (!p[que]) return p;
+      var n = Object.assign({}, p);
+      delete n[que];
+      return n;
+    });
   }
   function resizeImage(file, maxSize) {
     return new Promise(function (resolve, reject) {
@@ -23788,6 +23830,11 @@ function LucasApp(_ref) {
             return supabase.from('lucas_config').select('*');
           case 1:
             _yield$supabase$from$2 = _context5.v;
+            if (_yield$supabase$from$2.error) {
+              loadFalhou('configuração', _yield$supabase$from$2.error);
+              return _context5.a(2);
+            }
+            loadOk('configuração');
             data = _yield$supabase$from$2.data;
             if (data && data.length) {
               map = {};
@@ -23896,6 +23943,12 @@ function LucasApp(_ref) {
             return supabase.from('lucas_condutores').select('*').order('nome');
           case 1:
             r = _context8.v;
+            if (r.error) {
+              loadFalhou('condutores', r.error);
+              setLoading(false);
+              return _context8.a(2);
+            }
+            loadOk('condutores');
             if (r.data) setDrivers(r.data);
             setLoading(false);
           case 2:
@@ -23920,6 +23973,11 @@ function LucasApp(_ref) {
             });
           case 1:
             r = _context9.v;
+            if (r.error) {
+              loadFalhou('visitantes', r.error);
+              return _context9.a(2);
+            }
+            loadOk('visitantes');
             if (r.data) setVisitantes(r.data);
           case 2:
             return _context9.a(2);
@@ -23978,6 +24036,12 @@ function LucasApp(_ref) {
             _context1b.n = 1;
             return supabase.from('lucas_visitantes').update({ autorizado: true, access_code: code }).eq('id', id);
           case 1:
+            var _res = _context1b.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] autorizar visitante:', _res.error);
+              flash('Não foi possível autorizar visitante: ' + (_res.error.message || 'erro'), true);
+              return _context1b.a(2);
+            }
             setVisitantes(function (p) {
               return p.map(function (v) {
                 return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
@@ -24106,6 +24170,13 @@ function LucasApp(_ref) {
             return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
           case 1:
             r = _context12.v;
+            if (r.error) {
+              loadFalhou('horário da semana', r.error);
+              setSchedule({});
+              setLoading(false);
+              return _context12.a(2);
+            }
+            loadOk('horário da semana');
             map = {};
             (r.data || []).forEach(function (row) {
               map[row.dia + ':' + row.slot] = {
@@ -24143,6 +24214,12 @@ function LucasApp(_ref) {
             return q;
           case 1:
             r = _context13.v;
+            if (r.error) {
+              loadFalhou('histórico', r.error);
+              setHistory([]);
+              return _context13.a(2);
+            }
+            loadOk('histórico');
             rows = r.data || [];
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
@@ -24259,6 +24336,12 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            var _res = _context15.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] guardar horário (Enea):', _res.error);
+              flash('Não foi possível guardar horário (Enea): ' + (_res.error.message || 'erro'), true);
+              return _context15.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 enea: newEnea
@@ -24296,6 +24379,12 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            var _res = _context16.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] guardar horário (Lucas):', _res.error);
+              flash('Não foi possível guardar horário (Lucas): ' + (_res.error.message || 'erro'), true);
+              return _context16.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 lucas_vai: newLucas
@@ -24333,6 +24422,12 @@ function LucasApp(_ref) {
               onConflict: 'week_start,dia,slot'
             });
           case 1:
+            var _res = _context17.v;
+            if (_res && _res.error) {
+              console.error('[escola-grenchen] guardar hora:', _res.error);
+              flash('Não foi possível guardar hora: ' + (_res.error.message || 'erro'), true);
+              return _context17.a(2);
+            }
             setSchedule(function (p) {
               return Object.assign({}, p, _defineProperty({}, key, Object.assign({}, p[key], {
                 hora_override: horaVal
@@ -25218,9 +25313,20 @@ function LucasApp(_ref) {
       _stOpenA2 = _slicedToArray(_stOpenA, 2),
       openA = _stOpenA2[0],
       setOpenA = _stOpenA2[1];
+    var _stMemErr = useState(false),
+      _stMemErr2 = _slicedToArray(_stMemErr, 2),
+      membrosErr = _stMemErr2[0],
+      setMembrosErr = _stMemErr2[1];
     useEffect(function () {
       if (!isGlobalAdmin || !supabase) return;
       supabase.from('profiles').select('id,display_name,member_id,allowed_apps').then(function (res) {
+        if (res && res.error) {
+          console.error('[escola-grenchen] carregar membros:', res.error);
+          setMembrosErr(true);
+          flash('Não foi possível carregar os membros', true);
+          return;
+        }
+        setMembrosErr(false);
         var lista = (res.data || []).filter(function (p) {
           var apps = p.allowed_apps || [];
           return apps.indexOf('escola_lucas') !== -1;
@@ -25261,7 +25367,10 @@ function LucasApp(_ref) {
         borderRadius: '0 0 12px 12px',
         padding: '12px 16px'
       }
-    }, membros.length === 0 && /*#__PURE__*/React.createElement("div", {
+    }, membrosErr && /*#__PURE__*/React.createElement("div", {
+      role: "alert",
+      style: { fontSize: 12, color: '#c62828', fontWeight: 700 }
+    }, "N\u00e3o foi poss\u00edvel carregar os membros."), !membrosErr && membros.length === 0 && /*#__PURE__*/React.createElement("div", {
       style: { fontSize: 12, color: '#999' }
     }, "Ningu\u00e9m com acesso a esta app."), membros.map(function (m) {
       var marcado = adminsDaApp.indexOf(m.member_id) !== -1;
@@ -25860,7 +25969,12 @@ function LucasApp(_ref) {
       if (confirm === 'toggle') {
         toggleDriver(driver.id, driver.autorizado);
       } else if (confirm === 'delete') {
-        supabase.from('lucas_condutores').delete().eq('id', driver.id).then(function () {
+        supabase.from('lucas_condutores').delete().eq('id', driver.id).then(function (res) {
+          if (res && res.error) {
+            console.error('[escola-grenchen] remover condutor:', res.error);
+            flash('Não foi possível remover: ' + (res.error.message || 'erro'), true);
+            return;
+          }
           flash('Removido');
           loadDrivers();
         });
@@ -26799,7 +26913,14 @@ function LucasApp(_ref) {
       color: 'rgba(255,255,255,.5)',
       fontSize: 11
     }
-  }, "..."), toast && /*#__PURE__*/React.createElement("span", {
+  }, "..."), Object.keys(loadErr).length > 0 && /*#__PURE__*/React.createElement("div", {
+    role: "alert",
+    style: {
+      color: '#ffcdd2',
+      fontSize: 11,
+      fontWeight: 700
+    }
+  }, "\u26A0\uFE0F N\u00E3o foi poss\u00EDvel carregar: " + Object.keys(loadErr).join(', ')), toast && /*#__PURE__*/React.createElement("span", {
     style: {
       color: toast.err ? '#ffcdd2' : '#a5d6a7',
       fontSize: 12,
@@ -34509,19 +34630,46 @@ function ViagensApp(props) {
   var _s13 = React.useState(null); var lightbox = _s13[0], setLightbox = _s13[1];
   // Confirmação de apagar
   var _s14 = React.useState(null); var confirmDel = _s14[0], setConfirmDel = _s14[1];
+  // Erros de leitura: aviso visível em vez de lista vazia ("sem dados") quando a leitura falha.
+  var _s15 = React.useState(''); var loadErr = _s15[0], setLoadErr = _s15[1];
+  var _s16 = React.useState(''); var detailErr = _s16[0], setDetailErr = _s16[1];
 
   // Carregar viagens
   function load() {
     if (!db) { setLoading(false); return; }
     setLoading(true);
+    setLoadErr('');
+    var jaRenovou = false;
+    function precisaRenovar(err) {
+      return !!(err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1)));
+    }
+    function falhou(err) {
+      console.error('[viagens] carregar viagens:', err);
+      window.mostrarErro('Viagens Família', err);
+      setLoadErr('Não foi possível carregar as viagens.');
+      setLoading(false);
+    }
     function doLoad() {
       db.from('family_trips_list').select('*').eq('ano', year)
         .order('mes').order('dia_inicio')
-        .then(function(r) { setTrips(r.data || []); setLoading(false); })
+        .then(function(r) {
+          if (r && r.error) {
+            if (!jaRenovou && precisaRenovar(r.error)) {
+              jaRenovou = true;
+              db.auth.refreshSession().then(function() { doLoad(); }).catch(function(e2) { falhou(e2); });
+              return;
+            }
+            falhou(r.error);
+            return;
+          }
+          setLoadErr('');
+          setTrips(r.data || []); setLoading(false);
+        })
         .catch(function(err) {
-          if (err && (err.code === 'PGRST303' || (err.message && err.message.indexOf('future') !== -1))) {
-            db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { setLoading(false); });
-          } else { setLoading(false); }
+          if (!jaRenovou && precisaRenovar(err)) {
+            jaRenovou = true;
+            db.auth.refreshSession().then(function() { doLoad(); }).catch(function(e2) { falhou(e2); });
+          } else { falhou(err); }
         });
     }
     db.auth.refreshSession().then(function() { doLoad(); }).catch(function() { doLoad(); });
@@ -34539,9 +34687,24 @@ function ViagensApp(props) {
     setDetailFotos([]);
     setDetailLoading(true);
     setLightbox(null);
+    setDetailErr('');
     db.from('family_trips').select('fotos').eq('id', trip.id).single()
-      .then(function(r) { setDetailFotos((r.data && r.data.fotos) || []); setDetailLoading(false); })
-      .catch(function() { setDetailLoading(false); });
+      .then(function(r) {
+        if (r && r.error) {
+          console.error('[viagens] carregar fotos:', r.error);
+          window.mostrarErro('Viagens Família', r.error);
+          setDetailErr('Não foi possível carregar as fotos.');
+          setDetailLoading(false);
+          return;
+        }
+        setDetailFotos((r.data && r.data.fotos) || []); setDetailLoading(false);
+      })
+      .catch(function(e) {
+        console.error('[viagens] carregar fotos:', e);
+        window.mostrarErro('Viagens Família', e);
+        setDetailErr('Não foi possível carregar as fotos.');
+        setDetailLoading(false);
+      });
   }
 
   // Abrir formulário
@@ -34619,8 +34782,9 @@ function ViagensApp(props) {
         ),
         React.createElement('div', { style: { fontWeight: 700, fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.06em' } }, 'FOTOS' + (detailTrip.fotos_count > 0 ? ' (' + detailTrip.fotos_count + ')' : '')),
         detailLoading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar fotos…'),
-        !detailLoading && detailFotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
-        !detailLoading && detailFotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
+        !detailLoading && detailErr && React.createElement('div', { role: 'alert', style: { textAlign: 'center', padding: '24px 0', color: T.red, fontSize: 13, fontWeight: 700 } }, '⚠️ ' + detailErr),
+        !detailLoading && !detailErr && detailFotos.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '24px 0', color: T.muted, fontSize: 13 } }, 'Sem fotos nesta entrada'),
+        !detailLoading && !detailErr && detailFotos.length > 0 && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 } },
           detailFotos.map(function(url, idx) {
             return React.createElement('div', { key: idx, onClick: function() { setLightbox({ urls: detailFotos, idx: idx }); }, style: { position: 'relative', paddingBottom: '100%', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', background: T.surface2 } },
               React.createElement('img', { src: url, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } })
@@ -34711,12 +34875,16 @@ function ViagensApp(props) {
           React.createElement(GoldBtn, { onClick: function() { openAdd(selMonth); }, style: { padding: '9px 16px', fontSize: 13 } }, '+ Novo')
         ),
         loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-        !loading && mTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '46px 16px', color: T.muted } },
+        !loading && loadErr && React.createElement('div', { role: 'alert', style: { textAlign: 'center', padding: '46px 16px', color: T.red, fontWeight: 700 } },
+          React.createElement('div', { style: { fontSize: 14, marginBottom: 14 } }, '⚠️ ' + loadErr),
+          React.createElement('button', { onClick: function() { load(); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Tentar outra vez')
+        ),
+        !loading && !loadErr && mTrips.length === 0 && React.createElement('div', { style: { textAlign: 'center', padding: '46px 16px', color: T.muted } },
           React.createElement('div', { style: { fontSize: 44, marginBottom: 10 } }, '📅'),
           React.createElement('div', { style: { fontSize: 14, marginBottom: 14 } }, 'Nenhuma entrada neste mês'),
           React.createElement('button', { onClick: function() { openAdd(selMonth); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Adicionar entrada')
         ),
-        !loading && mTrips.map(function(t) {
+        !loading && !loadErr && mTrips.map(function(t) {
           var ti = vgType(t.tipo);
           var days = t.dia_inicio ? (t.dia_inicio + (t.dia_fim ? '–' + t.dia_fim : '') + ' ' + VG_SHORT[t.mes]) : VG_SHORT[t.mes];
           return React.createElement(Card, {
@@ -34762,7 +34930,11 @@ function ViagensApp(props) {
         React.createElement('button', { onClick: function() { setYear(year + 1); }, style: { background: 'none', border: 'none', color: T.muted, fontSize: 22, cursor: 'pointer' } }, '›')
       ),
       loading && React.createElement('div', { style: { textAlign: 'center', padding: 30, color: T.muted } }, 'A carregar…'),
-      !loading && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
+      !loading && loadErr && React.createElement('div', { role: 'alert', style: { textAlign: 'center', padding: '16px', color: T.red, fontWeight: 700, fontSize: 14 } },
+        React.createElement('div', { style: { marginBottom: 10 } }, '⚠️ ' + loadErr),
+        React.createElement('button', { onClick: function() { load(); }, style: { background: 'none', border: '1px dashed ' + T.border, borderRadius: 10, padding: '9px 16px', color: T.muted, cursor: 'pointer' } }, 'Tentar outra vez')
+      ),
+      !loading && !loadErr && React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 } },
         VG_MONTHS.map(function(_, idx) {
           var mTrips = byMonth(idx);
           var isCurrent = now.getFullYear() === year && now.getMonth() === idx;
