@@ -1,6 +1,6 @@
 # Carvalho Suite
 
-App familiar com 15 mini-apps (lista completa abaixo — ver `APPS_DATA`
+App familiar com 16 mini-apps (lista completa abaixo — ver `APPS_DATA`
 em `src/02-theme.js`). Publicada via GitHub Pages a partir de
 `index.html` (gerado automaticamente — ver abaixo).
 
@@ -95,6 +95,58 @@ estilo compilado — nunca reformatar ou reconverter o ficheiro inteiro.
   utilizador já correu no Supabase: 33 tabela das notas, 34 o admin lê também as notas da Cristina (só leitura), 35
   importância e fixada, 36 nível "baixo", 37 `feita_em` (Arquivo), 38 `pasta` (Privado/Geschäft),
   39 cofre, 40 política "cofre: admin lê". O SQL é sempre corrido pelo utilizador, nunca pelo código.
+
+## Contas, registo e permissões
+
+- **Registo público desligado.** O separador "Criar conta" está escondido em `src/10-shell.js`
+  (`SIGNUP_ENABLED = false`) e o registo está desligado no painel do Supabase (essa definição não
+  está neste repositório). As contas são criadas e apagadas pelo admin, pela função `manage-member`
+  (ver abaixo).
+- **Contas:** quatro utilizadores — `patricio` (admin), `esposa` (Cristina), `lucas` e `liam`.
+- **Permissões reais por conta** vivem na base de dados (`profiles.allowed_apps` e `profiles.is_admin`),
+  não no código. O Liam só tem a app escolar (Vida Escolar). As apps `adminOnly` em `APPS_DATA`
+  só aparecem a administradores.
+- `USERS_DEF` e `PERMS_DEF` em `src/03-data.js` são **legado**: só servem para nomes, papéis e emojis,
+  não definem permissões e não guardam credenciais.
+
+## Funções do servidor, scripts e PWA pública
+
+| Onde | O que é |
+|---|---|
+| `supabase-functions/manage-member.ts` | Cria e apaga contas. Só admin (confirma `profiles.is_admin` no servidor antes de usar a chave de serviço). |
+| `supabase-functions/send-push.ts` | Envia notificações push. Usada pelas apps, pelos crons e pela PWA pública. Não verifica o chamador no código. |
+| `supabase-functions/subby-reminders.ts`, `pollen-alerta.ts`, `escolar-test-reminder.ts` | Lembretes agendados (os `*-cron.sql` guardam os agendamentos). Usam a chave de serviço. |
+| `supabase-functions/fitness-receita-ia.ts` | Receita por IA (API paga). Só admin; a chave da API é um segredo da função, nunca vai para o repositório. |
+| `supabase-functions/*.sql`, `supabase/pollen.sql` | Migrações antigas já aplicadas (fora de `sql/`). |
+| `scripts/backup-comparar.sh`, `scripts/pollen-fetch.py`, `scripts/voz-archive.js` | Usados pelos workflows `backup.yml`, `pollen-fetch.yml` e `voz-archive.yml`. |
+
+As funções **não são publicadas por este repositório**: o Patricio faz o deploy no Supabase.
+
+**PWA pública da escola.** É um repositório à parte (`escola-grenchen`, GitHub Pages) e usa só a chave
+pública. O `lucas.html` deste repositório é apenas um redireccionamento para ela. A PWA faz `select` em
+`lucas_condutores`, `lucas_config`, `lucas_semana` e `lucas_visitantes`, um `insert` em `lucas_visitantes`,
+chama a função `send-push` e usa as RPC `lucas_entrar`, `update_condutor_profile`, `update_visitante_profile`,
+`update_lucas_avatar` e `update_visitante_avatar`. **Essas RPC não estão definidas neste repositório**
+(só existem na base de dados).
+
+## O que a pasta `sql/` NÃO cobre
+
+`sql/` guarda cópias de documentação do SQL que o utilizador já correu no Supabase (começa no 20; as tabelas
+base foram criadas no painel). Não cobre:
+
+- as policies de RLS da maioria das tabelas (Vida Escolar, Família, Escola Grenchen, Viagens, Voz, Hauswart,
+  Rapport, Wochenplan, Horas por Voz, perfis, push, convites);
+- a função `public.is_admin_user()` (usada pelas policies do `sql/31`) e o trigger `profiles_protect_cols`;
+- as RPC `lucas_entrar`, `update_condutor_profile`, `update_visitante_profile`, `update_lucas_avatar`,
+  `update_visitante_avatar`;
+- as tabelas `family_trip_photos`, `fotos_trabalho`, `nutriguima_favorites` e `wplan_task_leute`
+  (existem na base de dados, mas o código deste repositório não as conhece);
+- as policies reais de `notas_cofre` e `notas_cofre_pin`.
+
+**`sql/39` e `sql/40` são descritivos, não o SQL executado:** foram escritos a partir da descrição das
+tabelas e das policies. O `sql/39` cria as tabelas mas não traz as policies, e o `sql/40` não contém
+nenhum comando executável (só o comentário; o `_reverter` apaga a policy `cofre: admin lê`).
+O estado real da base de dados confirma-se com consultas de catálogo ao Supabase.
 
 ## Pipeline: `src/` → `build.js` → `deploy.js`
 

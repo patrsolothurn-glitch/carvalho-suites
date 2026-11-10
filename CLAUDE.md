@@ -11,3 +11,6 @@ Aplicam-se em todas as sessões e para todas as apps desta suite.
 7. Testar a lógica antes de enviar para o GitHub. Um PR por passo, nunca merge, nunca com o Guarda PR vermelho.
 8. Sempre que se cria algo, implementar também editar e apagar.
 9. O repo é PÚBLICO: nunca pôr dados pessoais, IBAN, moradas, chaves ou segredos em código, comentários, mensagens de commit ou descrições de PR.
+10. Nunca pôr passwords no repositório — nem reais, nem de exemplo, nem em seeds, testes, comentários, mensagens de commit ou descrições de PR. Se um campo de password for preciso, usar um marcador (por exemplo "PASSWORD") e nunca um valor com ar de verdadeiro.
+11. Os ficheiros sql/ são cópias de documentação do SQL já corrido; sql/39 e sql/40 são descritivos (não o SQL executado) e não trazem as policies reais. O estado real da base de dados confirma-se com consultas de catálogo corridas pelo utilizador (ver README, "O que a pasta sql/ NÃO cobre").
+12. O registo público está desligado: contas novas só pela função manage-member (admin). As permissões por conta vivem na base de dados (profiles.allowed_apps), não em src/03-data.js (legado).
