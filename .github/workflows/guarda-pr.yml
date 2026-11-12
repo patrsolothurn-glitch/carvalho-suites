@@ -178,7 +178,21 @@ jobs:
           console.log('✓ nenhuma cadeia do Supabase com .catch()/.finally() sem .then() antes');
           NODEEOF
 
+      - name: "4) Cache do Chromium do Playwright"
+        # Guarda o Chromium descarregado (~/.cache/ms-playwright) entre execuções.
+        # A chave leva a versão do Playwright: mudar a versão no passo seguinte
+        # obriga a mudar também aqui. Um PR só vê a cache do próprio PR e a da main;
+        # para semear a da main, correr este workflow à mão (workflow_dispatch) na main.
+        uses: actions/cache@v5.0.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: guarda-chromium-playwright-1.48.0-ubuntu-24.04
+
       - name: "4) Preparar Playwright (Chromium) para o teste de fumo"
+        # VIA RÁPIDA (sem apt): instala o Playwright, usa o Chromium da cache (ou
+        # descarrega-o do CDN do Playwright) e confirma que ARRANCA com as bibliotecas
+        # que o runner já traz. Só se isso falhar é que se cai na via antiga
+        # (--with-deps, que depende dos espelhos apt). Limite da via rápida: 75 s.
         # O apt (espelho azure.archive.ubuntu.com) prende às vezes durante minutos
         # sem dar erro. Normal: ~20 s. Até 3 tentativas, cada uma limitada a 120 s;
         # só falha (a vermelho) se as 3 falharem. A repetição envolve APENAS a instalação.
@@ -187,8 +201,8 @@ jobs:
         # "Could not get lock". Por isso: (1) DPkg::Lock::Timeout=60 faz o apt esperar
         # pelo lock em vez de falhar logo; (2) entre tentativas mata-se qualquer
         # apt/apt-get/dpkg que tenha ficado vivo e repara-se o dpkg se foi morto.
-        # Pior caso: 3x(120+10) + 2x(5+10+20) = 460 s (~7 min 40 s), por isso 9 minutos.
-        timeout-minutes: 9
+        # Pior caso: via rápida (75+10) + 3x(120+10) + 2x(5+10+20) = 545 s (~9 min 5 s), por isso 10 minutos.
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           # apt/apt-get/dpkg vivos (os zombies, já mortos, não contam: não seguram o lock)
@@ -216,6 +230,11 @@ jobs:
           mkdir -p /tmp/pwtools
           cd /tmp/pwtools
           npm init -y >/dev/null 2>&1
+          if timeout --kill-after=10 75 bash -c 'set -euo pipefail; npm install --no-audit --no-fund playwright@1.48.0 >/dev/null 2>&1; npx playwright install chromium; node -e "require(\"playwright\").chromium.launch().then(function (b) { return b.close(); }).then(function () { console.log(\"chromium arrancou\"); }, function (e) { console.error(String(e && e.message || e).split(\"\\n\")[0]); process.exit(1); })"'; then
+            echo "✓ Playwright pronto pela via rápida (sem apt)"
+            exit 0
+          fi
+          echo "⚠ via rápida falhou ou excedeu 75 s; a instalar com --with-deps (apt)"
           for tentativa in 1 2 3; do
             echo "Instalar Playwright: tentativa ${tentativa}/3"
             if timeout --kill-after=10 120 bash -c 'set -euo pipefail; npm install --no-audit --no-fund playwright@1.48.0 >/dev/null 2>&1; npx playwright install --with-deps chromium'; then
