@@ -1259,6 +1259,8 @@ function LucasApp(_ref) {
       return _regenerator().w(function (_context14) {
         while (1) switch (_context14.n) {
           case 0:
+            // Plano só de leitura para quem não é admin da app (a RLS também o impede).
+            if (!isAdmin) return _context14.a(2);
             setSaving(true);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
@@ -1318,6 +1320,7 @@ function LucasApp(_ref) {
       return _regenerator().w(function (_context15) {
         while (1) switch (_context15.n) {
           case 0:
+            if (!isAdmin) return _context15.a(2);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newEnea = !cur.enea;
@@ -1361,6 +1364,7 @@ function LucasApp(_ref) {
       return _regenerator().w(function (_context16) {
         while (1) switch (_context16.n) {
           case 0:
+            if (!isAdmin) return _context16.a(2);
             key = dia + ':' + slot;
             cur = schedule[key] || {};
             newLucas = !(cur.lucas_vai !== false);
@@ -1525,7 +1529,19 @@ function LucasApp(_ref) {
         flexShrink: 0
       },
       title: "Transportes p\xFAblicos"
-    }, "\uD83D\uDE8C"), /*#__PURE__*/React.createElement("select", {
+    }, "\uD83D\uDE8C"), !isAdmin ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        border: '1.5px solid ' + (val ? col : '#ddd'),
+        borderRadius: 8,
+        padding: '6px 8px',
+        fontSize: 13,
+        background: val ? col + '18' : '#f5f5f5',
+        color: val ? col : '#aaa',
+        fontWeight: val ? 700 : 400,
+        flex: 1,
+        minWidth: 0
+      }
+    }, val || '\u2014') : /*#__PURE__*/React.createElement("select", {
       value: val,
       onChange: function onChange(e) {
         setSlot(dia, slot, e.target.value);
@@ -1567,9 +1583,10 @@ function LucasApp(_ref) {
         flexShrink: 0
       }
     }, /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
+      disabled: !isAdmin,
+      onClick: isAdmin ? function onClick() {
         toggleLucas(dia, slot);
-      },
+      } : undefined,
       style: {
         border: '1.5px solid ' + (lucasOn ? C.blue : '#ddd'),
         borderRadius: 14,
@@ -1578,13 +1595,15 @@ function LucasApp(_ref) {
         background: lucasOn ? '#e3f2fd' : '#f5f5f5',
         color: lucasOn ? C.blue : '#bbb',
         fontWeight: lucasOn ? 700 : 400,
-        cursor: 'pointer',
+        cursor: isAdmin ? 'pointer' : 'default',
+        opacity: isAdmin ? 1 : 0.75,
         whiteSpace: 'nowrap'
       }
     }, "\uD83D\uDC66 Lucas", lucasOn ? ' ✓' : ''), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
+      disabled: !isAdmin,
+      onClick: isAdmin ? function onClick() {
         toggleEnea(dia, slot);
-      },
+      } : undefined,
       style: {
         border: '1.5px solid ' + (eneaOn ? C.purple : '#ddd'),
         borderRadius: 14,
@@ -1593,7 +1612,8 @@ function LucasApp(_ref) {
         background: eneaOn ? C.purpleL : '#f5f5f5',
         color: eneaOn ? C.purple : '#bbb',
         fontWeight: eneaOn ? 700 : 400,
-        cursor: 'pointer',
+        cursor: isAdmin ? 'pointer' : 'default',
+        opacity: isAdmin ? 1 : 0.75,
         whiteSpace: 'nowrap'
       }
     }, "\uD83D\uDC66 Enea", eneaOn ? ' ✓' : ''));
