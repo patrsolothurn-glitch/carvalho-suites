@@ -6768,75 +6768,101 @@ function EscolarApp(_ref31) {
       fontSize: 13,
       marginBottom: 12
     }
-  }, "\uD83D\uDCCA Notas por disciplina"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflowX: 'auto',
-      paddingBottom: 4
-    }
-  }, function () {
-    var w = Math.max(300, aluno.disciplinas.length * 46);
-    return /*#__PURE__*/React.createElement("svg", {
-      width: w,
+  }, "📊 Notas por disciplina"), function () {
+    // O gráfico ocupa a largura toda do cartão: as posições horizontais são em
+    // percentagem, por isso as barras esticam com o cartão. Cada disciplina tem
+    // no mínimo 46px; se não couberem (telemóvel), desloca-se só dentro do gráfico.
+    // A escala (2 a 6) fica fixa à esquerda. Antes a largura era fixa (n x 46) e
+    // não contava com os 28px da escala: a última barra ficava cortada.
+    var n = Math.max(1, aluno.disciplinas.length);
+    var yMin = 140 - (4 - 1) / 5 * 120;
+    var pc = function pc(v) {
+      return (v / n * 100).toFixed(3) + '%';
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'flex-start'
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      width: "28",
       height: "170",
       style: {
-        display: 'block'
+        display: 'block',
+        flex: '0 0 28px'
       }
     }, [2, 3, 4, 5, 6].map(function (g) {
-      var y = 140 - (g - 1) / 5 * 120;
-      return /*#__PURE__*/React.createElement("g", {
-        key: g
-      }, /*#__PURE__*/React.createElement("line", {
-        x1: "28",
-        y1: y,
-        x2: w,
-        y2: y,
-        stroke: "#2A2A3A",
-        strokeWidth: "1"
-      }), /*#__PURE__*/React.createElement("text", {
+      return /*#__PURE__*/React.createElement("text", {
+        key: g,
         x: "24",
-        y: y + 4,
+        y: 140 - (g - 1) / 5 * 120 + 4,
         textAnchor: "end",
         fontSize: "9",
         fill: "#666"
-      }, g));
+      }, g);
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: '1 1 0%',
+        minWidth: 0,
+        overflowX: 'auto',
+        paddingBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("svg", {
+      height: "170",
+      style: {
+        display: 'block',
+        width: '100%',
+        minWidth: n * 46,
+        maxWidth: n * 120
+      }
+    }, [2, 3, 4, 5, 6].map(function (g) {
+      var y = 140 - (g - 1) / 5 * 120;
+      return /*#__PURE__*/React.createElement("line", {
+        key: g,
+        x1: "0",
+        y1: y,
+        x2: "100%",
+        y2: y,
+        stroke: "#2A2A3A",
+        strokeWidth: "1"
+      });
     }), aluno.disciplinas.map(function (disc, i) {
       var med = parseFloat(media(disc.id, semestre)) || 0;
       var h = med > 0 ? (med - 1) / 5 * 120 : 0;
-      var x = 28 + i * 46 + 6;
       return /*#__PURE__*/React.createElement("g", {
         key: disc.id
-      }, /*#__PURE__*/React.createElement("rect", {
-        x: x,
+      }, /*#__PURE__*/React.createElement("title", null, disc.nome), /*#__PURE__*/React.createElement("rect", {
+        x: pc(i + 0.15),
         y: med > 0 ? 140 - h : 132,
-        width: "32",
+        width: pc(0.7),
         height: med > 0 ? h : 8,
         rx: "5",
         fill: med > 0 ? disc.cor : '#333',
         opacity: med > 0 ? 0.85 : 0.4
       }), med > 0 && /*#__PURE__*/React.createElement("text", {
-        x: x + 16,
+        x: pc(i + 0.5),
         y: 140 - h - 5,
         textAnchor: "middle",
         fontSize: "10",
         fontWeight: "800",
         fill: notaColor(med)
       }, med.toFixed(2)), /*#__PURE__*/React.createElement("text", {
-        x: x + 16,
+        x: pc(i + 0.5),
         y: 158,
         textAnchor: "middle",
-        fontSize: "8",
+        fontSize: "9",
         fill: "#555"
-      }, disc.nome.slice(0, 5)));
+      }, disc.nome.length > 6 ? disc.nome.slice(0, 5) + '.' : disc.nome));
     }), temRegraSekP && /*#__PURE__*/React.createElement("line", {
-      x1: "28",
-      y1: 140 - (4 - 1) / 5 * 120,
-      x2: w,
-      y2: 140 - (4 - 1) / 5 * 120,
+      x1: "0",
+      y1: yMin,
+      x2: "100%",
+      y2: yMin,
       stroke: "#F97316",
       strokeWidth: "1.5",
       strokeDasharray: "5,3"
-    }));
-  }()), temRegraSekP && /*#__PURE__*/React.createElement("p", {
+    }))));
+  }(), temRegraSekP && /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
