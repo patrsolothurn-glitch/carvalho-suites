@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-12T05:33:45.144Z
+  Gerado em: 2026-11-12T16:11:40.442Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-472";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-473";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -23378,11 +23378,13 @@ var LANGS = {
   }
 };
 var ALL_SLOTS = ['leva_manha', 'busca_almoco', 'leva_tarde', 'busca_fim'];
-// Colunas pedidas explicitamente (nunca '*'). O código de acesso NUNCA é lido pela app:
-// só se sabe se existe (tem_codigo) e só se escreve quando o admin define um novo.
+// Colunas pedidas explicitamente (nunca '*'). Nenhum select inclui o código de acesso: a lista só
+// sabe se existe (tem_codigo). O valor lê-se um a um, a pedido do admin, pela RPC lucas_codigo_ler.
 var LUCAS_COND_COLS = 'id,nome,autorizado,cor,created_at,avatar_base64,telefone,email,tem_codigo';
 var LUCAS_VIS_COLS = 'id,nome,criado_em,autorizado,email,telefone,turma,avatar_base64,tem_codigo';
 var LUCAS_CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
+var LUCAS_CONFIG_COLS = 'key,value';
+var LUCAS_SEMANA_COLS = 'week_start,dia,slot,condutor,enea,hora_override,lucas_vai';
 var LUCAS_HIST_LIMITE = 300;
 var C = {
   primary: '#1a237e',
@@ -23451,7 +23453,7 @@ function normalizarTelemovel(tel) {
   if (d.indexOf('0') === 0) d = '41' + d.slice(1);
   return d;
 }
-function enviarCodigoWhatsApp(nome, codigo, telefone) {
+function linkCodigoWhatsApp(nome, codigo, telefone) {
   var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
   var msg = encodeURIComponent(
     '\uD83C\uDFEB Escola Grenchen Sek P \u2014 plano de transportes\n\n' +
@@ -23459,7 +23461,10 @@ function enviarCodigoWhatsApp(nome, codigo, telefone) {
     link
   );
   var num = normalizarTelemovel(telefone);
-  window.open('https://wa.me/' + num + '?text=' + msg, '_blank');
+  return 'https://wa.me/' + num + '?text=' + msg;
+}
+function enviarCodigoWhatsApp(nome, codigo, telefone) {
+  window.open(linkCodigoWhatsApp(nome, codigo, telefone), '_blank');
 }
 
 function LucasApp(_ref) {
@@ -23605,8 +23610,7 @@ function LucasApp(_ref) {
   useEffect(function () {
     return window.csAoVoltarRede(function () { loadSchedule(); loadDrivers(); });
   }, []);
-  // Códigos definidos NESTA sessão (só em memória): permitem enviar o código por WhatsApp
-  // logo depois de o definir. Nunca vêm da base e desaparecem ao sair da app.
+  // Códigos que o admin definiu ou pediu NESTA sessão (só em memória; desaparecem ao sair da app).
   var _stCodSessao = useState({}),
     _stCodSessao2 = _slicedToArray(_stCodSessao, 2),
     codigosSessao = _stCodSessao2[0],
@@ -23616,6 +23620,35 @@ function LucasApp(_ref) {
       var n = Object.assign({}, p);
       if (codigo) n[chave] = codigo;else delete n[chave];
       return n;
+    });
+  }
+  // Lê UM código de acesso, a pedido do admin (editar, autorizar, enviar por WhatsApp): RPC
+  // lucas_codigo_ler, que só responde a admins da escola. Nunca em lote nem ao carregar a lista.
+  // Devolve Promise<string|null>; null = a base não devolveu o código (com aviso visível).
+  function lerCodigo(tipo, id) {
+    var chave = (tipo === 'visitante' ? 'v:' : 'c:') + id;
+    if (!isAdmin) return Promise.resolve(null);
+    if (codigosSessao[chave]) return Promise.resolve(codigosSessao[chave]);
+    return supabase.rpc('lucas_codigo_ler', {
+      p_tipo: tipo,
+      p_id: id
+    }).then(function (res) {
+      if (res && res.error) {
+        console.error('[escola-grenchen] ler código:', res.error.message || res.error.code || 'erro');
+        flash('Não foi possível ler o código: ' + (res.error.message || 'erro'), true);
+        return null;
+      }
+      var c = res && typeof res.data === 'string' && res.data ? res.data : null;
+      if (!c) {
+        flash('A base não devolveu o código (sem permissão de admin da escola).', true);
+        return null;
+      }
+      lembrarCodigo(chave, c);
+      return c;
+    }).then(null, function (e) {
+      console.error('[escola-grenchen] ler código:', e && e.message || 'erro');
+      flash('Não foi possível ler o código: ' + (e && e.message || 'sem ligação'), true);
+      return null;
     });
   }
   var _stHistCortado = useState(false),
@@ -23902,7 +23935,7 @@ function LucasApp(_ref) {
         while (1) switch (_context5.n) {
           case 0:
             _context5.n = 1;
-            return supabase.from('lucas_config').select('*');
+            return supabase.from('lucas_config').select(LUCAS_CONFIG_COLS);
           case 1:
             _yield$supabase$from$2 = _context5.v;
             if (_yield$supabase$from$2.error) {
@@ -24226,7 +24259,7 @@ function LucasApp(_ref) {
           case 0:
             setLoading(true);
             _context12.n = 1;
-            return supabase.from('lucas_semana').select('*').eq('week_start', toISO(weekStart));
+            return supabase.from('lucas_semana').select(LUCAS_SEMANA_COLS).eq('week_start', toISO(weekStart));
           case 1:
             r = _context12.v;
             if (r.error) {
@@ -24263,7 +24296,7 @@ function LucasApp(_ref) {
       return _regenerator().w(function (_context13) {
         while (1) switch (_context13.n) {
           case 0:
-            q = supabase.from('lucas_semana').select('*').order('week_start', {
+            q = supabase.from('lucas_semana').select(LUCAS_SEMANA_COLS).order('week_start', {
               ascending: false
             }).limit(LUCAS_HIST_LIMITE);
             if (fDriver) q = q.eq('condutor', fDriver);
@@ -25372,7 +25405,10 @@ function LucasApp(_ref) {
       }), /*#__PURE__*/React.createElement(CodeShareBtn, {
         nome: d.nome,
         codigo: codigosSessao['c:' + d.id],
-        telefone: d.telefone
+        telefone: d.telefone,
+        tipo: 'condutor',
+        id: d.id,
+        temCodigo: !!d.tem_codigo
       }))), /*#__PURE__*/React.createElement(DriverActions, {
         driver: d,
         onEdit: function onEdit() {
@@ -25708,7 +25744,10 @@ function LucasApp(_ref) {
     }), /*#__PURE__*/React.createElement(CodeShareBtn, {
       nome: v.nome,
       codigo: codigosSessao['v:' + v.id],
-      telefone: v.telefone
+      telefone: v.telefone,
+      tipo: 'visitante',
+      id: v.id,
+      temCodigo: !!v.tem_codigo
     })));
   }
   function AddVisitante() {
@@ -25860,13 +25899,39 @@ function LucasApp(_ref) {
       val = _useState58[0],
       setVal = _useState58[1];
     var hasCode = !!visitante.tem_codigo;
+    // orig: o código lido da base ao abrir o campo ('' = não tinha; null = não foi possível ler)
+    var _stOrig = useState(null),
+      _stOrig2 = _slicedToArray(_stOrig, 2),
+      orig = _stOrig2[0],
+      setOrig = _stOrig2[1];
+    var _stALer = useState(false),
+      _stALer2 = _slicedToArray(_stALer, 2),
+      aLer = _stALer2[0],
+      setALer = _stALer2[1];
     function start() {
-      setVal('');
-      setEditing(true);
+      if (aLer) return;
+      if (!hasCode) {
+        setOrig('');
+        setVal('');
+        setEditing(true);
+        return;
+      }
+      setALer(true);
+      lerCodigo('visitante', visitante.id).then(function (c) {
+        setALer(false);
+        setOrig(c);
+        setVal(c || '');
+        setEditing(true);
+      });
     }
     function save() {
       setEditing(false);
-      if (val.trim()) setVisitanteCode(visitante.id, val); // vazio = não mexe no código que existe
+      if (orig === null) {
+        // não foi possível ler o código atual: campo vazio não mexe no que existe
+        if (val.trim()) setVisitanteCode(visitante.id, val);
+        return;
+      }
+      if (val !== orig) setVisitanteCode(visitante.id, val);
     }
     function remover(e) {
       e.stopPropagation();
@@ -25884,7 +25949,7 @@ function LucasApp(_ref) {
         if (e.key === 'Enter') save();
         if (e.key === 'Escape') setEditing(false);
       },
-      placeholder: hasCode ? "Novo c\xF3digo..." : "Definir c\xF3digo...",
+      placeholder: hasCode && orig === null ? "Novo c\xF3digo..." : "Definir c\xF3digo...",
       style: {
         fontSize: 11,
         border: '1px solid #ddd',
@@ -25906,7 +25971,7 @@ function LucasApp(_ref) {
         color: hasCode ? '#7b1fa2' : '#e65100',
         border: '1px solid ' + (hasCode ? '#ce93d8' : '#ffcc80')
       }
-    }, hasCode ? '●●●● ✏️' : '+ Definir'), hasCode && /*#__PURE__*/React.createElement("button", {
+    }, aLer ? '\u2026' : hasCode ? '●●●● ✏️' : '+ Definir'), hasCode && /*#__PURE__*/React.createElement("button", {
       onClick: remover,
       title: "Remover c\xF3digo",
       "aria-label": "Remover c\xF3digo",
@@ -25954,6 +26019,14 @@ function LucasApp(_ref) {
       setShowCode(false);
     }
     var podeAutorizar = !!(authCode.trim() || visitante.tem_codigo);
+    function abrirAutorizar() {
+      setShowCode(true);
+      if (visitante.tem_codigo && !authCode) lerCodigo('visitante', visitante.id).then(function (c) {
+        if (c) setAuthCode(function (a) {
+          return a || c;
+        });
+      });
+    }
     if (showCode) return /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }
     }, /*#__PURE__*/React.createElement("input", {
@@ -26014,7 +26087,7 @@ function LucasApp(_ref) {
       }
     }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        if (visitante.autorizado) { setConfirm('toggle'); } else { setShowCode(true); }
+        if (visitante.autorizado) { setConfirm('toggle'); } else { abrirAutorizar(); }
       },
       style: {
         border: 'none',
@@ -26229,13 +26302,39 @@ function LucasApp(_ref) {
       val = _useState66[0],
       setVal = _useState66[1];
     var hasCode = !!driver.tem_codigo;
+    // orig: o código lido da base ao abrir o campo ('' = não tinha; null = não foi possível ler)
+    var _stOrig = useState(null),
+      _stOrig2 = _slicedToArray(_stOrig, 2),
+      orig = _stOrig2[0],
+      setOrig = _stOrig2[1];
+    var _stALer = useState(false),
+      _stALer2 = _slicedToArray(_stALer, 2),
+      aLer = _stALer2[0],
+      setALer = _stALer2[1];
     function start() {
-      setVal('');
-      setEditing(true);
+      if (aLer) return;
+      if (!hasCode) {
+        setOrig('');
+        setVal('');
+        setEditing(true);
+        return;
+      }
+      setALer(true);
+      lerCodigo('condutor', driver.id).then(function (c) {
+        setALer(false);
+        setOrig(c);
+        setVal(c || '');
+        setEditing(true);
+      });
     }
     function save() {
       setEditing(false);
-      if (val.trim()) onSave(driver.id, val); // vazio = não mexe no código que existe
+      if (orig === null) {
+        // não foi possível ler o código atual: campo vazio não mexe no que existe
+        if (val.trim()) onSave(driver.id, val);
+        return;
+      }
+      if (val !== orig) onSave(driver.id, val);
     }
     function remover(e) {
       e.stopPropagation();
@@ -26253,7 +26352,7 @@ function LucasApp(_ref) {
         if (e.key === 'Enter') save();
         if (e.key === 'Escape') setEditing(false);
       },
-      placeholder: hasCode ? "Novo c\xF3digo..." : "Definir c\xF3digo...",
+      placeholder: hasCode && orig === null ? "Novo c\xF3digo..." : "Definir c\xF3digo...",
       style: {
         fontSize: 11,
         border: '1px solid #ddd',
@@ -26275,7 +26374,7 @@ function LucasApp(_ref) {
         color: hasCode ? '#2e7d32' : '#e65100',
         border: '1px solid ' + (hasCode ? '#a5d6a7' : '#ffcc80')
       }
-    }, hasCode ? '●●●● ✏️' : '+ Definir'), hasCode && /*#__PURE__*/React.createElement("button", {
+    }, aLer ? '\u2026' : hasCode ? '●●●● ✏️' : '+ Definir'), hasCode && /*#__PURE__*/React.createElement("button", {
       onClick: remover,
       title: "Remover c\xF3digo",
       "aria-label": "Remover c\xF3digo",
@@ -26295,12 +26394,28 @@ function LucasApp(_ref) {
   function CodeShareBtn(_ref11b) {
     var nome = _ref11b.nome,
       codigo = _ref11b.codigo,
-      telefone = _ref11b.telefone;
-    if (!codigo) return null;
+      telefone = _ref11b.telefone,
+      tipo = _ref11b.tipo,
+      id = _ref11b.id,
+      temCodigo = _ref11b.temCodigo;
+    if (!codigo && !temCodigo) return null;
     return /*#__PURE__*/React.createElement("button", {
       onClick: function onClick(e) {
         e.stopPropagation();
-        enviarCodigoWhatsApp(nome, codigo, telefone);
+        if (codigo) {
+          enviarCodigoWhatsApp(nome, codigo, telefone);
+          return;
+        }
+        // A janela abre já, dentro do toque, para o navegador não a bloquear; o destino vem depois.
+        var w = window.open('', '_blank');
+        lerCodigo(tipo, id).then(function (c) {
+          if (!c) {
+            if (w) w.close();
+            return;
+          }
+          var url = linkCodigoWhatsApp(nome, c, telefone);
+          if (w) w.location.href = url;else window.open(url, '_blank');
+        });
       },
       title: "Enviar c\u00f3digo por WhatsApp",
       style: {
