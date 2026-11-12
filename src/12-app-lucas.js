@@ -376,6 +376,12 @@ var LANGS = {
   }
 };
 var ALL_SLOTS = ['leva_manha', 'busca_almoco', 'leva_tarde', 'busca_fim'];
+// Colunas pedidas explicitamente (nunca '*'). O código de acesso NUNCA é lido pela app:
+// só se sabe se existe (tem_codigo) e só se escreve quando o admin define um novo.
+var LUCAS_COND_COLS = 'id,nome,autorizado,cor,created_at,avatar_base64,telefone,email,tem_codigo';
+var LUCAS_VIS_COLS = 'id,nome,criado_em,autorizado,email,telefone,turma,avatar_base64,tem_codigo';
+var LUCAS_CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
+var LUCAS_HIST_LIMITE = 300;
 var C = {
   primary: '#1a237e',
   blue: '#1565c0',
@@ -597,6 +603,23 @@ function LucasApp(_ref) {
   useEffect(function () {
     return window.csAoVoltarRede(function () { loadSchedule(); loadDrivers(); });
   }, []);
+  // Códigos definidos NESTA sessão (só em memória): permitem enviar o código por WhatsApp
+  // logo depois de o definir. Nunca vêm da base e desaparecem ao sair da app.
+  var _stCodSessao = useState({}),
+    _stCodSessao2 = _slicedToArray(_stCodSessao, 2),
+    codigosSessao = _stCodSessao2[0],
+    setCodigosSessao = _stCodSessao2[1];
+  function lembrarCodigo(chave, codigo) {
+    setCodigosSessao(function (p) {
+      var n = Object.assign({}, p);
+      if (codigo) n[chave] = codigo;else delete n[chave];
+      return n;
+    });
+  }
+  var _stHistCortado = useState(false),
+    _stHistCortado2 = _slicedToArray(_stHistCortado, 2),
+    historyCortado = _stHistCortado2[0],
+    setHistoryCortado = _stHistCortado2[1];
   function flash(msg, err) {
     setToast({
       msg: msg,
@@ -622,6 +645,27 @@ function LucasApp(_ref) {
       var n = Object.assign({}, p);
       delete n[que];
       return n;
+    });
+  }
+  // Escrita na base: devolve Promise<boolean>. Em erro mostra a mensagem real e escreve na consola;
+  // com exigeLinhas, 0 linhas alteradas também é erro (a base recusou sem dizer porquê).
+  function gravar(que, consulta, exigeLinhas) {
+    return consulta.then(function (res) {
+      if (res && res.error) {
+        console.error('[escola-grenchen] ' + que + ':', res.error);
+        flash('Não foi possível ' + que + ': ' + (res.error.message || 'erro'), true);
+        return false;
+      }
+      if (exigeLinhas && !(res && res.data && res.data.length)) {
+        console.error('[escola-grenchen] ' + que + ': 0 linhas alteradas');
+        flash('Não foi possível ' + que + ': a base não alterou nada (sem permissão?)', true);
+        return false;
+      }
+      return true;
+    }).then(null, function (e) {
+      console.error('[escola-grenchen] ' + que + ':', e);
+      flash('Não foi possível ' + que + ': ' + (e && e.message || 'sem ligação'), true);
+      return false;
     });
   }
   function resizeImage(file, maxSize) {
@@ -656,95 +700,125 @@ function LucasApp(_ref) {
       reader.readAsDataURL(file);
     });
   }
-  function uploadAvatar(_x, _x2) {
-    return _uploadAvatar.apply(this, arguments);
-  }
-  function _uploadAvatar() {
-    _uploadAvatar = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(driverId, file) {
-      var b64, _yield$supabase$rpc, error, _t;
-      return _regenerator().w(function (_context) {
-        while (1) switch (_context.p = _context.n) {
-          case 0:
-            if (file) {
-              _context.n = 1;
-              break;
-            }
-            return _context.a(2);
-          case 1:
-            _context.p = 1;
-            _context.n = 2;
-            return resizeImage(file, 200);
-          case 2:
-            b64 = _context.v;
-            _context.n = 3;
-            return supabase.rpc('update_lucas_avatar', {
-              p_id: driverId,
-              p_avatar: b64
-            });
-          case 3:
-            _yield$supabase$rpc = _context.v;
-            error = _yield$supabase$rpc.error;
-            if (!error) {
-              setDrivers(function (p) {
-                return p.map(function (d) {
-                  return d.id === driverId ? Object.assign({}, d, {
-                    avatar_base64: b64
-                  }) : d;
-                });
-              });
-              flash('✓ Foto atualizada');
-            } else {
-              flash('Erro ao guardar foto', true);
-            }
-            _context.n = 5;
-            break;
-          case 4:
-            _context.p = 4;
-            _t = _context.v;
-            flash('Erro ao processar imagem', true);
-          case 5:
-            return _context.a(2);
+  // Foto de um condutor, posta pelo admin da escola: RPC lucas_avatar_admin (devolve true/false).
+  function uploadAvatar(driverId, file) {
+    if (!file || !isAdmin) return Promise.resolve(false);
+    return resizeImage(file, 200).then(function (b64) {
+      return supabase.rpc('lucas_avatar_admin', {
+        p_id: driverId,
+        p_avatar: b64
+      }).then(function (res) {
+        if (res && res.error) {
+          console.error('[escola-grenchen] guardar foto:', res.error);
+          flash('Erro ao guardar foto: ' + (res.error.message || 'erro'), true);
+          return false;
         }
-      }, _callee, null, [[1, 4]]);
-    }));
-    return _uploadAvatar.apply(this, arguments);
-  }
-  function addCondutor(_x3, _x4) {
-    return _addCondutor.apply(this, arguments);
-  }
-  function _addCondutor() {
-    _addCondutor = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2(nome, cor) {
-      var _yield$supabase$from$, error;
-      return _regenerator().w(function (_context2) {
-        while (1) switch (_context2.n) {
-          case 0:
-            if (nome.trim()) {
-              _context2.n = 1;
-              break;
-            }
-            return _context2.a(2);
-          case 1:
-            _context2.n = 2;
-            return supabase.from('lucas_condutores').insert({
-              nome: nome.trim(),
-              autorizado: true,
-              cor: cor
-            });
-          case 2:
-            _yield$supabase$from$ = _context2.v;
-            error = _yield$supabase$from$.error;
-            if (!error) {
-              flash('✓ ' + nome + ' adicionado');
-              loadDrivers();
-            } else {
-              flash('Erro: nome já existe?', true);
-            }
-          case 3:
-            return _context2.a(2);
+        if (!res || res.data !== true) {
+          console.error('[escola-grenchen] guardar foto: a base recusou');
+          flash('A foto não foi gravada: sem permissão de admin da escola.', true);
+          return false;
         }
-      }, _callee2);
-    }));
-    return _addCondutor.apply(this, arguments);
+        setDrivers(function (p) {
+          return p.map(function (d) {
+            return d.id === driverId ? Object.assign({}, d, {
+              avatar_base64: b64
+            }) : d;
+          });
+        });
+        flash('✓ Foto atualizada');
+        return true;
+      });
+    }, function (e) {
+      console.error('[escola-grenchen] processar imagem:', e);
+      flash('Erro ao processar imagem', true);
+      return false;
+    }).then(null, function (e) {
+      console.error('[escola-grenchen] guardar foto:', e);
+      flash('Erro ao guardar foto: ' + (e && e.message || 'sem ligação'), true);
+      return false;
+    });
+  }
+  function addCondutor(nome, cor) {
+    var limpo = String(nome || '').trim();
+    if (!limpo || !isAdmin) return Promise.resolve(false);
+    return gravar('adicionar ' + limpo, supabase.from('lucas_condutores').insert({
+      nome: limpo,
+      autorizado: true,
+      cor: cor
+    })).then(function (ok) {
+      if (!ok) return false;
+      flash('✓ ' + limpo + ' adicionado');
+      loadDrivers();
+      return true;
+    });
+  }
+  // Editar condutor (nome e cor). O plano guarda o condutor pelo NOME: ao mudar o nome,
+  // as semanas já gravadas passam para o nome novo; se isso falhar, o nome antigo é reposto.
+  function editCondutor(driver, nome, cor) {
+    var novo = String(nome || '').trim();
+    if (!isAdmin || !novo) return Promise.resolve(false);
+    var antigo = driver.nome;
+    var patch = {};
+    if (novo !== antigo) patch.nome = novo;
+    if (cor && cor !== driver.cor) patch.cor = cor;
+    if (!Object.keys(patch).length) return Promise.resolve(true);
+    if (patch.nome && drivers.some(function (d) {
+      return d.id !== driver.id && String(d.nome).toLowerCase() === novo.toLowerCase();
+    })) {
+      flash('Já existe um condutor com esse nome', true);
+      return Promise.resolve(false);
+    }
+    return gravar('guardar o condutor', supabase.from('lucas_condutores').update(patch).eq('id', driver.id).select('id'), true).then(function (ok) {
+      if (!ok) return false;
+      if (!patch.nome) {
+        loadDrivers();
+        flash(t.guardado);
+        return true;
+      }
+      return gravar('passar o plano para o nome novo', supabase.from('lucas_semana').update({
+        condutor: novo
+      }).eq('condutor', antigo)).then(function (ok2) {
+        if (!ok2) {
+          return gravar('repor o nome antigo', supabase.from('lucas_condutores').update({
+            nome: antigo
+          }).eq('id', driver.id).select('id'), true).then(function () {
+            loadDrivers();
+            return false;
+          });
+        }
+        loadDrivers();
+        loadSchedule();
+        flash(t.guardado);
+        return true;
+      });
+    });
+  }
+  // Editar visitante (nome, turma, telemóvel, email): só as colunas que mudaram.
+  function editVisitante(v, campos) {
+    if (!isAdmin) return Promise.resolve(false);
+    var nome = String(campos.nome || '').trim();
+    if (!nome) return Promise.resolve(false);
+    var novo = {
+      nome: nome,
+      turma: String(campos.turma || '').trim() || null,
+      telefone: String(campos.telefone || '').trim() || null,
+      email: String(campos.email || '').trim() || null
+    };
+    var patch = {};
+    Object.keys(novo).forEach(function (k) {
+      if ((novo[k] || null) !== (v[k] || null)) patch[k] = novo[k];
+    });
+    if (!Object.keys(patch).length) return Promise.resolve(true);
+    return gravar('guardar o visitante', supabase.from('lucas_visitantes').update(patch).eq('id', v.id).select('id'), true).then(function (ok) {
+      if (!ok) return false;
+      setVisitantes(function (p) {
+        return p.map(function (x) {
+          return x.id === v.id ? Object.assign({}, x, patch) : x;
+        });
+      });
+      flash(t.guardado);
+      return true;
+    });
   }
   function deleteCondutor(_x5, _x6) {
     return _deleteCondutor.apply(this, arguments);
@@ -803,10 +877,11 @@ function LucasApp(_ref) {
             setDrivers(function (p) {
               return p.map(function (d) {
                 return d.id === id ? Object.assign({}, d, {
-                  access_code: val
+                  tem_codigo: !!val
                 }) : d;
               });
             });
+            lembrarCodigo('c:' + id, val);
             flash(val ? '✓ Código definido' : '⛔ Acesso removido');
           case 2:
             return _context4.a(2);
@@ -938,7 +1013,7 @@ function LucasApp(_ref) {
         while (1) switch (_context8.n) {
           case 0:
             _context8.n = 1;
-            return supabase.from('lucas_condutores').select('*').order('nome');
+            return supabase.from('lucas_condutores').select(LUCAS_COND_COLS).order('nome');
           case 1:
             r = _context8.v;
             if (r.error) {
@@ -966,7 +1041,7 @@ function LucasApp(_ref) {
         while (1) switch (_context9.n) {
           case 0:
             _context9.n = 1;
-            return supabase.from('lucas_visitantes').select('*').order('criado_em', {
+            return supabase.from('lucas_visitantes').select(LUCAS_VIS_COLS).order('criado_em', {
               ascending: false
             });
           case 1:
@@ -1008,10 +1083,11 @@ function LucasApp(_ref) {
             setVisitantes(function (p) {
               return p.map(function (v) {
                 return v.id === id ? Object.assign({}, v, {
-                  access_code: val
+                  tem_codigo: !!val
                 }) : v;
               });
             });
+            lembrarCodigo('v:' + id, val);
             flash(val ? '✓ Código definido' : '⛔ Código removido');
           case 2:
             return _context0.a(2);
@@ -1042,9 +1118,10 @@ function LucasApp(_ref) {
             }
             setVisitantes(function (p) {
               return p.map(function (v) {
-                return v.id === id ? Object.assign({}, v, { autorizado: true, access_code: code }) : v;
+                return v.id === id ? Object.assign({}, v, { autorizado: true, tem_codigo: true }) : v;
               });
             });
+            lembrarCodigo('v:' + id, code);
             flash('\u2713 Autorizado com código');
           case 2:
             return _context1b.a(2);
@@ -1116,43 +1193,25 @@ function LucasApp(_ref) {
     }));
     return _deleteVisitante.apply(this, arguments);
   }
-  function addVisitante(_x16, _x17) {
-    return _addVisitante.apply(this, arguments);
-  }
-  function _addVisitante() {
-    _addVisitante = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee11(nome, code) {
-      var _yield$supabase$from$3, data, error;
-      return _regenerator().w(function (_context11) {
-        while (1) switch (_context11.n) {
-          case 0:
-            if (nome.trim()) {
-              _context11.n = 1;
-              break;
-            }
-            return _context11.a(2);
-          case 1:
-            _context11.n = 2;
-            return supabase.from('lucas_visitantes').insert({
-              nome: nome.trim(),
-              autorizado: true,
-              access_code: code || null
-            }).select();
-          case 2:
-            _yield$supabase$from$3 = _context11.v;
-            data = _yield$supabase$from$3.data;
-            error = _yield$supabase$from$3.error;
-            if (!error) {
-              flash('✓ ' + nome + ' adicionado');
-              loadVisitantes();
-            } else {
-              flash('Erro ao adicionar', true);
-            }
-          case 3:
-            return _context11.a(2);
-        }
-      }, _callee11);
-    }));
-    return _addVisitante.apply(this, arguments);
+  function addVisitante(nome, code) {
+    var limpo = String(nome || '').trim();
+    var codigo = String(code || '').trim();
+    if (!limpo || !isAdmin) return Promise.resolve(false);
+    var novoId = null;
+    return gravar('adicionar ' + limpo, supabase.from('lucas_visitantes').insert({
+      nome: limpo,
+      autorizado: true,
+      access_code: codigo || null
+    }).select('id').then(function (res) {
+      if (res && res.data && res.data[0]) novoId = res.data[0].id;
+      return res;
+    })).then(function (ok) {
+      if (!ok) return false;
+      if (novoId && codigo) lembrarCodigo('v:' + novoId, codigo);
+      flash('✓ ' + limpo + ' adicionado');
+      loadVisitantes();
+      return true;
+    });
   }
   function loadSchedule() {
     return _loadSchedule.apply(this, arguments);
@@ -1204,7 +1263,7 @@ function LucasApp(_ref) {
           case 0:
             q = supabase.from('lucas_semana').select('*').order('week_start', {
               ascending: false
-            }).limit(300);
+            }).limit(LUCAS_HIST_LIMITE);
             if (fDriver) q = q.eq('condutor', fDriver);
             if (fDay) q = q.eq('dia', fDay);
             if (fSlot) q = q.eq('slot', fSlot);
@@ -1219,6 +1278,7 @@ function LucasApp(_ref) {
             }
             loadOk('histórico');
             rows = r.data || [];
+            setHistoryCortado(rows.length >= LUCAS_HIST_LIMITE);
             if (fPeriod) rows = rows.filter(function (row) {
               var m = ['leva_manha', 'busca_almoco'].includes(row.slot);
               return fPeriod === 'manha' ? m : !m;
@@ -1443,37 +1503,22 @@ function LucasApp(_ref) {
     }));
     return _setHoraOverride.apply(this, arguments);
   }
-  function toggleDriver(_x28, _x29) {
-    return _toggleDriver.apply(this, arguments);
-  }
-  function _toggleDriver() {
-    _toggleDriver = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee18(id, cur) {
-      var r;
-      return _regenerator().w(function (_context18) {
-        while (1) switch (_context18.n) {
-          case 0:
-            _context18.n = 1;
-            return supabase.from('lucas_condutores').update({
-              autorizado: !cur
-            }).eq('id', id);
-          case 1:
-            r = _context18.v;
-            if (!r.error) {
-              setDrivers(function (p) {
-                return p.map(function (d) {
-                  return d.id === id ? Object.assign({}, d, {
-                    autorizado: !cur
-                  }) : d;
-                });
-              });
-              flash(!cur ? t.autorizado : '⛔ Removido');
-            }
-          case 2:
-            return _context18.a(2);
-        }
-      }, _callee18);
-    }));
-    return _toggleDriver.apply(this, arguments);
+  function toggleDriver(id, cur) {
+    if (!isAdmin) return Promise.resolve(false);
+    return gravar(cur ? 'tirar o acesso' : 'dar acesso', supabase.from('lucas_condutores').update({
+      autorizado: !cur
+    }).eq('id', id).select('id'), true).then(function (ok) {
+      if (!ok) return false;
+      setDrivers(function (p) {
+        return p.map(function (d) {
+          return d.id === id ? Object.assign({}, d, {
+            autorizado: !cur
+          }) : d;
+        });
+      });
+      flash(!cur ? t.autorizado : '⛔ Removido');
+      return true;
+    });
   }
   function prevWeek() {
     setWeekStart(function (p) {
@@ -2089,6 +2134,10 @@ function LucasApp(_ref) {
       _useState46 = _slicedToArray(_useState45, 2),
       copied = _useState46[0],
       setCopied = _useState46[1];
+    var _stEditCond = useState(null),
+      _stEditCond2 = _slicedToArray(_stEditCond, 2),
+      editCondId = _stEditCond2[0],
+      setEditCondId = _stEditCond2[1];
     var link = 'https://patrsolothurn-glitch.github.io/escola-grenchen/';
     function copyLink() {
       navigator.clipboard.writeText(link).then(function () {
@@ -2210,6 +2259,13 @@ function LucasApp(_ref) {
       }
     }, drivers.map(function (d) {
       var col = d.cor || C.green;
+      if (editCondId === d.id) return /*#__PURE__*/React.createElement(EditCondutor, {
+        key: d.id,
+        driver: d,
+        onClose: function onClose() {
+          setEditCondId(null);
+        }
+      });
       return /*#__PURE__*/React.createElement("div", {
         key: d.id,
         style: {
@@ -2313,10 +2369,13 @@ function LucasApp(_ref) {
         onSave: setAccessCode
       }), /*#__PURE__*/React.createElement(CodeShareBtn, {
         nome: d.nome,
-        codigo: d.access_code,
+        codigo: codigosSessao['c:' + d.id],
         telefone: d.telefone
       }))), /*#__PURE__*/React.createElement(DriverActions, {
-        driver: d
+        driver: d,
+        onEdit: function onEdit() {
+          setEditCondId(d.id);
+        }
       }));
     })), /*#__PURE__*/React.createElement(VisitantesSection, null), /*#__PURE__*/React.createElement(AdminsSection, null));
   }
@@ -2545,6 +2604,16 @@ function LucasApp(_ref) {
   }
   function VisitanteCard(_ref8) {
     var v = _ref8.v;
+    var _stEditVis = useState(false),
+      _stEditVis2 = _slicedToArray(_stEditVis, 2),
+      editando = _stEditVis2[0],
+      setEditando = _stEditVis2[1];
+    if (editando) return /*#__PURE__*/React.createElement(EditVisitante, {
+      visitante: v,
+      onClose: function onClose() {
+        setEditando(false);
+      }
+    });
     var dt = new Date(v.criado_em);
     var dtStr = dt.toLocaleDateString('pt-PT', {
       day: '2-digit',
@@ -2615,7 +2684,10 @@ function LucasApp(_ref) {
         gap: 8
       }
     }, v.turma && /*#__PURE__*/React.createElement("span", null, "\uD83C\uDF93 ", v.turma), v.telefone && /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCDE ", v.telefone), v.email && /*#__PURE__*/React.createElement("span", null, "\u2709\uFE0F ", v.email))), /*#__PURE__*/React.createElement(VisitanteActions, {
-      visitante: v
+      visitante: v,
+      onEdit: function onEdit() {
+        setEditando(true);
+      }
     })), /*#__PURE__*/React.createElement("div", {
       style: {
         marginTop: 8,
@@ -2633,7 +2705,7 @@ function LucasApp(_ref) {
       visitante: v
     }), /*#__PURE__*/React.createElement(CodeShareBtn, {
       nome: v.nome,
-      codigo: v.access_code,
+      codigo: codigosSessao['v:' + v.id],
       telefone: v.telefone
     })));
   }
@@ -2650,12 +2722,20 @@ function LucasApp(_ref) {
       _useState54 = _slicedToArray(_useState53, 2),
       code = _useState54[0],
       setCode = _useState54[1];
+    var _stGravV = useState(false),
+      _stGravV2 = _slicedToArray(_stGravV, 2),
+      aGravar = _stGravV2[0],
+      setAGravar = _stGravV2[1];
     function submit() {
-      if (!nome.trim()) return;
-      addVisitante(nome, code);
-      setNome('');
-      setCode('');
-      setShow(false);
+      if (!nome.trim() || aGravar) return;
+      setAGravar(true);
+      addVisitante(nome, code).then(function (ok) {
+        setAGravar(false);
+        if (!ok) return; // erro: o formulário fica como está
+        setNome('');
+        setCode('');
+        setShow(false);
+      });
     }
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2777,14 +2857,18 @@ function LucasApp(_ref) {
       _useState58 = _slicedToArray(_useState57, 2),
       val = _useState58[0],
       setVal = _useState58[1];
-    var hasCode = !!visitante.access_code;
+    var hasCode = !!visitante.tem_codigo;
     function start() {
-      setVal(visitante.access_code || '');
+      setVal('');
       setEditing(true);
     }
     function save() {
       setEditing(false);
-      if (val !== (visitante.access_code || '')) setVisitanteCode(visitante.id, val);
+      if (val.trim()) setVisitanteCode(visitante.id, val); // vazio = não mexe no código que existe
+    }
+    function remover(e) {
+      e.stopPropagation();
+      if (window.confirm('Remover o código de ' + visitante.nome + '? Deixa de conseguir entrar na app pública.')) setVisitanteCode(visitante.id, '');
     }
     if (editing) return /*#__PURE__*/React.createElement("input", {
       autoComplete: "off",
@@ -2798,7 +2882,7 @@ function LucasApp(_ref) {
         if (e.key === 'Enter') save();
         if (e.key === 'Escape') setEditing(false);
       },
-      placeholder: "Definir c\xF3digo...",
+      placeholder: hasCode ? "Novo c\xF3digo..." : "Definir c\xF3digo...",
       style: {
         fontSize: 11,
         border: '1px solid #ddd',
@@ -2808,7 +2892,7 @@ function LucasApp(_ref) {
         outline: 'none'
       }
     });
-    return /*#__PURE__*/React.createElement("span", {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       onClick: start,
       style: {
         fontSize: 11,
@@ -2820,15 +2904,31 @@ function LucasApp(_ref) {
         color: hasCode ? '#7b1fa2' : '#e65100',
         border: '1px solid ' + (hasCode ? '#ce93d8' : '#ffcc80')
       }
-    }, hasCode ? '●●●● ✏️' : '+ Definir');
+    }, hasCode ? '●●●● ✏️' : '+ Definir'), hasCode && /*#__PURE__*/React.createElement("button", {
+      onClick: remover,
+      title: "Remover c\xF3digo",
+      "aria-label": "Remover c\xF3digo",
+      style: {
+        marginLeft: 4,
+        border: '1px solid #ffcdd2',
+        background: '#ffebee',
+        color: '#c62828',
+        borderRadius: 10,
+        padding: '2px 7px',
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\u2715"));
   }
   function VisitanteActions(_ref0) {
-    var visitante = _ref0.visitante;
+    var visitante = _ref0.visitante,
+      onEdit = _ref0.onEdit;
     var _useState59 = useState(null),
       _useState60 = _slicedToArray(_useState59, 2),
       confirm = _useState60[0],
       setConfirm = _useState60[1];
-    var _stAuthCode = useState(visitante.access_code || ''),
+    var _stAuthCode = useState(''),
       _stAuthCode2 = _slicedToArray(_stAuthCode, 2),
       authCode = _stAuthCode2[0],
       setAuthCode = _stAuthCode2[1];
@@ -2841,17 +2941,24 @@ function LucasApp(_ref) {
       setConfirm(null);
     }
     function doAuthorize() {
-      if (!authCode.trim()) return;
+      if (!authCode.trim()) {
+        // já tem código (não o lemos): autoriza mantendo o que existe
+        if (!visitante.tem_codigo) return;
+        toggleVisitante(visitante.id, false);
+        setShowCode(false);
+        return;
+      }
       authorizeVisitanteWithCode(visitante.id, authCode.trim());
       setShowCode(false);
     }
+    var podeAutorizar = !!(authCode.trim() || visitante.tem_codigo);
     if (showCode) return /*#__PURE__*/React.createElement("div", {
       style: { display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }
     }, /*#__PURE__*/React.createElement("input", {
       autoComplete: "off",
       value: authCode,
       autoFocus: true,
-      placeholder: "Código de acesso",
+      placeholder: visitante.tem_codigo ? "Novo código (opcional)" : "Código de acesso",
       onChange: function onChange(e) { setAuthCode(e.target.value); },
       onKeyDown: function onKeyDown(e) { if (e.key === 'Enter') doAuthorize(); },
       style: { border: '1.5px solid #7b1fa2', borderRadius: 8, padding: '6px 10px', fontSize: 12, width: 130, outline: 'none' }
@@ -2862,7 +2969,7 @@ function LucasApp(_ref) {
       style: { border: '1.5px solid #ddd', borderRadius: 16, padding: '5px 9px', background: '#f5f5f5', color: '#888', fontWeight: 700, fontSize: 10, cursor: 'pointer' }
     }, "\u2715"), /*#__PURE__*/React.createElement("button", {
       onClick: doAuthorize,
-      style: { border: 'none', borderRadius: 16, padding: '5px 9px', background: authCode.trim() ? '#7b1fa2' : '#ccc', color: '#fff', fontWeight: 800, fontSize: 10, cursor: authCode.trim() ? 'pointer' : 'default' }
+      style: { border: 'none', borderRadius: 16, padding: '5px 9px', background: podeAutorizar ? '#7b1fa2' : '#ccc', color: '#fff', fontWeight: 800, fontSize: 10, cursor: podeAutorizar ? 'pointer' : 'default' }
     }, "\u2713 Autorizar")));
     if (confirm) return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -2917,7 +3024,20 @@ function LucasApp(_ref) {
         background: visitante.autorizado ? '#ffebee' : '#f3e5f5',
         color: visitante.autorizado ? '#c62828' : '#7b1fa2'
       }
-    }, visitante.autorizado ? 'Remover' : 'Autorizar'), /*#__PURE__*/React.createElement("button", {
+    }, visitante.autorizado ? 'Remover' : 'Autorizar'), onEdit && /*#__PURE__*/React.createElement("button", {
+      onClick: onEdit,
+      title: "Editar visitante",
+      "aria-label": "Editar visitante",
+      style: {
+        border: 'none',
+        borderRadius: 16,
+        padding: '5px 8px',
+        cursor: 'pointer',
+        background: '#f3e5f5',
+        color: '#7b1fa2',
+        fontSize: 10
+      }
+    }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setConfirm('delete');
       },
@@ -2977,7 +3097,8 @@ function LucasApp(_ref) {
     })));
   }
   function DriverActions(_ref10) {
-    var driver = _ref10.driver;
+    var driver = _ref10.driver,
+      onEdit = _ref10.onEdit;
     var _useState61 = useState(null),
       _useState62 = _slicedToArray(_useState61, 2),
       confirm = _useState62[0],
@@ -3066,7 +3187,19 @@ function LucasApp(_ref) {
         fontWeight: 700,
         fontSize: 12
       }
-    }, driver.autorizado ? 'Sem acesso' : 'Autorizar'), /*#__PURE__*/React.createElement("button", {
+    }, driver.autorizado ? 'Sem acesso' : 'Autorizar'), onEdit && /*#__PURE__*/React.createElement("button", {
+      onClick: onEdit,
+      style: {
+        border: 'none',
+        borderRadius: 20,
+        padding: '4px 10px',
+        cursor: 'pointer',
+        background: '#e8eaf6',
+        color: C.primary,
+        fontWeight: 700,
+        fontSize: 10
+      }
+    }, "\u270F\uFE0F Editar"), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setConfirm('delete');
       },
@@ -3093,14 +3226,18 @@ function LucasApp(_ref) {
       _useState66 = _slicedToArray(_useState65, 2),
       val = _useState66[0],
       setVal = _useState66[1];
-    var hasCode = !!driver.access_code;
+    var hasCode = !!driver.tem_codigo;
     function start() {
-      setVal(driver.access_code || '');
+      setVal('');
       setEditing(true);
     }
     function save() {
       setEditing(false);
-      if (val !== (driver.access_code || '')) onSave(driver.id, val);
+      if (val.trim()) onSave(driver.id, val); // vazio = não mexe no código que existe
+    }
+    function remover(e) {
+      e.stopPropagation();
+      if (window.confirm('Remover o código de ' + driver.nome + '? Deixa de conseguir entrar na app pública.')) onSave(driver.id, '');
     }
     if (editing) return /*#__PURE__*/React.createElement("input", {
       autoComplete: "off",
@@ -3114,7 +3251,7 @@ function LucasApp(_ref) {
         if (e.key === 'Enter') save();
         if (e.key === 'Escape') setEditing(false);
       },
-      placeholder: "Definir c\xF3digo...",
+      placeholder: hasCode ? "Novo c\xF3digo..." : "Definir c\xF3digo...",
       style: {
         fontSize: 11,
         border: '1px solid #ddd',
@@ -3124,7 +3261,7 @@ function LucasApp(_ref) {
         outline: 'none'
       }
     });
-    return /*#__PURE__*/React.createElement("span", {
+    return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("span", {
       onClick: start,
       style: {
         fontSize: 11,
@@ -3136,7 +3273,22 @@ function LucasApp(_ref) {
         color: hasCode ? '#2e7d32' : '#e65100',
         border: '1px solid ' + (hasCode ? '#a5d6a7' : '#ffcc80')
       }
-    }, hasCode ? '●●●● ✏️' : '+ Definir');
+    }, hasCode ? '●●●● ✏️' : '+ Definir'), hasCode && /*#__PURE__*/React.createElement("button", {
+      onClick: remover,
+      title: "Remover c\xF3digo",
+      "aria-label": "Remover c\xF3digo",
+      style: {
+        marginLeft: 4,
+        border: '1px solid #ffcdd2',
+        background: '#ffebee',
+        color: '#c62828',
+        borderRadius: 10,
+        padding: '2px 7px',
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, "\u2715"));
   }
   function CodeShareBtn(_ref11b) {
     var nome = _ref11b.nome,
@@ -3175,12 +3327,20 @@ function LucasApp(_ref) {
       _useState72 = _slicedToArray(_useState71, 2),
       cor = _useState72[0],
       setCor = _useState72[1];
-    var CORES = ['#1a237e', '#c2185b', '#2e7d32', '#e65100', '#7b1fa2', '#0288d1', '#f57f17', '#00838f'];
+    var CORES = LUCAS_CORES;
+    var _stGravC = useState(false),
+      _stGravC2 = _slicedToArray(_stGravC, 2),
+      aGravar = _stGravC2[0],
+      setAGravar = _stGravC2[1];
     function submit() {
-      if (!nome.trim()) return;
-      addCondutor(nome, cor);
-      setNome('');
-      setShow(false);
+      if (!nome.trim() || aGravar) return;
+      setAGravar(true);
+      addCondutor(nome, cor).then(function (ok) {
+        setAGravar(false);
+        if (!ok) return; // erro: o formulário fica como está
+        setNome('');
+        setShow(false);
+      });
     }
     return /*#__PURE__*/React.createElement("div", {
       style: {
@@ -3304,6 +3464,225 @@ function LucasApp(_ref) {
         cursor: 'pointer'
       }
     }, "\u2713 Adicionar"))));
+  }
+  var estiloCampoEd = {
+    width: '100%',
+    boxSizing: 'border-box',
+    border: '1.5px solid #e0e0e0',
+    borderRadius: 10,
+    padding: '9px 12px',
+    fontSize: 14,
+    outline: 'none',
+    marginBottom: 8,
+    fontFamily: 'inherit'
+  };
+  function BotoesEd(_refB) {
+    var onCancel = _refB.onCancel,
+      onSave = _refB.onSave,
+      aGravar = _refB.aGravar,
+      cor = _refB.cor,
+      pode = _refB.pode;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: onCancel,
+      disabled: aGravar,
+      style: {
+        flex: 1,
+        minHeight: 44,
+        border: '1.5px solid #e0e0e0',
+        borderRadius: 10,
+        background: '#f5f5f5',
+        color: '#888',
+        fontWeight: 700,
+        fontSize: 13,
+        cursor: 'pointer'
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      onClick: onSave,
+      disabled: aGravar || !pode,
+      style: {
+        flex: 2,
+        minHeight: 44,
+        border: 'none',
+        borderRadius: 10,
+        background: pode ? cor : '#ccc',
+        color: '#fff',
+        fontWeight: 800,
+        fontSize: 13,
+        cursor: pode && !aGravar ? 'pointer' : 'default',
+        opacity: aGravar ? 0.6 : 1
+      }
+    }, aGravar ? 'A guardar...' : '✓ Guardar'));
+  }
+  // Editar condutor: nome e cor. Só fecha depois de a base confirmar.
+  function EditCondutor(_refEc) {
+    var driver = _refEc.driver,
+      onClose = _refEc.onClose;
+    var _stN = useState(driver.nome || ''),
+      _stN2 = _slicedToArray(_stN, 2),
+      nome = _stN2[0],
+      setNome = _stN2[1];
+    var _stC = useState(driver.cor || C.green),
+      _stC2 = _slicedToArray(_stC, 2),
+      cor = _stC2[0],
+      setCor = _stC2[1];
+    var _stG = useState(false),
+      _stG2 = _slicedToArray(_stG, 2),
+      aGravar = _stG2[0],
+      setAGravar = _stG2[1];
+    var mudouNome = !!nome.trim() && nome.trim() !== driver.nome;
+    function submit() {
+      if (!nome.trim() || aGravar) return;
+      setAGravar(true);
+      editCondutor(driver, nome, cor).then(function (ok) {
+        setAGravar(false);
+        if (ok) onClose();
+      });
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: C.card,
+        borderRadius: 14,
+        padding: '14px 16px',
+        marginBottom: 10,
+        border: '2px solid ' + cor,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 13,
+        color: C.primary,
+        marginBottom: 8
+      }
+    }, "✏️ Editar condutor"), /*#__PURE__*/React.createElement("input", {
+      autoComplete: "off",
+      "aria-label": "Nome do condutor",
+      value: nome,
+      onChange: function onChange(e) {
+        setNome(e.target.value);
+      },
+      onKeyDown: function onKeyDown(e) {
+        if (e.key === 'Enter') submit();
+        if (e.key === 'Escape') onClose();
+      },
+      placeholder: "Nome",
+      style: estiloCampoEd
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 8,
+        flexWrap: 'wrap',
+        marginBottom: 10
+      }
+    }, LUCAS_CORES.map(function (c) {
+      return /*#__PURE__*/React.createElement("button", {
+        key: c,
+        type: "button",
+        "aria-label": "Cor " + c,
+        "aria-pressed": cor === c,
+        onClick: function onClick() {
+          setCor(c);
+        },
+        style: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          background: c,
+          cursor: 'pointer',
+          padding: 0,
+          border: cor === c ? '3px solid #111' : '3px solid transparent'
+        }
+      });
+    })), mudouNome && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: '#e65100',
+        marginBottom: 8
+      }
+    }, "As semanas j\xE1 gravadas no plano passam para o nome novo. Na app p\xFAblica, esta pessoa tem de voltar a escolher o nome."), /*#__PURE__*/React.createElement(BotoesEd, {
+      onCancel: onClose,
+      onSave: submit,
+      aGravar: aGravar,
+      cor: cor,
+      pode: !!nome.trim()
+    }));
+  }
+  // Editar visitante: nome, turma, telemóvel e email. Só fecha depois de a base confirmar.
+  function EditVisitante(_refEv) {
+    var visitante = _refEv.visitante,
+      onClose = _refEv.onClose;
+    var _stF = useState({
+        nome: visitante.nome || '',
+        turma: visitante.turma || '',
+        telefone: visitante.telefone || '',
+        email: visitante.email || ''
+      }),
+      _stF2 = _slicedToArray(_stF, 2),
+      f = _stF2[0],
+      setF = _stF2[1];
+    var _stG = useState(false),
+      _stG2 = _slicedToArray(_stG, 2),
+      aGravar = _stG2[0],
+      setAGravar = _stG2[1];
+    function campo(k, v) {
+      setF(function (p) {
+        return Object.assign({}, p, _defineProperty({}, k, v));
+      });
+    }
+    function submit() {
+      if (!f.nome.trim() || aGravar) return;
+      setAGravar(true);
+      editVisitante(visitante, f).then(function (ok) {
+        setAGravar(false);
+        if (ok) onClose();
+      });
+    }
+    function inp(k, rotulo, tipo, dica) {
+      return /*#__PURE__*/React.createElement("input", {
+        key: k,
+        autoComplete: "off",
+        type: tipo,
+        "aria-label": rotulo,
+        value: f[k],
+        onChange: function onChange(e) {
+          campo(k, e.target.value);
+        },
+        onKeyDown: function onKeyDown(e) {
+          if (e.key === 'Enter') submit();
+          if (e.key === 'Escape') onClose();
+        },
+        placeholder: dica,
+        style: estiloCampoEd
+      });
+    }
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: '#fff',
+        borderRadius: 12,
+        padding: '12px 14px',
+        marginBottom: 8,
+        border: '2px solid #7b1fa2'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 800,
+        fontSize: 13,
+        color: '#7b1fa2',
+        marginBottom: 8
+      }
+    }, "✏️ Editar visitante"), inp('nome', 'Nome', 'text', 'Nome'), inp('turma', 'Turma', 'text', 'Turma (opcional)'), inp('telefone', 'Telem\xF3vel', 'tel', 'Telem\xF3vel (opcional)'), inp('email', 'Email', 'email', 'Email (opcional)'), /*#__PURE__*/React.createElement(BotoesEd, {
+      onCancel: onClose,
+      onSave: submit,
+      aGravar: aGravar,
+      cor: '#7b1fa2',
+      pode: !!f.nome.trim()
+    }));
   }
   function WeekBlock(_ref12) {
     var week = _ref12.week,
@@ -3591,7 +3970,19 @@ function LucasApp(_ref) {
         cursor: 'pointer',
         fontWeight: 700
       }
-    }, "\u2715 Limpar filtros"))), history.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    }, "\u2715 Limpar filtros"))), historyCortado && /*#__PURE__*/React.createElement("div", {
+      role: "status",
+      style: {
+        background: '#fff3e0',
+        border: '1px solid #ffcc80',
+        color: '#e65100',
+        borderRadius: 10,
+        padding: '8px 12px',
+        fontSize: 12,
+        fontWeight: 700,
+        marginBottom: 10
+      }
+    }, "\u26A0\uFE0F A mostrar s\u00F3 as " + LUCAS_HIST_LIMITE + " viagens mais recentes. Usa os filtros para ver as mais antigas."), history.length === 0 ? /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center',
         color: '#ccc',
@@ -3751,6 +4142,49 @@ function LucasApp(_ref) {
       })));
     }));
   }
+
+  // Os componentes acima são funções criadas de novo em cada desenho do LucasApp. Sem isto, o React
+  // via um componente "novo" de cada vez e desmontava-o: listas fechavam-se e formulários perdiam o
+  // texto a cada aviso. Cada nome fica com um invólucro de identidade fixa que chama a versão mais
+  // recente; o estado (useState) passa a pertencer ao invólucro e sobrevive aos redesenhos.
+  var _implRef = useRef({});
+  var _estavelRef = useRef({});
+  function estavel(nome, fn) {
+    _implRef.current[nome] = fn;
+    if (!_estavelRef.current[nome]) {
+      var W = function W(props) {
+        return _implRef.current[nome](props);
+      };
+      W.displayName = nome;
+      _estavelRef.current[nome] = W;
+    }
+    return _estavelRef.current[nome];
+  }
+  DriverSelect = estavel('DriverSelect', DriverSelect);
+  KidsBtns = estavel('KidsBtns', KidsBtns);
+  SchoolTimeField = estavel('SchoolTimeField', SchoolTimeField);
+  TimeRow = estavel('TimeRow', TimeRow);
+  DriveRow = estavel('DriveRow', DriveRow);
+  SectionTitle = estavel('SectionTitle', SectionTitle);
+  ViewPlano = estavel('ViewPlano', ViewPlano);
+  ViewAutorizacoes = estavel('ViewAutorizacoes', ViewAutorizacoes);
+  AdminsSection = estavel('AdminsSection', AdminsSection);
+  VisitantesSection = estavel('VisitantesSection', VisitantesSection);
+  VisitanteCard = estavel('VisitanteCard', VisitanteCard);
+  AddVisitante = estavel('AddVisitante', AddVisitante);
+  VisitanteCodeField = estavel('VisitanteCodeField', VisitanteCodeField);
+  VisitanteActions = estavel('VisitanteActions', VisitanteActions);
+  FiltroSelect = estavel('FiltroSelect', FiltroSelect);
+  DriverActions = estavel('DriverActions', DriverActions);
+  CodeField = estavel('CodeField', CodeField);
+  CodeShareBtn = estavel('CodeShareBtn', CodeShareBtn);
+  AddCondutor = estavel('AddCondutor', AddCondutor);
+  BotoesEd = estavel('BotoesEd', BotoesEd);
+  EditCondutor = estavel('EditCondutor', EditCondutor);
+  EditVisitante = estavel('EditVisitante', EditVisitante);
+  WeekBlock = estavel('WeekBlock', WeekBlock);
+  ViewHistorico = estavel('ViewHistorico', ViewHistorico);
+  ViewImprimir = estavel('ViewImprimir', ViewImprimir);
 
   // ── Nav (Acesso só para admin) ──
   var navItems = [{
