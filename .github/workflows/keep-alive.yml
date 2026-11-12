@@ -6,6 +6,9 @@ on:
     - cron: '0 6 */5 * *'
   workflow_dispatch:
 
+# Só faz um pedido HTTP: não precisa de nenhuma permissão do GITHUB_TOKEN.
+permissions: {}
+
 jobs:
   ping:
     runs-on: ubuntu-latest
