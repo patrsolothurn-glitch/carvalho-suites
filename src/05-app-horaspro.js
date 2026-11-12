@@ -1234,7 +1234,7 @@ function HorasProApp(_ref9) {
     var orig = editProj ? projList.find(function (x) {
       return x.id === editProj;
     }) : null;
-    return (newProjName || '') !== (orig ? orig.name || '' : '') || (newProjDesc || '') !== (orig ? orig.desc || '' : '');
+    return (newProjName || '') !== (orig ? orig.name || '' : '') || (newProjDesc || '') !== (orig ? orig.desc || '' : '') || newProjColor !== (orig ? orig.color : H.blue);
   };
 
   // Feriados Solothurn 2026
@@ -2981,6 +2981,7 @@ function HorasProApp(_ref9) {
       setEditProj(null);
       setNewProjName('');
       setNewProjDesc('');
+      setNewProjColor(H.blue);
       setProjSaveErr('');
     },
     style: {
