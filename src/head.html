@@ -134,7 +134,9 @@
             var msg = (err && (err.message || err.msg)) || String(err);
             det = [];
             if (err && err.code) det.push('code: ' + err.code);
-            if (err && err.details) det.push(err.details);
+            // err.details do Postgres pode trazer valores das linhas (ex.: "Key (coluna)=(valor)"):
+            // não vai para o ecrã. Fica só 'onde' (ficheiro:linha) dos erros de JavaScript.
+            if (err && err.onde) det.push(err.onde);
             if (err && err.hint) det.push('hint: ' + err.hint);
             titulo = 'Erro \u2014 ' + origem;
             corpo = msg;
@@ -202,7 +204,7 @@
 
       // Erros JS não tratados
       window.addEventListener('error', function (ev) {
-        if (ev && ev.message) window.mostrarErro('JavaScript', { message: ev.message, details: (ev.filename || '') + ':' + (ev.lineno || '') });
+        if (ev && ev.message) window.mostrarErro('JavaScript', { message: ev.message, onde: (ev.filename || '') + ':' + (ev.lineno || '') });
       });
       window.addEventListener('unhandledrejection', function (ev) {
         window.mostrarErro('Promise', ev.reason || { message: 'Promise rejeitada' });
