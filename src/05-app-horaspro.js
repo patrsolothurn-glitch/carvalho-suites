@@ -28,6 +28,24 @@ function hprAvisarRes(op, err) {
 }
 
 // ── FORM COMPONENT ISOLADO (evita re-render ao escrever) ────────────
+// Cartão base. Tem de viver FORA do HorasProApp: definido lá dentro era um componente
+// novo em cada render e o React recriava tudo o que estava dentro (campos incluídos).
+function HprLCard(_ref0) {
+  var children = _ref0.children,
+    _ref0$style = _ref0.style,
+    style = _ref0$style === void 0 ? {} : _ref0$style;
+  return /*#__PURE__*/React.createElement("div", {
+    style: _objectSpread({
+      background: H.surface,
+      borderRadius: 16,
+      border: "1px solid ".concat(H.border),
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
+    }, style)
+  }, children);
+}
+function hprDescartar() {
+  return typeof window.confirm !== 'function' || window.confirm('Descartar alterações?');
+}
 var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
   var _projList$;
   var onSave = _ref8.onSave,
@@ -64,6 +82,23 @@ var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
     return p.name;
   });
   var isEdit = !!editData;
+  // Valores com que o formulário abriu (ficam fixos enquanto estiver aberto).
+  var inicioRef = React.useRef(null);
+  if (inicioRef.current === null) inicioRef.current = {
+    tipo: tipo,
+    proj: proj,
+    hi: hi,
+    hf: hf,
+    morada: (editData === null || editData === void 0 ? void 0 : editData.morada) || ''
+  };
+  var pedirFechar = function pedirFechar() {
+    var i = inicioRef.current;
+    var moradaAgora = moradaRef.current ? moradaRef.current.value : i.morada;
+    var mudou = tipo !== i.tipo || proj !== i.proj || hi !== i.hi || hf !== i.hf || moradaAgora !== i.morada;
+    if (saving) return;
+    if (mudou && !hprDescartar()) return;
+    onClose();
+  };
   var guardar = function guardar() {
     var _moradaRef$current;
     if (horas <= 0) return;
@@ -113,7 +148,7 @@ var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
       justifyContent: 'flex-end'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    onClick: onClose,
+    onClick: pedirFechar,
     style: {
       position: 'absolute',
       inset: 0,
@@ -156,7 +191,7 @@ var EntryFormModal = React.memo(function EntryFormModal(_ref8) {
       fontSize: 18
     }
   }, isEdit ? 'Editar registo' : 'Novo registo'), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
+    onClick: pedirFechar,
     style: {
       background: H.surface2,
       border: "1px solid ".concat(H.border),
@@ -900,7 +935,7 @@ function HorasProApp(_ref9) {
   };
   var horasTab = tab === 'Dia' ? horasHoje : tab === 'Semana' ? horasSem : horasMesDisplay;
   var metaTab = tab === 'Dia' ? metaDiaPara(curDate) : tab === 'Semana' ? metaSem : metaMes;
-  var pct = Math.min(100, Math.round(horasTab / metaTab * 100));
+  var pct = metaTab > 0 ? Math.round(horasTab / metaTab * 100) : Math.min(100, Math.round(horasTab / metaTab * 100));
   var prevDay = function prevDay() {
     var d = new Date(curDate);
     d.setDate(d.getDate() - 1);
@@ -1193,6 +1228,14 @@ function HorasProApp(_ref9) {
     setNewProjColor = _useState42[1];
   var projNameRef = React.useRef(null);
   var projDescRef = React.useRef(null);
+  // O formulário de projeto tem alterações por guardar?
+  var projFormMudou = function projFormMudou() {
+    if (!showAddProj) return false;
+    var orig = editProj ? projList.find(function (x) {
+      return x.id === editProj;
+    }) : null;
+    return (newProjName || '') !== (orig ? orig.name || '' : '') || (newProjDesc || '') !== (orig ? orig.desc || '' : '');
+  };
 
   // Feriados Solothurn 2026
   var FERIADOS_SO = [{
@@ -1481,19 +1524,7 @@ function HorasProApp(_ref9) {
   var projColor = function projColor(p) {
     return p.includes('POP') ? H.blue : p.includes('BUDI') ? H.orange : H.gold;
   };
-  var LCard = function LCard(_ref0) {
-    var children = _ref0.children,
-      _ref0$style = _ref0.style,
-      style = _ref0$style === void 0 ? {} : _ref0$style;
-    return /*#__PURE__*/React.createElement("div", {
-      style: _objectSpread({
-        background: H.surface,
-        borderRadius: 16,
-        border: "1px solid ".concat(H.border),
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
-      }, style)
-    }, children);
-  };
+  var LCard = HprLCard;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: '100vh',
@@ -1501,7 +1532,8 @@ function HorasProApp(_ref9) {
       fontFamily: "'Inter',system-ui,sans-serif",
       color: H.text,
       overflowX: 'hidden',
-      paddingBottom: 80
+      // 80 da barra de navegação + 56 do botão "+" + folga: o fim da lista deixa de ficar tapado
+      paddingBottom: 160
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2725,10 +2757,13 @@ function HorasProApp(_ref9) {
     }
   }, "Projetos"), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
+      if (projFormMudou() && !hprDescartar()) return;
       setShowAddProj(true);
       setEditProj(null);
       setNewProjName('');
       setNewProjDesc('');
+      if (projNameRef.current) projNameRef.current.value = '';
+      if (projDescRef.current) projDescRef.current.value = '';
       setProjSaveErr('');
       setNewProjColor(H.blue);
     },
@@ -2798,6 +2833,9 @@ function HorasProApp(_ref9) {
   }, /*#__PURE__*/React.createElement("input", {
     ref: projNameRef,
     defaultValue: newProjName,
+    onChange: function onChange(e) {
+      setNewProjName(e.target.value);
+    },
     key: "name-".concat(editProj),
     placeholder: "Ex: POP GREN05",
     style: {
@@ -2814,6 +2852,7 @@ function HorasProApp(_ref9) {
   }), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       if (projNameRef.current) projNameRef.current.value = '';
+      setNewProjName('');
     },
     style: {
       position: 'absolute',
@@ -2849,6 +2888,9 @@ function HorasProApp(_ref9) {
   }, /*#__PURE__*/React.createElement("input", {
     ref: projDescRef,
     defaultValue: newProjDesc,
+    onChange: function onChange(e) {
+      setNewProjDesc(e.target.value);
+    },
     key: "desc-".concat(editProj),
     placeholder: "Ex: Grenchen - Zona 5",
     style: {
@@ -2865,6 +2907,7 @@ function HorasProApp(_ref9) {
   }), /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
       if (projDescRef.current) projDescRef.current.value = '';
+      setNewProjDesc('');
     },
     style: {
       position: 'absolute',
@@ -2932,7 +2975,13 @@ function HorasProApp(_ref9) {
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setShowAddProj(false);
+      if (projSaving) return;
+      if (projFormMudou() && !hprDescartar()) return;
+      setShowAddProj(false);
+      setEditProj(null);
+      setNewProjName('');
+      setNewProjDesc('');
+      setProjSaveErr('');
     },
     style: {
       flex: 1,
