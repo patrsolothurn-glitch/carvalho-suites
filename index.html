@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-13T22:25:23.128Z
+  Gerado em: 2026-11-13T22:52:07.171Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-475";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-476";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -47678,6 +47678,22 @@ function ntLinhasLista(itens) {
 }
 // Para copiar/partilhar: a lista passa a "nota" com os artigos como texto (☐ por comprar, ☑ comprado).
 function ntNotaParaCopia(n, itens) { return ntELista(n) ? Object.assign({}, n, { texto: ntLinhasLista(itens) }) : n; }
+// Título por omissão de uma lista nova: "Migros" + a data de hoje (13/11/2026). Editável antes de criar.
+function ntTituloListaPadrao() {
+  var d = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; };
+  return 'Migros ' + p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+}
+// "Colar artigos": uma linha = um artigo. Tira espaços, ignora linhas vazias e tira marcadores no início
+// (-, •, *, ·, números como "1." ou "1)", [ ], ☐/☑). "1.5 L de leite" e "2 maçãs" ficam como estão.
+var NT_MAX_COLAR = 100;
+function ntParseArtigos(txt) {
+  var out = [];
+  String(txt == null ? '' : txt).split(/\r?\n|\r/).forEach(function (l) {
+    var t = l.replace(/^\s*(?:(?:[-*•·▪◦–—☐☑✓✔□■]|\[[ xX]?\])\s*|\d{1,3}[.)]\s+)+/, '').replace(/\s+/g, ' ').trim().slice(0, NT_MAX_ITEM);
+    if (t) out.push(t);
+  });
+  return out;
+}
 
 // Pesquisa: sem maiúsculas nem acentos; todas as palavras têm de aparecer (título + texto).
 function ntNorm(s) {
@@ -48500,7 +48516,10 @@ function NtListaVista(p) {
   var _nv = React.useState(''); var novo = _nv[0], setNovo = _nv[1];
   var _ei = React.useState(null); var editId = _ei[0], setEditId = _ei[1];
   var _et = React.useState(''); var editTxt = _et[0], setEditTxt = _et[1];
+  var _co = React.useState(false); var colarAberto = _co[0], setColarAberto = _co[1];
+  var _ct = React.useState(''); var colarTxt = _ct[0], setColarTxt = _ct[1];
   var refNovo = React.useRef(null);
+  var refColar = React.useRef(false); // trava contra duplo toque no botão de colar
   var itens = ntOrdenarItens(p.itens);
   var cont = ntContaItens(itens);
   var pend = itens.filter(function (x) { return !x.comprado; });
@@ -48517,6 +48536,15 @@ function NtListaVista(p) {
     if (!t) return;
     p.onAdd(t).then(function (ok) {
       if (ok) { setNovo(''); if (refNovo.current && refNovo.current.focus) refNovo.current.focus(); } // a linha seguinte fica logo aberta
+    });
+  }
+  var textosColados = ntParseArtigos(colarTxt);
+  function colarAgora() {
+    if (!textosColados.length || textosColados.length > NT_MAX_COLAR || refColar.current) return;
+    refColar.current = true;
+    p.onColar(textosColados).then(function (ok) {
+      refColar.current = false;
+      if (ok) { setColarTxt(''); setColarAberto(false); }
     });
   }
   function iniciarEdicao(x) { if (ro) return; setEditId(x.id); setEditTxt(x.texto); }
@@ -48586,6 +48614,25 @@ function NtListaVista(p) {
       React.createElement('button', { type: 'button', 'aria-label': 'Adicionar artigo', disabled: !novo.trim(), onClick: adicionar,
         style: { flex: '0 0 auto', width: 48, height: 48, boxSizing: 'border-box', borderRadius: 12, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 26, fontWeight: 900, cursor: novo.trim() ? 'pointer' : 'default', opacity: novo.trim() ? 1 : 0.5 } }, '＋')
     ),
+    // Colar vários artigos de uma vez (um por linha)
+    ro ? null : React.createElement('div', { style: { marginTop: 10 } },
+      React.createElement('button', { type: 'button', 'aria-expanded': colarAberto, onClick: function () { setColarAberto(!colarAberto); },
+        style: { minHeight: 44, padding: '6px 14px', borderRadius: 10, border: '2px solid ' + NT_ACENTO, background: colarAberto ? NT_ACENTO : 'transparent', color: colarAberto ? '#fff' : NT_ACENTO, fontSize: 14, fontWeight: 800, cursor: 'pointer' } },
+        '📋 Colar artigos'),
+      colarAberto ? React.createElement('div', { style: { marginTop: 10 } },
+        React.createElement('textarea', {
+          value: colarTxt, name: 'colar-artigos', autoComplete: 'off', autoCorrect: 'off', 'aria-label': 'Colar artigos', rows: 8,
+          placeholder: 'Cola aqui os artigos, um por linha…',
+          onChange: function (e) { setColarTxt(e.target.value); },
+          style: Object.assign({}, inp, { resize: 'vertical', lineHeight: 1.45, minHeight: 160, fontWeight: 700, borderColor: NT_ACENTO })
+        }),
+        React.createElement('div', { style: { fontSize: 13, fontWeight: 800, marginTop: 6, color: textosColados.length > NT_MAX_COLAR ? T.red : T.text } },
+          textosColados.length > NT_MAX_COLAR ? ('Máximo ' + NT_MAX_COLAR + ' artigos de cada vez (colaste ' + textosColados.length + ')') : (textosColados.length + (textosColados.length === 1 ? ' artigo' : ' artigos'))),
+        React.createElement('div', { style: { marginTop: 8 } },
+          React.createElement(NtBtn, { flex: true, disabled: !textosColados.length || textosColados.length > NT_MAX_COLAR, onClick: colarAgora },
+            textosColados.length ? 'Adicionar ' + textosColados.length + (textosColados.length === 1 ? ' artigo' : ' artigos') : 'Adicionar artigos'))
+      ) : null
+    ),
     // Comprados (riscados, no fim)
     comp.length ? React.createElement('div', { style: { marginTop: 18, fontSize: 12, fontWeight: 800, color: T.muted, letterSpacing: 0.5 } }, 'COMPRADOS (' + comp.length + ')') : null,
     comp.length ? React.createElement('div', { style: { marginTop: 4 } }, comp.map(linhaItem)) : null,
@@ -48626,6 +48673,15 @@ function NtForm(p) {
       type: 'text', value: p.titulo, autoComplete: 'off', placeholder: p.soTitulo ? 'Título da lista (ex.: Compras da semana)' : 'Título da nota', maxLength: 200,
       onChange: function (e) { p.onTitulo(e.target.value); }, style: inp
     }),
+    p.colar ? React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Colar artigos (opcional)') : null,
+    p.colar ? React.createElement('textarea', {
+      value: p.colarTxt, name: 'colar-artigos', autoComplete: 'off', autoCorrect: 'off', 'aria-label': 'Colar artigos', rows: 10,
+      placeholder: 'Cola aqui os artigos, um por linha…\nleite\n- pão\n1. ovos', disabled: p.saving,
+      onChange: function (e) { p.onColarTxt(e.target.value); },
+      style: Object.assign({}, inp, { resize: 'vertical', lineHeight: 1.45, minHeight: 200, fontWeight: 700, borderColor: NT_ACENTO })
+    }) : null,
+    p.colar ? React.createElement('div', { 'data-n-colar': '1', style: { fontSize: 13, fontWeight: 800, marginTop: 6, color: p.nColar > NT_MAX_COLAR ? T.red : T.text } },
+      p.nColar > NT_MAX_COLAR ? ('Máximo ' + NT_MAX_COLAR + ' artigos de cada vez (colaste ' + p.nColar + ')') : (p.nColar + (p.nColar === 1 ? ' artigo' : ' artigos'))) : null,
     p.soTitulo ? null : React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Texto'),
     p.soTitulo ? null : React.createElement('textarea', {
       value: p.texto, autoComplete: 'off', placeholder: 'Escreve aqui…', rows: 12,
@@ -48648,7 +48704,7 @@ function NtForm(p) {
     p.conflito ? React.createElement(NtAvisoConflito, { baseConflito: p.baseConflito, saving: p.saving, onVerBase: p.onVerBase, onGravarPorCima: p.onGravarPorCima }) : null,
     React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
       React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: p.saving, onClick: p.onCancelar }, 'Cancelar'),
-      p.conflito ? null : React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim(), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : (p.soTitulo ? 'Criar lista' : 'Criar nota')))
+      p.conflito ? null : React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim() || (p.colar && p.nColar > NT_MAX_COLAR), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : (p.soTitulo ? (p.nColar ? 'Criar lista com ' + p.nColar + (p.nColar === 1 ? ' artigo' : ' artigos') : 'Criar lista') : 'Criar nota')))
     )
   );
 }
@@ -49273,6 +49329,7 @@ function NotasApp(props) {
   var _llb = React.useState(false); var limparBusy = _llb[0], setLimparBusy = _llb[1];
   var _lub = React.useState({}); var usarBusy = _lub[0], setUsarBusy = _lub[1];  // "usar outra vez" em curso, por id da lista
   var _ltp = React.useState('nota'); var fTipo = _ltp[0], setFTipo = _ltp[1];     // 'nota' | 'lista' (formulário aberto)
+  var _lcl = React.useState(''); var fColar = _lcl[0], setFColar = _lcl[1];       // texto colado ("Colar artigos") ao criar uma lista; NUNCA vai para a coluna texto
   var _am = React.useState({}); var arqMinim = _am[0], setArqMinim = _am[1];       // secções do Arquivo minimizadas ({ listas, notas }), só em memória
   var carregarItensRef = React.useRef(null);
   var desfazerTimer = React.useRef(null);
@@ -49355,14 +49412,14 @@ function NotasApp(props) {
   function abrirNova(tipo) {
     if (!podeEditar) return;
     var tp = tipo === 'lista' && cartao === 'familia' ? 'lista' : 'nota'; // listas só no cartão Família (o onClick passa o evento: ignora-o)
-    setFTipo(tp);
-    setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro('');
+    setFTipo(tp); setFColar('');
+    setEditId(null); setFTitulo(tp === 'lista' ? ntTituloListaPadrao() : ''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro('');
     setEditAbertaEm(null); setConflito(null); setBaseConflito(null);
     setVista('form');
   }
   function abrirEditar(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
-    setFTipo(ntELista(n) ? 'lista' : 'nota');
+    setFTipo(ntELista(n) ? 'lista' : 'nota'); setFColar('');
     setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFPasta(ntPasta(n)); setFErro('');
     setEditAbertaEm(n.updated_at); setConflito(null); setBaseConflito(null);
     setVista('form');
@@ -49381,6 +49438,7 @@ function NotasApp(props) {
     if (!titulo) return;
     if (savingRef.current) return;
     if (!cartao || !ntPodeEditar(cartao, myId)) return;
+    if (!editId && fTipo === 'lista' && ntParseArtigos(fColar).length > NT_MAX_COLAR) { setFErro('Máximo ' + NT_MAX_COLAR + ' artigos de cada vez (colaste ' + ntParseArtigos(fColar).length + ').'); return; }
     if (!db) { setFErro('Sem ligação ao servidor — não foi guardado.'); return; }
     var agoraIso = new Date().toISOString();
     var anterior = null;
@@ -49407,6 +49465,8 @@ function NotasApp(props) {
     var removeOptimistic;
     var consulta;
     var novaListaId = null; // id da lista nova (para abri-la depois de criada)
+    var textosColar = []; // artigos colados ao criar a lista (um por linha)
+    var itensCriados = []; // artigos já gravados (para o ecrã, só depois de a base confirmar)
     var ehConflito = false; // editId: 0 linhas pode ser conflito (updated_at mudou noutro aparelho) em vez de erro genérico
     if (editId) {
       var idEd = editId;
@@ -49426,8 +49486,23 @@ function NotasApp(props) {
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
       if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
-      if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; } // lista de compras (coluna tipo)
+      if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; textosColar = ntParseArtigos(fColar); } // lista de compras (coluna tipo)
       consulta = db.from('notas_notas').insert(linhaNova).select('id');
+      if (novaListaId && textosColar.length) {
+        // 1) insere a lista; 2) insere os artigos num só pedido; se o 2) falhar apaga a lista nova (nunca fica a meio)
+        // e devolve o erro real, que o fluxo normal abaixo mostra no formulário (que mantém título e texto colado).
+        var consultaNota = consulta;
+        consulta = consultaNota.then(function (r1) {
+          if (!r1 || r1.error || !r1.data || !r1.data.length) return r1;
+          return gravarArtigos(novaListaId, textosColar).then(function (r2) {
+            if (r2.linhas) { itensCriados = r2.linhas; return r1; }
+            return db.from('notas_notas').delete().eq('id', novaListaId).select('id').then(function (r3) {
+              if (r3 && r3.error) ntAvisarRes('limpar lista nova', r3.error);
+              return { data: null, error: r2.erro };
+            });
+          });
+        });
+      }
     }
     var ok = false;
     consulta.then(function (res) {
@@ -49455,6 +49530,8 @@ function NotasApp(props) {
       var idFinal = editId;
       setEditId(null);
       if (usaPastas && !idFinal) setPasta(fPasta); // nota nova: abre a pasta onde ficou
+      setFColar('');
+      if (itensCriados.length) setItens(function (pv) { return pv.concat(itensCriados); });
       if (novaListaId) { setNotaOrigem('lista'); setSelId(novaListaId); setVista('nota'); } // lista nova: abre-a para escrever os artigos
       else setVista(idFinal ? 'nota' : 'lista');
       carregarRef.current();
@@ -49690,6 +49767,41 @@ function NotasApp(props) {
   }
   carregarItensRef.current = carregarItens;
 
+  // Caminho único para gravar VÁRIOS artigos de uma vez (colar, criar com artigos, usar outra vez): as mesmas linhas
+  // {id, nota_id, texto, comprado:false, created_at, updated_at} que o artigo avulso, num só INSERT em notas_lista_itens
+  // (.select('id')). Tudo ou nada: 0 linhas ou menos linhas do que as enviadas = erro. Nunca rejeita: devolve
+  // { linhas } se gravou tudo, ou { erro, res } (res = erro devolvido pelo pedido). Sem atualização otimista.
+  function gravarArtigos(notaId, textos) {
+    var base = Date.now();
+    var linhas = textos.map(function (t, i) {
+      var iso = new Date(base + i).toISOString(); // ordem de escrita preservada
+      return { id: ntNovoId(), nota_id: notaId, texto: t, comprado: false, created_at: iso, updated_at: iso };
+    });
+    return db.from('notas_lista_itens').insert(linhas).select('id').then(function (res) {
+      if (res && res.error) return { erro: res.error, res: true };
+      var n = (res && res.data && res.data.length) || 0;
+      if (n !== linhas.length) return { erro: new Error(n ? 'Só ' + n + ' de ' + linhas.length + ' artigos foram gravados' : NT_ZERO_LINHAS) };
+      return { linhas: linhas };
+    }).catch(function (e) {
+      ntLog('gravar artigos', e);
+      return { erro: e };
+    });
+  }
+  function avisarArtigos(op, r) { if (r.res) ntAvisarRes(op, r.erro); else ntAvisar(op, r.erro); }
+  // Colar artigos numa lista que já existe (um por linha). Devolve Promise<boolean>.
+  function colarItens(nota, textos) {
+    if (!nota || !textos || !textos.length || !ntPodeEditar(nota.dono, myId) || !db) return Promise.resolve(false);
+    if (textos.length > NT_MAX_COLAR) { setErroGrav('Máximo ' + NT_MAX_COLAR + ' artigos de cada vez (colaste ' + textos.length + ').'); return Promise.resolve(false); }
+    var chave = 'colar:' + nota.id;
+    if (busyRef.current[chave]) return Promise.resolve(false);
+    busyRef.current[chave] = true; setErroGrav('');
+    return gravarArtigos(nota.id, textos).then(function (r) {
+      busyRef.current[chave] = false;
+      if (r.erro) { avisarArtigos('colar artigos', r); setErroGrav('Não foi possível adicionar os artigos: ' + ntMsgErro(r.erro)); carregarItensRef.current(); return false; } // volta a ler: o ecrã reflete a base
+      setItens(function (p) { return p.concat(r.linhas); });
+      return true;
+    });
+  }
   function itemSoltar(chave, id) {
     busyRef.current[chave] = false;
     setItemBusy(function (p) { var x = Object.assign({}, p); delete x[id]; return x; });
@@ -49826,10 +49938,8 @@ function NotasApp(props) {
     var nova = { id: ntNovoId(), dono: n.dono, titulo: n.titulo, texto: '', tipo: 'lista', importancia: ntImp(n), fixada: false, pasta: 'privado', created_at: agora, updated_at: agora, deleted_at: null };
     var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: '', tipo: 'lista', created_at: agora, updated_at: agora };
     if (ntImp(n) !== 'normal') linhaNova.importancia = ntImp(n);
-    var novosItens = ntOrdenarItens(ntItensDaLista(itens, n.id)).map(function (x, i) {
-      var t = new Date(Date.now() + i).toISOString(); // ordem de escrita preservada
-      return { id: ntNovoId(), nota_id: nova.id, texto: x.texto, comprado: false, created_at: t, updated_at: t };
-    });
+    var textosCopia = ntOrdenarItens(ntItensDaLista(itens, n.id)).map(function (x) { return x.texto; });
+    var novosItens = [];
     var falhou = function (op, err, msg) { soltar(); ntAvisar(op, err); setErroGrav('Não foi possível usar a lista outra vez: ' + msg); };
     var ok = false;
     db.from('notas_notas').insert(linhaNova).select('id').then(function (r1) {
@@ -49841,14 +49951,13 @@ function NotasApp(props) {
         setItens(function (p) { return p.concat(novosItens); });
         setNotaOrigem('lista'); setSelId(nova.id); setVista('nota');
       };
-      if (!novosItens.length) { concluir(); return; }
-      return db.from('notas_lista_itens').insert(novosItens).select('id').then(function (r2) {
-        var erro2 = r2 && r2.error ? r2.error : ((!r2 || !r2.data || r2.data.length !== novosItens.length) ? new Error('Só ' + ((r2 && r2.data && r2.data.length) || 0) + ' de ' + novosItens.length + ' artigos foram gravados') : null);
-        if (!erro2) { concluir(); return; }
+      if (!textosCopia.length) { concluir(); return; }
+      return gravarArtigos(nova.id, textosCopia).then(function (r2) {
+        if (r2.linhas) { novosItens = r2.linhas; concluir(); return; }
         // limpeza: não deixar a lista nova sem artigos
         return db.from('notas_notas').delete().eq('id', nova.id).select('id').then(function (r3) {
           if (r3 && r3.error) ntAvisarRes('limpar lista nova', r3.error);
-          falhou('usar lista outra vez (artigos)', erro2, ntMsgErro(erro2));
+          falhou('usar lista outra vez (artigos)', r2.erro, ntMsgErro(r2.erro));
         });
       });
     }).catch(function (e) {
@@ -49912,6 +50021,7 @@ function NotasApp(props) {
     corpo = React.createElement(NtForm, {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
       mostrarPasta: usaPastas && podeEditar, pasta: fPasta, onPasta: setFPasta, soTitulo: fTipo === 'lista',
+      colar: fTipo === 'lista' && !editId, colarTxt: fColar, onColarTxt: setFColar, nColar: ntParseArtigos(fColar).length,
       onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm,
       conflito: conflito, baseConflito: baseConflito, onVerBase: verVersaoDaBase, onGravarPorCima: gravarPorCimaConflito
     });
@@ -49920,7 +50030,7 @@ function NotasApp(props) {
       ? React.createElement(NtListaVista, {
           nota: notaSel, itens: ntItensDaLista(itens, notaSel.id), itensOk: itensOk, itensErro: erroItens, itemBusy: itemBusy, limparBusy: limparBusy,
           readOnly: !podeEditar || ntFeita(notaSel), busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], feitaBusy: !!feitaBusy[notaSel.id], usarBusy: !!usarBusy[notaSel.id],
-          onAdd: function (t) { return adicionarItem(notaSel, t); }, onEdit: function (x, t) { return editarItem(notaSel, x, t); },
+          onAdd: function (t) { return adicionarItem(notaSel, t); }, onColar: function (ts) { return colarItens(notaSel, ts); }, onEdit: function (x, t) { return editarItem(notaSel, x, t); },
           onToggle: function (x) { alternarItem(notaSel, x); }, onDel: function (x) { apagarItem(notaSel, x); }, onLimpar: function () { limparComprados(notaSel); },
           onArquivar: function () { marcarFeita(notaSel, function () { setSelId(null); setVista('lista'); }); },
           onReabrir: (podeEditar && ntFeita(notaSel)) ? function () { reabrir(notaSel, function () { setSelId(null); setVista('lista'); }); } : undefined,
