@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-13T22:06:34.570Z
+  Gerado em: 2026-11-13T22:25:23.128Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-474";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-475";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -48191,15 +48191,59 @@ function NtBarraDesfazer(p) {
   );
 }
 
-// Arquivo: notas feitas (feita_em preenchida, deleted_at nula), da mais recentemente feita para a mais antiga.
+// Arquivo: notas e listas feitas (feita_em preenchida, deleted_at nula), da mais recentemente feita para a mais antiga.
+// Um só Arquivo, em duas secções com cabeçalho (como os grupos de importância): "☑ Listas" e "📝 Notas". Cada secção abre/fecha
+// tocando no cabeçalho (estado guardado no NotasApp, enquanto a app está aberta); uma secção vazia não aparece.
+// Só muda a APRESENTAÇÃO: os mesmos itens, a mesma pesquisa e as mesmas ações (reabrir, apagar para o Lixo, usar outra vez).
 function NtArquivo(p) {
   var inp = {
     width: '100%', boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.border,
     borderRadius: 12, padding: '10px 48px 10px 12px', fontSize: 16, fontFamily: 'inherit', outline: 'none', minWidth: 0
   };
+  var cartao = function (n) {
+    var lista = ntELista(n);
+    var itensN = lista ? ntItensDaLista(p.itens, n.id) : null;
+    var resumo = lista ? '' : ntResumo(n.texto);
+    return React.createElement('div', { key: n.id, style: { position: 'relative', marginTop: 8 } },
+      React.createElement('button', {
+        onClick: function () { p.onOpen(n); },
+        style: {
+          display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: T.surface,
+          border: '1.5px solid ' + ntCor(ntImp(n)), borderRadius: 12, padding: '11px 56px ' + (p.readOnly ? '11px' : (lista && p.onUsarOutra ? '104px' : '52px')) + ' 13px', cursor: 'pointer', color: T.text,
+          minHeight: p.readOnly ? undefined : (lista && p.onUsarOutra ? 156 : 104)
+        }
+      },
+        React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 } },
+          React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, 'Feita em ' + ntDataFmt(n.feita_em)),
+          React.createElement(NtBadge, { imp: ntImp(n), curto: true })
+        ),
+        lista ? React.createElement('div', { style: { fontSize: 14, fontWeight: 900, marginTop: 4 } }, '☑ ' + (p.itensOk ? ntContaItens(itensN).comprados + '/' + ntContaItens(itensN).total : '…')) : null,
+        resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
+      ),
+      React.createElement(NtCopiar, { nota: ntNotaParaCopia(n, itensN) }),
+      p.readOnly ? null : React.createElement('div', { style: { position: 'absolute', left: 13, bottom: 4, display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 'calc(100% - 78px)' } }, // quebra de linha em ecrã estreito: não encosta ao caixote
+        React.createElement('button', {
+          type: 'button', disabled: !!(p.feitaBusy && p.feitaBusy[n.id]), 'aria-label': 'Reabrir nota', onClick: function () { p.onReabrir(n); },
+          style: { minHeight: 44, padding: '0 14px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.feitaBusy && p.feitaBusy[n.id]) ? 0.55 : 1 }
+        }, '↩ Reabrir'),
+        lista && p.onUsarOutra ? React.createElement('button', {
+          type: 'button', disabled: !!(p.usarBusy && p.usarBusy[n.id]), 'aria-label': 'Usar a lista outra vez', onClick: function () { p.onUsarOutra(n); },
+          style: { minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid ' + NT_ACENTO, background: 'transparent', color: NT_ACENTO, fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.usarBusy && p.usarBusy[n.id]) ? 0.55 : 1 }
+        }, '↻ Usar outra vez') : null
+      ),
+      p.readOnly ? null : React.createElement(NtCaixote, { nota: n, busy: p.busyId === n.id, onApagar: p.onApagar })
+    );
+  };
+  var listasArq = p.notas.filter(ntELista);
+  var notasArq = p.notas.filter(function (n) { return !ntELista(n); });
+  var secoes = [
+    { k: 'listas', label: '☑ Listas', itens: listasArq },
+    { k: 'notas', label: '📝 Notas', itens: notasArq }
+  ].filter(function (x) { return x.itens.length; }); // secção vazia não aparece
   return React.createElement('div', null,
     React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 600, marginBottom: 4 } },
-      'O Arquivo guarda as notas feitas para sempre (não é o Lixo).'),
+      'O Arquivo guarda as notas e listas feitas para sempre (não é o Lixo).'),
     p.total ? React.createElement('div', { style: { position: 'relative', marginTop: 8 } },
       React.createElement('input', {
         type: 'text', value: p.busca, autoComplete: 'off', placeholder: 'Pesquisar no Arquivo…', 'aria-label': 'Pesquisar no Arquivo',
@@ -48212,40 +48256,11 @@ function NtArquivo(p) {
     ) : null,
     !p.notas.length
       ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, p.total ? 'Nenhuma nota com esta pesquisa' : 'O Arquivo está vazio.')
-      : p.notas.map(function (n) {
-        var lista = ntELista(n);
-        var itensN = lista ? ntItensDaLista(p.itens, n.id) : null;
-        var resumo = lista ? '' : ntResumo(n.texto);
-        return React.createElement('div', { key: n.id, style: { position: 'relative', marginTop: 8 } },
-          React.createElement('button', {
-            onClick: function () { p.onOpen(n); },
-            style: {
-              display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: T.surface,
-              border: '1.5px solid ' + ntCor(ntImp(n)), borderRadius: 12, padding: '11px 56px ' + (p.readOnly ? '11px' : (lista && p.onUsarOutra ? '104px' : '52px')) + ' 13px', cursor: 'pointer', color: T.text,
-              minHeight: p.readOnly ? undefined : (lista && p.onUsarOutra ? 156 : 104)
-            }
-          },
-            React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
-            React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 } },
-              React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, 'Feita em ' + ntDataFmt(n.feita_em)),
-              React.createElement(NtBadge, { imp: ntImp(n), curto: true })
-            ),
-            lista ? React.createElement('div', { style: { fontSize: 14, fontWeight: 900, marginTop: 4 } }, '☑ ' + (p.itensOk ? ntContaItens(itensN).comprados + '/' + ntContaItens(itensN).total : '…')) : null,
-            resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
-          ),
-          React.createElement(NtCopiar, { nota: ntNotaParaCopia(n, itensN) }),
-          p.readOnly ? null : React.createElement('div', { style: { position: 'absolute', left: 13, bottom: 4, display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 'calc(100% - 78px)' } }, // quebra de linha em ecrã estreito: não encosta ao caixote
-            React.createElement('button', {
-              type: 'button', disabled: !!(p.feitaBusy && p.feitaBusy[n.id]), 'aria-label': 'Reabrir nota', onClick: function () { p.onReabrir(n); },
-              style: { minHeight: 44, padding: '0 14px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.feitaBusy && p.feitaBusy[n.id]) ? 0.55 : 1 }
-            }, '↩ Reabrir'),
-            lista && p.onUsarOutra ? React.createElement('button', {
-              type: 'button', disabled: !!(p.usarBusy && p.usarBusy[n.id]), 'aria-label': 'Usar a lista outra vez', onClick: function () { p.onUsarOutra(n); },
-              style: { minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid ' + NT_ACENTO, background: 'transparent', color: NT_ACENTO, fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.usarBusy && p.usarBusy[n.id]) ? 0.55 : 1 }
-            }, '↻ Usar outra vez') : null
-          ),
-          p.readOnly ? null : React.createElement(NtCaixote, { nota: n, busy: p.busyId === n.id, onApagar: p.onApagar })
-        );
+      : secoes.map(function (x) {
+        var min = !!(p.secMinim && p.secMinim[x.k]);
+        return React.createElement('div', { key: 'sec-' + x.k, 'data-seccao': x.k },
+          React.createElement(NtGrupoCab, { nivel: 0, fino: true, label: x.label, count: x.itens.length, minimizado: min, onToggle: function () { p.onSecao(x.k); } }),
+          min ? null : x.itens.map(cartao));
       })
   );
 }
@@ -49258,6 +49273,7 @@ function NotasApp(props) {
   var _llb = React.useState(false); var limparBusy = _llb[0], setLimparBusy = _llb[1];
   var _lub = React.useState({}); var usarBusy = _lub[0], setUsarBusy = _lub[1];  // "usar outra vez" em curso, por id da lista
   var _ltp = React.useState('nota'); var fTipo = _ltp[0], setFTipo = _ltp[1];     // 'nota' | 'lista' (formulário aberto)
+  var _am = React.useState({}); var arqMinim = _am[0], setArqMinim = _am[1];       // secções do Arquivo minimizadas ({ listas, notas }), só em memória
   var carregarItensRef = React.useRef(null);
   var desfazerTimer = React.useRef(null);
   React.useEffect(function () { return function () { if (desfazerTimer.current) clearTimeout(desfazerTimer.current); }; }, []);
@@ -49918,7 +49934,8 @@ function NotasApp(props) {
     corpo = React.createElement(NtArquivo, {
       notas: arquivadasVis, total: arquivadas.length, busca: buscaArq, onBusca: setBuscaArq, readOnly: !podeEditar,
       onOpen: function (n) { abrirNota(n, 'arquivo'); }, onReabrir: function (n) { reabrir(n); }, onApagar: pedirApagar,
-      feitaBusy: feitaBusy, busyId: busyId, itens: itens, itensOk: itensOk, usarBusy: usarBusy, onUsarOutra: usarOutraVez
+      feitaBusy: feitaBusy, busyId: busyId, itens: itens, itensOk: itensOk, usarBusy: usarBusy, onUsarOutra: usarOutraVez,
+      secMinim: arqMinim, onSecao: function (k) { setArqMinim(function (pv) { var o = Object.assign({}, pv); o[k] = !o[k]; return o; }); }
     });
   } else if (vista === 'lixo') {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo, itens: itens, itensOk: itensOk });
