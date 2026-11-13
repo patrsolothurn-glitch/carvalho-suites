@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-12T16:50:15.778Z
+  Gerado em: 2026-11-13T22:06:34.570Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-473";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-474";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -47650,6 +47650,35 @@ function ntPorImportanciaEDataDesc(a, b) {
   return ntPorDataDesc(a, b);
 }
 
+// ── LISTAS DE COMPRAS (só no cartão Família) ─────────────────────────
+// Uma lista é uma linha de notas_notas com tipo = 'lista' (por isso Lixo, Arquivo, fixar, importância, purga e RLS
+// são os das notas). Cada artigo é uma LINHA PRÓPRIA em notas_lista_itens (nota_id, texto, comprado, comprado_em):
+// duas pessoas a marcar artigos diferentes ao mesmo tempo nunca se sobrepõem (cada UPDATE é só por id do artigo).
+var NT_MAX_ITEM = 200;
+function ntELista(n) { return !!(n && n.tipo === 'lista'); }
+function ntItensDaLista(todos, id) { return (todos || []).filter(function (x) { return x.nota_id === id; }); }
+function ntContaItens(itens) {
+  var total = itens ? itens.length : 0, c = 0;
+  for (var i = 0; i < total; i++) { if (itens[i].comprado) c++; }
+  return { total: total, comprados: c };
+}
+// Por comprar primeiro (pela ordem em que foram escritos); comprados no fim (pela ordem em que foram marcados).
+function ntOrdenarItens(itens) {
+  var t = function (v) { return v ? new Date(v).getTime() : 0; };
+  return (itens || []).slice().sort(function (a, b) {
+    if (!!a.comprado !== !!b.comprado) return a.comprado ? 1 : -1;
+    var ka = a.comprado ? t(a.comprado_em) : t(a.created_at), kb = b.comprado ? t(b.comprado_em) : t(b.created_at);
+    if (ka !== kb) return ka - kb;
+    return String(a.id) < String(b.id) ? -1 : 1;
+  });
+}
+function ntTxtProgresso(cont) { return cont.comprados + '/' + cont.total; }
+function ntLinhasLista(itens) {
+  return ntOrdenarItens(itens).map(function (x) { return (x.comprado ? '☑ ' : '☐ ') + x.texto; }).join('\n');
+}
+// Para copiar/partilhar: a lista passa a "nota" com os artigos como texto (☐ por comprar, ☑ comprado).
+function ntNotaParaCopia(n, itens) { return ntELista(n) ? Object.assign({}, n, { texto: ntLinhasLista(itens) }) : n; }
+
 // Pesquisa: sem maiúsculas nem acentos; todas as palavras têm de aparecer (título + texto).
 function ntNorm(s) {
   var t = String(s == null ? '' : s);
@@ -47788,13 +47817,13 @@ function ntPartilhar(n, cp) {
 // ── COMPONENTES (todos ao nível do módulo) ──────────────────────────
 function NtBtn(p) {
   var kind = p.kind || 'accent';
-  var bg = kind === 'accent' ? NT_ACENTO : kind === 'danger' ? T.red : T.surface2;
-  var cor = kind === 'ghost' ? T.text : '#fff';
+  var bg = kind === 'accent' ? NT_ACENTO : kind === 'danger' ? T.red : kind === 'contorno' ? 'transparent' : T.surface2;
+  var cor = kind === 'ghost' ? T.text : kind === 'contorno' ? NT_ACENTO : '#fff';
   return React.createElement('button', {
     onClick: p.onClick,
     disabled: !!p.disabled,
     style: {
-      background: bg, color: cor, border: kind === 'ghost' ? '1px solid ' + T.border : 'none',
+      background: bg, color: cor, border: kind === 'ghost' ? '1px solid ' + T.border : kind === 'contorno' ? '2px solid ' + NT_ACENTO : 'none',
       borderRadius: 12, padding: p.small ? '8px 12px' : '13px 18px', fontSize: p.small ? 13 : 15,
       fontWeight: 800, cursor: p.disabled ? 'default' : 'pointer', opacity: p.disabled ? 0.55 : 1,
       flex: p.flex ? 1 : undefined, minHeight: 44, boxSizing: 'border-box'
@@ -48184,14 +48213,16 @@ function NtArquivo(p) {
     !p.notas.length
       ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, p.total ? 'Nenhuma nota com esta pesquisa' : 'O Arquivo está vazio.')
       : p.notas.map(function (n) {
-        var resumo = ntResumo(n.texto);
+        var lista = ntELista(n);
+        var itensN = lista ? ntItensDaLista(p.itens, n.id) : null;
+        var resumo = lista ? '' : ntResumo(n.texto);
         return React.createElement('div', { key: n.id, style: { position: 'relative', marginTop: 8 } },
           React.createElement('button', {
             onClick: function () { p.onOpen(n); },
             style: {
               display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', background: T.surface,
-              border: '1.5px solid ' + ntCor(ntImp(n)), borderRadius: 12, padding: '11px 56px ' + (p.readOnly ? '11px' : '52px') + ' 13px', cursor: 'pointer', color: T.text,
-              minHeight: p.readOnly ? undefined : 104
+              border: '1.5px solid ' + ntCor(ntImp(n)), borderRadius: 12, padding: '11px 56px ' + (p.readOnly ? '11px' : (lista && p.onUsarOutra ? '104px' : '52px')) + ' 13px', cursor: 'pointer', color: T.text,
+              minHeight: p.readOnly ? undefined : (lista && p.onUsarOutra ? 156 : 104)
             }
           },
             React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
@@ -48199,13 +48230,20 @@ function NtArquivo(p) {
               React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, 'Feita em ' + ntDataFmt(n.feita_em)),
               React.createElement(NtBadge, { imp: ntImp(n), curto: true })
             ),
+            lista ? React.createElement('div', { style: { fontSize: 14, fontWeight: 900, marginTop: 4 } }, '☑ ' + (p.itensOk ? ntContaItens(itensN).comprados + '/' + ntContaItens(itensN).total : '…')) : null,
             resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
           ),
-          React.createElement(NtCopiar, { nota: n }),
-          p.readOnly ? null : React.createElement('button', {
-            type: 'button', disabled: !!(p.feitaBusy && p.feitaBusy[n.id]), 'aria-label': 'Reabrir nota', onClick: function () { p.onReabrir(n); },
-            style: { position: 'absolute', left: 13, bottom: 4, minHeight: 44, padding: '0 14px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.feitaBusy && p.feitaBusy[n.id]) ? 0.55 : 1 }
-          }, '↩ Reabrir'),
+          React.createElement(NtCopiar, { nota: ntNotaParaCopia(n, itensN) }),
+          p.readOnly ? null : React.createElement('div', { style: { position: 'absolute', left: 13, bottom: 4, display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 'calc(100% - 78px)' } }, // quebra de linha em ecrã estreito: não encosta ao caixote
+            React.createElement('button', {
+              type: 'button', disabled: !!(p.feitaBusy && p.feitaBusy[n.id]), 'aria-label': 'Reabrir nota', onClick: function () { p.onReabrir(n); },
+              style: { minHeight: 44, padding: '0 14px', borderRadius: 10, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.feitaBusy && p.feitaBusy[n.id]) ? 0.55 : 1 }
+            }, '↩ Reabrir'),
+            lista && p.onUsarOutra ? React.createElement('button', {
+              type: 'button', disabled: !!(p.usarBusy && p.usarBusy[n.id]), 'aria-label': 'Usar a lista outra vez', onClick: function () { p.onUsarOutra(n); },
+              style: { minHeight: 44, padding: '0 14px', borderRadius: 10, border: '2px solid ' + NT_ACENTO, background: 'transparent', color: NT_ACENTO, fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: (p.usarBusy && p.usarBusy[n.id]) ? 0.55 : 1 }
+            }, '↻ Usar outra vez') : null
+          ),
           p.readOnly ? null : React.createElement(NtCaixote, { nota: n, busy: p.busyId === n.id, onApagar: p.onApagar })
         );
       })
@@ -48214,7 +48252,9 @@ function NtArquivo(p) {
 
 function NtLinha(p) {
   var n = p.nota;
-  var resumo = ntResumo(n.texto);
+  var lista = ntELista(n);
+  var cont = lista ? ntContaItens(p.itens) : null;
+  var resumo = lista ? '' : ntResumo(n.texto);
   var imp = ntImp(n), fix = ntFixada(n);
   var cor = ntCor(imp);
   // Wrapper (não é um <button> dentro de outro): o cartão abre a nota; copiar e fixar ficam por cima, no canto.
@@ -48238,9 +48278,10 @@ function NtLinha(p) {
         React.createElement(NtBadge, { imp: imp, curto: true }),
         fix ? React.createElement('span', { style: { fontSize: 11, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
       ),
+      lista ? React.createElement('div', { 'data-progresso': n.id, style: { fontSize: 15, fontWeight: 900, marginTop: 4 } }, '☑ ' + (p.itensOk ? ntTxtProgresso(cont) : '…')) : null,
       resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
     ),
-    React.createElement(NtCopiar, { nota: n }),
+    React.createElement(NtCopiar, { nota: ntNotaParaCopia(n, p.itens) }),
     p.podeEditar ? React.createElement('button', {
       type: 'button',
       disabled: !!p.fixBusy,
@@ -48286,7 +48327,7 @@ function NtLista(p) {
   }
   var cur = ntChavesDe(new Date().toISOString());
   var linha = function (n, key, recuo) {
-    return React.createElement(NtLinha, { key: key, nota: n, recuo: recuo == null ? 20 : recuo, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]), onApagar: p.onApagar, apagarBusy: p.busyId === n.id, onFeita: p.onFeita, feitaBusy: !!(p.feitaBusy && p.feitaBusy[n.id]) });
+    return React.createElement(NtLinha, { key: key, nota: n, recuo: recuo == null ? 20 : recuo, onOpen: p.onOpen, podeEditar: !p.readOnly, onFixar: p.onFixar, fixBusy: !!(p.fixBusy && p.fixBusy[n.id]), onApagar: p.onApagar, apagarBusy: p.busyId === n.id, onFeita: p.onFeita, feitaBusy: !!(p.feitaBusy && p.feitaBusy[n.id]), itens: ntELista(n) ? ntItensDaLista(p.itens, n.id) : null, itensOk: p.itensOk });
   };
   var filhos = [React.createElement('div', { key: 'topo', id: 'nt-topo', style: { scrollMarginTop: 70 } })];
   // Uma nota fixada aparece SÓ no bloco "Fixadas" (nas duas vistas); o resto é organizado abaixo.
@@ -48366,11 +48407,12 @@ function NtLixoLista(p) {
     p.notas.map(function (n) {
       var dias = ntDiasParaPurga(n, agora);
       return React.createElement('div', { key: n.id, style: { position: 'relative', background: T.surface, border: '1px solid ' + T.border, borderLeft: '5px solid ' + T.muted, borderRadius: 12, padding: '11px 13px', marginTop: 8 } },
-        React.createElement(NtCopiar, { nota: n }),
+        React.createElement(NtCopiar, { nota: ntNotaParaCopia(n, ntELista(n) ? ntItensDaLista(p.itens, n.id) : null) }),
         React.createElement('div', { style: { fontSize: 16, fontWeight: 900, wordBreak: 'break-word', paddingRight: 44 } }, n.titulo),
         React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700, paddingRight: 44 } }, 'Apagada em ' + ntDataFmt(n.deleted_at)),
         React.createElement('div', { style: { fontSize: 11, color: dias <= 5 ? '#F59E0B' : T.muted, marginTop: 2, fontWeight: 800, paddingRight: 44 } },
           dias <= 0 ? 'Apaga definitivamente hoje' : ('Apaga definitivamente em ' + dias + (dias === 1 ? ' dia' : ' dias'))),
+        ntELista(n) ? React.createElement('div', { style: { fontSize: 13, fontWeight: 900, marginTop: 4, paddingRight: 44 } }, '☑ Lista · ' + (p.itensOk ? ntTxtProgresso(ntContaItens(ntItensDaLista(p.itens, n.id))) : '…')) : null,
         ntResumo(n.texto) ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, wordBreak: 'break-word', paddingRight: 44 } }, ntResumo(n.texto)) : null,
         p.readOnly ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 10 } },
           React.createElement(NtBtn, { small: true, flex: true, disabled: p.busyId === n.id, onClick: function () { p.onRestaurar(n); } }, 'Restaurar'),
@@ -48435,6 +48477,129 @@ function NtVista(p) {
   );
 }
 
+// Lista de compras aberta: progresso, artigos (texto à esquerda, quadrado grande à direita), novo artigo, limpar comprados, arquivar.
+// Componente do módulo; só desenha e chama os callbacks (as gravações honestas estão no NotasApp).
+function NtListaVista(p) {
+  var n = p.nota;
+  var cp = ntUseCopia();
+  var _nv = React.useState(''); var novo = _nv[0], setNovo = _nv[1];
+  var _ei = React.useState(null); var editId = _ei[0], setEditId = _ei[1];
+  var _et = React.useState(''); var editTxt = _et[0], setEditTxt = _et[1];
+  var refNovo = React.useRef(null);
+  var itens = ntOrdenarItens(p.itens);
+  var cont = ntContaItens(itens);
+  var pend = itens.filter(function (x) { return !x.comprado; });
+  var comp = itens.filter(function (x) { return x.comprado; });
+  var imp = ntImp(n), fix = ntFixada(n), cor = ntCor(imp);
+  var ro = !!p.readOnly;
+  var notaCopia = ntNotaParaCopia(n, itens);
+  var peq = { minHeight: 44, padding: '6px 12px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', background: 'transparent', color: T.muted, border: '1px solid ' + T.border };
+  var ativo = { background: NT_ACENTO, color: '#fff', border: '1px solid ' + NT_ACENTO };
+  var inp = { width: '100%', boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.border, borderRadius: 12, padding: '12px 13px', fontSize: 16, fontFamily: 'inherit', outline: 'none', minWidth: 0, minHeight: 48 };
+
+  function adicionar() {
+    var t = novo.trim();
+    if (!t) return;
+    p.onAdd(t).then(function (ok) {
+      if (ok) { setNovo(''); if (refNovo.current && refNovo.current.focus) refNovo.current.focus(); } // a linha seguinte fica logo aberta
+    });
+  }
+  function iniciarEdicao(x) { if (ro) return; setEditId(x.id); setEditTxt(x.texto); }
+  function cancelarEdicao() { setEditId(null); setEditTxt(''); }
+  function gravarEdicao(x) {
+    var t = editTxt.trim();
+    if (!t || t === x.texto) { cancelarEdicao(); return; } // vazio ou igual: não grava nada
+    p.onEdit(x, t).then(function (ok) { if (ok) cancelarEdicao(); });
+  }
+
+  function linhaItem(x) {
+    var ocupado = !!(p.itemBusy && p.itemBusy[x.id]);
+    var emEdicao = editId === x.id;
+    var btn44 = { flex: '0 0 auto', width: 44, height: 44, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, borderRadius: 12, fontSize: 18, fontWeight: 900, cursor: 'pointer', background: T.surface2, color: T.text, border: '1px solid ' + T.border };
+    return React.createElement('div', { key: x.id, 'data-item': x.id, style: { display: 'flex', alignItems: 'center', gap: 8, minHeight: 60, padding: '6px 0', borderBottom: '1px solid ' + T.border } },
+      emEdicao
+        ? React.createElement('input', {
+            type: 'text', value: editTxt, autoComplete: 'off', autoFocus: true, maxLength: NT_MAX_ITEM, 'aria-label': 'Editar artigo',
+            onChange: function (e) { setEditTxt(e.target.value); },
+            onKeyDown: function (e) { if (e.key === 'Enter') { e.preventDefault(); gravarEdicao(x); } else if (e.key === 'Escape') { cancelarEdicao(); } },
+            style: Object.assign({}, inp, { flex: 1 })
+          })
+        : React.createElement('button', {
+            type: 'button', disabled: ro, 'aria-label': 'Editar artigo ' + x.texto, onClick: function () { iniciarEdicao(x); },
+            style: { flex: 1, minWidth: 0, minHeight: 48, textAlign: 'left', background: 'none', border: 'none', padding: '4px 2px', fontFamily: 'inherit', fontSize: 18, fontWeight: x.comprado ? 600 : 800, lineHeight: 1.25, wordBreak: 'break-word', cursor: ro ? 'default' : 'text',
+              color: x.comprado ? T.muted : T.text, textDecoration: x.comprado ? 'line-through' : 'none' }
+          }, x.texto),
+      emEdicao
+        ? [
+          React.createElement('button', { key: 'ok', type: 'button', disabled: ocupado, 'aria-label': 'Guardar artigo', onClick: function () { gravarEdicao(x); }, style: Object.assign({}, btn44, ativo) }, '✓'),
+          React.createElement('button', { key: 'no', type: 'button', 'aria-label': 'Cancelar edição', onClick: cancelarEdicao, style: btn44 }, '✕')
+        ]
+        : [
+          ro ? null : React.createElement('button', { key: 'del', type: 'button', disabled: ocupado, 'aria-label': 'Apagar artigo ' + x.texto, title: 'Apagar artigo', onClick: function () { p.onDel(x); },
+            style: Object.assign({}, btn44, { color: T.red, opacity: ocupado ? 0.55 : 1 }) }, '🗑'),
+          React.createElement('button', { key: 'chk', type: 'button', disabled: ro || ocupado, 'aria-pressed': !!x.comprado, 'aria-label': (x.comprado ? 'Desmarcar ' : 'Marcar como comprado ') + x.texto, onClick: function () { p.onToggle(x); },
+            style: { flex: '0 0 auto', width: 48, height: 48, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, borderRadius: 10, fontSize: 28, fontWeight: 900, lineHeight: 1, cursor: ro ? 'default' : 'pointer',
+              border: '3px solid ' + NT_ACENTO, background: x.comprado ? NT_ACENTO : 'transparent', color: '#fff', opacity: ocupado ? 0.55 : 1 } }, x.comprado ? '✓' : '')
+        ]
+    );
+  }
+
+  return React.createElement('div', null,
+    React.createElement('div', { style: { fontSize: 24, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word', borderLeft: '3px solid ' + cor, paddingLeft: 12 } }, n.titulo),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8 } },
+      React.createElement('span', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } }, 'Lista criada ' + ntDataFmt(n.created_at) + (n.feita_em ? ' · arquivada em ' + ntDataFmt(n.feita_em) : '')),
+      React.createElement(NtBadge, { imp: imp }),
+      fix ? React.createElement('span', { style: { fontSize: 12, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
+    ),
+    // Progresso no topo
+    React.createElement('div', { style: { marginTop: 16 } },
+      React.createElement('div', { 'data-progresso': '1', style: { fontSize: 22, fontWeight: 900 } }, p.itensOk ? (cont.comprados + '/' + cont.total + ' comprados') : 'A carregar artigos…'),
+      React.createElement('div', { style: { height: 8, borderRadius: 6, background: T.surface2, border: '1px solid ' + T.border, marginTop: 6, overflow: 'hidden' } },
+        React.createElement('div', { style: { height: '100%', width: (cont.total ? Math.round(cont.comprados / cont.total * 100) : 0) + '%', background: NT_ACENTO } }))
+    ),
+    p.itensErro ? React.createElement('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 8 } }, p.itensErro) : null,
+    // Artigos por comprar
+    React.createElement('div', { style: { marginTop: 10 } }, pend.map(linhaItem)),
+    // Novo artigo (Enter adiciona e mantém a linha seguinte aberta)
+    ro ? null : React.createElement('div', { style: { display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 } },
+      React.createElement('input', {
+        ref: refNovo, type: 'text', name: 'novo-artigo', value: novo, autoComplete: 'off', placeholder: 'Novo artigo…', maxLength: NT_MAX_ITEM, 'aria-label': 'Novo artigo',
+        onChange: function (e) { setNovo(e.target.value); },
+        onKeyDown: function (e) { if (e.key === 'Enter') { e.preventDefault(); adicionar(); } },
+        style: Object.assign({}, inp, { flex: 1, borderColor: NT_ACENTO })
+      }),
+      React.createElement('button', { type: 'button', 'aria-label': 'Adicionar artigo', disabled: !novo.trim(), onClick: adicionar,
+        style: { flex: '0 0 auto', width: 48, height: 48, boxSizing: 'border-box', borderRadius: 12, border: 'none', background: NT_ACENTO, color: '#fff', fontSize: 26, fontWeight: 900, cursor: novo.trim() ? 'pointer' : 'default', opacity: novo.trim() ? 1 : 0.5 } }, '＋')
+    ),
+    // Comprados (riscados, no fim)
+    comp.length ? React.createElement('div', { style: { marginTop: 18, fontSize: 12, fontWeight: 800, color: T.muted, letterSpacing: 0.5 } }, 'COMPRADOS (' + comp.length + ')') : null,
+    comp.length ? React.createElement('div', { style: { marginTop: 4 } }, comp.map(linhaItem)) : null,
+    !itens.length && p.itensOk ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '24px 10px', fontSize: 14, fontWeight: 600 } }, ro ? 'Lista vazia.' : 'Lista vazia. Escreve o primeiro artigo acima e carrega em Enter.') : null,
+    // Ações
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 } },
+      React.createElement('button', { type: 'button', 'aria-label': cp.feito ? 'Lista copiada' : 'Copiar a lista', onClick: function () { cp.copiar(notaCopia); }, style: Object.assign({}, peq, cp.feito ? ativo : {}) }, cp.feito ? '✓ Copiada' : '📋 Copiar'),
+      React.createElement('button', { type: 'button', 'aria-label': 'Partilhar a lista', onClick: function () { ntPartilhar(notaCopia, cp); }, style: peq }, '📤 Partilhar'),
+      ro ? null : React.createElement('button', { type: 'button', disabled: !!p.fixBusy, 'aria-pressed': fix, 'aria-label': fix ? 'Desafixar nota' : 'Fixar nota', onClick: p.onFixar,
+        style: Object.assign({}, peq, fix ? ativo : {}, p.fixBusy ? { opacity: 0.55, cursor: 'default' } : {}) }, fix ? '📌 Desafixar' : '📌 Fixar'),
+      ro ? null : React.createElement('button', { type: 'button', 'aria-label': 'Editar título e importância', onClick: p.onEditar, style: peq }, '✏️ Título')
+    ),
+    ro ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
+      React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: !cont.comprados || !!p.limparBusy, onClick: p.onLimpar }, p.limparBusy ? 'A limpar…' : 'Limpar comprados'),
+      React.createElement(NtBtn, { flex: true, disabled: !!p.feitaBusy, onClick: p.onArquivar }, 'Arquivar lista')
+    ),
+    ro && p.onReabrir ? React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
+      React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: !!p.feitaBusy, onClick: p.onReabrir }, '↩ Reabrir'),
+      p.onUsarOutra ? React.createElement(NtBtn, { flex: true, disabled: !!p.usarBusy, onClick: p.onUsarOutra }, p.usarBusy ? 'A copiar…' : '↻ Usar outra vez') : null
+    ) : null,
+    ro ? null : React.createElement('div', { style: { marginTop: 56, paddingTop: 14, borderTop: '1px solid ' + T.border, textAlign: 'center' } },
+      React.createElement('button', {
+        type: 'button', disabled: !!p.busy, onClick: p.onApagar,
+        style: { background: 'none', border: 'none', color: T.red, fontSize: 13, fontWeight: 700, minHeight: 44, padding: '6px 12px', cursor: p.busy ? 'default' : 'pointer', opacity: p.busy ? 0.55 : 1 }
+      }, 'Apagar lista (vai para o Lixo)')
+    )
+  );
+}
+
 function NtForm(p) {
   var inp = {
     width: '100%', boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.border,
@@ -48443,11 +48608,11 @@ function NtForm(p) {
   return React.createElement('div', null,
     React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, marginBottom: 6 } }, 'Título'),
     React.createElement('input', {
-      type: 'text', value: p.titulo, autoComplete: 'off', placeholder: 'Título da nota', maxLength: 200,
+      type: 'text', value: p.titulo, autoComplete: 'off', placeholder: p.soTitulo ? 'Título da lista (ex.: Compras da semana)' : 'Título da nota', maxLength: 200,
       onChange: function (e) { p.onTitulo(e.target.value); }, style: inp
     }),
-    React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Texto'),
-    React.createElement('textarea', {
+    p.soTitulo ? null : React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Texto'),
+    p.soTitulo ? null : React.createElement('textarea', {
       value: p.texto, autoComplete: 'off', placeholder: 'Escreve aqui…', rows: 12,
       onChange: function (e) { p.onTexto(e.target.value); }, style: Object.assign({}, inp, { resize: 'vertical', lineHeight: 1.45 })
     }),
@@ -48468,7 +48633,7 @@ function NtForm(p) {
     p.conflito ? React.createElement(NtAvisoConflito, { baseConflito: p.baseConflito, saving: p.saving, onVerBase: p.onVerBase, onGravarPorCima: p.onGravarPorCima }) : null,
     React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
       React.createElement(NtBtn, { flex: true, kind: 'ghost', disabled: p.saving, onClick: p.onCancelar }, 'Cancelar'),
-      p.conflito ? null : React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim(), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : 'Criar nota'))
+      p.conflito ? null : React.createElement(NtBtn, { flex: true, disabled: p.saving || !p.titulo.trim(), onClick: p.onGuardar }, p.saving ? 'A guardar…' : (p.editando ? 'Guardar alterações' : (p.soTitulo ? 'Criar lista' : 'Criar nota')))
     )
   );
 }
@@ -49086,10 +49251,19 @@ function NotasApp(props) {
   var _eu = React.useState(null); var editAbertaEm = _eu[0], setEditAbertaEm = _eu[1]; // updated_at da nota quando o formulário abriu (para detetar conflito)
   var _cf = React.useState(null); var conflito = _cf[0], setConflito = _cf[1]; // { idEd, patch } quando a base mudou desde que o formulário abriu
   var _cfb = React.useState(null); var baseConflito = _cfb[0], setBaseConflito = _cfb[1]; // 'a_carregar' | { nota } | { erro }
+  var _lt = React.useState([]); var itens = _lt[0], setItens = _lt[1];           // artigos de todas as listas visíveis (uma linha por artigo)
+  var _lo = React.useState(false); var itensOk = _lo[0], setItensOk = _lo[1];    // artigos já carregados
+  var _le = React.useState(''); var erroItens = _le[0], setErroItens = _le[1];
+  var _lbz = React.useState({}); var itemBusy = _lbz[0], setItemBusy = _lbz[1];   // artigos com pedido em curso, por id
+  var _llb = React.useState(false); var limparBusy = _llb[0], setLimparBusy = _llb[1];
+  var _lub = React.useState({}); var usarBusy = _lub[0], setUsarBusy = _lub[1];  // "usar outra vez" em curso, por id da lista
+  var _ltp = React.useState('nota'); var fTipo = _ltp[0], setFTipo = _ltp[1];     // 'nota' | 'lista' (formulário aberto)
+  var carregarItensRef = React.useRef(null);
   var desfazerTimer = React.useRef(null);
   React.useEffect(function () { return function () { if (desfazerTimer.current) clearTimeout(desfazerTimer.current); }; }, []);
 
   var db = window.supabaseClient;
+  var listaIdsKey = notas.filter(ntELista).map(function (n) { return n.id; }).sort().join(','); // ids das listas (muda ao criar/apagar de vez)
 
   function carregar() {
     if (!db) { setErroCarga('Sem ligação ao servidor.'); setLoading(false); return; }
@@ -49138,7 +49312,14 @@ function NotasApp(props) {
     }).catch(function (e) { ntCofreAvisar('ver quem tem código do cofre', e); if (vivo) setCodigos({}); });
     return function () { vivo = false; };
   }, [isAdmin]);
-  React.useEffect(function () { return window.csAoVoltarRede(function () { carregarRef.current(); }); }, []);
+  React.useEffect(function () { return window.csAoVoltarRede(function () { carregarRef.current(); carregarItensRef.current(); }); }, []);
+  // Artigos das listas: lê quando as listas carregam/mudam e quando a app volta ao primeiro plano (ver o que a outra pessoa marcou).
+  React.useEffect(function () { if (!loading) carregarItensRef.current(); }, [listaIdsKey, loading]);
+  React.useEffect(function () {
+    var f = function () { if (typeof document !== 'undefined' && document.visibilityState === 'visible') carregarItensRef.current(); };
+    document.addEventListener('visibilitychange', f);
+    return function () { document.removeEventListener('visibilitychange', f); };
+  }, []);
 
   var podeEditar = cartao ? ntPodeEditar(cartao, myId) : false;
   var temCofre = !!cartao && cartao === myId && NT_MEMBROS.indexOf(myId) !== -1 && podeEditar; // só o cartão PRÓPRIO; nunca Família nem só leitura
@@ -49155,14 +49336,17 @@ function NotasApp(props) {
   function setModo(m) { setModoRaw(m); ntGuardarVista(m); }
   function resetFiltros() { setBusca(''); setFiltros(NT_FILTROS_VAZIOS); setBuscaArq(''); }
 
-  function abrirNova() {
+  function abrirNova(tipo) {
     if (!podeEditar) return;
+    var tp = tipo === 'lista' && cartao === 'familia' ? 'lista' : 'nota'; // listas só no cartão Família (o onClick passa o evento: ignora-o)
+    setFTipo(tp);
     setEditId(null); setFTitulo(''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro('');
     setEditAbertaEm(null); setConflito(null); setBaseConflito(null);
     setVista('form');
   }
   function abrirEditar(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
+    setFTipo(ntELista(n) ? 'lista' : 'nota');
     setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFPasta(ntPasta(n)); setFErro('');
     setEditAbertaEm(n.updated_at); setConflito(null); setBaseConflito(null);
     setVista('form');
@@ -49206,6 +49390,7 @@ function NotasApp(props) {
     setFErro('');
     var removeOptimistic;
     var consulta;
+    var novaListaId = null; // id da lista nova (para abri-la depois de criada)
     var ehConflito = false; // editId: 0 linhas pode ser conflito (updated_at mudou noutro aparelho) em vez de erro genérico
     if (editId) {
       var idEd = editId;
@@ -49225,6 +49410,7 @@ function NotasApp(props) {
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
       if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
+      if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; } // lista de compras (coluna tipo)
       consulta = db.from('notas_notas').insert(linhaNova).select('id');
     }
     var ok = false;
@@ -49253,7 +49439,8 @@ function NotasApp(props) {
       var idFinal = editId;
       setEditId(null);
       if (usaPastas && !idFinal) setPasta(fPasta); // nota nova: abre a pasta onde ficou
-      setVista(idFinal ? 'nota' : 'lista');
+      if (novaListaId) { setNotaOrigem('lista'); setSelId(novaListaId); setVista('nota'); } // lista nova: abre-a para escrever os artigos
+      else setVista(idFinal ? 'nota' : 'lista');
       carregarRef.current();
     }).catch(function (e) {
       savingRef.current = false;
@@ -49387,8 +49574,9 @@ function NotasApp(props) {
     if (desfazerTimer.current) { clearTimeout(desfazerTimer.current); desfazerTimer.current = null; }
     setDesfazer(null);
   }
-  function marcarFeita(n) {
+  function marcarFeita(n, extra) {
     mudarFeita(n, new Date().toISOString(), 'marcar nota como feita', 'marcar a nota como feita', function () {
+      if (typeof extra === 'function') extra();
       if (desfazerTimer.current) clearTimeout(desfazerTimer.current);
       setDesfazer(n);
       desfazerTimer.current = setTimeout(function () { desfazerTimer.current = null; setDesfazer(null); }, 6000);
@@ -49462,7 +49650,198 @@ function NotasApp(props) {
     });
   }
 
-  function abrirNota(n, origem) { setNotaOrigem(origem === 'arquivo' ? 'arquivo' : 'lista'); setSelId(n.id); setVista('nota'); }
+  // ── Listas de compras (cartão Família) ─────────────────────────────────────────
+  // Artigos em notas_lista_itens, uma linha por artigo. Todas as escritas são honestas: SEM atualização otimista (o ecrã só
+  // muda depois de a base confirmar), .select('id'), erro ou 0 linhas = ntAvisar + faixa NtAvisoErro com a mensagem real,
+  // travas contra duplo clique (busyRef/itemBusy) e .catch com console.error depois do .then. Permissões: as da nota (ntPodeEditar).
+  function carregarItens() {
+    if (!db) return;
+    var ids = listaIdsKey ? listaIdsKey.split(',') : [];
+    if (!ids.length) { setItens([]); setItensOk(true); return; }
+    db.from('notas_lista_itens').select('*').in('nota_id', ids).order('created_at', { ascending: true }).then(function (res) {
+      if (res && res.error) {
+        ntAvisarRes('carregar artigos das listas', res.error);
+        setErroItens('Não foi possível carregar os artigos: ' + ntMsgErro(res.error));
+        return;
+      }
+      setErroItens('');
+      setItens((res && res.data) || []);
+      setItensOk(true);
+    }).catch(function (e) {
+      ntAvisar('carregar artigos das listas', e);
+      setErroItens('Não foi possível carregar os artigos: ' + ntMsgErro(e));
+    });
+  }
+  carregarItensRef.current = carregarItens;
+
+  function itemSoltar(chave, id) {
+    busyRef.current[chave] = false;
+    setItemBusy(function (p) { var x = Object.assign({}, p); delete x[id]; return x; });
+  }
+  // Marcar/desmarcar um artigo: UPDATE só desse artigo (por id) — duas pessoas a marcar artigos diferentes não se sobrepõem.
+  function alternarItem(nota, x) {
+    if (!nota || !ntPodeEditar(nota.dono, myId) || !db) return;
+    var chave = 'item:' + x.id;
+    if (busyRef.current[chave]) return;
+    busyRef.current[chave] = true;
+    setItemBusy(function (p) { var o = Object.assign({}, p); o[x.id] = true; return o; });
+    setErroGrav('');
+    var novo = !x.comprado, agora = new Date().toISOString();
+    var patch = { comprado: novo, comprado_em: novo ? agora : null, updated_at: agora };
+    var oQue = novo ? 'marcar o artigo como comprado' : 'desmarcar o artigo';
+    var ok = false;
+    db.from('notas_lista_itens').update(patch).eq('id', x.id).select('id').then(function (res) {
+      itemSoltar(chave, x.id);
+      if (res && res.error) { ntAvisarRes('marcar artigo', res.error); setErroGrav('Não foi possível ' + oQue + ': ' + ntMsgErro(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { ntAvisar('marcar artigo', new Error(NT_ZERO_LINHAS)); setErroGrav('Não foi possível ' + oQue + ': ' + NT_ZERO_LINHAS); return; }
+      ok = true;
+      setItens(function (p) { return p.map(function (y) { return y.id === x.id ? Object.assign({}, y, patch) : y; }); });
+    }).catch(function (e) {
+      itemSoltar(chave, x.id);
+      if (ok) { ntLog('depois de marcar artigo', e); return; }
+      ntAvisar('marcar artigo', e); setErroGrav('Não foi possível ' + oQue + ': ' + ntMsgErro(e));
+    });
+  }
+  // Devolvem uma Promise que resolve true/false (nunca rejeita): o componente só limpa o campo quando a base confirmou.
+  function adicionarItem(nota, texto) {
+    var t = String(texto || '').trim().slice(0, NT_MAX_ITEM);
+    if (!t || !nota || !ntPodeEditar(nota.dono, myId) || !db) return Promise.resolve(false);
+    var chave = 'add:' + nota.id;
+    if (busyRef.current[chave]) return Promise.resolve(false);
+    busyRef.current[chave] = true;
+    setErroGrav('');
+    var agora = new Date().toISOString();
+    var linha = { id: ntNovoId(), nota_id: nota.id, texto: t, comprado: false, created_at: agora, updated_at: agora };
+    var ok = false;
+    return db.from('notas_lista_itens').insert(linha).select('id').then(function (res) {
+      busyRef.current[chave] = false;
+      if (res && res.error) { ntAvisarRes('adicionar artigo', res.error); setErroGrav('Não foi possível adicionar o artigo: ' + ntMsgErro(res.error)); return false; }
+      if (!res || !res.data || !res.data.length) { ntAvisar('adicionar artigo', new Error(NT_ZERO_LINHAS)); setErroGrav('Não foi possível adicionar o artigo: ' + NT_ZERO_LINHAS); return false; }
+      ok = true;
+      setItens(function (p) { return p.concat([linha]); });
+      return true;
+    }).catch(function (e) {
+      busyRef.current[chave] = false;
+      if (ok) { ntLog('depois de adicionar artigo', e); return true; }
+      ntAvisar('adicionar artigo', e); setErroGrav('Não foi possível adicionar o artigo: ' + ntMsgErro(e));
+      return false;
+    });
+  }
+  function editarItem(nota, x, texto) {
+    var t = String(texto || '').trim().slice(0, NT_MAX_ITEM);
+    if (!t || !nota || !ntPodeEditar(nota.dono, myId) || !db) return Promise.resolve(false);
+    var chave = 'item:' + x.id;
+    if (busyRef.current[chave]) return Promise.resolve(false);
+    busyRef.current[chave] = true;
+    setItemBusy(function (p) { var o = Object.assign({}, p); o[x.id] = true; return o; });
+    setErroGrav('');
+    var patch = { texto: t, updated_at: new Date().toISOString() };
+    var ok = false;
+    return db.from('notas_lista_itens').update(patch).eq('id', x.id).select('id').then(function (res) {
+      itemSoltar(chave, x.id);
+      if (res && res.error) { ntAvisarRes('editar artigo', res.error); setErroGrav('Não foi possível editar o artigo: ' + ntMsgErro(res.error)); return false; }
+      if (!res || !res.data || !res.data.length) { ntAvisar('editar artigo', new Error(NT_ZERO_LINHAS)); setErroGrav('Não foi possível editar o artigo: ' + NT_ZERO_LINHAS); return false; }
+      ok = true;
+      setItens(function (p) { return p.map(function (y) { return y.id === x.id ? Object.assign({}, y, patch) : y; }); });
+      return true;
+    }).catch(function (e) {
+      itemSoltar(chave, x.id);
+      if (ok) { ntLog('depois de editar artigo', e); return true; }
+      ntAvisar('editar artigo', e); setErroGrav('Não foi possível editar o artigo: ' + ntMsgErro(e));
+      return false;
+    });
+  }
+  function apagarItem(nota, x) {
+    if (!nota || !ntPodeEditar(nota.dono, myId) || !db) return;
+    var chave = 'item:' + x.id;
+    if (busyRef.current[chave]) return;
+    busyRef.current[chave] = true;
+    setItemBusy(function (p) { var o = Object.assign({}, p); o[x.id] = true; return o; });
+    setErroGrav('');
+    var ok = false;
+    db.from('notas_lista_itens').delete().eq('id', x.id).select('id').then(function (res) {
+      itemSoltar(chave, x.id);
+      if (res && res.error) { ntAvisarRes('apagar artigo', res.error); setErroGrav('Não foi possível apagar o artigo: ' + ntMsgErro(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { ntAvisar('apagar artigo', new Error(NT_ZERO_LINHAS)); setErroGrav('Não foi possível apagar o artigo: ' + NT_ZERO_LINHAS); return; }
+      ok = true;
+      setItens(function (p) { return p.filter(function (y) { return y.id !== x.id; }); });
+    }).catch(function (e) {
+      itemSoltar(chave, x.id);
+      if (ok) { ntLog('depois de apagar artigo', e); return; }
+      ntAvisar('apagar artigo', e); setErroGrav('Não foi possível apagar o artigo: ' + ntMsgErro(e));
+    });
+  }
+  // Limpar comprados: apaga SÓ os artigos riscados desta lista (nota_id + comprado = true).
+  function limparComprados(nota) {
+    if (!nota || !ntPodeEditar(nota.dono, myId) || !db) return;
+    var chave = 'limpar:' + nota.id;
+    if (busyRef.current[chave]) return;
+    var nComp = ntItensDaLista(itens, nota.id).filter(function (x) { return x.comprado; }).length;
+    if (!nComp) return;
+    if (typeof window.confirm === 'function' && !window.confirm('Apagar os ' + nComp + ' artigos comprados desta lista?')) return;
+    busyRef.current[chave] = true; setLimparBusy(true); setErroGrav('');
+    var ok = false;
+    db.from('notas_lista_itens').delete().eq('nota_id', nota.id).eq('comprado', true).select('id').then(function (res) {
+      busyRef.current[chave] = false; setLimparBusy(false);
+      if (res && res.error) { ntAvisarRes('limpar comprados', res.error); setErroGrav('Não foi possível limpar os comprados: ' + ntMsgErro(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { // outro aparelho já os tinha limpado: avisa e volta a ler
+        ntAvisar('limpar comprados', new Error(NT_ZERO_LINHAS)); setErroGrav('Não foi possível limpar os comprados: ' + NT_ZERO_LINHAS);
+        carregarItensRef.current();
+        return;
+      }
+      ok = true;
+      var apagados = {}; res.data.forEach(function (r) { apagados[r.id] = true; });
+      setItens(function (p) { return p.filter(function (y) { return !apagados[y.id]; }); });
+    }).catch(function (e) {
+      busyRef.current[chave] = false; setLimparBusy(false);
+      if (ok) { ntLog('depois de limpar comprados', e); return; }
+      ntAvisar('limpar comprados', e); setErroGrav('Não foi possível limpar os comprados: ' + ntMsgErro(e));
+    });
+  }
+  // "Usar outra vez" (Arquivo): copia a lista (título, importância e artigos) com tudo por riscar, como lista NOVA.
+  // 1) insere a nota nova; 2) insere os artigos num só pedido; se o 2) falhar, apaga a nota nova (sem deixar lista vazia a meio).
+  function usarOutraVez(n) {
+    if (!ntELista(n) || !ntPodeEditar(n.dono, myId) || !db) return;
+    var chave = 'usar:' + n.id;
+    if (busyRef.current[chave]) return;
+    busyRef.current[chave] = true; setUsarBusy(function (p) { var o = Object.assign({}, p); o[n.id] = true; return o; }); setErroGrav('');
+    var soltar = function () { busyRef.current[chave] = false; setUsarBusy(function (p) { var o = Object.assign({}, p); delete o[n.id]; return o; }); };
+    var agora = new Date().toISOString();
+    var nova = { id: ntNovoId(), dono: n.dono, titulo: n.titulo, texto: '', tipo: 'lista', importancia: ntImp(n), fixada: false, pasta: 'privado', created_at: agora, updated_at: agora, deleted_at: null };
+    var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: '', tipo: 'lista', created_at: agora, updated_at: agora };
+    if (ntImp(n) !== 'normal') linhaNova.importancia = ntImp(n);
+    var novosItens = ntOrdenarItens(ntItensDaLista(itens, n.id)).map(function (x, i) {
+      var t = new Date(Date.now() + i).toISOString(); // ordem de escrita preservada
+      return { id: ntNovoId(), nota_id: nova.id, texto: x.texto, comprado: false, created_at: t, updated_at: t };
+    });
+    var falhou = function (op, err, msg) { soltar(); ntAvisar(op, err); setErroGrav('Não foi possível usar a lista outra vez: ' + msg); };
+    var ok = false;
+    db.from('notas_notas').insert(linhaNova).select('id').then(function (r1) {
+      if (r1 && r1.error) { falhou('usar lista outra vez', r1.error, ntMsgErro(r1.error)); return; }
+      if (!r1 || !r1.data || !r1.data.length) { falhou('usar lista outra vez', new Error(NT_ZERO_LINHAS), NT_ZERO_LINHAS); return; }
+      var concluir = function () {
+        ok = true; soltar();
+        setNotas(function (p) { return [nova].concat(p); });
+        setItens(function (p) { return p.concat(novosItens); });
+        setNotaOrigem('lista'); setSelId(nova.id); setVista('nota');
+      };
+      if (!novosItens.length) { concluir(); return; }
+      return db.from('notas_lista_itens').insert(novosItens).select('id').then(function (r2) {
+        var erro2 = r2 && r2.error ? r2.error : ((!r2 || !r2.data || r2.data.length !== novosItens.length) ? new Error('Só ' + ((r2 && r2.data && r2.data.length) || 0) + ' de ' + novosItens.length + ' artigos foram gravados') : null);
+        if (!erro2) { concluir(); return; }
+        // limpeza: não deixar a lista nova sem artigos
+        return db.from('notas_notas').delete().eq('id', nova.id).select('id').then(function (r3) {
+          if (r3 && r3.error) ntAvisarRes('limpar lista nova', r3.error);
+          falhou('usar lista outra vez (artigos)', erro2, ntMsgErro(erro2));
+        });
+      });
+    }).catch(function (e) {
+      if (ok) { ntLog('depois de usar a lista outra vez', e); return; }
+      falhou('usar lista outra vez', e, ntMsgErro(e));
+    });
+  }
+
+  function abrirNota(n, origem) { setNotaOrigem(origem === 'arquivo' ? 'arquivo' : 'lista'); setSelId(n.id); setVista('nota'); if (ntELista(n)) carregarItensRef.current(); }
   function voltar() {
     if (!cartao) { onBack(); return; }
     if (cofreModo) { setCofreModo(null); return; } // sair do cofre desmonta-o e tranca-o
@@ -49516,22 +49895,33 @@ function NotasApp(props) {
   } else if (vista === 'form') {
     corpo = React.createElement(NtForm, {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
-      mostrarPasta: usaPastas && podeEditar, pasta: fPasta, onPasta: setFPasta,
+      mostrarPasta: usaPastas && podeEditar, pasta: fPasta, onPasta: setFPasta, soTitulo: fTipo === 'lista',
       onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm,
       conflito: conflito, baseConflito: baseConflito, onVerBase: verVersaoDaBase, onGravarPorCima: gravarPorCimaConflito
     });
   } else if (vista === 'nota') {
-    corpo = notaSel && ntAtiva(notaSel)
+    corpo = notaSel && ntAtiva(notaSel) && ntELista(notaSel)
+      ? React.createElement(NtListaVista, {
+          nota: notaSel, itens: ntItensDaLista(itens, notaSel.id), itensOk: itensOk, itensErro: erroItens, itemBusy: itemBusy, limparBusy: limparBusy,
+          readOnly: !podeEditar || ntFeita(notaSel), busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], feitaBusy: !!feitaBusy[notaSel.id], usarBusy: !!usarBusy[notaSel.id],
+          onAdd: function (t) { return adicionarItem(notaSel, t); }, onEdit: function (x, t) { return editarItem(notaSel, x, t); },
+          onToggle: function (x) { alternarItem(notaSel, x); }, onDel: function (x) { apagarItem(notaSel, x); }, onLimpar: function () { limparComprados(notaSel); },
+          onArquivar: function () { marcarFeita(notaSel, function () { setSelId(null); setVista('lista'); }); },
+          onReabrir: (podeEditar && ntFeita(notaSel)) ? function () { reabrir(notaSel, function () { setSelId(null); setVista('lista'); }); } : undefined,
+          onUsarOutra: (podeEditar && ntFeita(notaSel)) ? function () { usarOutraVez(notaSel); } : undefined,
+          onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { pedirApagar(notaSel); }
+        })
+      : notaSel && ntAtiva(notaSel)
       ? React.createElement(NtVista, { nota: notaSel, readOnly: !podeEditar || ntFeita(notaSel), onReabrir: (podeEditar && ntFeita(notaSel)) ? function () { reabrir(notaSel, function () { setSelId(null); setVista('lista'); }); } : undefined, busy: busyId === notaSel.id, fixBusy: !!fixBusy[notaSel.id], onFixar: function () { alternarFixada(notaSel); }, onEditar: function () { abrirEditar(notaSel); }, onApagar: function () { pedirApagar(notaSel); } })
       : React.createElement('div', { style: { color: T.muted, textAlign: 'center', padding: 30 } }, 'Nota não encontrada.');
   } else if (vista === 'arquivo') {
     corpo = React.createElement(NtArquivo, {
       notas: arquivadasVis, total: arquivadas.length, busca: buscaArq, onBusca: setBuscaArq, readOnly: !podeEditar,
       onOpen: function (n) { abrirNota(n, 'arquivo'); }, onReabrir: function (n) { reabrir(n); }, onApagar: pedirApagar,
-      feitaBusy: feitaBusy, busyId: busyId
+      feitaBusy: feitaBusy, busyId: busyId, itens: itens, itensOk: itensOk, usarBusy: usarBusy, onUsarOutra: usarOutraVez
     });
   } else if (vista === 'lixo') {
-    corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo });
+    corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo, itens: itens, itensOk: itensOk });
   } else if (usaPastas && !pasta) {
     corpo = React.createElement(NtCaixas, { notas: doTodos.filter(ntNaLista), podeEditar: podeEditar, onNova: abrirNova, onAbrir: function (k) { resetFiltros(); setPasta(k); },
       cofre: temCofre ? { onAbrir: function () { setCofreModo('cofre'); }, onFamilia: isAdmin ? function () { setCofreModo('familia'); } : null } : null });
@@ -49541,7 +49931,13 @@ function NotasApp(props) {
     var filtradas = ntFiltrar(ativas, filtros, busca, new Date());
     corpo = React.createElement('div', null,
       temCofre && !usaPastas ? React.createElement(NtCaixaCofre, { compacta: true, onAbrir: function () { setCofreModo('cofre'); }}) : null,
-      podeEditar ? React.createElement(NtBtn, { onClick: abrirNova }, '+ Nova nota') : React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } }, '👁 Só leitura'),
+      podeEditar
+        ? (cartao === 'familia'
+          ? React.createElement('div', { style: { display: 'flex', gap: 10, alignItems: 'stretch' } }, // só no cartão Família: + Nova nota | ☑ Nova lista, mesma altura
+            React.createElement(NtBtn, { flex: true, onClick: abrirNova }, '+ Nova nota'),
+            React.createElement(NtBtn, { flex: true, kind: 'contorno', onClick: function () { abrirNova('lista'); } }, '☑ Nova lista'))
+          : React.createElement(NtBtn, { onClick: abrirNova }, '+ Nova nota'))
+        : React.createElement('div', { style: { fontSize: 12, color: T.muted, fontWeight: 700 } }, '👁 Só leitura'),
       ativas.length ? React.createElement(NtFiltros, {
         modo: modo, onModo: setModo, busca: busca, onBusca: setBusca, filtros: filtros, onFiltros: setFiltros,
         total: ativas.length, imp: ativas.filter(function (n) { return ntImp(n) === 'importante'; }).length,
@@ -49551,7 +49947,8 @@ function NotasApp(props) {
         ? React.createElement('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 600 } }, 'Nenhuma nota com estes filtros')
         : React.createElement(NtLista, {
             key: cartao + '|' + modo + '|' + (filtrando ? 'f' : 'n'), notas: filtradas, readOnly: !podeEditar, modo: modo, filtrando: filtrando,
-            onOpen: abrirNota, onFixar: alternarFixada, fixBusy: fixBusy, onApagar: pedirApagar, busyId: busyId, onFeita: marcarFeita, feitaBusy: feitaBusy
+            onOpen: abrirNota, onFixar: alternarFixada, fixBusy: fixBusy, onApagar: pedirApagar, busyId: busyId, onFeita: function (n) { marcarFeita(n); }, feitaBusy: feitaBusy,
+            itens: itens, itensOk: itensOk
           }));
   }
 
