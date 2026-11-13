@@ -221,11 +221,16 @@ function ntLinhasLista(itens) {
 }
 // Para copiar/partilhar: a lista passa a "nota" com os artigos como texto (☐ por comprar, ☑ comprado).
 function ntNotaParaCopia(n, itens) { return ntELista(n) ? Object.assign({}, n, { texto: ntLinhasLista(itens) }) : n; }
-// Título por omissão de uma lista nova: "Migros" + a data de hoje (13/11/2026). Editável antes de criar.
-function ntTituloListaPadrao() {
-  var d = new Date(), p = function (x) { return (x < 10 ? '0' : '') + x; };
-  return 'Migros ' + p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+// Sexta-feira mais próxima (hoje, se for sexta; senão a próxima), em "DD/MM/AAAA".
+// Função pura sobre a data LOCAL do dispositivo (getDay/getDate/..., nunca UTC/toISOString).
+// O dia é recalculado por componentes (ano, mês, dia + n), por isso vira mês/ano e mudanças de hora sem erros.
+function ntSextaProxima(d) {
+  var p = function (x) { return (x < 10 ? '0' : '') + x; };
+  var f = new Date(d.getFullYear(), d.getMonth(), d.getDate() + ((5 - d.getDay() + 7) % 7));
+  return p(f.getDate()) + '/' + p(f.getMonth() + 1) + '/' + f.getFullYear();
 }
+// Título por omissão de uma lista nova: "Migros" + a sexta-feira mais próxima (ex.: 13/11/2026). Editável antes de criar.
+function ntTituloListaPadrao() { return 'Migros ' + ntSextaProxima(new Date()); }
 // "Colar artigos": uma linha = um artigo. Tira espaços, ignora linhas vazias e tira marcadores no início
 // (-, •, *, ·, números como "1." ou "1)", [ ], ☐/☑). "1.5 L de leite" e "2 maçãs" ficam como estão.
 var NT_MAX_COLAR = 100;
