@@ -404,17 +404,17 @@ function fiEstadoDia(d) {
   var fechado = total > 0 && porFazer === 0;
   var linhas = [];
   if (kcal > meta * 1.05) {
-    linhas.push('Passaste ' + Math.round(kcal - meta) + ' kcal do alvo de hoje.' + (porFazer > 0 ? (porFazer === 1 ? ' Ainda falta 1 refeição' : ' Ainda faltam ' + porFazer + ' refeições') + ': escolhe o mais leve.' : ''));
+    linhas.push('Estás ' + Math.round(kcal - meta) + ' kcal acima do alvo de hoje.' + (porFazer > 0 ? (porFazer === 1 ? ' Ainda há 1 refeição por registar.' : ' Ainda há ' + porFazer + ' refeições por registar.') : ''));
   } else if (!fechado && plano > 0 && kcal > plano * 1.10 && kcal - plano >= 50) {
     linhas.push('Estás ' + Math.round(kcal - plano) + ' kcal acima do plano até agora. Para o resto do dia ficam ' + Math.max(0, faltaKcal) + ' kcal.');
   } else if (fechado && kcal < meta * 0.90) {
-    linhas.push('Ficaste ' + faltaKcal + ' kcal abaixo do alvo.');
+    linhas.push('O dia fechou ' + faltaKcal + ' kcal abaixo do alvo.');
   }
   if (protMeta != null) {
     if (fechado && prot < protMeta * 0.90) {
       linhas.push('Faltam ' + faltaProt + ' g de proteína.');
     } else if (!fechado && plano > 0 && prot < protMeta * (plano / meta) * 0.85) {
-      linhas.push('Proteína atrasada: faltam ' + faltaProt + ' g. Reforça nas próximas refeições.');
+      linhas.push('Proteína: faltam ' + faltaProt + ' g para o alvo de hoje.');
     }
   }
   return { nivel: linhas.length ? 'atencao' : 'ok', faltaKcal: faltaKcal, faltaProt: faltaProt, linhas: linhas };
@@ -460,6 +460,7 @@ function fiDiaPerfeito(refeicaoIds, registos) {
 // (localStorage), uma por dia: { 'AAAA-MM-DD': 'sim' | 'nao' }.
 // Texto inválido ou de outro formato dá um mapa vazio, nunca um erro.
 var FI_CHAVE_SO_PLANO = 'fi_so_plano';
+var FI_CHAVE_DIAS_CONFIRMADOS = 'fi_dias_confirmados'; // { 'AAAA-MM-DD': 'sim' } — dias fora do normal confirmados, só neste aparelho
 function fiLerRespostasPlano(texto) {
   var mapa = {};
   if (!texto) return mapa;
@@ -480,6 +481,131 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   var datas = Object.keys(novo).sort();
   while (datas.length > 30) delete novo[datas.shift()];
   return novo;
+}
+
+// Dia "fora do normal": com registo, mas abaixo de 60% ou acima de 130% do
+// alvo. Pode ser um dia mal registado; a app pede para o confirmar.
+function fiDiaForaDoNormal(kcal, meta) {
+  var k = Number(kcal) || 0, m = Number(meta) || 0;
+  if (!m || k <= 0) return false;
+  return k < m * 0.60 || k > m * 1.30;
+}
+// Dias que contam para as médias (aviso semanal, ritmo, gasto real): todos os
+// normais e, dos fora do normal, só os que o utilizador confirmou.
+// confirmados = { 'AAAA-MM-DD': 'sim' }.
+function fiDiasQueContam(dias, meta, confirmados) {
+  return (dias || []).filter(function (d) {
+    return !fiDiaForaDoNormal(d.kcal, meta) || (confirmados && confirmados[d.data] === 'sim');
+  });
+}
+// Sinal de cansaço: 3 ou mais dias SEGUIDOS (de calendário) com registo e
+// abaixo de 70% do alvo, a acabar ontem ou anteontem. Devolve o número de
+// dias seguidos (0 se não houver sinal). Não recomenda calorias: a app só
+// sugere falar com o médico ou o treinador.
+function fiSinalCansaco(dias, meta, hojeISO) {
+  var m = Number(meta) || 0;
+  if (!m) return 0;
+  var porData = {};
+  (dias || []).forEach(function (d) { porData[d.data] = Number(d.kcal) || 0; });
+  var melhor = 0;
+  for (var recuo = 1; recuo <= 2; recuo++) {
+    var n = 0, dia = fiSomarDias(hojeISO, -recuo);
+    while (porData[dia] > 0 && porData[dia] < m * 0.70) { n++; dia = fiSomarDias(dia, -1); }
+    if (n > melhor) melhor = n;
+  }
+  return melhor >= 3 ? melhor : 0;
+}
+// Ritmo pelos registos: com a média real registada (pelo menos 10 dias que
+// contam, nos últimos 14) e a manutenção calculada. Devolve kg/semana
+// (positivo = perda) e a média, ou null se faltarem dados.
+function fiRitmoPelosRegistos(dias, manutencao) {
+  var man = Number(manutencao) || 0;
+  var registados = (dias || []).filter(function (x) { return Number(x.kcal) > 0; });
+  if (!man || registados.length < 10) return null;
+  var media = registados.reduce(function (s2, x) { return s2 + Number(x.kcal); }, 0) / registados.length;
+  return { kgSemana: (man - media) * 7 / 7700, media: Math.round(media), dias: registados.length };
+}
+// Dias inteiros entre duas datas AAAA-MM-DD (b − a).
+function fiDiasEntre(a, b) {
+  return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+}
+// Tendência REAL do peso: da avaliação mais antiga das últimas 6 semanas até
+// à mais recente. Precisa de 2 avaliações com pelo menos 10 dias entre elas.
+// Devolve { kgSemana (negativo = a descer), dias, n } ou null.
+function fiTendenciaPeso(avaliacoes) {
+  var lista = (avaliacoes || []).filter(function (a) { return a && a.data && Number(a.peso) > 0; })
+    .slice().sort(function (x, y) { return x.data < y.data ? -1 : (x.data > y.data ? 1 : 0); });
+  if (lista.length < 2) return null;
+  var ultima = lista[lista.length - 1];
+  var janela = lista.filter(function (a) { return fiDiasEntre(a.data, ultima.data) <= 42; });
+  if (janela.length < 2) return null;
+  var primeira = janela[0];
+  var dias = fiDiasEntre(primeira.data, ultima.data);
+  if (dias < 10) return null;
+  return { kgSemana: (Number(ultima.peso) - Number(primeira.peso)) / dias * 7, dias: dias, n: janela.length };
+}
+// Aviso semanal: o peso não desce apesar de os registos estarem no alvo.
+// dias = [{ data, kcal }] dos últimos 14 dias (sem o dia de hoje). Só avisa se:
+// há pelo menos 10 dias com registo; pelo menos 80% deles estão a ±10% do alvo;
+// pelos registos devia perder-se pelo menos 0,2 kg/semana; e o peso real
+// desce menos de 0,1 kg/semana. Devolve o texto do aviso ou null.
+function fiAvisoSemanal(d) {
+  var meta = Number(d.meta) || 0, manutencao = Number(d.manutencao) || 0;
+  if (!meta || !manutencao || !d.tendencia) return null;
+  var registados = (d.dias || []).filter(function (x) { return Number(x.kcal) > 0; });
+  if (registados.length < 10) return null;
+  var noAlvo = registados.filter(function (x) { return Math.abs(Number(x.kcal) - meta) <= meta * 0.10; }).length;
+  if (noAlvo / registados.length < 0.8) return null;
+  var media = registados.reduce(function (s2, x) { return s2 + Number(x.kcal); }, 0) / registados.length;
+  var perdaPrevista = (manutencao - media) * 7 / 7700;
+  if (!(perdaPrevista >= 0.2)) return null;
+  if (d.tendencia.kgSemana <= -0.1) return null;
+  return 'O peso não desce com os registos a 100%: há extras por registar, ou fala com o treinador.';
+}
+// Linha que substitui a projeção teórica "meta em ~N semanas": usa a tendência
+// real. Só projeta uma data se o peso estiver mesmo a descer; se estiver
+// estável ou a subir, diz isso e não projeta nada.
+// Devolve { texto, projeta } ou null (sem avaliações suficientes).
+function fiProjecaoReal(tendencia, pesoAtual, pesoMeta) {
+  if (!tendencia) return null;
+  var k = tendencia.kgSemana;
+  var semanas = '(' + tendencia.n + ' avaliações em ' + tendencia.dias + ' dias)';
+  if (k <= -0.05) {
+    var texto = 'Tendência real: −' + Math.abs(k).toFixed(1) + ' kg/semana ' + semanas + '.';
+    if (pesoMeta != null && pesoAtual != null && Number(pesoMeta) < Number(pesoAtual)) {
+      var n = Math.ceil((Number(pesoAtual) - Number(pesoMeta)) / Math.abs(k));
+      return { texto: texto + ' A este ritmo, peso meta em ~' + n + ' semana' + (n === 1 ? '' : 's') + '.', projeta: true };
+    }
+    return { texto: texto, projeta: false };
+  }
+  if (k >= 0.05) return { texto: 'Tendência real: +' + k.toFixed(1) + ' kg/semana ' + semanas + '. O peso está a subir; sem previsão para o peso meta.', projeta: false };
+  return { texto: 'Tendência real: peso estável ' + semanas + '. Sem previsão para o peso meta.', projeta: false };
+}
+// Gasto real estimado: média diária registada + (kg perdidos × 7700 ÷ dias),
+// entre duas avaliações. Usa a avaliação mais recente e a mais próxima que
+// fique pelo menos 21 dias antes (até 49). Precisa de pelo menos 21 dias com
+// registo nesse intervalo e de 80% dos dias registados. Devolve
+// { gasto (arredondado a 10), dias, diasComRegisto, media } ou null.
+// É só informação: nunca muda o alvo.
+function fiGastoReal(avaliacoes, diasRegisto) {
+  var lista = (avaliacoes || []).filter(function (a) { return a && a.data && Number(a.peso) > 0; })
+    .slice().sort(function (x, y) { return x.data < y.data ? -1 : (x.data > y.data ? 1 : 0); });
+  if (lista.length < 2) return null;
+  var fim = lista[lista.length - 1], inicio = null;
+  for (var i = lista.length - 2; i >= 0; i--) {
+    var span = fiDiasEntre(lista[i].data, fim.data);
+    if (span >= 21 && span <= 49) { inicio = lista[i]; break; }
+    if (span > 49) break;
+  }
+  if (!inicio) return null;
+  var dias = fiDiasEntre(inicio.data, fim.data);
+  var noIntervalo = (diasRegisto || []).filter(function (x) { return x.data >= inicio.data && x.data < fim.data && Number(x.kcal) > 0; });
+  if (noIntervalo.length < 21 || noIntervalo.length / dias < 0.8) return null;
+  var media = noIntervalo.reduce(function (s2, x) { return s2 + Number(x.kcal); }, 0) / noIntervalo.length;
+  var perdaKg = Number(inicio.peso) - Number(fim.peso);
+  var gasto = media + perdaKg * 7700 / dias;
+  if (!(gasto > 0) || !isFinite(gasto)) return null;
+  return { gasto: Math.round(gasto / 10) * 10, dias: dias, diasComRegisto: noIntervalo.length, media: Math.round(media) };
 }
 
 // ── Open Food Facts (pesquisa pública, sem chave) ───────────────────
@@ -647,6 +773,10 @@ function FitnessApp(props) {
     try { return fiLerRespostasPlano(window.localStorage.getItem(FI_CHAVE_SO_PLANO)); }
     catch (e) { console.warn('[fitness] ler respostas "só o plano":', (e && e.message) || e); return {}; }
   }); var respostasPlano = _s116[0], setRespostasPlano = _s116[1]; // { [data]: 'sim'|'nao' } — só neste aparelho
+  var _s119 = React.useState(function () {
+    try { return fiLerRespostasPlano(window.localStorage.getItem(FI_CHAVE_DIAS_CONFIRMADOS)); }
+    catch (e) { console.warn('[fitness] ler dias confirmados:', (e && e.message) || e); return {}; }
+  }); var diasConfirmados = _s119[0], setDiasConfirmados = _s119[1]; // { [data]: 'sim' } — só neste aparelho
   var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
@@ -655,6 +785,8 @@ function FitnessApp(props) {
   var hojeSavingRef = React.useRef(false);
   function setHojeSaving(v) { hojeSavingRef.current = v; setHojeSavingEstado(v); }
   var _s113 = React.useState({}); var hojeOutrasAbertas = _s113[0], setHojeOutrasAbertas = _s113[1]; // { [refeicaoId]: true } — "Outra opção" aberta
+  var _s117 = React.useState([]); var avaliacoesRecentes = _s117[0], setAvaliacoesRecentes = _s117[1]; // até 10 avaliações mais recentes (tendência do peso)
+  var _s118 = React.useState([]); var historicoDias = _s118[0], setHistoricoDias = _s118[1]; // kcal por dia dos últimos 49 dias (aviso semanal e gasto real)
   var _s110 = React.useState([]); var historicoHoje = _s110[0], setHistoricoHoje = _s110[1]; // últimos dias com registos (cartão "Últimos dias")
 
   // Lista de compras (Mais → Lista de compras)
@@ -713,7 +845,7 @@ function FitnessApp(props) {
       db.from('fitness_opcoes').select('*').order('ordem', { ascending: true }),
       db.from('fitness_opcao_itens').select('*'),
       db.from('fitness_alimentos').select('*').order('nome', { ascending: true }),
-      db.from('fitness_avaliacoes').select('*').order('data', { ascending: false }).limit(1)
+      db.from('fitness_avaliacoes').select('*').order('data', { ascending: false }).limit(10)
     ]).then(function (res) {
       var perfilRes = res[0], refRes = res[1], opcRes = res[2], itRes = res[3], alRes = res[4], avRes = res[5];
       if (perfilRes.error) { console.error('[fitness] carregar perfil:', perfilRes.error); window.mostrarErro('Fitness', perfilRes.error); }
@@ -728,6 +860,7 @@ function FitnessApp(props) {
       setItens(itRes.data || []);
       setAlimentos(alRes.data || []);
       setUltimaAvaliacao((avRes.data && avRes.data[0]) || null);
+      setAvaliacoesRecentes(avRes.data || []);
       setErro(null);
       setLoading(false);
     }).catch(function (e) {
@@ -747,7 +880,7 @@ function FitnessApp(props) {
     Promise.all([
       db.from('fitness_registo').select('*').eq('data', dataISO),
       db.from('fitness_agua').select('*').eq('data', dataISO).maybeSingle(),
-      db.from('fitness_registo').select('*').gte('data', fiSomarDias(hojeIsoReal, -14))
+      db.from('fitness_registo').select('*').gte('data', fiSomarDias(hojeIsoReal, -49))
     ]).then(function (res) {
       var regRes = res[0], aguaRes = res[1], histRes = res[2];
       if (regRes.error) { console.error('[fitness] carregar registo:', regRes.error); window.mostrarErro('Fitness', regRes.error); }
@@ -763,9 +896,11 @@ function FitnessApp(props) {
         porDia[reg.data].hc += Number(reg.hc || 0);
         porDia[reg.data].gord += Number(reg.gord || 0);
       });
-      var dias = Object.keys(porDia).filter(function (d) { return d !== dataISO; }).map(function (d) { return porDia[d]; });
+      var desde14 = fiSomarDias(hojeIsoReal, -14);
+      var dias = Object.keys(porDia).filter(function (d) { return d !== dataISO && d >= desde14; }).map(function (d) { return porDia[d]; });
       dias.sort(function (a, b) { return a.data < b.data ? 1 : (a.data > b.data ? -1 : 0); });
       setHistoricoHoje(dias);
+      if (!histRes.error) setHistoricoDias(Object.keys(porDia).map(function (d) { return porDia[d]; }));
       setHojeCarregando(false);
     }).catch(function (e) {
       console.error('[fitness] carregar hoje:', e);
@@ -845,6 +980,18 @@ function FitnessApp(props) {
   var protAlvo = perfil ? fiProteinaAlvo(perfil.prot_g_kg, pesoAtual) : null;
   var macrosRef = meta.ativa != null ? fiMacrosReferencia(meta.ativa, protAlvo || 0) : null;
   var explicacao = fiExplicacaoMeta(meta.calculado, meta.ativa, pesoAtual, perfil ? perfil.peso_meta : null);
+  // Tendência real do peso, aviso semanal e gasto real estimado (só informação; não mexem em alvos).
+  var tendenciaPeso = fiTendenciaPeso(avaliacoesRecentes);
+  var hojeIsoAviso = new Date().toISOString().slice(0, 10);
+  var diasQueContam = fiDiasQueContam(historicoDias, meta.ativa, diasConfirmados);
+  var ultimos14QueContam = diasQueContam.filter(function (d) { return d.data < hojeIsoAviso && d.data >= fiSomarDias(hojeIsoAviso, -14); });
+  var avisoSemanal = fiAvisoSemanal({
+    tendencia: tendenciaPeso, meta: meta.ativa, manutencao: explicacao ? explicacao.manutencao : null, dias: ultimos14QueContam
+  });
+  var projecaoReal = fiProjecaoReal(tendenciaPeso, pesoAtual, perfil ? perfil.peso_meta : null);
+  var gastoReal = fiGastoReal(avaliacoesRecentes, diasQueContam);
+  var ritmoRegistos = fiRitmoPelosRegistos(ultimos14QueContam, explicacao ? explicacao.manutencao : null);
+  var diasCansaco = fiSinalCansaco(historicoDias, meta.ativa, hojeIsoAviso);
   var semanaAtualISO = fiSegundaFeira(new Date().toISOString().slice(0, 10));
 
   // Plano — fila horizontal das refeições (scroll-snap no telemóvel/
@@ -1144,6 +1291,12 @@ function FitnessApp(props) {
       meta.calculado && explicacao && React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--fi-borda)', fontSize: 12.5, lineHeight: 1.9, color: 'var(--fi-texto2)' } },
         React.createElement('div', null, 'Metabolismo base (BMR): ' + fiFmtKcal(explicacao.bmr)),
         React.createElement('div', null, 'Manutenção (BMR × atividade): ' + fiFmtKcal(explicacao.manutencao)),
+        gastoReal && React.createElement('div', { style: { color: 'var(--fi-texto)', fontWeight: 700 } },
+          'O teu gasto real parece ser ~' + fiFmtKcal(gastoReal.gasto) + ' (estimativa, ' + gastoReal.diasComRegisto + ' dias de registos): ' +
+          (Math.abs(gastoReal.gasto - explicacao.manutencao) < 50
+            ? 'igual ao calculado.'
+            : fiFmtKcal(Math.abs(gastoReal.gasto - explicacao.manutencao)) + (gastoReal.gasto < explicacao.manutencao ? ' abaixo' : ' acima') + ' do calculado.') +
+          ' Não muda o teu alvo; se a diferença se mantiver, fala com o treinador.'),
         React.createElement('div', null,
           explicacao.deficitCalc > 0.5
             ? 'Défice: −' + fiFmtKcal(explicacao.deficitCalc) + ' (−' + Math.round(Math.abs(explicacao.deficitCalcPct)) + '%)'
@@ -1152,14 +1305,14 @@ function FitnessApp(props) {
               : 'Meta = manutenção'
         ),
         React.createElement('div', null, 'Meta calculada: ' + fiFmtKcal(explicacao.metaCalc)),
-        React.createElement('div', null, 'Ritmo previsto: ~' + Math.abs(explicacao.ritmoSemanal).toFixed(1) + ' kg/semana' + (explicacao.ritmoSemanal > 0.05 ? ' de perda' : explicacao.ritmoSemanal < -0.05 ? ' de ganho' : ' (estável)')),
-        explicacao.metaPesoInfo && React.createElement('div', null,
-          explicacao.metaPesoInfo.estado === 'atingida_ou_acima'
-            ? 'Peso meta já atingido ou acima do atual — revê o valor'
-            : explicacao.metaPesoInfo.estado === 'previsao'
-              ? 'Meta de peso em: ~' + explicacao.metaPesoInfo.semanas + ' semana' + (explicacao.metaPesoInfo.semanas === 1 ? '' : 's')
-              : 'Ao ritmo atual não é possível prever quando atinges o peso meta.'
-        ),
+        // A projeção teórica ("meta em ~N semanas") foi substituída pela tendência
+        // real das avaliações; sem tendência a descer não se projeta nada.
+        // O ritmo só aparece com dados reais: a tendência das avaliações e a média
+        // registada. Se faltar um dos dois, não se mostra previsão nenhuma.
+        projecaoReal && ritmoRegistos && React.createElement('div', { style: { color: 'var(--fi-texto)', fontWeight: 700 } }, projecaoReal.texto),
+        projecaoReal && ritmoRegistos && React.createElement('div', null,
+          'Pelos registos (média de ' + fiFmtKcal(ritmoRegistos.media) + ' em ' + ritmoRegistos.dias + ' dias) seria ' +
+          (ritmoRegistos.kgSemana > 0.05 ? '~−' + ritmoRegistos.kgSemana.toFixed(1) + ' kg/semana.' : (ritmoRegistos.kgSemana < -0.05 ? '~+' + Math.abs(ritmoRegistos.kgSemana).toFixed(1) + ' kg/semana.' : 'peso estável.'))),
         meta.usarCoach && explicacao.manutencao > 0 && React.createElement('div', null, (function () {
           var dCoach = explicacao.manutencao - meta.coach;
           var dCoachPct = Math.round(Math.abs(dCoach / explicacao.manutencao * 100));
@@ -2383,7 +2536,8 @@ function FitnessApp(props) {
             },
               React.createElement('div', { style: { minWidth: 0 } },
                 React.createElement('div', { style: { fontSize: 13, fontWeight: 700 } }, fiFmtDataComDia(d.data)),
-                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'P ' + Math.round(d.prot) + ' · HC ' + Math.round(d.hc) + ' · G ' + Math.round(d.gord) + ' g')
+                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'P ' + Math.round(d.prot) + ' · HC ' + Math.round(d.hc) + ' · G ' + Math.round(d.gord) + ' g'),
+                fiDiaForaDoNormal(d.kcal, meta.ativa) && diasConfirmados[d.data] !== 'sim' && React.createElement('div', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Fora do normal · por confirmar ▸')
               ),
               React.createElement('div', { style: { fontSize: 14, fontWeight: 800, color: cor, flex: 'none' } }, Math.round(d.kcal) + ' kcal')
             );
@@ -2410,6 +2564,49 @@ function FitnessApp(props) {
       }
     },
       React.createElement('p', { style: { fontSize: 13, fontWeight: 800, color: (atrasada || hoje) ? '#fff' : 'var(--fi-texto)', margin: 0 } }, texto)
+    );
+  }
+  // Aviso semanal (Hoje e Progresso): só aparece quando fiAvisoSemanal o devolve.
+  function renderAvisoSemanal() {
+    if (!avisoSemanal) return null;
+    return React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-amarelo)' } },
+      React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13.5, fontWeight: 800, color: 'var(--fi-amarelo)' } }, '⚠️ ' + avisoSemanal),
+      projecaoReal && React.createElement('p', { style: { margin: '6px 0 0', fontSize: 12, color: 'var(--fi-texto2)' } }, projecaoReal.texto)
+    );
+  }
+  // Vários dias seguidos bem abaixo do alvo: sugestão neutra, sem números de calorias.
+  function renderSinalCansaco() {
+    if (!diasCansaco) return null;
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13, fontWeight: 700 } },
+        'Os últimos ' + diasCansaco + ' dias ficaram bem abaixo do alvo. Se te sentes cansado, pode valer a pena falar com o médico ou com o treinador.')
+    );
+  }
+  // Dias fora do normal: confirmar (ou tirar a confirmação). Fica só neste aparelho.
+  function confirmarDia(dataISO, confirmar) {
+    var novo = fiPorRespostaPlano(diasConfirmados, dataISO, confirmar ? 'sim' : null);
+    setDiasConfirmados(novo);
+    try { window.localStorage.setItem(FI_CHAVE_DIAS_CONFIRMADOS, JSON.stringify(novo)); }
+    catch (e) {
+      console.warn('[fitness] guardar dia confirmado:', (e && e.message) || e);
+      setHojeErro('A confirmação não ficou guardada neste aparelho (vale só até fechares a app).');
+    }
+  }
+  // No dia aberto (que não seja hoje): se ficou fora do normal, pergunta se é para confirmar.
+  function renderConfirmarDia(totalHoje) {
+    var hojeIsoReal = new Date().toISOString().slice(0, 10);
+    if (hojeData >= hojeIsoReal || !fiDiaForaDoNormal(totalHoje.kcal, meta.ativa)) return null;
+    var pct = Math.round(totalHoje.kcal / meta.ativa * 100);
+    if (diasConfirmados[hojeData] === 'sim') {
+      return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12.5, color: 'var(--fi-texto2)', margin: '0 2px 12px' } },
+        React.createElement('span', { style: { fontWeight: 700 } }, '✓ Dia confirmado (' + pct + '% do alvo): conta para as médias.'),
+        React.createElement('button', { className: 'fi-btn', style: { padding: '6px 10px', fontSize: 12 }, onClick: function () { confirmarDia(hojeData, false); } }, 'Desfazer')
+      );
+    }
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement('p', { style: { margin: '0 0 4px', fontSize: 14, fontWeight: 800 } }, 'Este dia ficou a ' + pct + '% do alvo. Queres confirmar este dia?'),
+      React.createElement('p', { style: { margin: '0 0 10px', fontSize: 12, color: 'var(--fi-texto2)' } }, 'Enquanto não confirmares, fica de fora das médias. Se faltam registos, podes acrescentar, editar ou apagar aqui em baixo.'),
+      React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', minHeight: 46 }, onClick: function () { confirmarDia(hojeData, true); } }, '✓ Está certo, confirmo')
     );
   }
   // "Comeste só o plano?" — responder (sim/nao) ou tirar a resposta (null).
@@ -2504,6 +2701,9 @@ function FitnessApp(props) {
         )
       ),
       renderEstadoHoje(totalHoje),
+      !hojeCarregando && renderConfirmarDia(totalHoje),
+      renderAvisoSemanal(),
+      renderSinalCansaco(),
       !hojeCarregando && renderPerguntaSoPlano(),
       hojeCarregando && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', textAlign: 'center', margin: '0 0 10px' } }, 'A carregar…'),
       ordenadas.map(function (r, idxRef) {
