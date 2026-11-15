@@ -74,6 +74,7 @@ var FI_CSS = '' +
   '.fi-hoje-estado-sub{font-size:12px;color:var(--fi-texto2);font-weight:700}' +
   '.fi-hoje-estado-linha{font-size:13px;font-weight:800;margin-top:6px}' +
   '.fi-hoje-sempre{width:100%;padding:14px;font-size:15px;min-height:48px}' +
+  '.fi-hoje-recolhida{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;box-sizing:border-box;background:var(--fi-cartao);border:1px solid var(--fi-borda);border-radius:14px;padding:13px 14px;margin-bottom:8px;font-size:13.5px;cursor:pointer;text-align:left;min-height:46px}' +
   '.fi-hoje-outras{background:none;border:none;font-size:12px;font-weight:700;color:var(--fi-texto2);cursor:pointer;padding:10px 0 2px;width:100%;text-align:left}' +
   '.fi-hoje-linha-nome{font-size:13px;font-weight:700}' +
   '.fi-hoje-linha-kcal{font-size:11px;color:var(--fi-texto2)}' +
@@ -419,6 +420,26 @@ function fiEstadoDia(d) {
   return { nivel: linhas.length ? 'atencao' : 'ok', faltaKcal: faltaKcal, faltaProt: faltaProt, linhas: linhas };
 }
 
+// Refeição "da hora" no Hoje. As refeições não têm hora na base, por isso o
+// dia (07h–21h) é dividido em partes iguais pelo número de refeições.
+// feitas = [true/false] pela ordem das refeições; hora = hora decimal (ex.: 13.5).
+// Devolve o índice da refeição a mostrar aberta: a da hora se ainda não tem
+// registo; senão a seguinte por fazer; senão uma anterior por fazer; -1 se
+// todas têm registo. Com hora null (outro dia que não hoje): a primeira por fazer.
+function fiRefeicaoDaHora(feitas, hora) {
+  var n = feitas.length;
+  if (!n) return -1;
+  var daHora = 0;
+  if (hora != null && !isNaN(hora)) {
+    daHora = Math.floor((hora - 7) / (14 / n));
+    daHora = Math.max(0, Math.min(n - 1, daHora));
+  }
+  var i;
+  for (i = daHora; i < n; i++) if (!feitas[i]) return i;
+  for (i = 0; i < daHora; i++) if (!feitas[i]) return i;
+  return -1;
+}
+
 // ── Open Food Facts (pesquisa pública, sem chave) ───────────────────
 function fiBuscarOFF(query, soMigros) {
   var url = soMigros
@@ -580,6 +601,7 @@ function FitnessApp(props) {
   var _s65 = React.useState(null); var confirmApagarRegisto = _s65[0], setConfirmApagarRegisto = _s65[1];
   var _s66 = React.useState(false); var aguaSaving = _s66[0], setAguaSaving = _s66[1];
   var _s114 = React.useState(false); var metaAberta = _s114[0], setMetaAberta = _s114[1]; // Plano: cartão "Como calculei" aberto (fechado por omissão)
+  var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
   // A trava a sério é o ref: muda no mesmo instante, por isso vários toques seguidos
@@ -2384,6 +2406,11 @@ function FitnessApp(props) {
       acc.kcal += Number(reg.kcal || 0); acc.prot += Number(reg.prot || 0); acc.hc += Number(reg.hc || 0); acc.gord += Number(reg.gord || 0);
       return acc;
     }, { kcal: 0, prot: 0, hc: 0, gord: 0 });
+    // Refeição da hora: só hoje se usa o relógio; noutro dia abre a primeira por registar.
+    var agora = new Date();
+    var eHoje = hojeData === agora.toISOString().slice(0, 10);
+    var feitasHoje = ordenadas.map(function (r) { return registoDia.some(function (reg) { return reg.refeicao_id === r.id; }); });
+    var idxDaHora = fiRefeicaoDaHora(feitasHoje, eHoje ? agora.getHours() + agora.getMinutes() / 60 : null);
     return React.createElement('div', { style: { padding: 16 } },
       renderProxAvaliacaoFaixa(),
       renderSeletorDia(),
@@ -2395,26 +2422,37 @@ function FitnessApp(props) {
       ),
       renderEstadoHoje(totalHoje),
       hojeCarregando && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', textAlign: 'center', margin: '0 0 10px' } }, 'A carregar…'),
-      ordenadas.map(function (r) {
+      ordenadas.map(function (r, idxRef) {
         var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : null;
         var opcoesRefeicao = opcoes.filter(function (o) { return o.refeicao_id === r.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
         var registosLivres = registoDia.filter(function (reg) { return reg.refeicao_id === r.id && reg.opcao_id == null; });
         var registadas = opcoesRefeicao.filter(function (o) { return registoDia.some(function (reg) { return reg.opcao_id === o.id; }); });
         var temRegisto = registadas.length > 0 || registosLivres.length > 0;
+        var aberta = hojeRefAbertas[r.id] != null ? hojeRefAbertas[r.id] : idxRef === idxDaHora;
+        var alternar = function () { setHojeRefAbertas(function (m) { var n = Object.assign({}, m); n[r.id] = !aberta; return n; }); };
+        if (!aberta) {
+          var kcalFeitas = registoDia.filter(function (reg) { return reg.refeicao_id === r.id; }).reduce(function (s3, reg) { return s3 + Number(reg.kcal || 0); }, 0);
+          var passada = idxDaHora === -1 || idxRef < idxDaHora;
+          return React.createElement('button', { key: r.id, className: 'fi-hoje-recolhida', 'aria-expanded': false, onClick: alternar },
+            React.createElement('span', { style: { fontWeight: 800 } }, (temRegisto ? '✓ ' : '') + r.nome),
+            React.createElement('span', { style: { color: !temRegisto && passada ? 'var(--fi-amarelo)' : 'var(--fi-texto2)', fontWeight: 700 } },
+              temRegisto ? fiFmtKcal(kcalFeitas) : (passada ? 'por registar ▸' : (kcalRefeicao ? fiFmtKcal(kcalRefeicao) : '') + ' ▸'))
+          );
+        }
         // "O de sempre": a opção favorita (ou a primeira) — a mesma escolha da lista de compras.
         var deSempre = opcaoEscolhidaRefeicao(r.id);
         var outras = opcoesRefeicao.filter(function (o) { return registadas.indexOf(o) === -1 && (temRegisto || !deSempre || o.id !== deSempre.id); });
         var outrasAbertas = !!hojeOutrasAbertas[r.id];
         var kcalDeSempre = deSempre ? fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === deSempre.id; }), alimentosPorId, kcalRefeicao || 0).totais.kcal : 0;
         return React.createElement(FiCard, { key: r.id, style: { marginBottom: 12 } },
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }, onClick: alternar },
             React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, (temRegisto ? '✓ ' : '') + r.nome),
-            React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, kcalRefeicao ? fiFmtKcal(kcalRefeicao) : '—')
+            React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, (kcalRefeicao ? fiFmtKcal(kcalRefeicao) : '—') + ' ▾')
           ),
           !temRegisto && deSempre && React.createElement('button', {
             className: 'fi-btn fi-btn-ativo fi-hoje-sempre', disabled: hojeSaving,
             onClick: function () { marcarComi(deSempre, r); }
-          }, (hojeSaving ? 'A gravar… ' : '✓ O de sempre: ') + deSempre.nome + ' · ' + fiFmtKcal(kcalDeSempre)),
+          }, (hojeSaving ? 'A gravar… ' : '✓ Comi o plano: ') + deSempre.nome + ' · ' + fiFmtKcal(kcalDeSempre)),
           registadas.map(function (o) { return renderOpcaoHoje(o, r, kcalRefeicao || 0); }),
           registosLivres.map(function (reg) { return renderRegistoLivre(reg); }),
           !opcoesRefeicao.length && !registosLivres.length && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Sem opções nesta refeição ainda. Cria-as no Plano.'),
