@@ -483,6 +483,27 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   return novo;
 }
 
+// Treino e caminhada de um dia, a partir de fitness_treino_log.
+// Sessão = linha com treino_id; caminhada = treino_id null e
+// feitos = { tipo: 'caminhada', minutos }. Devolve as duas listas e uma frase
+// curta para o bloco recolhido ('' se não houver nada — a app não diz nada
+// quando não há registo: sem lembretes).
+function fiResumoTreinoDia(logs, treinos, dataISO) {
+  var sessoes = [], caminhadas = [];
+  (logs || []).forEach(function (l) {
+    if (l.data !== dataISO) return;
+    if (l.treino_id != null) {
+      var t = (treinos || []).filter(function (x) { return x.id === l.treino_id; })[0];
+      sessoes.push({ id: l.id, nome: t ? t.nome : 'Treino' });
+    } else if (l.feitos && !Array.isArray(l.feitos) && l.feitos.tipo === 'caminhada') {
+      caminhadas.push({ id: l.id, minutos: Math.round(Number(l.feitos.minutos) || 0) });
+    }
+  });
+  var partes = sessoes.map(function (x) { return x.nome; });
+  var min = caminhadas.reduce(function (s2, x) { return s2 + x.minutos; }, 0);
+  if (caminhadas.length) partes.push('caminhada ' + min + ' min');
+  return { sessoes: sessoes, caminhadas: caminhadas, minutos: min, texto: partes.join(' · ') };
+}
 // Registos que parecem repetidos no mesmo dia: mesma refeição, mesmo prato
 // (a mesma opção do plano, ou o mesmo nome e as mesmas kcal num registo livre)
 // e gravados com menos de 60 minutos de diferença (ou sem hora guardada).
@@ -817,6 +838,10 @@ function FitnessApp(props) {
     try { return fiLerRespostasPlano(window.localStorage.getItem(FI_CHAVE_DIAS_CONFIRMADOS)); }
     catch (e) { console.warn('[fitness] ler dias confirmados:', (e && e.message) || e); return {}; }
   }); var diasConfirmados = _s119[0], setDiasConfirmados = _s119[1]; // { [data]: 'sim' } — só neste aparelho
+  var _s120 = React.useState(false); var treinoHojeAberto = _s120[0], setTreinoHojeAberto = _s120[1]; // Hoje: bloco "Treino e caminhada" aberto (fechado por omissão)
+  var _s121 = React.useState(null); var caminhadaEditId = _s121[0], setCaminhadaEditId = _s121[1]; // id da caminhada a editar no Hoje
+  var _s122 = React.useState(''); var caminhadaEditMin = _s122[0], setCaminhadaEditMin = _s122[1];
+  var _s123 = React.useState(''); var caminhadaHojeMin = _s123[0], setCaminhadaHojeMin = _s123[1]; // minutos escritos à mão no Hoje
   var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
@@ -1006,7 +1031,7 @@ function FitnessApp(props) {
       window.mostrarErro('Fitness', e);
     });
   }
-  React.useEffect(function () { if (tab === 'treino') carregarTreinos(); }, [tab]);
+  React.useEffect(function () { if (tab === 'treino' || tab === 'hoje') carregarTreinos(); }, [tab]);
 
   var alimentosPorId = React.useMemo(function () {
     var m = {};
@@ -2645,6 +2670,105 @@ function FitnessApp(props) {
     if (!texto) return null;
     return React.createElement('p', { role: 'note', style: { margin: '0 2px 12px', fontSize: 12.5, color: 'var(--fi-texto2)', fontWeight: 700 } }, 'ℹ️ ' + texto);
   }
+  // ── Treino e caminhada no Hoje ──────────────────────────────────────
+  // Bloco discreto, fechado por omissão. Regista com um toque e só quando o
+  // utilizador o abre: a app nunca lembra nem pede exercício.
+  function registarTreinoNoDia(treino) {
+    if (hojeSavingRef.current) return;
+    var exs = exercicios.filter(function (e) { return e.treino_id === treino.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
+    setHojeSaving(true);
+    db.from('fitness_treino_log').insert({
+      data: hojeData, treino_id: treino.id, notas: null,
+      feitos: exs.map(function (e) { return { exercicio_id: e.id, nome: e.nome, feito: true }; })
+    }).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar o treino', res.error); return; }
+      setHojeErro(null);
+      carregarTreinos();
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar o treino', e); });
+  }
+  function registarCaminhadaNoDia(minutos) {
+    var min = parseInt(minutos, 10);
+    if (!min || min <= 0 || hojeSavingRef.current) return;
+    setHojeSaving(true);
+    db.from('fitness_treino_log').insert({ data: hojeData, treino_id: null, feitos: { tipo: 'caminhada', minutos: min } }).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar a caminhada', res.error); return; }
+      setHojeErro(null);
+      setCaminhadaHojeMin('');
+      carregarTreinos();
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar a caminhada', e); });
+  }
+  function guardarCaminhadaEditada() {
+    var min = parseInt(caminhadaEditMin, 10);
+    if (!min || min <= 0 || hojeSavingRef.current) return;
+    setHojeSaving(true);
+    db.from('fitness_treino_log').update({ feitos: { tipo: 'caminhada', minutos: min } }).eq('id', caminhadaEditId).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('alterar a caminhada', res.error); return; }
+      setHojeErro(null);
+      setCaminhadaEditId(null);
+      carregarTreinos();
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('alterar a caminhada', e); });
+  }
+  function renderTreinoHoje() {
+    var resumo = fiResumoTreinoDia(treinoLog, treinos, hojeData);
+    var btnIcone = { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', minWidth: 36, minHeight: 36 };
+    if (!treinoHojeAberto) {
+      return React.createElement('button', { className: 'fi-hoje-recolhida', 'aria-expanded': false, style: { marginTop: 12 }, onClick: function () { setTreinoHojeAberto(true); } },
+        React.createElement('span', { style: { fontWeight: 800 } }, '🏋️ Treino e caminhada'),
+        React.createElement('span', { style: { color: 'var(--fi-texto2)', fontWeight: 700 } }, (resumo.texto ? '✓ ' + resumo.texto + ' ' : '') + '▸')
+      );
+    }
+    return React.createElement(FiCard, { style: { marginTop: 12 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }, onClick: function () { setTreinoHojeAberto(false); } },
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, '🏋️ Treino e caminhada'),
+        React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, '▾')
+      ),
+      treinosCarregando && !treinos.length && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'A carregar…'),
+      resumo.sessoes.map(function (x) {
+        return React.createElement('div', { key: x.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+          React.createElement('div', { className: 'fi-hoje-linha-info' }, React.createElement('span', { className: 'fi-hoje-linha-nome' }, '✓ ' + x.nome)),
+          React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+            React.createElement('button', { 'aria-label': 'Editar sessão', style: btnIcone, onClick: function () { var l = treinoLog.filter(function (y) { return y.id === x.id; })[0]; if (l) abrirEditarSessao(l); } }, '✏️'),
+            React.createElement('button', { 'aria-label': 'Apagar sessão', style: btnIcone, onClick: function () { setConfirmApagarSessao(x.id); } }, '🗑️')
+          )
+        );
+      }),
+      resumo.caminhadas.map(function (x) {
+        if (caminhadaEditId === x.id) {
+          return React.createElement('div', { key: x.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+            React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', 'aria-label': 'Minutos de caminhada', style: { maxWidth: 110 }, value: caminhadaEditMin, onChange: function (e) { setCaminhadaEditMin(e.target.value); } }),
+            React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+              React.createElement('button', { className: 'fi-btn', style: { padding: '8px 10px', fontSize: 12 }, onClick: function () { setCaminhadaEditId(null); } }, 'Cancelar'),
+              React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '8px 10px', fontSize: 12 }, disabled: hojeSaving, onClick: guardarCaminhadaEditada }, 'Guardar')
+            )
+          );
+        }
+        return React.createElement('div', { key: x.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+          React.createElement('div', { className: 'fi-hoje-linha-info' }, React.createElement('span', { className: 'fi-hoje-linha-nome' }, '✓ Caminhada · ' + x.minutos + ' min')),
+          React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+            React.createElement('button', { 'aria-label': 'Editar caminhada', style: btnIcone, onClick: function () { setCaminhadaEditId(x.id); setCaminhadaEditMin(String(x.minutos)); } }, '✏️'),
+            React.createElement('button', { 'aria-label': 'Apagar caminhada', style: btnIcone, onClick: function () { setConfirmApagarSessao(x.id); } }, '🗑️')
+          )
+        );
+      }),
+      treinos.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 } },
+        treinos.map(function (t) {
+          return React.createElement('button', { key: t.id, className: 'fi-btn', style: { flex: '1 1 140px', minHeight: 44 }, disabled: hojeSaving, onClick: function () { registarTreinoNoDia(t); } }, 'Fiz: ' + t.nome);
+        })
+      ),
+      !treinosCarregando && !treinos.length && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Os treinos criam-se no separador Treino.'),
+      React.createElement(FiLabel, { style: { margin: '12px 0 6px' } }, 'Caminhada'),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' } },
+        [20, 30, 45, 60].map(function (m) {
+          return React.createElement('button', { key: m, className: 'fi-chip', style: { minHeight: 40 }, disabled: hojeSaving, onClick: function () { registarCaminhadaNoDia(m); } }, m + ' min');
+        }),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'outro', 'aria-label': 'Outros minutos de caminhada', style: { maxWidth: 90 }, value: caminhadaHojeMin, onChange: function (e) { setCaminhadaHojeMin(e.target.value); } }),
+        caminhadaHojeMin !== '' && React.createElement('button', { className: 'fi-btn fi-btn-ativo', 'aria-label': 'Registar caminhada', style: { padding: '8px 12px', fontSize: 12 }, disabled: hojeSaving, onClick: function () { registarCaminhadaNoDia(caminhadaHojeMin); } }, 'Registar')
+      )
+    );
+  }
   // Aviso semanal (Hoje e Progresso): só aparece quando fiAvisoSemanal o devolve.
   function renderAvisoSemanal() {
     if (!avisoSemanal) return null;
@@ -2861,6 +2985,7 @@ function FitnessApp(props) {
       ),
       renderAnelHoje(totalHoje),
       renderAgua(),
+      renderTreinoHoje(),
       renderHistoricoHoje()
     );
   }
@@ -3464,10 +3589,10 @@ function FitnessApp(props) {
   }
   function apagarSessao(id) {
     db.from('fitness_treino_log').delete().eq('id', id).then(function (res) {
-      if (res.error) { console.error('[fitness] apagar sessão:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      if (res.error) { setConfirmApagarSessao(null); falhaHoje('apagar o registo de treino', res.error); return; }
       setConfirmApagarSessao(null);
       carregarTreinos();
-    }).catch(function (e) { console.error('[fitness] apagar sessão:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setConfirmApagarSessao(null); falhaHoje('apagar o registo de treino', e); });
   }
 
   // Caminhada: fitness_treino_log com treino_id null e feitos = { tipo: 'caminhada', minutos: N }.
