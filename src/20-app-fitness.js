@@ -483,6 +483,16 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   return novo;
 }
 
+// Faixa da próxima avaliação no Hoje. dias = dias que faltam (negativo se já
+// passou); dataFmt = data já formatada. Na véspera e no próprio dia pede o
+// peso real e as medidas e oferece o botão de registar.
+// Devolve { texto, destaque, registar }.
+function fiTextoProxAvaliacao(dias, dataFmt) {
+  if (dias === 1) return { texto: 'Amanhã é a avaliação: regista o peso real e as medidas.', destaque: true, registar: true };
+  if (dias === 0) return { texto: 'Hoje é a avaliação: regista o peso real e as medidas.', destaque: true, registar: true };
+  if (dias < 0) return { texto: 'A avaliação estava marcada para ' + dataFmt + '. Quando a fizeres, regista o peso real e as medidas.', destaque: true, registar: true };
+  return { texto: 'Próxima avaliação física: ' + dataFmt + ' · faltam ' + dias + ' dias', destaque: false, registar: false };
+}
 // Treino e caminhada de um dia, a partir de fitness_treino_log.
 // Sessão = linha com treino_id; caminhada = treino_id null e
 // feitos = { tipo: 'caminhada', minutos }. Devolve as duas listas e uma frase
@@ -2631,22 +2641,13 @@ function FitnessApp(props) {
   // Faixa "Próxima avaliação física" — já disponível na Fase 1.
   function renderProxAvaliacaoFaixa() {
     if (!perfil || !perfil.prox_avaliacao) return null;
-    var dias = fiDiasAte(perfil.prox_avaliacao);
-    var atrasada = dias < 0;
-    var hoje = dias === 0;
-    var texto = atrasada
-      ? '⚠️ Avaliação em atraso — era ' + fiFmtDataCurta(perfil.prox_avaliacao)
-      : hoje
-        ? '🎯 Próxima avaliação física: hoje!'
-        : 'Próxima avaliação física: ' + fiFmtDataCurta(perfil.prox_avaliacao) + ' · faltam ' + dias + ' dia' + (dias === 1 ? '' : 's');
-    return React.createElement(FiCard, {
-      style: {
-        marginBottom: 12,
-        background: (atrasada || hoje) ? 'var(--fi-vermelho)' : undefined,
-        borderColor: (atrasada || hoje) ? 'var(--fi-vermelho)' : undefined
-      }
-    },
-      React.createElement('p', { style: { fontSize: 13, fontWeight: 800, color: (atrasada || hoje) ? '#fff' : 'var(--fi-texto)', margin: 0 } }, texto)
+    var info = fiTextoProxAvaliacao(fiDiasAte(perfil.prox_avaliacao), fiFmtDataCurta(perfil.prox_avaliacao));
+    return React.createElement(FiCard, { style: { marginBottom: 12, borderColor: info.destaque ? 'var(--fi-verde)' : undefined } },
+      React.createElement('p', { role: info.destaque ? 'status' : undefined, style: { fontSize: 13, fontWeight: 800, color: 'var(--fi-texto)', margin: 0 } }, (info.destaque ? '🎯 ' : '') + info.texto),
+      info.registar && React.createElement('button', {
+        className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 10, minHeight: 44 },
+        onClick: function () { setTab('progresso'); abrirNovaAvaliacao(); }
+      }, 'Registar avaliação')
     );
   }
   // Macros do plano em uso: soma da opção escolhida (favorita ou a primeira) de
