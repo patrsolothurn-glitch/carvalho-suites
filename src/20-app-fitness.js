@@ -483,6 +483,24 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   return novo;
 }
 
+// Diferença entre os macros do plano em uso (soma da opção escolhida de cada
+// refeição) e a referência de macros da app. Só fala dos macros que se afastam
+// mais de 10% da referência. É só informação: nunca mexe no plano.
+// plano e ref = { prot, hc, gord } em gramas. Devolve o texto ou null.
+function fiDiferencaMacros(plano, ref) {
+  if (!plano || !ref) return null;
+  var partes = [];
+  [['prot', 'proteína'], ['hc', 'hidratos'], ['gord', 'gordura']].forEach(function (m) {
+    var r = Number(ref[m[0]]) || 0, p = Number(plano[m[0]]) || 0;
+    if (r <= 0) return;
+    var dif = p - r;
+    if (Math.abs(dif) / r <= 0.10) return;
+    partes.push(Math.round(Math.abs(dif)) + ' g de ' + m[1] + (dif < 0 ? ' a menos' : ' a mais'));
+  });
+  if (!partes.length) return null;
+  var lista = partes.length === 1 ? partes[0] : partes.slice(0, -1).join(', ') + ' e ' + partes[partes.length - 1];
+  return 'O plano tem ' + lista + ' do que a referência.';
+}
 // Dia "fora do normal": com registo, mas abaixo de 60% ou acima de 130% do
 // alvo. Pode ser um dia mal registado; a app pede para o confirmar.
 function fiDiaForaDoNormal(kcal, meta) {
@@ -2082,6 +2100,7 @@ function FitnessApp(props) {
       : (ordenadas[0] ? ordenadas[0].id : null);
     return React.createElement('div', { style: { padding: 16 } },
       renderMetaResumo(true),
+      renderDiferencaMacros(),
       Math.abs(soma - 100) > 0.05 && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-vermelho)' } },
         React.createElement('p', { style: { fontSize: 12.5, color: 'var(--fi-vermelho)', fontWeight: 700 } }, '⚠️ As percentagens das refeições somam ' + soma + '% — deviam somar 100%.')
       ),
@@ -2565,6 +2584,27 @@ function FitnessApp(props) {
     },
       React.createElement('p', { style: { fontSize: 13, fontWeight: 800, color: (atrasada || hoje) ? '#fff' : 'var(--fi-texto)', margin: 0 } }, texto)
     );
+  }
+  // Macros do plano em uso: soma da opção escolhida (favorita ou a primeira) de
+  // cada refeição, nas quantidades já ajustadas. Só se calcula quando TODAS as
+  // refeições têm uma opção com ingredientes; senão a comparação seria enganadora.
+  function macrosDoPlano() {
+    if (!meta.ativa || !ordenadas.length) return null;
+    var soma = { prot: 0, hc: 0, gord: 0 }, completo = true;
+    ordenadas.forEach(function (r) {
+      var o = opcaoEscolhidaRefeicao(r.id);
+      var itensOpcao = o ? itens.filter(function (it) { return it.opcao_id === o.id; }) : [];
+      var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, Math.round(meta.ativa * (r.pct / 100)));
+      if (!calc.itens.length) { completo = false; return; }
+      soma.prot += calc.totais.prot; soma.hc += calc.totais.hc; soma.gord += calc.totais.gord;
+    });
+    return completo ? soma : null;
+  }
+  function renderDiferencaMacros() {
+    if (!macrosRef) return null;
+    var texto = fiDiferencaMacros(macrosDoPlano(), { prot: macrosRef.prot_g, hc: macrosRef.hc_g, gord: macrosRef.gord_g });
+    if (!texto) return null;
+    return React.createElement('p', { role: 'note', style: { margin: '0 2px 12px', fontSize: 12.5, color: 'var(--fi-texto2)', fontWeight: 700 } }, 'ℹ️ ' + texto);
   }
   // Aviso semanal (Hoje e Progresso): só aparece quando fiAvisoSemanal o devolve.
   function renderAvisoSemanal() {
