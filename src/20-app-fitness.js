@@ -483,6 +483,28 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   return novo;
 }
 
+// Registos que parecem repetidos no mesmo dia: mesma refeição, mesmo prato
+// (a mesma opção do plano, ou o mesmo nome e as mesmas kcal num registo livre)
+// e gravados com menos de 60 minutos de diferença (ou sem hora guardada).
+// Devolve os ids dos registos "a mais" (o primeiro de cada grupo não conta).
+function fiRegistosDuplicados(registos) {
+  var grupos = {};
+  (registos || []).forEach(function (reg) {
+    var prato = reg.opcao_id != null ? 'o:' + reg.opcao_id : 'l:' + String(reg.livre_nome || '').trim().toLowerCase() + ':' + Math.round(Number(reg.kcal) || 0);
+    var chave = String(reg.data || '') + '|' + String(reg.refeicao_id || '') + '|' + prato;
+    (grupos[chave] = grupos[chave] || []).push(reg);
+  });
+  var ids = [];
+  Object.keys(grupos).forEach(function (chave) {
+    var lista = grupos[chave].slice().sort(function (a, b) { return String(a.created_at || '') < String(b.created_at || '') ? -1 : 1; });
+    for (var i = 1; i < lista.length; i++) {
+      var antes = lista[i - 1].created_at ? new Date(lista[i - 1].created_at).getTime() : NaN;
+      var este = lista[i].created_at ? new Date(lista[i].created_at).getTime() : NaN;
+      if (isNaN(antes) || isNaN(este) || Math.abs(este - antes) < 60 * 60 * 1000) ids.push(lista[i].id);
+    }
+  });
+  return ids;
+}
 // Diferença entre os macros do plano em uso (soma da opção escolhida de cada
 // refeição) e a referência de macros da app. Só fala dos macros que se afastam
 // mais de 10% da referência. É só informação: nunca mexe no plano.
@@ -907,8 +929,12 @@ function FitnessApp(props) {
       setRegistoDia(regRes.data || []);
       setAguaDia(aguaRes.data || null);
       var porDia = {};
+      var repetidosHist = {};
+      fiRegistosDuplicados(histRes.data || []).forEach(function (id) { repetidosHist[id] = true; });
       (histRes.data || []).forEach(function (reg) {
-        if (!porDia[reg.data]) porDia[reg.data] = { data: reg.data, kcal: 0, prot: 0, hc: 0, gord: 0 };
+        if (!porDia[reg.data]) porDia[reg.data] = { data: reg.data, kcal: 0, prot: 0, hc: 0, gord: 0, n: 0, repetidos: 0 };
+        porDia[reg.data].n += 1;
+        if (repetidosHist[reg.id]) porDia[reg.data].repetidos += 1;
         porDia[reg.data].kcal += Number(reg.kcal || 0);
         porDia[reg.data].prot += Number(reg.prot || 0);
         porDia[reg.data].hc += Number(reg.hc || 0);
@@ -1001,6 +1027,8 @@ function FitnessApp(props) {
   // Tendência real do peso, aviso semanal e gasto real estimado (só informação; não mexem em alvos).
   var tendenciaPeso = fiTendenciaPeso(avaliacoesRecentes);
   var hojeIsoAviso = new Date().toISOString().slice(0, 10);
+  var repetidosDia = {};
+  fiRegistosDuplicados(registoDia).forEach(function (id) { repetidosDia[id] = true; });
   var diasQueContam = fiDiasQueContam(historicoDias, meta.ativa, diasConfirmados);
   var ultimos14QueContam = diasQueContam.filter(function (d) { return d.data < hojeIsoAviso && d.data >= fiSomarDias(hojeIsoAviso, -14); });
   var avisoSemanal = fiAvisoSemanal({
@@ -2459,15 +2487,21 @@ function FitnessApp(props) {
       hojeData !== hojeIso && React.createElement('button', { className: 'fi-btn fi-btn-ativo', onClick: function () { setHojeData(hojeIso); } }, 'Hoje')
     );
   }
-  function renderOpcaoHoje(o, r, kcalRefeicao) {
-    var registo = registoDia.filter(function (reg) { return reg.opcao_id === o.id; })[0] || null;
+  // Linha de uma opção do plano no dia. Com regDado, é a linha DESSE registo
+  // (uma linha por registo: se a mesma opção foi gravada duas vezes, aparecem
+  // as duas e cada uma pode ser editada ou apagada). Sem regDado, é a opção
+  // ainda por registar, com o botão "Comi".
+  function renderOpcaoHoje(o, r, kcalRefeicao, regDado) {
+    var registo = regDado || null;
+    var repetido = !!(registo && repetidosDia[registo.id]);
     var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
     var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
     var kcalMostrar = registo ? registo.kcal : calc.totais.kcal;
-    return React.createElement('div', { key: o.id, className: 'fi-hoje-linha' + (registo ? ' fi-hoje-linha-feita' : '') },
+    return React.createElement('div', { key: registo ? 'reg-' + registo.id : o.id, className: 'fi-hoje-linha' + (registo ? ' fi-hoje-linha-feita' : '') },
       React.createElement('div', { className: 'fi-hoje-linha-info' },
         React.createElement('span', { className: 'fi-hoje-linha-nome' }, o.nome),
-        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(kcalMostrar))
+        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(kcalMostrar) + (registo && registo.fator != null && Number(registo.fator) !== 1 ? ' · x' + registo.fator : '')),
+        repetido && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Parece repetido')
       ),
       !registo && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 12px', fontSize: 12 }, disabled: hojeSaving, onClick: function () { marcarComi(o, r); } }, 'Comi'),
       registo && registoEditandoId === registo.id && React.createElement('div', { className: 'fi-dose-chips' },
@@ -2486,7 +2520,8 @@ function FitnessApp(props) {
     return React.createElement('div', { key: reg.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
       React.createElement('div', { className: 'fi-hoje-linha-info' },
         React.createElement('span', { className: 'fi-hoje-linha-nome' }, '🍕 ' + (reg.livre_nome || 'Item')),
-        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(reg.kcal))
+        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(reg.kcal)),
+        repetidosDia[reg.id] && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Parece repetido')
       ),
       React.createElement('div', { className: 'fi-hoje-linha-acoes' },
         React.createElement('button', { onClick: function () { abrirEditarComiOutra(reg); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '✏️'),
@@ -2545,20 +2580,24 @@ function FitnessApp(props) {
   }
   function renderHistoricoHoje() {
     return React.createElement(FiCard, { style: { marginTop: 12 } },
-      React.createElement(FiLabel, null, 'Últimos dias'),
+      React.createElement(FiLabel, null, 'Últimos dias · toca num dia para ver e corrigir'),
       historicoHoje.length
         ? historicoHoje.map(function (d) {
             var cor = fiCorAnelHoje(d.kcal, meta.ativa);
             return React.createElement('div', {
-              key: d.data, className: 'fi-historico-linha',
+              key: d.data, className: 'fi-historico-linha', role: 'button', tabIndex: 0, 'aria-label': 'Abrir o dia ' + fiFmtDataComDia(d.data),
               onClick: function () { setHojeData(d.data); window.scrollTo({ top: 0, behavior: 'smooth' }); }
             },
               React.createElement('div', { style: { minWidth: 0 } },
                 React.createElement('div', { style: { fontSize: 13, fontWeight: 700 } }, fiFmtDataComDia(d.data)),
                 React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'P ' + Math.round(d.prot) + ' · HC ' + Math.round(d.hc) + ' · G ' + Math.round(d.gord) + ' g'),
-                fiDiaForaDoNormal(d.kcal, meta.ativa) && diasConfirmados[d.data] !== 'sim' && React.createElement('div', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Fora do normal · por confirmar ▸')
+                fiDiaForaDoNormal(d.kcal, meta.ativa) && diasConfirmados[d.data] !== 'sim' && React.createElement('div', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Fora do normal · por confirmar'),
+                d.repetidos > 0 && React.createElement('div', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, d.repetidos === 1 ? '1 registo parece repetido' : d.repetidos + ' registos parecem repetidos')
               ),
-              React.createElement('div', { style: { fontSize: 14, fontWeight: 800, color: cor, flex: 'none' } }, Math.round(d.kcal) + ' kcal')
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 800, color: cor, flex: 'none', textAlign: 'right' } },
+                Math.round(d.kcal) + ' kcal ›',
+                React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: 'var(--fi-texto2)' } }, (d.n || 0) + (d.n === 1 ? ' registo' : ' registos'))
+              )
             );
           })
         : React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Ainda sem dias registados.')
@@ -2731,6 +2770,9 @@ function FitnessApp(props) {
     var eHoje = hojeData === agora.toISOString().slice(0, 10);
     var feitasHoje = ordenadas.map(function (r) { return registoDia.some(function (reg) { return reg.refeicao_id === r.id; }); });
     var idxDaHora = fiRefeicaoDaHora(feitasHoje, eHoje ? agora.getHours() + agora.getMinutes() / 60 : null);
+    var idsRefeicoes = ordenadas.map(function (r) { return r.id; });
+    var registosSoltos = registoDia.filter(function (reg) { return idsRefeicoes.indexOf(reg.refeicao_id) === -1; });
+    var nRepetidos = Object.keys(repetidosDia).length;
     return React.createElement('div', { style: { padding: 16 } },
       renderProxAvaliacaoFaixa(),
       renderSeletorDia(),
@@ -2740,7 +2782,15 @@ function FitnessApp(props) {
           React.createElement('button', { 'aria-label': 'Fechar aviso', onClick: function () { setHojeErro(null); }, style: { background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' } }, '✕')
         )
       ),
+      !eHoje && !hojeCarregando && React.createElement('p', { style: { margin: '0 2px 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--fi-texto2)', textAlign: 'center' } },
+        registoDia.length
+          ? 'Dia de ' + fiFmtDataComDia(hojeData) + ': ' + registoDia.length + (registoDia.length === 1 ? ' registo' : ' registos') + '. Podes editar, apagar ou acrescentar.'
+          : 'Dia de ' + fiFmtDataComDia(hojeData) + ': sem registos. Podes acrescentar o que faltar.'),
       renderEstadoHoje(totalHoje),
+      !hojeCarregando && nRepetidos > 0 && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-amarelo)' } },
+        React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13, fontWeight: 800, color: 'var(--fi-amarelo)' } },
+          '⚠️ ' + (nRepetidos === 1 ? 'Há 1 registo que parece repetido' : 'Há ' + nRepetidos + ' registos que parecem repetidos') + ' (mesmo prato, na mesma refeição, à mesma hora). Estão marcados em baixo; apaga o que estiver a mais.')
+      ),
       !hojeCarregando && renderConfirmarDia(totalHoje),
       renderAvisoSemanal(),
       renderSinalCansaco(),
@@ -2751,8 +2801,9 @@ function FitnessApp(props) {
         var opcoesRefeicao = opcoes.filter(function (o) { return o.refeicao_id === r.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
         var registosLivres = registoDia.filter(function (reg) { return reg.refeicao_id === r.id && reg.opcao_id == null; });
         var registadas = opcoesRefeicao.filter(function (o) { return registoDia.some(function (reg) { return reg.opcao_id === o.id; }); });
-        var temRegisto = registadas.length > 0 || registosLivres.length > 0;
-        var aberta = hojeRefAbertas[r.id] != null ? hojeRefAbertas[r.id] : idxRef === idxDaHora;
+        var registosOpcao = registoDia.filter(function (reg) { return reg.refeicao_id === r.id && reg.opcao_id != null; });
+        var temRegisto = registosOpcao.length > 0 || registosLivres.length > 0;
+        var aberta = hojeRefAbertas[r.id] != null ? hojeRefAbertas[r.id] : (eHoje ? idxRef === idxDaHora : (temRegisto || idxRef === idxDaHora));
         var alternar = function () { setHojeRefAbertas(function (m) { var n = Object.assign({}, m); n[r.id] = !aberta; return n; }); };
         if (!aberta) {
           var kcalFeitas = registoDia.filter(function (reg) { return reg.refeicao_id === r.id; }).reduce(function (s3, reg) { return s3 + Number(reg.kcal || 0); }, 0);
@@ -2777,7 +2828,10 @@ function FitnessApp(props) {
             className: 'fi-btn fi-btn-ativo fi-hoje-sempre', disabled: hojeSaving,
             onClick: function () { marcarComi(deSempre, r); }
           }, (hojeSaving ? 'A gravar… ' : '✓ Comi o plano: ') + deSempre.nome + ' · ' + fiFmtKcal(kcalDeSempre)),
-          registadas.map(function (o) { return renderOpcaoHoje(o, r, kcalRefeicao || 0); }),
+          registosOpcao.map(function (reg) {
+            var oReg = opcoes.filter(function (x) { return x.id === reg.opcao_id; })[0];
+            return oReg ? renderOpcaoHoje(oReg, r, kcalRefeicao || 0, reg) : renderRegistoLivre(reg);
+          }),
           registosLivres.map(function (reg) { return renderRegistoLivre(reg); }),
           !opcoesRefeicao.length && !registosLivres.length && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Sem opções nesta refeição ainda. Cria-as no Plano.'),
           React.createElement('button', {
@@ -2788,6 +2842,23 @@ function FitnessApp(props) {
           outrasAbertas && (comiOutraAberta === r.id ? renderFormComiOutra(r.id) : React.createElement('button', { className: 'fi-btn', style: { width: '100%', marginTop: 8 }, onClick: function () { abrirComiOutra(r.id); } }, '🍕 Fora do plano'))
         );
       }),
+      registosSoltos.length > 0 && React.createElement(FiCard, { style: { marginBottom: 12 } },
+        React.createElement(FiLabel, null, 'Outros registos deste dia'),
+        React.createElement('p', { style: { margin: '0 0 6px', fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Contam para o total do dia, mas são de uma refeição que já não existe no plano.'),
+        registosSoltos.map(function (reg) {
+          var oSolto = reg.opcao_id != null ? opcoes.filter(function (x) { return x.id === reg.opcao_id; })[0] : null;
+          return React.createElement('div', { key: reg.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+            React.createElement('div', { className: 'fi-hoje-linha-info' },
+              React.createElement('span', { className: 'fi-hoje-linha-nome' }, oSolto ? oSolto.nome : (reg.livre_nome || 'Registo sem nome')),
+              React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(reg.kcal)),
+              repetidosDia[reg.id] && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Parece repetido')
+            ),
+            React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+              React.createElement('button', { 'aria-label': 'Apagar registo', onClick: function () { setConfirmApagarRegisto(reg.id); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
+            )
+          );
+        })
+      ),
       renderAnelHoje(totalHoje),
       renderAgua(),
       renderHistoricoHoje()
