@@ -126,6 +126,7 @@ function fiCalcularIdade(dataNasc) {
   if (!dataNasc) return null;
   var hoje = new Date();
   var nasc = new Date(dataNasc);
+  if (isNaN(nasc.getTime())) return null;
   var idade = hoje.getFullYear() - nasc.getFullYear();
   var m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
@@ -154,13 +155,15 @@ function fiMetaAtiva(perfil, pesoAtual) {
   var calculado = null;
   if (perfil && perfil.sexo && perfil.data_nasc && perfil.altura_cm && pesoAtual && perfil.atividade && perfil.objetivo) {
     var idade = fiCalcularIdade(perfil.data_nasc);
-    var bmr = fiBMR(perfil.sexo, pesoAtual, perfil.altura_cm, idade);
-    var tdee = fiTDEE(bmr, perfil.atividade);
-    calculado = Object.assign({ bmr: Math.round(bmr) }, fiMetaCalculada(tdee, perfil.objetivo, perfil.ritmo, perfil.sexo));
+    if (idade != null) {
+      var bmr = fiBMR(perfil.sexo, pesoAtual, perfil.altura_cm, idade);
+      var tdee = fiTDEE(bmr, perfil.atividade);
+      calculado = Object.assign({ bmr: Math.round(bmr) }, fiMetaCalculada(tdee, perfil.objetivo, perfil.ritmo, perfil.sexo));
+    }
   }
-  var usarCoach = !!(perfil && perfil.usar_coach && perfil.kcal_coach);
+  var usarCoach = !!(perfil && perfil.usar_coach && Number(perfil.kcal_coach) > 0);
   var ativa = usarCoach ? perfil.kcal_coach : (calculado ? calculado.kcal : null);
-  return { calculado: calculado, coach: (perfil && perfil.kcal_coach) || null, usarCoach: usarCoach, ativa: ativa };
+  return { calculado: calculado, coach: (perfil && Number(perfil.kcal_coach) > 0 ? perfil.kcal_coach : null), usarCoach: usarCoach, ativa: ativa };
 }
 // Cálculo passo a passo para o cartão META DIÁRIA (só quando "calculado"
 // existe, ou seja, quando há sexo/idade/altura/peso/atividade/objetivo).
@@ -932,6 +935,8 @@ function FitnessApp(props) {
   var _s125 = React.useState(null); var comerRefId = _s125[0], setComerRefId = _s125[1]; // refeição escolhida na caixa (null = a da hora)
   var _s126 = React.useState(null); var comerOpcaoId = _s126[0], setComerOpcaoId = _s126[1]; // opção escolhida na caixa
   var _s127 = React.useState([]); var extrasRecentes = _s127[0], setExtrasRecentes = _s127[1]; // últimos extras (fora do plano), para repetir com um toque
+  var _s128 = React.useState(false); var perfilFalhou = _s128[0], setPerfilFalhou = _s128[1]; // a leitura do perfil deu erro (não é o mesmo que não haver perfil)
+  var _s129 = React.useState(null); var perfErroCoach = _s129[0], setPerfErroCoach = _s129[1]; // valor inválido no alvo do treinador (editor de perfil)
   var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
@@ -1004,6 +1009,7 @@ function FitnessApp(props) {
     ]).then(function (res) {
       var perfilRes = res[0], refRes = res[1], opcRes = res[2], itRes = res[3], alRes = res[4], avRes = res[5];
       if (perfilRes.error) { console.error('[fitness] carregar perfil:', perfilRes.error); window.mostrarErro('Fitness', perfilRes.error); }
+      setPerfilFalhou(!!perfilRes.error);
       if (refRes.error) { console.error('[fitness] carregar refeições:', refRes.error); window.mostrarErro('Fitness', refRes.error); }
       if (opcRes.error) { console.error('[fitness] carregar opções:', opcRes.error); window.mostrarErro('Fitness', opcRes.error); }
       if (itRes.error) { console.error('[fitness] carregar itens:', itRes.error); window.mostrarErro('Fitness', itRes.error); }
@@ -1021,6 +1027,7 @@ function FitnessApp(props) {
     }).catch(function (e) {
       console.error('[fitness] carregar:', e);
       setErro('Falha ao carregar: ' + (e && e.message ? e.message : e));
+      setPerfilFalhou(true);
       setLoading(false);
       window.mostrarErro('Fitness', e);
     });
@@ -1360,6 +1367,11 @@ function FitnessApp(props) {
 
   function tentarGuardarPerfil() {
     if (fiValidarAltura(perfForm.altura_cm).erro) return;
+    if (perfForm.usar_coach && String(perfForm.kcal_coach).trim() !== '' && !(parseFloat(perfForm.kcal_coach) > 0)) {
+      setPerfErroCoach('O alvo do treinador tem de ser um número de kcal maior do que zero.');
+      return;
+    }
+    setPerfErroCoach(null);
     var newN = perfForm.n_refeicoes;
     var ordenadas = refeicoes.slice().sort(function (a, b) { return a.ordem - b.ordem; });
     var excedentes = ordenadas.slice(newN);
@@ -1560,7 +1572,12 @@ function FitnessApp(props) {
           React.createElement('input', { type: 'checkbox', checked: perfForm.usar_coach, onChange: function (e) { perfCampo('usar_coach', e.target.checked); } }),
           React.createElement('span', { style: { fontSize: 13, fontWeight: 700 } }, 'Usar meta do coach')
         ),
-        perfForm.usar_coach && React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal do coach', value: perfForm.kcal_coach, onChange: function (e) { perfCampo('kcal_coach', e.target.value); }, style: { marginBottom: 14 } }),
+        perfForm.usar_coach && React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: perfErroCoach ? 4 : 14 } },
+          React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal do coach', 'aria-label': 'Alvo do treinador em kcal', value: perfForm.kcal_coach, onChange: function (e) { perfCampo('kcal_coach', e.target.value); setPerfErroCoach(null); } }),
+          React.createElement('button', { className: 'fi-btn', style: { flex: 'none' }, onClick: function () { setPerfForm(function (f) { return Object.assign({}, f, { usar_coach: false, kcal_coach: '' }); }); setPerfErroCoach(null); } }, 'Apagar')
+        ),
+        perfErroCoach && React.createElement('p', { role: 'alert', style: { fontSize: 12, fontWeight: 700, color: 'var(--fi-vermelho)', margin: '0 0 14px' } }, perfErroCoach),
+        !perfForm.usar_coach && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', margin: '0 0 14px' } }, 'Sem alvo do treinador, vale a meta calculada.'),
         React.createElement(FiLabel, null, 'Próxima avaliação física'),
         React.createElement('input', { type: 'date', className: 'fi-input', autoComplete: 'off', value: perfForm.prox_avaliacao, onChange: function (e) { perfCampo('prox_avaliacao', e.target.value); }, style: { marginBottom: 8 } }),
         React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)', margin: '0 0 14px' } }, 'Atualiza-se sozinha ao gravar uma avaliação nova (data + intervalo abaixo) — mas podes mudar ou apagar à mão aqui.'),
@@ -2445,6 +2462,19 @@ function FitnessApp(props) {
     );
   }
 
+  if (!perfil && perfilFalhou) {
+    // Não foi possível ler o perfil: NÃO mostrar o assistente de primeira
+    // abertura (isso faria parecer que o perfil não existe).
+    return React.createElement('div', { className: appClass },
+      React.createElement('style', null, FI_CSS),
+      React.createElement('div', { style: { padding: 24, maxWidth: 420, margin: '0 auto', textAlign: 'center' } },
+        React.createElement('p', { role: 'alert', style: { fontSize: 15, fontWeight: 800, margin: '40px 0 8px' } }, 'Não foi possível carregar os teus dados.'),
+        React.createElement('p', { style: { fontSize: 13, color: 'var(--fi-texto2)', margin: '0 0 16px' } }, 'O teu perfil e os registos continuam guardados. Pode ser só falta de rede.'),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { minHeight: 46, width: '100%' }, onClick: function () { carregar(); } }, 'Tentar outra vez'),
+        React.createElement('button', { className: 'fi-btn', style: { minHeight: 46, width: '100%', marginTop: 8 }, onClick: onBack }, 'Voltar')
+      )
+    );
+  }
   if (!perfil) {
     return React.createElement('div', { className: appClass },
       React.createElement('style', null, FI_CSS),
