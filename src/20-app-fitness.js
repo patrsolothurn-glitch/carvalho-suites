@@ -483,6 +483,82 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   return novo;
 }
 
+// Balanço da semana (segunda a domingo): soma do que os dias JÁ FECHADOS
+// (antes de hoje) ficaram acima (+) ou abaixo (−) do alvo. Só entram dias com
+// registo. diasRestantes = dias de amanhã até domingo.
+function fiBalancoSemana(dias, meta, hojeISO) {
+  var m = Number(meta) || 0;
+  var segunda = fiSegundaFeira(hojeISO);
+  var fechados = (dias || []).filter(function (d) { return d.data >= segunda && d.data < hojeISO && Number(d.kcal) > 0; });
+  var saldo = m ? fechados.reduce(function (s2, d) { return s2 + (Number(d.kcal) - m); }, 0) : 0;
+  return { saldo: Math.round(saldo), diasFechados: fechados.length, diasRestantes: 6 - fiDiasEntre(segunda, hojeISO) };
+}
+// Do que já existe na lista (opções do plano e alimentos), o que dá mais
+// proteína dentro das kcal que ainda cabem. candidatos = [{ nome, kcal, prot }]
+// (uma dose). Devolve até 2, os de mais proteína por kcal, que caibam e que
+// deem pelo menos 5 g.
+function fiSugestoesProteina(candidatos, kcalDisponiveis) {
+  var cabe = Number(kcalDisponiveis) || 0;
+  return (candidatos || []).filter(function (c) {
+    return Number(c.kcal) > 0 && Number(c.prot) >= 5 && Number(c.kcal) <= cabe;
+  }).slice().sort(function (a, b) { return (b.prot / b.kcal) - (a.prot / a.kcal); }).slice(0, 2);
+}
+// Resposta curta a "o que vou comer?". Tudo em frases neutras.
+// d = { kcalPrato, protPrato, kcalComidas, protComidas, kcalMeta, protMeta,
+//       saldoSemana, diasRestantes, candidatos }.
+// Devolve { cabe, linhas }.
+function fiRespostaPrato(d) {
+  var meta = Number(d.kcalMeta) || 0;
+  if (!meta) return { cabe: null, linhas: ['Sem alvo definido: completa o perfil para a app responder.'] };
+  var depois = meta - (Number(d.kcalComidas) || 0) - (Number(d.kcalPrato) || 0);
+  var linhas = [], cabe = depois >= 0;
+  if (cabe) {
+    linhas.push('Cabe no dia: depois disto ficam ' + Math.round(depois) + ' kcal.');
+  } else {
+    var excesso = Math.round(-depois);
+    var n = Number(d.diasRestantes) || 0;
+    var fatia = n > 0 ? Math.round(excesso / n) : 0;
+    var texto = 'Fica ' + excesso + ' kcal acima do alvo de hoje.';
+    if (n > 0 && fatia <= meta * 0.10) texto += ' Compensa-se na semana com cerca de ' + fatia + ' kcal a menos por dia nos próximos ' + n + (n === 1 ? ' dia.' : ' dias.');
+    else if (n > 0) texto += ' É bastante para compensar só nesta semana; pode repartir-se por mais dias.';
+    else texto += ' É o último dia da semana; o balanço recomeça amanhã.';
+    linhas.push(texto);
+  }
+  var protMeta = d.protMeta != null && Number(d.protMeta) > 0 ? Number(d.protMeta) : null;
+  if (protMeta != null) {
+    var faltaProt = Math.round(protMeta - (Number(d.protComidas) || 0) - (Number(d.protPrato) || 0));
+    if (faltaProt > protMeta * 0.10) {
+      var sug = fiSugestoesProteina(d.candidatos, Math.max(0, depois));
+      linhas.push('Proteína: ficam a faltar ' + faltaProt + ' g.' + (sug.length
+        ? ' Da tua lista: ' + sug.map(function (c) { return c.nome + ' (+' + Math.round(c.prot) + ' g)'; }).join(' ou ') + '.'
+        : ''));
+    } else {
+      linhas.push('Proteína: dentro do alvo.');
+    }
+  }
+  var saldo = Number(d.saldoSemana) || 0;
+  if (Math.abs(saldo) > meta * 0.05) {
+    linhas.push('Na semana, até ontem: ' + Math.abs(Math.round(saldo)) + ' kcal ' + (saldo > 0 ? 'acima' : 'abaixo') + ' do alvo.');
+  }
+  return { cabe: cabe, linhas: linhas };
+}
+// Últimos extras registados fora do plano (registos livres com nome), sem
+// repetir o mesmo nome; o mais recente primeiro, no máximo 5.
+function fiUltimosExtras(registos) {
+  var vistos = {}, lista = [];
+  (registos || []).filter(function (r) { return r.opcao_id == null && r.livre_nome && String(r.livre_nome).trim() && Number(r.kcal) > 0; })
+    .slice().sort(function (a, b) {
+      var x = String(a.data || '') + String(a.created_at || ''), y = String(b.data || '') + String(b.created_at || '');
+      return x < y ? 1 : (x > y ? -1 : 0);
+    })
+    .forEach(function (r) {
+      var chave = String(r.livre_nome).trim().toLowerCase();
+      if (vistos[chave] || lista.length >= 5) return;
+      vistos[chave] = true;
+      lista.push({ nome: String(r.livre_nome).trim(), kcal: Number(r.kcal) || 0, prot: Number(r.prot) || 0, hc: Number(r.hc) || 0, gord: Number(r.gord) || 0 });
+    });
+  return lista;
+}
 // Faixa da próxima avaliação no Hoje. dias = dias que faltam (negativo se já
 // passou); dataFmt = data já formatada. Na véspera e no próprio dia pede o
 // peso real e as medidas e oferece o botão de registar.
@@ -852,6 +928,10 @@ function FitnessApp(props) {
   var _s121 = React.useState(null); var caminhadaEditId = _s121[0], setCaminhadaEditId = _s121[1]; // id da caminhada a editar no Hoje
   var _s122 = React.useState(''); var caminhadaEditMin = _s122[0], setCaminhadaEditMin = _s122[1];
   var _s123 = React.useState(''); var caminhadaHojeMin = _s123[0], setCaminhadaHojeMin = _s123[1]; // minutos escritos à mão no Hoje
+  var _s124 = React.useState(false); var comerAberto = _s124[0], setComerAberto = _s124[1]; // Hoje: caixa "O que vou comer?" aberta
+  var _s125 = React.useState(null); var comerRefId = _s125[0], setComerRefId = _s125[1]; // refeição escolhida na caixa (null = a da hora)
+  var _s126 = React.useState(null); var comerOpcaoId = _s126[0], setComerOpcaoId = _s126[1]; // opção escolhida na caixa
+  var _s127 = React.useState([]); var extrasRecentes = _s127[0], setExtrasRecentes = _s127[1]; // últimos extras (fora do plano), para repetir com um toque
   var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
@@ -980,6 +1060,7 @@ function FitnessApp(props) {
       dias.sort(function (a, b) { return a.data < b.data ? 1 : (a.data > b.data ? -1 : 0); });
       setHistoricoHoje(dias);
       if (!histRes.error) setHistoricoDias(Object.keys(porDia).map(function (d) { return porDia[d]; }));
+      if (!histRes.error) setExtrasRecentes(fiUltimosExtras(histRes.data || []));
       setHojeCarregando(false);
     }).catch(function (e) {
       console.error('[fitness] carregar hoje:', e);
@@ -2454,9 +2535,9 @@ function FitnessApp(props) {
       };
     } else {
       var kcalNum = parseFloat(f.kcal);
-      if (!f.nome.trim() || !kcalNum || kcalNum <= 0) return;
+      if (!kcalNum || kcalNum <= 0) return;
       payload = {
-        data: hojeData, refeicao_id: refeicaoId, opcao_id: null, livre_nome: f.nome.trim(), fator: null,
+        data: hojeData, refeicao_id: refeicaoId, opcao_id: null, livre_nome: f.nome.trim() || 'Extra', fator: null,
         kcal: kcalNum, prot: parseFloat(f.prot) || 0, hc: parseFloat(f.hc) || 0, gord: parseFloat(f.gord) || 0
       };
     }
@@ -2564,13 +2645,37 @@ function FitnessApp(props) {
       )
     );
   }
+  // Repete um extra recente nesta refeição, com um toque (mesmos valores).
+  function repetirExtra(refeicaoId, x) {
+    if (hojeSavingRef.current) return;
+    setHojeSaving(true);
+    db.from('fitness_registo').insert({
+      data: hojeData, refeicao_id: refeicaoId, opcao_id: null, livre_nome: x.nome, fator: null,
+      kcal: x.kcal, prot: x.prot, hc: x.hc, gord: x.gord
+    }).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar ' + x.nome, res.error); return; }
+      setHojeErro(null);
+      setComiOutraAberta(null);
+      carregarHoje(hojeData);
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar ' + x.nome, e); });
+  }
   function renderFormComiOutra(refeicaoId) {
     var f = comiOutraForm;
     return React.createElement(FiCard, { style: { marginTop: 8, marginBottom: 8 } },
+      !comiOutraEditandoId && extrasRecentes.length > 0 && React.createElement('div', { style: { marginBottom: 10 } },
+        React.createElement(FiLabel, null, 'Últimos extras · um toque regista'),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+          extrasRecentes.map(function (x) {
+            return React.createElement('button', { key: x.nome, className: 'fi-chip', style: { minHeight: 40 }, disabled: hojeSaving, onClick: function () { repetirExtra(refeicaoId, x); } }, x.nome + ' · ' + Math.round(x.kcal) + ' kcal');
+          })
+        )
+      ),
       !comiOutraEditandoId && React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 10 } },
         ['alimento', 'livre'].map(function (m) {
           var sel = f.modo === m;
-          return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { setComiOutraForm(Object.assign({}, f, { modo: m })); } }, m === 'alimento' ? 'Alimento da lista' : 'Nome livre');
+          var rotulo = m === 'alimento' ? 'Alimento da lista' : 'Só calorias';
+          return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { setComiOutraForm(Object.assign({}, f, { modo: m })); } }, rotulo);
         })
       ),
       f.modo === 'alimento'
@@ -2581,7 +2686,7 @@ function FitnessApp(props) {
             React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'gramas', value: f.gramas, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { gramas: e.target.value })); }, style: { marginBottom: 8 } })
           )
         : React.createElement(React.Fragment, null,
-            React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome', value: f.nome, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { nome: e.target.value })); }, style: { marginBottom: 8 } }),
+            React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome (opcional)', value: f.nome, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { nome: e.target.value })); }, style: { marginBottom: 8 } }),
             React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal', value: f.kcal, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { kcal: e.target.value })); }, style: { marginBottom: 8 } }),
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 } },
               React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'proteína (g)', value: f.prot, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { prot: e.target.value })); } }),
@@ -2670,6 +2775,68 @@ function FitnessApp(props) {
     var texto = fiDiferencaMacros(macrosDoPlano(), { prot: macrosRef.prot_g, hc: macrosRef.hc_g, gord: macrosRef.gord_g });
     if (!texto) return null;
     return React.createElement('p', { role: 'note', style: { margin: '0 2px 12px', fontSize: 12.5, color: 'var(--fi-texto2)', fontWeight: 700 } }, 'ℹ️ ' + texto);
+  }
+  // ── "O que vou comer?" ──────────────────────────────────────────────
+  // Escolhe-se primeiro entre as opções do plano da refeição; a resposta sai
+  // na hora, sem gravar nada. "Registar" grava como qualquer outro registo
+  // (edita-se e apaga-se na refeição).
+  function renderOQueVouComer(totalHoje, idxDaHora) {
+    if (!comerAberto) {
+      return React.createElement('button', { className: 'fi-hoje-recolhida', 'aria-expanded': false, onClick: function () { setComerAberto(true); } },
+        React.createElement('span', { style: { fontWeight: 800 } }, '🍽️ O que vou comer?'),
+        React.createElement('span', { style: { color: 'var(--fi-texto2)', fontWeight: 700 } }, '▸')
+      );
+    }
+    var refAtual = ordenadas.filter(function (r) { return r.id === comerRefId; })[0] || ordenadas[idxDaHora >= 0 ? idxDaHora : 0] || null;
+    var opcoesRef = refAtual ? opcoes.filter(function (o) { return o.refeicao_id === refAtual.id; }).sort(function (a, b) { return (b.favorito ? 1 : 0) - (a.favorito ? 1 : 0) || a.ordem - b.ordem; }) : [];
+    var kcalRef = refAtual && meta.ativa ? Math.round(meta.ativa * (refAtual.pct / 100)) : 0;
+    var escolhida = opcoesRef.filter(function (o) { return o.id === comerOpcaoId; })[0] || null;
+    var resposta = null;
+    if (escolhida) {
+      var calc = fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === escolhida.id; }), alimentosPorId, kcalRef);
+      var hojeIsoReal = new Date().toISOString().slice(0, 10);
+      var bal = fiBalancoSemana(diasQueContam, meta.ativa, hojeIsoReal);
+      // candidatos de proteína: as outras opções do plano (uma dose) e os alimentos (100 g)
+      var candidatos = opcoes.filter(function (o) { return o.id !== escolhida.id; }).map(function (o) {
+        var r2 = ordenadas.filter(function (r) { return r.id === o.refeicao_id; })[0];
+        var c2 = fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === o.id; }), alimentosPorId, r2 && meta.ativa ? Math.round(meta.ativa * (r2.pct / 100)) : 0);
+        return { nome: o.nome, kcal: c2.totais.kcal, prot: c2.totais.prot };
+      }).concat(alimentos.map(function (a) { return { nome: '100 ' + (a.medida === 'ml' ? 'ml' : 'g') + ' de ' + a.nome, kcal: Number(a.kcal_100) || 0, prot: Number(a.prot_100) || 0 }; }));
+      resposta = fiRespostaPrato({
+        kcalPrato: calc.totais.kcal, protPrato: calc.totais.prot, kcalComidas: totalHoje.kcal, protComidas: totalHoje.prot,
+        kcalMeta: meta.ativa, protMeta: protAlvo, saldoSemana: bal.saldo, diasRestantes: bal.diasRestantes, candidatos: candidatos
+      });
+    }
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }, onClick: function () { setComerAberto(false); setComerOpcaoId(null); } },
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, '🍽️ O que vou comer?'),
+        React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, '▾')
+      ),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 } },
+        ordenadas.map(function (r) {
+          var sel = refAtual && r.id === refAtual.id;
+          return React.createElement('button', { key: r.id, className: 'fi-chip' + (sel ? ' fi-chip-ativo' : ''), onClick: function () { setComerRefId(r.id); setComerOpcaoId(null); } }, r.nome);
+        })
+      ),
+      opcoesRef.length
+        ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+            opcoesRef.map(function (o) {
+              var sel = escolhida && o.id === escolhida.id;
+              return React.createElement('button', { key: o.id, className: 'fi-chip' + (sel ? ' fi-chip-ativo' : ''), style: { minHeight: 40 }, onClick: function () { setComerOpcaoId(o.id); } }, (o.favorito ? '★ ' : '') + o.nome);
+            })
+          )
+        : React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Esta refeição ainda não tem opções no Plano.'),
+      resposta && React.createElement('div', { role: 'status', style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--fi-borda)' } },
+        resposta.linhas.map(function (l, i) {
+          return React.createElement('p', { key: i, style: { margin: '0 0 4px', fontSize: 13.5, fontWeight: i === 0 ? 800 : 600, color: i === 0 && resposta.cabe === false ? 'var(--fi-amarelo)' : 'var(--fi-texto)' } }, l);
+        }),
+        React.createElement('button', {
+          className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 8, minHeight: 44 }, disabled: hojeSaving,
+          onClick: function () { marcarComi(escolhida, refAtual); setComerOpcaoId(null); setComerAberto(false); }
+        }, 'Registar ' + escolhida.nome)
+      ),
+      !resposta && opcoesRef.length > 0 && React.createElement('p', { style: { margin: '8px 0 0', fontSize: 12, color: 'var(--fi-texto2)' } }, 'Escolhe um prato para ver se cabe no dia. Nada é gravado até tocares em "Registar".')
+    );
   }
   // ── Treino e caminhada no Hoje ──────────────────────────────────────
   // Bloco discreto, fechado por omissão. Regista com um toque e só quando o
@@ -2912,6 +3079,7 @@ function FitnessApp(props) {
           ? 'Dia de ' + fiFmtDataComDia(hojeData) + ': ' + registoDia.length + (registoDia.length === 1 ? ' registo' : ' registos') + '. Podes editar, apagar ou acrescentar.'
           : 'Dia de ' + fiFmtDataComDia(hojeData) + ': sem registos. Podes acrescentar o que faltar.'),
       renderEstadoHoje(totalHoje),
+      eHoje && renderOQueVouComer(totalHoje, idxDaHora),
       !hojeCarregando && nRepetidos > 0 && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-amarelo)' } },
         React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13, fontWeight: 800, color: 'var(--fi-amarelo)' } },
           '⚠️ ' + (nRepetidos === 1 ? 'Há 1 registo que parece repetido' : 'Há ' + nRepetidos + ' registos que parecem repetidos') + ' (mesmo prato, na mesma refeição, à mesma hora). Estão marcados em baixo; apaga o que estiver a mais.')
