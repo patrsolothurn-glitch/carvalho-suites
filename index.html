@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-13T22:57:51.648Z
+  Gerado em: 2026-11-16T16:11:47.974Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-477";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-478";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -43712,6 +43712,13 @@ var FI_CSS = '' +
   '.fi-hoje-linha:first-child{border-top:none}' +
   '.fi-hoje-linha-feita{background:rgba(30,142,62,.12);border-radius:8px;padding:8px;border-top:none}' +
   '.fi-hoje-linha-info{display:flex;flex-direction:column;min-width:0}' +
+  '.fi-hoje-estado{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}' +
+  '.fi-hoje-estado-num{font-size:20px;font-weight:900;line-height:1.15}' +
+  '.fi-hoje-estado-sub{font-size:12px;color:var(--fi-texto2);font-weight:700}' +
+  '.fi-hoje-estado-linha{font-size:13px;font-weight:800;margin-top:6px}' +
+  '.fi-hoje-sempre{width:100%;padding:14px;font-size:15px;min-height:48px}' +
+  '.fi-hoje-recolhida{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;box-sizing:border-box;background:var(--fi-cartao);border:1px solid var(--fi-borda);border-radius:14px;padding:13px 14px;margin-bottom:8px;font-size:13.5px;cursor:pointer;text-align:left;min-height:46px}' +
+  '.fi-hoje-outras{background:none;border:none;font-size:12px;font-weight:700;color:var(--fi-texto2);cursor:pointer;padding:10px 0 2px;width:100%;text-align:left}' +
   '.fi-hoje-linha-nome{font-size:13px;font-weight:700}' +
   '.fi-hoje-linha-kcal{font-size:11px;color:var(--fi-texto2)}' +
   '.fi-hoje-linha-acoes{display:flex;align-items:center;gap:6px;flex:none}' +
@@ -43762,6 +43769,7 @@ function fiCalcularIdade(dataNasc) {
   if (!dataNasc) return null;
   var hoje = new Date();
   var nasc = new Date(dataNasc);
+  if (isNaN(nasc.getTime())) return null;
   var idade = hoje.getFullYear() - nasc.getFullYear();
   var m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
@@ -43790,13 +43798,15 @@ function fiMetaAtiva(perfil, pesoAtual) {
   var calculado = null;
   if (perfil && perfil.sexo && perfil.data_nasc && perfil.altura_cm && pesoAtual && perfil.atividade && perfil.objetivo) {
     var idade = fiCalcularIdade(perfil.data_nasc);
-    var bmr = fiBMR(perfil.sexo, pesoAtual, perfil.altura_cm, idade);
-    var tdee = fiTDEE(bmr, perfil.atividade);
-    calculado = Object.assign({ bmr: Math.round(bmr) }, fiMetaCalculada(tdee, perfil.objetivo, perfil.ritmo, perfil.sexo));
+    if (idade != null) {
+      var bmr = fiBMR(perfil.sexo, pesoAtual, perfil.altura_cm, idade);
+      var tdee = fiTDEE(bmr, perfil.atividade);
+      calculado = Object.assign({ bmr: Math.round(bmr) }, fiMetaCalculada(tdee, perfil.objetivo, perfil.ritmo, perfil.sexo));
+    }
   }
-  var usarCoach = !!(perfil && perfil.usar_coach && perfil.kcal_coach);
+  var usarCoach = !!(perfil && perfil.usar_coach && Number(perfil.kcal_coach) > 0);
   var ativa = usarCoach ? perfil.kcal_coach : (calculado ? calculado.kcal : null);
-  return { calculado: calculado, coach: (perfil && perfil.kcal_coach) || null, usarCoach: usarCoach, ativa: ativa };
+  return { calculado: calculado, coach: (perfil && Number(perfil.kcal_coach) > 0 ? perfil.kcal_coach : null), usarCoach: usarCoach, ativa: ativa };
 }
 // Cálculo passo a passo para o cartão META DIÁRIA (só quando "calculado"
 // existe, ou seja, quando há sexo/idade/altura/peso/atividade/objetivo).
@@ -44016,6 +44026,422 @@ function fiCorAnelHoje(kcalComidas, kcalMeta) {
   return 'var(--fi-amarelo)';
 }
 
+// Estado do dia para o topo do ecrã Hoje. Função pura (testada à parte).
+// Entrada: kcalMeta e protMeta (alvos do dia; protMeta pode ser null),
+// kcal e prot já comidos, planoKcalRegistado (soma das kcal PLANEADAS das
+// refeições que já têm registo), refeicoesTotal e refeicoesRegistadas.
+// Só devolve avisos quando há desvio; dentro do alvo fica calado ("ok").
+//   nivel: 'sem_alvo' | 'vazio' | 'ok' | 'atencao'
+// Tolerâncias: dia fechado ±10% nas kcal e −10% na proteína; +5% é
+// "passaste"; a meio do dia avisa se o comido passar 10% (e pelo menos
+// 50 kcal) o planeado para as refeições já feitas, ou se a proteína ficar
+// mais de 15% atrás do que essas refeições deviam ter dado.
+function fiEstadoDia(d) {
+  var meta = Number(d.kcalMeta) || 0;
+  var protMeta = d.protMeta != null && Number(d.protMeta) > 0 ? Number(d.protMeta) : null;
+  var kcal = Number(d.kcal) || 0, prot = Number(d.prot) || 0;
+  var total = Number(d.refeicoesTotal) || 0, feitas = Number(d.refeicoesRegistadas) || 0;
+  var plano = Number(d.planoKcalRegistado) || 0;
+  if (!meta) return { nivel: 'sem_alvo', faltaKcal: null, faltaProt: null, linhas: ['Define o teu alvo em Mais → Perfil para a app te dizer como vai o dia.'] };
+  var faltaKcal = Math.round(meta - kcal);
+  var faltaProt = protMeta != null ? Math.round(protMeta - prot) : null;
+  if (kcal <= 0 && prot <= 0 && feitas === 0) return { nivel: 'vazio', faltaKcal: faltaKcal, faltaProt: faltaProt, linhas: [] };
+  var porFazer = Math.max(0, total - feitas);
+  var fechado = total > 0 && porFazer === 0;
+  var linhas = [];
+  if (kcal > meta * 1.05) {
+    linhas.push('Estás ' + Math.round(kcal - meta) + ' kcal acima do alvo de hoje.' + (porFazer > 0 ? (porFazer === 1 ? ' Ainda há 1 refeição por registar.' : ' Ainda há ' + porFazer + ' refeições por registar.') : ''));
+  } else if (!fechado && plano > 0 && kcal > plano * 1.10 && kcal - plano >= 50) {
+    linhas.push('Estás ' + Math.round(kcal - plano) + ' kcal acima do plano até agora. Para o resto do dia ficam ' + Math.max(0, faltaKcal) + ' kcal.');
+  } else if (fechado && kcal < meta * 0.90) {
+    linhas.push('O dia fechou ' + faltaKcal + ' kcal abaixo do alvo.');
+  }
+  if (protMeta != null) {
+    if (fechado && prot < protMeta * 0.90) {
+      linhas.push('Faltam ' + faltaProt + ' g de proteína.');
+    } else if (!fechado && plano > 0 && prot < protMeta * (plano / meta) * 0.85) {
+      linhas.push('Proteína: faltam ' + faltaProt + ' g para o alvo de hoje.');
+    }
+  }
+  return { nivel: linhas.length ? 'atencao' : 'ok', faltaKcal: faltaKcal, faltaProt: faltaProt, linhas: linhas };
+}
+
+// Refeição "da hora" no Hoje. As refeições não têm hora na base, por isso o
+// dia (07h–21h) é dividido em partes iguais pelo número de refeições.
+// feitas = [true/false] pela ordem das refeições; hora = hora decimal (ex.: 13.5).
+// Devolve o índice da refeição a mostrar aberta: a da hora se ainda não tem
+// registo; senão a seguinte por fazer; senão uma anterior por fazer; -1 se
+// todas têm registo. Com hora null (outro dia que não hoje): a primeira por fazer.
+function fiRefeicaoDaHora(feitas, hora) {
+  var n = feitas.length;
+  if (!n) return -1;
+  var daHora = 0;
+  if (hora != null && !isNaN(hora)) {
+    daHora = Math.floor((hora - 7) / (14 / n));
+    daHora = Math.max(0, Math.min(n - 1, daHora));
+  }
+  var i;
+  for (i = daHora; i < n; i++) if (!feitas[i]) return i;
+  for (i = 0; i < daHora; i++) if (!feitas[i]) return i;
+  return -1;
+}
+
+// Dia "perfeito": todas as refeições do plano têm registo, todos os registos
+// são opções do plano na dose normal (fator 1) e não há nada fora do plano.
+// É o caso em que o registo pode estar só a repetir o plano — por isso a app
+// pergunta uma vez "comeste só o plano?".
+function fiDiaPerfeito(refeicaoIds, registos) {
+  if (!refeicaoIds.length || !registos.length) return false;
+  var porRefeicao = {};
+  for (var i = 0; i < registos.length; i++) {
+    var reg = registos[i];
+    if (reg.opcao_id == null) return false;
+    if (reg.fator != null && Number(reg.fator) !== 1) return false;
+    if (refeicaoIds.indexOf(reg.refeicao_id) === -1) return false;
+    porRefeicao[reg.refeicao_id] = (porRefeicao[reg.refeicao_id] || 0) + 1;
+  }
+  return refeicaoIds.every(function (id) { return porRefeicao[id] === 1; });
+}
+// Respostas a "comeste só o plano?" — guardadas só neste aparelho
+// (localStorage), uma por dia: { 'AAAA-MM-DD': 'sim' | 'nao' }.
+// Texto inválido ou de outro formato dá um mapa vazio, nunca um erro.
+var FI_CHAVE_SO_PLANO = 'fi_so_plano';
+var FI_CHAVE_DIAS_CONFIRMADOS = 'fi_dias_confirmados'; // { 'AAAA-MM-DD': 'sim' } — dias fora do normal confirmados, só neste aparelho
+function fiLerRespostasPlano(texto) {
+  var mapa = {};
+  if (!texto) return mapa;
+  var bruto;
+  try { bruto = JSON.parse(texto); } catch (e) { return mapa; }
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return mapa;
+  Object.keys(bruto).forEach(function (k) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && (bruto[k] === 'sim' || bruto[k] === 'nao')) mapa[k] = bruto[k];
+  });
+  return mapa;
+}
+// Devolve um mapa novo com a resposta do dia posta (ou tirada, com resposta
+// null) e só os 30 dias mais recentes, para a chave não crescer sem fim.
+function fiPorRespostaPlano(mapa, dataISO, resposta) {
+  var novo = {};
+  Object.keys(mapa).forEach(function (k) { if (k !== dataISO) novo[k] = mapa[k]; });
+  if (resposta === 'sim' || resposta === 'nao') novo[dataISO] = resposta;
+  var datas = Object.keys(novo).sort();
+  while (datas.length > 30) delete novo[datas.shift()];
+  return novo;
+}
+
+// ── Estimar um prato fora da lista (IA) ─────────────────────────────
+var FI_MAX_PRATO = 200;       // igual ao limite da função fitness-prato
+var FI_MAX_QUANTIDADE = 60;
+var FI_TEMPO_ESTIMATIVA_MS = 15000;
+var FI_ESTIMATIVA_INDISPONIVEL = 'Estimativa indisponível, escolhe um prato da lista.';
+// Minúsculas, sem acentos e sem espaços a mais — para comparar nomes.
+function fiNormalizarTexto(t) {
+  return String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+// Gramas (ou ml) escritos na quantidade: "300 g", "250ml", "0,3 kg", "1.5 l".
+// Devolve o número, ou null se a quantidade não for um peso/volume.
+function fiGramasDaQuantidade(q) {
+  var m = /^\s*(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gramas|ml|l|litros?)\s*$/i.exec(String(q == null ? '' : q));
+  if (!m) return null;
+  var n = parseFloat(m[1].replace(',', '.'));
+  if (!(n > 0)) return null;
+  var u = m[2].toLowerCase();
+  return (u === 'kg' || u === 'l' || u === 'litro' || u === 'litros') ? n * 1000 : n;
+}
+// O prato escrito já existe na lista do utilizador? Só conta o nome EXATO
+// (ignorando maiúsculas, acentos e espaços): um nome parecido podia dar os
+// valores de outra coisa. alimentos = fitness_alimentos; pratos = opções do
+// plano já com os totais de uma dose [{ nome, kcal, prot, hc, gord }].
+// Devolve { tipo: 'alimento', alimento, gramas } | { tipo: 'prato', prato } | null.
+function fiProcurarNaLista(texto, quantidade, alimentos, pratos) {
+  var alvo = fiNormalizarTexto(texto);
+  if (!alvo) return null;
+  var al = (alimentos || []).filter(function (a) { return fiNormalizarTexto(a.nome) === alvo; })[0];
+  if (al) return { tipo: 'alimento', alimento: al, gramas: fiGramasDaQuantidade(quantidade) };
+  var pr = (pratos || []).filter(function (p) { return fiNormalizarTexto(p.nome) === alvo && Number(p.kcal) > 0; })[0];
+  if (pr) return { tipo: 'prato', prato: pr };
+  return null;
+}
+// Valida o que a função fitness-prato devolveu. Qualquer coisa que não sejam
+// quatro números plausíveis com "estimativa: true" é tratada como falha.
+function fiValidarEstimativa(d) {
+  if (!d || typeof d !== 'object' || d.estimativa !== true) return null;
+  var ok = function (v, max) { return typeof v === 'number' && isFinite(v) && v >= 0 && v <= max; };
+  if (!ok(d.kcal, 6000) || !(d.kcal > 0) || !ok(d.prot, 600) || !ok(d.hc, 1000) || !ok(d.gord, 600)) return null;
+  return { kcal: Math.round(d.kcal), prot: Math.round(d.prot * 10) / 10, hc: Math.round(d.hc * 10) / 10, gord: Math.round(d.gord * 10) / 10 };
+}
+// Balanço da semana (segunda a domingo): soma do que os dias JÁ FECHADOS
+// (antes de hoje) ficaram acima (+) ou abaixo (−) do alvo. Só entram dias com
+// registo. diasRestantes = dias de amanhã até domingo.
+function fiBalancoSemana(dias, meta, hojeISO) {
+  var m = Number(meta) || 0;
+  var segunda = fiSegundaFeira(hojeISO);
+  var fechados = (dias || []).filter(function (d) { return d.data >= segunda && d.data < hojeISO && Number(d.kcal) > 0; });
+  var saldo = m ? fechados.reduce(function (s2, d) { return s2 + (Number(d.kcal) - m); }, 0) : 0;
+  return { saldo: Math.round(saldo), diasFechados: fechados.length, diasRestantes: 6 - fiDiasEntre(segunda, hojeISO) };
+}
+// Do que já existe na lista (opções do plano e alimentos), o que dá mais
+// proteína dentro das kcal que ainda cabem. candidatos = [{ nome, kcal, prot }]
+// (uma dose). Devolve até 2, os de mais proteína por kcal, que caibam e que
+// deem pelo menos 5 g.
+function fiSugestoesProteina(candidatos, kcalDisponiveis) {
+  var cabe = Number(kcalDisponiveis) || 0;
+  return (candidatos || []).filter(function (c) {
+    return Number(c.kcal) > 0 && Number(c.prot) >= 5 && Number(c.kcal) <= cabe;
+  }).slice().sort(function (a, b) { return (b.prot / b.kcal) - (a.prot / a.kcal); }).slice(0, 2);
+}
+// Resposta curta a "o que vou comer?". Tudo em frases neutras.
+// d = { kcalPrato, protPrato, kcalComidas, protComidas, kcalMeta, protMeta,
+//       saldoSemana, diasRestantes, candidatos }.
+// Devolve { cabe, linhas }.
+function fiRespostaPrato(d) {
+  var meta = Number(d.kcalMeta) || 0;
+  if (!meta) return { cabe: null, linhas: ['Sem alvo definido: completa o perfil para a app responder.'] };
+  var depois = meta - (Number(d.kcalComidas) || 0) - (Number(d.kcalPrato) || 0);
+  var linhas = [], cabe = depois >= 0;
+  if (cabe) {
+    linhas.push('Cabe no dia: depois disto ficam ' + Math.round(depois) + ' kcal.');
+  } else {
+    var excesso = Math.round(-depois);
+    var n = Number(d.diasRestantes) || 0;
+    var fatia = n > 0 ? Math.round(excesso / n) : 0;
+    var texto = 'Fica ' + excesso + ' kcal acima do alvo de hoje.';
+    if (n > 0 && fatia <= meta * 0.10) texto += ' Compensa-se na semana com cerca de ' + fatia + ' kcal a menos por dia nos próximos ' + n + (n === 1 ? ' dia.' : ' dias.');
+    else if (n > 0) texto += ' É bastante para compensar só nesta semana; pode repartir-se por mais dias.';
+    else texto += ' É o último dia da semana; o balanço recomeça amanhã.';
+    linhas.push(texto);
+  }
+  var protMeta = d.protMeta != null && Number(d.protMeta) > 0 ? Number(d.protMeta) : null;
+  if (protMeta != null) {
+    var faltaProt = Math.round(protMeta - (Number(d.protComidas) || 0) - (Number(d.protPrato) || 0));
+    if (faltaProt > protMeta * 0.10) {
+      var sug = fiSugestoesProteina(d.candidatos, Math.max(0, depois));
+      linhas.push('Proteína: ficam a faltar ' + faltaProt + ' g.' + (sug.length
+        ? ' Da tua lista: ' + sug.map(function (c) { return c.nome + ' (+' + Math.round(c.prot) + ' g)'; }).join(' ou ') + '.'
+        : ''));
+    } else {
+      linhas.push('Proteína: dentro do alvo.');
+    }
+  }
+  var saldo = Number(d.saldoSemana) || 0;
+  if (Math.abs(saldo) > meta * 0.05) {
+    linhas.push('Na semana, até ontem: ' + Math.abs(Math.round(saldo)) + ' kcal ' + (saldo > 0 ? 'acima' : 'abaixo') + ' do alvo.');
+  }
+  return { cabe: cabe, linhas: linhas };
+}
+// Últimos extras registados fora do plano (registos livres com nome), sem
+// repetir o mesmo nome; o mais recente primeiro, no máximo 5.
+function fiUltimosExtras(registos) {
+  var vistos = {}, lista = [];
+  (registos || []).filter(function (r) { return r.opcao_id == null && r.livre_nome && String(r.livre_nome).trim() && Number(r.kcal) > 0; })
+    .slice().sort(function (a, b) {
+      var x = String(a.data || '') + String(a.created_at || ''), y = String(b.data || '') + String(b.created_at || '');
+      return x < y ? 1 : (x > y ? -1 : 0);
+    })
+    .forEach(function (r) {
+      var chave = String(r.livre_nome).trim().toLowerCase();
+      if (vistos[chave] || lista.length >= 5) return;
+      vistos[chave] = true;
+      lista.push({ nome: String(r.livre_nome).trim(), kcal: Number(r.kcal) || 0, prot: Number(r.prot) || 0, hc: Number(r.hc) || 0, gord: Number(r.gord) || 0 });
+    });
+  return lista;
+}
+// Faixa da próxima avaliação no Hoje. dias = dias que faltam (negativo se já
+// passou); dataFmt = data já formatada. Na véspera e no próprio dia pede o
+// peso real e as medidas e oferece o botão de registar.
+// Devolve { texto, destaque, registar }.
+function fiTextoProxAvaliacao(dias, dataFmt) {
+  if (dias === 1) return { texto: 'Amanhã é a avaliação: regista o peso real e as medidas.', destaque: true, registar: true };
+  if (dias === 0) return { texto: 'Hoje é a avaliação: regista o peso real e as medidas.', destaque: true, registar: true };
+  if (dias < 0) return { texto: 'A avaliação estava marcada para ' + dataFmt + '. Quando a fizeres, regista o peso real e as medidas.', destaque: true, registar: true };
+  return { texto: 'Próxima avaliação física: ' + dataFmt + ' · faltam ' + dias + ' dias', destaque: false, registar: false };
+}
+// Treino e caminhada de um dia, a partir de fitness_treino_log.
+// Sessão = linha com treino_id; caminhada = treino_id null e
+// feitos = { tipo: 'caminhada', minutos }. Devolve as duas listas e uma frase
+// curta para o bloco recolhido ('' se não houver nada — a app não diz nada
+// quando não há registo: sem lembretes).
+function fiResumoTreinoDia(logs, treinos, dataISO) {
+  var sessoes = [], caminhadas = [];
+  (logs || []).forEach(function (l) {
+    if (l.data !== dataISO) return;
+    if (l.treino_id != null) {
+      var t = (treinos || []).filter(function (x) { return x.id === l.treino_id; })[0];
+      sessoes.push({ id: l.id, nome: t ? t.nome : 'Treino' });
+    } else if (l.feitos && !Array.isArray(l.feitos) && l.feitos.tipo === 'caminhada') {
+      caminhadas.push({ id: l.id, minutos: Math.round(Number(l.feitos.minutos) || 0) });
+    }
+  });
+  var partes = sessoes.map(function (x) { return x.nome; });
+  var min = caminhadas.reduce(function (s2, x) { return s2 + x.minutos; }, 0);
+  if (caminhadas.length) partes.push('caminhada ' + min + ' min');
+  return { sessoes: sessoes, caminhadas: caminhadas, minutos: min, texto: partes.join(' · ') };
+}
+// Registos que parecem repetidos no mesmo dia: mesma refeição, mesmo prato
+// (a mesma opção do plano, ou o mesmo nome e as mesmas kcal num registo livre)
+// e gravados com menos de 60 minutos de diferença (ou sem hora guardada).
+// Devolve os ids dos registos "a mais" (o primeiro de cada grupo não conta).
+function fiRegistosDuplicados(registos) {
+  var grupos = {};
+  (registos || []).forEach(function (reg) {
+    var prato = reg.opcao_id != null ? 'o:' + reg.opcao_id : 'l:' + String(reg.livre_nome || '').trim().toLowerCase() + ':' + Math.round(Number(reg.kcal) || 0);
+    var chave = String(reg.data || '') + '|' + String(reg.refeicao_id || '') + '|' + prato;
+    (grupos[chave] = grupos[chave] || []).push(reg);
+  });
+  var ids = [];
+  Object.keys(grupos).forEach(function (chave) {
+    var lista = grupos[chave].slice().sort(function (a, b) { return String(a.created_at || '') < String(b.created_at || '') ? -1 : 1; });
+    for (var i = 1; i < lista.length; i++) {
+      var antes = lista[i - 1].created_at ? new Date(lista[i - 1].created_at).getTime() : NaN;
+      var este = lista[i].created_at ? new Date(lista[i].created_at).getTime() : NaN;
+      if (isNaN(antes) || isNaN(este) || Math.abs(este - antes) < 60 * 60 * 1000) ids.push(lista[i].id);
+    }
+  });
+  return ids;
+}
+// Diferença entre os macros do plano em uso (soma da opção escolhida de cada
+// refeição) e a referência de macros da app. Só fala dos macros que se afastam
+// mais de 10% da referência. É só informação: nunca mexe no plano.
+// plano e ref = { prot, hc, gord } em gramas. Devolve o texto ou null.
+function fiDiferencaMacros(plano, ref) {
+  if (!plano || !ref) return null;
+  var partes = [];
+  [['prot', 'proteína'], ['hc', 'hidratos'], ['gord', 'gordura']].forEach(function (m) {
+    var r = Number(ref[m[0]]) || 0, p = Number(plano[m[0]]) || 0;
+    if (r <= 0) return;
+    var dif = p - r;
+    if (Math.abs(dif) / r <= 0.10) return;
+    partes.push(Math.round(Math.abs(dif)) + ' g de ' + m[1] + (dif < 0 ? ' a menos' : ' a mais'));
+  });
+  if (!partes.length) return null;
+  var lista = partes.length === 1 ? partes[0] : partes.slice(0, -1).join(', ') + ' e ' + partes[partes.length - 1];
+  return 'O plano tem ' + lista + ' do que a referência.';
+}
+// Dia "fora do normal": com registo, mas abaixo de 60% ou acima de 130% do
+// alvo. Pode ser um dia mal registado; a app pede para o confirmar.
+function fiDiaForaDoNormal(kcal, meta) {
+  var k = Number(kcal) || 0, m = Number(meta) || 0;
+  if (!m || k <= 0) return false;
+  return k < m * 0.60 || k > m * 1.30;
+}
+// Dias que contam para as médias (aviso semanal, ritmo, gasto real): todos os
+// normais e, dos fora do normal, só os que o utilizador confirmou.
+// confirmados = { 'AAAA-MM-DD': 'sim' }.
+function fiDiasQueContam(dias, meta, confirmados) {
+  return (dias || []).filter(function (d) {
+    return !fiDiaForaDoNormal(d.kcal, meta) || (confirmados && confirmados[d.data] === 'sim');
+  });
+}
+// Sinal de cansaço: 3 ou mais dias SEGUIDOS (de calendário) com registo e
+// abaixo de 70% do alvo, a acabar ontem ou anteontem. Devolve o número de
+// dias seguidos (0 se não houver sinal). Não recomenda calorias: a app só
+// sugere falar com o médico ou o treinador.
+function fiSinalCansaco(dias, meta, hojeISO) {
+  var m = Number(meta) || 0;
+  if (!m) return 0;
+  var porData = {};
+  (dias || []).forEach(function (d) { porData[d.data] = Number(d.kcal) || 0; });
+  var melhor = 0;
+  for (var recuo = 1; recuo <= 2; recuo++) {
+    var n = 0, dia = fiSomarDias(hojeISO, -recuo);
+    while (porData[dia] > 0 && porData[dia] < m * 0.70) { n++; dia = fiSomarDias(dia, -1); }
+    if (n > melhor) melhor = n;
+  }
+  return melhor >= 3 ? melhor : 0;
+}
+// Ritmo pelos registos: com a média real registada (pelo menos 10 dias que
+// contam, nos últimos 14) e a manutenção calculada. Devolve kg/semana
+// (positivo = perda) e a média, ou null se faltarem dados.
+function fiRitmoPelosRegistos(dias, manutencao) {
+  var man = Number(manutencao) || 0;
+  var registados = (dias || []).filter(function (x) { return Number(x.kcal) > 0; });
+  if (!man || registados.length < 10) return null;
+  var media = registados.reduce(function (s2, x) { return s2 + Number(x.kcal); }, 0) / registados.length;
+  return { kgSemana: (man - media) * 7 / 7700, media: Math.round(media), dias: registados.length };
+}
+// Dias inteiros entre duas datas AAAA-MM-DD (b − a).
+function fiDiasEntre(a, b) {
+  return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+}
+// Tendência REAL do peso: da avaliação mais antiga das últimas 6 semanas até
+// à mais recente. Precisa de 2 avaliações com pelo menos 10 dias entre elas.
+// Devolve { kgSemana (negativo = a descer), dias, n } ou null.
+function fiTendenciaPeso(avaliacoes) {
+  var lista = (avaliacoes || []).filter(function (a) { return a && a.data && Number(a.peso) > 0; })
+    .slice().sort(function (x, y) { return x.data < y.data ? -1 : (x.data > y.data ? 1 : 0); });
+  if (lista.length < 2) return null;
+  var ultima = lista[lista.length - 1];
+  var janela = lista.filter(function (a) { return fiDiasEntre(a.data, ultima.data) <= 42; });
+  if (janela.length < 2) return null;
+  var primeira = janela[0];
+  var dias = fiDiasEntre(primeira.data, ultima.data);
+  if (dias < 10) return null;
+  return { kgSemana: (Number(ultima.peso) - Number(primeira.peso)) / dias * 7, dias: dias, n: janela.length };
+}
+// Aviso semanal: o peso não desce apesar de os registos estarem no alvo.
+// dias = [{ data, kcal }] dos últimos 14 dias (sem o dia de hoje). Só avisa se:
+// há pelo menos 10 dias com registo; pelo menos 80% deles estão a ±10% do alvo;
+// pelos registos devia perder-se pelo menos 0,2 kg/semana; e o peso real
+// desce menos de 0,1 kg/semana. Devolve o texto do aviso ou null.
+function fiAvisoSemanal(d) {
+  var meta = Number(d.meta) || 0, manutencao = Number(d.manutencao) || 0;
+  if (!meta || !manutencao || !d.tendencia) return null;
+  var registados = (d.dias || []).filter(function (x) { return Number(x.kcal) > 0; });
+  if (registados.length < 10) return null;
+  var noAlvo = registados.filter(function (x) { return Math.abs(Number(x.kcal) - meta) <= meta * 0.10; }).length;
+  if (noAlvo / registados.length < 0.8) return null;
+  var media = registados.reduce(function (s2, x) { return s2 + Number(x.kcal); }, 0) / registados.length;
+  var perdaPrevista = (manutencao - media) * 7 / 7700;
+  if (!(perdaPrevista >= 0.2)) return null;
+  if (d.tendencia.kgSemana <= -0.1) return null;
+  return 'O peso não desce com os registos a 100%: há extras por registar, ou fala com o treinador.';
+}
+// Linha que substitui a projeção teórica "meta em ~N semanas": usa a tendência
+// real. Só projeta uma data se o peso estiver mesmo a descer; se estiver
+// estável ou a subir, diz isso e não projeta nada.
+// Devolve { texto, projeta } ou null (sem avaliações suficientes).
+function fiProjecaoReal(tendencia, pesoAtual, pesoMeta) {
+  if (!tendencia) return null;
+  var k = tendencia.kgSemana;
+  var semanas = '(' + tendencia.n + ' avaliações em ' + tendencia.dias + ' dias)';
+  if (k <= -0.05) {
+    var texto = 'Tendência real: −' + Math.abs(k).toFixed(1) + ' kg/semana ' + semanas + '.';
+    if (pesoMeta != null && pesoAtual != null && Number(pesoMeta) < Number(pesoAtual)) {
+      var n = Math.ceil((Number(pesoAtual) - Number(pesoMeta)) / Math.abs(k));
+      return { texto: texto + ' A este ritmo, peso meta em ~' + n + ' semana' + (n === 1 ? '' : 's') + '.', projeta: true };
+    }
+    return { texto: texto, projeta: false };
+  }
+  if (k >= 0.05) return { texto: 'Tendência real: +' + k.toFixed(1) + ' kg/semana ' + semanas + '. O peso está a subir; sem previsão para o peso meta.', projeta: false };
+  return { texto: 'Tendência real: peso estável ' + semanas + '. Sem previsão para o peso meta.', projeta: false };
+}
+// Gasto real estimado: média diária registada + (kg perdidos × 7700 ÷ dias),
+// entre duas avaliações. Usa a avaliação mais recente e a mais próxima que
+// fique pelo menos 21 dias antes (até 49). Precisa de pelo menos 21 dias com
+// registo nesse intervalo e de 80% dos dias registados. Devolve
+// { gasto (arredondado a 10), dias, diasComRegisto, media } ou null.
+// É só informação: nunca muda o alvo.
+function fiGastoReal(avaliacoes, diasRegisto) {
+  var lista = (avaliacoes || []).filter(function (a) { return a && a.data && Number(a.peso) > 0; })
+    .slice().sort(function (x, y) { return x.data < y.data ? -1 : (x.data > y.data ? 1 : 0); });
+  if (lista.length < 2) return null;
+  var fim = lista[lista.length - 1], inicio = null;
+  for (var i = lista.length - 2; i >= 0; i--) {
+    var span = fiDiasEntre(lista[i].data, fim.data);
+    if (span >= 21 && span <= 49) { inicio = lista[i]; break; }
+    if (span > 49) break;
+  }
+  if (!inicio) return null;
+  var dias = fiDiasEntre(inicio.data, fim.data);
+  var noIntervalo = (diasRegisto || []).filter(function (x) { return x.data >= inicio.data && x.data < fim.data && Number(x.kcal) > 0; });
+  if (noIntervalo.length < 21 || noIntervalo.length / dias < 0.8) return null;
+  var media = noIntervalo.reduce(function (s2, x) { return s2 + Number(x.kcal); }, 0) / noIntervalo.length;
+  var perdaKg = Number(inicio.peso) - Number(fim.peso);
+  var gasto = media + perdaKg * 7700 / dias;
+  if (!(gasto > 0) || !isFinite(gasto)) return null;
+  return { gasto: Math.round(gasto / 10) * 10, dias: dias, diasComRegisto: noIntervalo.length, media: Math.round(media) };
+}
+
 // ── Open Food Facts (pesquisa pública, sem chave) ───────────────────
 function fiBuscarOFF(query, soMigros) {
   var url = soMigros
@@ -44092,7 +44518,7 @@ function FitnessApp(props) {
 
   var _s1 = React.useState(true); var loading = _s1[0], setLoading = _s1[1];
   var _s2 = React.useState(null); var erro = _s2[0], setErro = _s2[1];
-  var _s3 = React.useState('plano'); var tab = _s3[0], setTab = _s3[1]; // hoje|plano|treino|progresso|mais
+  var _s3 = React.useState('hoje'); var tab = _s3[0], setTab = _s3[1]; // hoje|plano|treino|progresso|mais — abre no Hoje
   var _s4 = React.useState('menu'); var maisView = _s4[0], setMaisView = _s4[1]; // menu|alimentos|compras|perfil
 
   var _s5 = React.useState(null); var perfil = _s5[0], setPerfil = _s5[1];
@@ -44176,6 +44602,40 @@ function FitnessApp(props) {
   var _s64 = React.useState(null); var registoEditandoId = _s64[0], setRegistoEditandoId = _s64[1]; // id do registo com a dose a editar
   var _s65 = React.useState(null); var confirmApagarRegisto = _s65[0], setConfirmApagarRegisto = _s65[1];
   var _s66 = React.useState(false); var aguaSaving = _s66[0], setAguaSaving = _s66[1];
+  var _s114 = React.useState(false); var metaAberta = _s114[0], setMetaAberta = _s114[1]; // Plano: cartão "Como calculei" aberto (fechado por omissão)
+  var _s116 = React.useState(function () {
+    try { return fiLerRespostasPlano(window.localStorage.getItem(FI_CHAVE_SO_PLANO)); }
+    catch (e) { console.warn('[fitness] ler respostas "só o plano":', (e && e.message) || e); return {}; }
+  }); var respostasPlano = _s116[0], setRespostasPlano = _s116[1]; // { [data]: 'sim'|'nao' } — só neste aparelho
+  var _s119 = React.useState(function () {
+    try { return fiLerRespostasPlano(window.localStorage.getItem(FI_CHAVE_DIAS_CONFIRMADOS)); }
+    catch (e) { console.warn('[fitness] ler dias confirmados:', (e && e.message) || e); return {}; }
+  }); var diasConfirmados = _s119[0], setDiasConfirmados = _s119[1]; // { [data]: 'sim' } — só neste aparelho
+  var _s120 = React.useState(false); var treinoHojeAberto = _s120[0], setTreinoHojeAberto = _s120[1]; // Hoje: bloco "Treino e caminhada" aberto (fechado por omissão)
+  var _s121 = React.useState(null); var caminhadaEditId = _s121[0], setCaminhadaEditId = _s121[1]; // id da caminhada a editar no Hoje
+  var _s122 = React.useState(''); var caminhadaEditMin = _s122[0], setCaminhadaEditMin = _s122[1];
+  var _s123 = React.useState(''); var caminhadaHojeMin = _s123[0], setCaminhadaHojeMin = _s123[1]; // minutos escritos à mão no Hoje
+  var _s124 = React.useState(false); var comerAberto = _s124[0], setComerAberto = _s124[1]; // Hoje: caixa "O que vou comer?" aberta
+  var _s125 = React.useState(null); var comerRefId = _s125[0], setComerRefId = _s125[1]; // refeição escolhida na caixa (null = a da hora)
+  var _s126 = React.useState(null); var comerOpcaoId = _s126[0], setComerOpcaoId = _s126[1]; // opção escolhida na caixa
+  var _s127 = React.useState([]); var extrasRecentes = _s127[0], setExtrasRecentes = _s127[1]; // últimos extras (fora do plano), para repetir com um toque
+  var _s128 = React.useState(false); var perfilFalhou = _s128[0], setPerfilFalhou = _s128[1]; // a leitura do perfil deu erro (não é o mesmo que não haver perfil)
+  var _s129 = React.useState(null); var perfErroCoach = _s129[0], setPerfErroCoach = _s129[1]; // valor inválido no alvo do treinador (editor de perfil)
+  var _s130 = React.useState({ prato: '', quantidade: '' }); var estimarForm = _s130[0], setEstimarForm = _s130[1]; // "Estimar prato" (Fora do plano)
+  var _s131 = React.useState(false); var estimando = _s131[0], setEstimando = _s131[1];
+  var _s132 = React.useState(null); var estimativaAviso = _s132[0], setEstimativaAviso = _s132[1]; // mensagem depois de estimar (ou de falhar)
+  var _s133 = React.useState(null); var estimativaOrigem = _s133[0], setEstimativaOrigem = _s133[1]; // 'ia' | 'lista' | null — de onde vieram os valores do formulário
+  var estimarGeracaoRef = React.useRef(0);
+  var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
+  var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
+  var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
+  // A trava a sério é o ref: muda no mesmo instante, por isso vários toques seguidos
+  // (antes de o ecrã se redesenhar) não chegam a gravar duas vezes.
+  var hojeSavingRef = React.useRef(false);
+  function setHojeSaving(v) { hojeSavingRef.current = v; setHojeSavingEstado(v); }
+  var _s113 = React.useState({}); var hojeOutrasAbertas = _s113[0], setHojeOutrasAbertas = _s113[1]; // { [refeicaoId]: true } — "Outra opção" aberta
+  var _s117 = React.useState([]); var avaliacoesRecentes = _s117[0], setAvaliacoesRecentes = _s117[1]; // até 10 avaliações mais recentes (tendência do peso)
+  var _s118 = React.useState([]); var historicoDias = _s118[0], setHistoricoDias = _s118[1]; // kcal por dia dos últimos 49 dias (aviso semanal e gasto real)
   var _s110 = React.useState([]); var historicoHoje = _s110[0], setHistoricoHoje = _s110[1]; // últimos dias com registos (cartão "Últimos dias")
 
   // Lista de compras (Mais → Lista de compras)
@@ -44234,10 +44694,11 @@ function FitnessApp(props) {
       db.from('fitness_opcoes').select('*').order('ordem', { ascending: true }),
       db.from('fitness_opcao_itens').select('*'),
       db.from('fitness_alimentos').select('*').order('nome', { ascending: true }),
-      db.from('fitness_avaliacoes').select('*').order('data', { ascending: false }).limit(1)
+      db.from('fitness_avaliacoes').select('*').order('data', { ascending: false }).limit(10)
     ]).then(function (res) {
       var perfilRes = res[0], refRes = res[1], opcRes = res[2], itRes = res[3], alRes = res[4], avRes = res[5];
       if (perfilRes.error) { console.error('[fitness] carregar perfil:', perfilRes.error); window.mostrarErro('Fitness', perfilRes.error); }
+      setPerfilFalhou(!!perfilRes.error);
       if (refRes.error) { console.error('[fitness] carregar refeições:', refRes.error); window.mostrarErro('Fitness', refRes.error); }
       if (opcRes.error) { console.error('[fitness] carregar opções:', opcRes.error); window.mostrarErro('Fitness', opcRes.error); }
       if (itRes.error) { console.error('[fitness] carregar itens:', itRes.error); window.mostrarErro('Fitness', itRes.error); }
@@ -44249,11 +44710,13 @@ function FitnessApp(props) {
       setItens(itRes.data || []);
       setAlimentos(alRes.data || []);
       setUltimaAvaliacao((avRes.data && avRes.data[0]) || null);
+      setAvaliacoesRecentes(avRes.data || []);
       setErro(null);
       setLoading(false);
     }).catch(function (e) {
       console.error('[fitness] carregar:', e);
       setErro('Falha ao carregar: ' + (e && e.message ? e.message : e));
+      setPerfilFalhou(true);
       setLoading(false);
       window.mostrarErro('Fitness', e);
     });
@@ -44268,7 +44731,7 @@ function FitnessApp(props) {
     Promise.all([
       db.from('fitness_registo').select('*').eq('data', dataISO),
       db.from('fitness_agua').select('*').eq('data', dataISO).maybeSingle(),
-      db.from('fitness_registo').select('*').gte('data', fiSomarDias(hojeIsoReal, -14))
+      db.from('fitness_registo').select('*').gte('data', fiSomarDias(hojeIsoReal, -49))
     ]).then(function (res) {
       var regRes = res[0], aguaRes = res[1], histRes = res[2];
       if (regRes.error) { console.error('[fitness] carregar registo:', regRes.error); window.mostrarErro('Fitness', regRes.error); }
@@ -44277,16 +44740,23 @@ function FitnessApp(props) {
       setRegistoDia(regRes.data || []);
       setAguaDia(aguaRes.data || null);
       var porDia = {};
+      var repetidosHist = {};
+      fiRegistosDuplicados(histRes.data || []).forEach(function (id) { repetidosHist[id] = true; });
       (histRes.data || []).forEach(function (reg) {
-        if (!porDia[reg.data]) porDia[reg.data] = { data: reg.data, kcal: 0, prot: 0, hc: 0, gord: 0 };
+        if (!porDia[reg.data]) porDia[reg.data] = { data: reg.data, kcal: 0, prot: 0, hc: 0, gord: 0, n: 0, repetidos: 0 };
+        porDia[reg.data].n += 1;
+        if (repetidosHist[reg.id]) porDia[reg.data].repetidos += 1;
         porDia[reg.data].kcal += Number(reg.kcal || 0);
         porDia[reg.data].prot += Number(reg.prot || 0);
         porDia[reg.data].hc += Number(reg.hc || 0);
         porDia[reg.data].gord += Number(reg.gord || 0);
       });
-      var dias = Object.keys(porDia).filter(function (d) { return d !== dataISO; }).map(function (d) { return porDia[d]; });
+      var desde14 = fiSomarDias(hojeIsoReal, -14);
+      var dias = Object.keys(porDia).filter(function (d) { return d !== dataISO && d >= desde14; }).map(function (d) { return porDia[d]; });
       dias.sort(function (a, b) { return a.data < b.data ? 1 : (a.data > b.data ? -1 : 0); });
       setHistoricoHoje(dias);
+      if (!histRes.error) setHistoricoDias(Object.keys(porDia).map(function (d) { return porDia[d]; }));
+      if (!histRes.error) setExtrasRecentes(fiUltimosExtras(histRes.data || []));
       setHojeCarregando(false);
     }).catch(function (e) {
       console.error('[fitness] carregar hoje:', e);
@@ -44348,7 +44818,7 @@ function FitnessApp(props) {
       window.mostrarErro('Fitness', e);
     });
   }
-  React.useEffect(function () { if (tab === 'treino') carregarTreinos(); }, [tab]);
+  React.useEffect(function () { if (tab === 'treino' || tab === 'hoje') carregarTreinos(); }, [tab]);
 
   var alimentosPorId = React.useMemo(function () {
     var m = {};
@@ -44366,6 +44836,20 @@ function FitnessApp(props) {
   var protAlvo = perfil ? fiProteinaAlvo(perfil.prot_g_kg, pesoAtual) : null;
   var macrosRef = meta.ativa != null ? fiMacrosReferencia(meta.ativa, protAlvo || 0) : null;
   var explicacao = fiExplicacaoMeta(meta.calculado, meta.ativa, pesoAtual, perfil ? perfil.peso_meta : null);
+  // Tendência real do peso, aviso semanal e gasto real estimado (só informação; não mexem em alvos).
+  var tendenciaPeso = fiTendenciaPeso(avaliacoesRecentes);
+  var hojeIsoAviso = new Date().toISOString().slice(0, 10);
+  var repetidosDia = {};
+  fiRegistosDuplicados(registoDia).forEach(function (id) { repetidosDia[id] = true; });
+  var diasQueContam = fiDiasQueContam(historicoDias, meta.ativa, diasConfirmados);
+  var ultimos14QueContam = diasQueContam.filter(function (d) { return d.data < hojeIsoAviso && d.data >= fiSomarDias(hojeIsoAviso, -14); });
+  var avisoSemanal = fiAvisoSemanal({
+    tendencia: tendenciaPeso, meta: meta.ativa, manutencao: explicacao ? explicacao.manutencao : null, dias: ultimos14QueContam
+  });
+  var projecaoReal = fiProjecaoReal(tendenciaPeso, pesoAtual, perfil ? perfil.peso_meta : null);
+  var gastoReal = fiGastoReal(avaliacoesRecentes, diasQueContam);
+  var ritmoRegistos = fiRitmoPelosRegistos(ultimos14QueContam, explicacao ? explicacao.manutencao : null);
+  var diasCansaco = fiSinalCansaco(historicoDias, meta.ativa, hojeIsoAviso);
   var semanaAtualISO = fiSegundaFeira(new Date().toISOString().slice(0, 10));
 
   // Plano — fila horizontal das refeições (scroll-snap no telemóvel/
@@ -44572,6 +45056,11 @@ function FitnessApp(props) {
 
   function tentarGuardarPerfil() {
     if (fiValidarAltura(perfForm.altura_cm).erro) return;
+    if (perfForm.usar_coach && String(perfForm.kcal_coach).trim() !== '' && !(parseFloat(perfForm.kcal_coach) > 0)) {
+      setPerfErroCoach('O alvo do treinador tem de ser um número de kcal maior do que zero.');
+      return;
+    }
+    setPerfErroCoach(null);
     var newN = perfForm.n_refeicoes;
     var ordenadas = refeicoes.slice().sort(function (a, b) { return a.ordem - b.ordem; });
     var excedentes = ordenadas.slice(newN);
@@ -44628,9 +45117,26 @@ function FitnessApp(props) {
     });
   }
 
-  function renderMetaResumo() {
+  // No Plano (recolhivel=true) mostra só a linha "Em uso" e o botão
+  // "Como calculei"; o cartão completo abre ao tocar. No Perfil aparece
+  // sempre completo. Os cálculos são os mesmos — só muda o que se vê.
+  function renderMetaResumo(recolhivel) {
+    if (recolhivel && !metaAberta) {
+      var temAviso = !!((meta.calculado && meta.calculado.avisoMinimo) || (explicacao && explicacao.avisoDeficitAlto));
+      return React.createElement(FiCard, { style: { marginBottom: 12, padding: '10px 14px' } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 } },
+          React.createElement('div', { style: { fontSize: 14, fontWeight: 900, color: FI_COR } }, 'Em uso: ' + (meta.ativa ? fiFmtKcal(meta.ativa) : '— (completa o perfil)')),
+          React.createElement('button', { className: 'fi-btn', 'aria-expanded': false, style: { padding: '8px 12px', fontSize: 12 }, onClick: function () { setMetaAberta(true); } }, (temAviso ? '⚠️ ' : '') + 'Como calculei ▸')
+        )
+      );
+    }
     return React.createElement(FiCard, { style: { marginBottom: 12 } },
-      React.createElement(FiLabel, null, 'Meta diária'),
+      recolhivel
+        ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 } },
+            React.createElement(FiLabel, { style: { margin: 0 } }, 'Meta diária · como calculei'),
+            React.createElement('button', { className: 'fi-btn', 'aria-expanded': true, style: { padding: '8px 12px', fontSize: 12 }, onClick: function () { setMetaAberta(false); } }, 'Fechar ▾')
+          )
+        : React.createElement(FiLabel, null, 'Meta diária'),
       React.createElement('div', { style: { display: 'flex', gap: 16, flexWrap: 'wrap' } },
         React.createElement('div', null,
           React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)', fontWeight: 700 } }, 'Calculado'),
@@ -44648,6 +45154,12 @@ function FitnessApp(props) {
       meta.calculado && explicacao && React.createElement('div', { style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--fi-borda)', fontSize: 12.5, lineHeight: 1.9, color: 'var(--fi-texto2)' } },
         React.createElement('div', null, 'Metabolismo base (BMR): ' + fiFmtKcal(explicacao.bmr)),
         React.createElement('div', null, 'Manutenção (BMR × atividade): ' + fiFmtKcal(explicacao.manutencao)),
+        gastoReal && React.createElement('div', { style: { color: 'var(--fi-texto)', fontWeight: 700 } },
+          'O teu gasto real parece ser ~' + fiFmtKcal(gastoReal.gasto) + ' (estimativa, ' + gastoReal.diasComRegisto + ' dias de registos): ' +
+          (Math.abs(gastoReal.gasto - explicacao.manutencao) < 50
+            ? 'igual ao calculado.'
+            : fiFmtKcal(Math.abs(gastoReal.gasto - explicacao.manutencao)) + (gastoReal.gasto < explicacao.manutencao ? ' abaixo' : ' acima') + ' do calculado.') +
+          ' Não muda o teu alvo; se a diferença se mantiver, fala com o treinador.'),
         React.createElement('div', null,
           explicacao.deficitCalc > 0.5
             ? 'Défice: −' + fiFmtKcal(explicacao.deficitCalc) + ' (−' + Math.round(Math.abs(explicacao.deficitCalcPct)) + '%)'
@@ -44656,14 +45168,14 @@ function FitnessApp(props) {
               : 'Meta = manutenção'
         ),
         React.createElement('div', null, 'Meta calculada: ' + fiFmtKcal(explicacao.metaCalc)),
-        React.createElement('div', null, 'Ritmo previsto: ~' + Math.abs(explicacao.ritmoSemanal).toFixed(1) + ' kg/semana' + (explicacao.ritmoSemanal > 0.05 ? ' de perda' : explicacao.ritmoSemanal < -0.05 ? ' de ganho' : ' (estável)')),
-        explicacao.metaPesoInfo && React.createElement('div', null,
-          explicacao.metaPesoInfo.estado === 'atingida_ou_acima'
-            ? 'Peso meta já atingido ou acima do atual — revê o valor'
-            : explicacao.metaPesoInfo.estado === 'previsao'
-              ? 'Meta de peso em: ~' + explicacao.metaPesoInfo.semanas + ' semana' + (explicacao.metaPesoInfo.semanas === 1 ? '' : 's')
-              : 'Ao ritmo atual não é possível prever quando atinges o peso meta.'
-        ),
+        // A projeção teórica ("meta em ~N semanas") foi substituída pela tendência
+        // real das avaliações; sem tendência a descer não se projeta nada.
+        // O ritmo só aparece com dados reais: a tendência das avaliações e a média
+        // registada. Se faltar um dos dois, não se mostra previsão nenhuma.
+        projecaoReal && ritmoRegistos && React.createElement('div', { style: { color: 'var(--fi-texto)', fontWeight: 700 } }, projecaoReal.texto),
+        projecaoReal && ritmoRegistos && React.createElement('div', null,
+          'Pelos registos (média de ' + fiFmtKcal(ritmoRegistos.media) + ' em ' + ritmoRegistos.dias + ' dias) seria ' +
+          (ritmoRegistos.kgSemana > 0.05 ? '~−' + ritmoRegistos.kgSemana.toFixed(1) + ' kg/semana.' : (ritmoRegistos.kgSemana < -0.05 ? '~+' + Math.abs(ritmoRegistos.kgSemana).toFixed(1) + ' kg/semana.' : 'peso estável.'))),
         meta.usarCoach && explicacao.manutencao > 0 && React.createElement('div', null, (function () {
           var dCoach = explicacao.manutencao - meta.coach;
           var dCoachPct = Math.round(Math.abs(dCoach / explicacao.manutencao * 100));
@@ -44749,7 +45261,12 @@ function FitnessApp(props) {
           React.createElement('input', { type: 'checkbox', checked: perfForm.usar_coach, onChange: function (e) { perfCampo('usar_coach', e.target.checked); } }),
           React.createElement('span', { style: { fontSize: 13, fontWeight: 700 } }, 'Usar meta do coach')
         ),
-        perfForm.usar_coach && React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal do coach', value: perfForm.kcal_coach, onChange: function (e) { perfCampo('kcal_coach', e.target.value); }, style: { marginBottom: 14 } }),
+        perfForm.usar_coach && React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: perfErroCoach ? 4 : 14 } },
+          React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal do coach', 'aria-label': 'Alvo do treinador em kcal', value: perfForm.kcal_coach, onChange: function (e) { perfCampo('kcal_coach', e.target.value); setPerfErroCoach(null); } }),
+          React.createElement('button', { className: 'fi-btn', style: { flex: 'none' }, onClick: function () { setPerfForm(function (f) { return Object.assign({}, f, { usar_coach: false, kcal_coach: '' }); }); setPerfErroCoach(null); } }, 'Apagar')
+        ),
+        perfErroCoach && React.createElement('p', { role: 'alert', style: { fontSize: 12, fontWeight: 700, color: 'var(--fi-vermelho)', margin: '0 0 14px' } }, perfErroCoach),
+        !perfForm.usar_coach && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)', margin: '0 0 14px' } }, 'Sem alvo do treinador, vale a meta calculada.'),
         React.createElement(FiLabel, null, 'Próxima avaliação física'),
         React.createElement('input', { type: 'date', className: 'fi-input', autoComplete: 'off', value: perfForm.prox_avaliacao, onChange: function (e) { perfCampo('prox_avaliacao', e.target.value); }, style: { marginBottom: 8 } }),
         React.createElement('p', { style: { fontSize: 11, color: 'var(--fi-texto2)', margin: '0 0 14px' } }, 'Atualiza-se sozinha ao gravar uma avaliação nova (data + intervalo abaixo) — mas podes mudar ou apagar à mão aqui.'),
@@ -45432,7 +45949,8 @@ function FitnessApp(props) {
       ? refeicaoAtivaId
       : (ordenadas[0] ? ordenadas[0].id : null);
     return React.createElement('div', { style: { padding: 16 } },
-      renderMetaResumo(),
+      renderMetaResumo(true),
+      renderDiferencaMacros(),
       Math.abs(soma - 100) > 0.05 && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-vermelho)' } },
         React.createElement('p', { style: { fontSize: 12.5, color: 'var(--fi-vermelho)', fontWeight: 700 } }, '⚠️ As percentagens das refeições somam ' + soma + '% — deviam somar 100%.')
       ),
@@ -45633,6 +46151,19 @@ function FitnessApp(props) {
     );
   }
 
+  if (!perfil && perfilFalhou) {
+    // Não foi possível ler o perfil: NÃO mostrar o assistente de primeira
+    // abertura (isso faria parecer que o perfil não existe).
+    return React.createElement('div', { className: appClass },
+      React.createElement('style', null, FI_CSS),
+      React.createElement('div', { style: { padding: 24, maxWidth: 420, margin: '0 auto', textAlign: 'center' } },
+        React.createElement('p', { role: 'alert', style: { fontSize: 15, fontWeight: 800, margin: '40px 0 8px' } }, 'Não foi possível carregar os teus dados.'),
+        React.createElement('p', { style: { fontSize: 13, color: 'var(--fi-texto2)', margin: '0 0 16px' } }, 'O teu perfil e os registos continuam guardados. Pode ser só falta de rede.'),
+        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { minHeight: 46, width: '100%' }, onClick: function () { carregar(); } }, 'Tentar outra vez'),
+        React.createElement('button', { className: 'fi-btn', style: { minHeight: 46, width: '100%', marginTop: 8 }, onClick: onBack }, 'Voltar')
+      )
+    );
+  }
   if (!perfil) {
     return React.createElement('div', { className: appClass },
       React.createElement('style', null, FI_CSS),
@@ -45649,46 +46180,70 @@ function FitnessApp(props) {
   // ══════════════════════════════════════════════════════════════
   // HOJE — registo do dia e água (Fase 2)
   // ══════════════════════════════════════════════════════════════
+  // Falha de uma gravação do Hoje: consola + aviso global + mensagem que fica
+  // no próprio ecrã (o aviso global não aparece quando a app está sem rede).
+  function falhaHoje(oQue, e) {
+    console.error('[fitness] ' + oQue + ':', e);
+    window.mostrarErro('Fitness', e);
+    setHojeErro('Não foi gravado (' + oQue + '): ' + ((e && e.message) || 'erro') + '. Tenta outra vez.');
+  }
   function marcarComi(o, r) {
+    if (hojeSavingRef.current) return;
     var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
     var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : 0;
     var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
+    setHojeSaving(true);
     db.from('fitness_registo').insert({
       data: hojeData, refeicao_id: r.id, opcao_id: o.id, fator: 1,
       kcal: calc.totais.kcal, prot: calc.totais.prot, hc: calc.totais.hc, gord: calc.totais.gord
     }).then(function (res) {
-      if (res.error) { console.error('[fitness] marcar comi:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar ' + o.nome, res.error); return; }
+      setHojeErro(null);
       carregarHoje(hojeData);
-    }).catch(function (e) { console.error('[fitness] marcar comi:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar ' + o.nome, e); });
   }
   function mudarDoseRegisto(registo, dose) {
     var r = refeicoes.filter(function (x) { return x.id === registo.refeicao_id; })[0];
     var o = opcoes.filter(function (x) { return x.id === registo.opcao_id; })[0];
-    if (!r || !o) return;
+    if (!r || !o || hojeSavingRef.current) return;
     var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
     var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : 0;
     var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
+    setHojeSaving(true);
     db.from('fitness_registo').update({
       fator: dose, kcal: calc.totais.kcal * dose, prot: calc.totais.prot * dose, hc: calc.totais.hc * dose, gord: calc.totais.gord * dose
     }).eq('id', registo.id).then(function (res) {
-      if (res.error) { console.error('[fitness] mudar dose:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('mudar a dose', res.error); return; }
+      setHojeErro(null);
       setRegistoEditandoId(null);
       carregarHoje(hojeData);
-    }).catch(function (e) { console.error('[fitness] mudar dose:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('mudar a dose', e); });
   }
   function apagarRegisto(id) {
+    if (hojeSavingRef.current) return;
+    setHojeSaving(true);
     db.from('fitness_registo').delete().eq('id', id).then(function (res) {
-      if (res.error) { console.error('[fitness] apagar registo:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      setHojeSaving(false);
+      if (res.error) { setConfirmApagarRegisto(null); falhaHoje('apagar o registo', res.error); return; }
+      setHojeErro(null);
       setConfirmApagarRegisto(null);
       carregarHoje(hojeData);
-    }).catch(function (e) { console.error('[fitness] apagar registo:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setHojeSaving(false); setConfirmApagarRegisto(null); falhaHoje('apagar o registo', e); });
+  }
+  function limparEstimativa() {
+    estimarGeracaoRef.current += 1; // uma resposta atrasada da IA deixa de contar
+    setEstimando(false); setEstimativaAviso(null); setEstimativaOrigem(null); setEstimarForm({ prato: '', quantidade: '' });
   }
   function abrirComiOutra(refeicaoId) {
+    limparEstimativa();
     setComiOutraAberta(refeicaoId);
     setComiOutraEditandoId(null);
     setComiOutraForm({ modo: 'alimento', alimento_id: alimentos[0] ? alimentos[0].id : '', gramas: '', nome: '', kcal: '', prot: '', hc: '', gord: '' });
   }
   function abrirEditarComiOutra(reg) {
+    limparEstimativa();
     setComiOutraAberta(reg.refeicao_id);
     setComiOutraEditandoId(reg.id);
     setComiOutraForm({ modo: 'livre', alimento_id: '', gramas: '', nome: reg.livre_nome || '', kcal: String(reg.kcal), prot: String(reg.prot || 0), hc: String(reg.hc || 0), gord: String(reg.gord || 0) });
@@ -45705,9 +46260,9 @@ function FitnessApp(props) {
       };
     } else {
       var kcalNum = parseFloat(f.kcal);
-      if (!f.nome.trim() || !kcalNum || kcalNum <= 0) return;
+      if (!kcalNum || kcalNum <= 0) return;
       payload = {
-        data: hojeData, refeicao_id: refeicaoId, opcao_id: null, livre_nome: f.nome.trim(), fator: null,
+        data: hojeData, refeicao_id: refeicaoId, opcao_id: null, livre_nome: f.nome.trim() || 'Extra', fator: null,
         kcal: kcalNum, prot: parseFloat(f.prot) || 0, hc: parseFloat(f.hc) || 0, gord: parseFloat(f.gord) || 0
       };
     }
@@ -45717,19 +46272,21 @@ function FitnessApp(props) {
       : db.from('fitness_registo').insert(payload);
     query.then(function (res) {
       setComiOutraSaving(false);
-      if (res.error) { console.error('[fitness] comi outra coisa:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      if (res.error) { falhaHoje('registar outra coisa', res.error); return; }
+      setHojeErro(null);
       setComiOutraAberta(null);
       setComiOutraEditandoId(null);
       carregarHoje(hojeData);
-    }).catch(function (e) { setComiOutraSaving(false); console.error('[fitness] comi outra coisa:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setComiOutraSaving(false); falhaHoje('registar outra coisa', e); });
   }
   function tocarCopoAgua(indice) {
     setAguaSaving(true);
     db.from('fitness_agua').upsert({ data: hojeData, ml: (indice + 1) * 200 }, { onConflict: 'user_id,data' }).then(function (res) {
       setAguaSaving(false);
-      if (res.error) { console.error('[fitness] água:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      if (res.error) { falhaHoje('registar a água', res.error); return; }
+      setHojeErro(null);
       carregarHoje(hojeData);
-    }).catch(function (e) { setAguaSaving(false); console.error('[fitness] água:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setAguaSaving(false); falhaHoje('registar a água', e); });
   }
 
   function renderAnelHoje(totalHoje) {
@@ -45771,20 +46328,26 @@ function FitnessApp(props) {
       hojeData !== hojeIso && React.createElement('button', { className: 'fi-btn fi-btn-ativo', onClick: function () { setHojeData(hojeIso); } }, 'Hoje')
     );
   }
-  function renderOpcaoHoje(o, r, kcalRefeicao) {
-    var registo = registoDia.filter(function (reg) { return reg.opcao_id === o.id; })[0] || null;
+  // Linha de uma opção do plano no dia. Com regDado, é a linha DESSE registo
+  // (uma linha por registo: se a mesma opção foi gravada duas vezes, aparecem
+  // as duas e cada uma pode ser editada ou apagada). Sem regDado, é a opção
+  // ainda por registar, com o botão "Comi".
+  function renderOpcaoHoje(o, r, kcalRefeicao, regDado) {
+    var registo = regDado || null;
+    var repetido = !!(registo && repetidosDia[registo.id]);
     var itensOpcao = itens.filter(function (it) { return it.opcao_id === o.id; });
     var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, kcalRefeicao);
     var kcalMostrar = registo ? registo.kcal : calc.totais.kcal;
-    return React.createElement('div', { key: o.id, className: 'fi-hoje-linha' + (registo ? ' fi-hoje-linha-feita' : '') },
+    return React.createElement('div', { key: registo ? 'reg-' + registo.id : o.id, className: 'fi-hoje-linha' + (registo ? ' fi-hoje-linha-feita' : '') },
       React.createElement('div', { className: 'fi-hoje-linha-info' },
         React.createElement('span', { className: 'fi-hoje-linha-nome' }, o.nome),
-        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(kcalMostrar))
+        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(kcalMostrar) + (registo && registo.fator != null && Number(registo.fator) !== 1 ? ' · x' + registo.fator : '')),
+        repetido && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Parece repetido')
       ),
-      !registo && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 12px', fontSize: 12 }, onClick: function () { marcarComi(o, r); } }, 'Comi'),
+      !registo && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '6px 12px', fontSize: 12 }, disabled: hojeSaving, onClick: function () { marcarComi(o, r); } }, 'Comi'),
       registo && registoEditandoId === registo.id && React.createElement('div', { className: 'fi-dose-chips' },
         [0.5, 1, 1.5, 2].map(function (d) {
-          return React.createElement('button', { key: d, className: 'fi-chip' + (registo.fator === d ? ' fi-chip-ativo' : ''), onClick: function () { mudarDoseRegisto(registo, d); } }, 'x' + d);
+          return React.createElement('button', { key: d, className: 'fi-chip' + (registo.fator === d ? ' fi-chip-ativo' : ''), disabled: hojeSaving, onClick: function () { mudarDoseRegisto(registo, d); } }, 'x' + d);
         })
       ),
       registo && registoEditandoId !== registo.id && React.createElement('div', { className: 'fi-hoje-linha-acoes' },
@@ -45798,7 +46361,8 @@ function FitnessApp(props) {
     return React.createElement('div', { key: reg.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
       React.createElement('div', { className: 'fi-hoje-linha-info' },
         React.createElement('span', { className: 'fi-hoje-linha-nome' }, '🍕 ' + (reg.livre_nome || 'Item')),
-        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(reg.kcal))
+        React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(reg.kcal)),
+        repetidosDia[reg.id] && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Parece repetido')
       ),
       React.createElement('div', { className: 'fi-hoje-linha-acoes' },
         React.createElement('button', { onClick: function () { abrirEditarComiOutra(reg); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '✏️'),
@@ -45806,16 +46370,119 @@ function FitnessApp(props) {
       )
     );
   }
+  // Estimar um prato escrito à mão. 1.º procura na lista do utilizador (valores
+  // exatos, SEM chamar a IA); só se não existir chama a função fitness-prato.
+  // Nunca grava: preenche o formulário, o utilizador corrige e toca em Guardar.
+  // Se a IA falhar, não tiver crédito ou passar de 15 s: mensagem, e o resto
+  // do formulário continua a funcionar.
+  function estimarPrato() {
+    var prato = estimarForm.prato.trim(), quantidade = estimarForm.quantidade.trim();
+    if (!prato || estimando) return;
+    if (prato.length > FI_MAX_PRATO) { setEstimativaAviso('O texto do prato tem de ter no máximo ' + FI_MAX_PRATO + ' caracteres.'); return; }
+    var pratosDoPlano = opcoes.map(function (o) {
+      var r2 = ordenadas.filter(function (r) { return r.id === o.refeicao_id; })[0];
+      var c2 = fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === o.id; }), alimentosPorId, r2 && meta.ativa ? Math.round(meta.ativa * (r2.pct / 100)) : 0);
+      return { nome: o.nome, kcal: c2.totais.kcal, prot: c2.totais.prot, hc: c2.totais.hc, gord: c2.totais.gord };
+    });
+    var naLista = fiProcurarNaLista(prato, quantidade, alimentos, pratosDoPlano);
+    var arred = function (v) { return String(Math.round(v * 10) / 10); };
+    if (naLista && naLista.tipo === 'alimento') {
+      var al = naLista.alimento;
+      if (naLista.gramas) {
+        var g = naLista.gramas;
+        setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'livre', nome: al.nome + ' (' + Math.round(g) + ' ' + (al.medida === 'ml' ? 'ml' : 'g') + ')', kcal: String(Math.round(al.kcal_100 / 100 * g)), prot: arred(al.prot_100 / 100 * g), hc: arred(al.hc_100 / 100 * g), gord: arred(al.gord_100 / 100 * g) }));
+        setEstimativaOrigem('lista'); setEstimativaAviso('Está na tua lista: usei os valores exatos, sem estimativa.');
+      } else {
+        setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'alimento', alimento_id: al.id, gramas: '' }));
+        setEstimativaOrigem(null); setEstimativaAviso('Está na tua lista de alimentos: indica as gramas e os valores são os exatos.');
+      }
+      return;
+    }
+    if (naLista && naLista.tipo === 'prato') {
+      var pr = naLista.prato;
+      setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'livre', nome: pr.nome, kcal: String(Math.round(pr.kcal)), prot: arred(pr.prot), hc: arred(pr.hc), gord: arred(pr.gord) }));
+      setEstimativaOrigem('lista'); setEstimativaAviso('É um prato do teu plano: usei os valores exatos de uma dose, sem estimativa.');
+      return;
+    }
+    if (!db || !db.functions) { setEstimativaAviso(FI_ESTIMATIVA_INDISPONIVEL); return; }
+    estimarGeracaoRef.current += 1;
+    var geracao = estimarGeracaoRef.current;
+    setEstimando(true); setEstimativaAviso(null); setEstimativaOrigem(null);
+    var falhou = function (texto) {
+      if (estimarGeracaoRef.current !== geracao) return;
+      estimarGeracaoRef.current += 1; // fecha esta tentativa: uma resposta que chegue depois é ignorada
+      setEstimando(false); setEstimativaAviso(texto || FI_ESTIMATIVA_INDISPONIVEL);
+    };
+    var relogio = setTimeout(function () { falhou(); }, FI_TEMPO_ESTIMATIVA_MS);
+    db.functions.invoke('fitness-prato', { body: { prato: prato, quantidade: quantidade } }).then(function (res) {
+      clearTimeout(relogio);
+      if (estimarGeracaoRef.current !== geracao) return;
+      if (res && res.error) {
+        // Só interessa distinguir o limite diário; tudo o resto é "indisponível".
+        var ctx = res.error.context;
+        var lerCorpo = (ctx && typeof ctx.json === 'function') ? ctx.json().then(function (c) { return c; }, function () { return null; }) : Promise.resolve(null);
+        lerCorpo.then(function (corpo) {
+          console.error('[fitness] estimar prato: falhou (' + ((corpo && corpo.error) || 'sem detalhe') + ')');
+          falhou(corpo && corpo.error === 'limite_diario' ? 'Já usaste as estimativas de hoje. Escolhe um prato da lista ou escreve as calorias.' : null);
+        });
+        return;
+      }
+      var est = fiValidarEstimativa(res && res.data);
+      if (!est) { console.error('[fitness] estimar prato: resposta inválida'); falhou(); return; }
+      estimarGeracaoRef.current += 1;
+      setEstimando(false);
+      setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'livre', nome: prato + (quantidade ? ' (' + quantidade + ')' : ''), kcal: String(est.kcal), prot: String(est.prot), hc: String(est.hc), gord: String(est.gord) }));
+      setEstimativaOrigem('ia'); setEstimativaAviso('Estimativa (±20-30%). Corrige os valores se souberes melhor e depois toca em Guardar.');
+    }).catch(function (e) {
+      clearTimeout(relogio);
+      console.error('[fitness] estimar prato: falhou (' + ((e && e.name) || 'erro') + ')');
+      falhou();
+    });
+  }
+  function renderEstimarPrato() {
+    return React.createElement(React.Fragment, null,
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', maxLength: FI_MAX_PRATO, placeholder: 'Que prato foi?', 'aria-label': 'Prato a estimar', value: estimarForm.prato, onChange: function (e) { setEstimarForm(Object.assign({}, estimarForm, { prato: e.target.value })); }, style: { marginBottom: 8 } }),
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', maxLength: FI_MAX_QUANTIDADE, placeholder: 'Quantidade (ex.: 1 prato, 300 g)', 'aria-label': 'Quantidade', value: estimarForm.quantidade, onChange: function (e) { setEstimarForm(Object.assign({}, estimarForm, { quantidade: e.target.value })); }, style: { marginBottom: 8 } }),
+      React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', minHeight: 44, marginBottom: 8 }, disabled: estimando || !estimarForm.prato.trim(), onClick: estimarPrato }, estimando ? 'A estimar… (até 15 s)' : 'Estimar'),
+      estimativaAviso && React.createElement('p', { role: 'status', style: { margin: '0 0 8px', fontSize: 12.5, fontWeight: 700, color: 'var(--fi-amarelo)' } }, estimativaAviso),
+      React.createElement('p', { style: { margin: '0 0 8px', fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Se o prato estiver na tua lista, uso os valores exatos. Nada é gravado até tocares em Guardar.')
+    );
+  }
+  // Repete um extra recente nesta refeição, com um toque (mesmos valores).
+  function repetirExtra(refeicaoId, x) {
+    if (hojeSavingRef.current) return;
+    setHojeSaving(true);
+    db.from('fitness_registo').insert({
+      data: hojeData, refeicao_id: refeicaoId, opcao_id: null, livre_nome: x.nome, fator: null,
+      kcal: x.kcal, prot: x.prot, hc: x.hc, gord: x.gord
+    }).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar ' + x.nome, res.error); return; }
+      setHojeErro(null);
+      setComiOutraAberta(null);
+      carregarHoje(hojeData);
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar ' + x.nome, e); });
+  }
   function renderFormComiOutra(refeicaoId) {
     var f = comiOutraForm;
     return React.createElement(FiCard, { style: { marginTop: 8, marginBottom: 8 } },
+      !comiOutraEditandoId && extrasRecentes.length > 0 && React.createElement('div', { style: { marginBottom: 10 } },
+        React.createElement(FiLabel, null, 'Últimos extras · um toque regista'),
+        React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+          extrasRecentes.map(function (x) {
+            return React.createElement('button', { key: x.nome, className: 'fi-chip', style: { minHeight: 40 }, disabled: hojeSaving, onClick: function () { repetirExtra(refeicaoId, x); } }, x.nome + ' · ' + Math.round(x.kcal) + ' kcal');
+          })
+        )
+      ),
       !comiOutraEditandoId && React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 10 } },
-        ['alimento', 'livre'].map(function (m) {
+        ['alimento', 'livre', 'ia'].map(function (m) {
           var sel = f.modo === m;
-          return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { setComiOutraForm(Object.assign({}, f, { modo: m })); } }, m === 'alimento' ? 'Alimento da lista' : 'Nome livre');
+          var rotulo = m === 'alimento' ? 'Da lista' : (m === 'livre' ? 'Só calorias' : 'Estimar prato');
+          return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { setComiOutraForm(Object.assign({}, f, { modo: m })); } }, rotulo);
         })
       ),
-      f.modo === 'alimento'
+      f.modo !== 'ia' && estimativaAviso && React.createElement('p', { role: 'status', style: { margin: '0 0 8px', fontSize: 12.5, fontWeight: 800, color: estimativaOrigem === 'ia' ? 'var(--fi-amarelo)' : 'var(--fi-texto)' } }, estimativaAviso),
+      f.modo === 'ia' ? renderEstimarPrato() : f.modo === 'alimento'
         ? React.createElement(React.Fragment, null,
             React.createElement('select', { className: 'fi-input', value: f.alimento_id, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { alimento_id: e.target.value })); }, style: { marginBottom: 8 } },
               alimentos.map(function (a) { return React.createElement('option', { key: a.id, value: a.id }, a.nome); })
@@ -45823,7 +46490,7 @@ function FitnessApp(props) {
             React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'gramas', value: f.gramas, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { gramas: e.target.value })); }, style: { marginBottom: 8 } })
           )
         : React.createElement(React.Fragment, null,
-            React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome', value: f.nome, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { nome: e.target.value })); }, style: { marginBottom: 8 } }),
+            React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', placeholder: 'Nome (opcional)', value: f.nome, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { nome: e.target.value })); }, style: { marginBottom: 8 } }),
             React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'kcal', value: f.kcal, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { kcal: e.target.value })); }, style: { marginBottom: 8 } }),
             React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 } },
               React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'proteína (g)', value: f.prot, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { prot: e.target.value })); } }),
@@ -45833,7 +46500,7 @@ function FitnessApp(props) {
           ),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setComiOutraAberta(null); setComiOutraEditandoId(null); } }, 'Cancelar'),
-        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: comiOutraSaving, onClick: function () { guardarComiOutra(refeicaoId); } }, comiOutraSaving ? 'A guardar…' : '✓ Guardar')
+        f.modo !== 'ia' && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: comiOutraSaving, onClick: function () { guardarComiOutra(refeicaoId); } }, comiOutraSaving ? 'A guardar…' : '✓ Guardar')
       )
     );
   }
@@ -45857,19 +46524,24 @@ function FitnessApp(props) {
   }
   function renderHistoricoHoje() {
     return React.createElement(FiCard, { style: { marginTop: 12 } },
-      React.createElement(FiLabel, null, 'Últimos dias'),
+      React.createElement(FiLabel, null, 'Últimos dias · toca num dia para ver e corrigir'),
       historicoHoje.length
         ? historicoHoje.map(function (d) {
             var cor = fiCorAnelHoje(d.kcal, meta.ativa);
             return React.createElement('div', {
-              key: d.data, className: 'fi-historico-linha',
+              key: d.data, className: 'fi-historico-linha', role: 'button', tabIndex: 0, 'aria-label': 'Abrir o dia ' + fiFmtDataComDia(d.data),
               onClick: function () { setHojeData(d.data); window.scrollTo({ top: 0, behavior: 'smooth' }); }
             },
               React.createElement('div', { style: { minWidth: 0 } },
                 React.createElement('div', { style: { fontSize: 13, fontWeight: 700 } }, fiFmtDataComDia(d.data)),
-                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'P ' + Math.round(d.prot) + ' · HC ' + Math.round(d.hc) + ' · G ' + Math.round(d.gord) + ' g')
+                React.createElement('div', { style: { fontSize: 11, color: 'var(--fi-texto2)' } }, 'P ' + Math.round(d.prot) + ' · HC ' + Math.round(d.hc) + ' · G ' + Math.round(d.gord) + ' g'),
+                fiDiaForaDoNormal(d.kcal, meta.ativa) && diasConfirmados[d.data] !== 'sim' && React.createElement('div', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Fora do normal · por confirmar'),
+                d.repetidos > 0 && React.createElement('div', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, d.repetidos === 1 ? '1 registo parece repetido' : d.repetidos + ' registos parecem repetidos')
               ),
-              React.createElement('div', { style: { fontSize: 14, fontWeight: 800, color: cor, flex: 'none' } }, Math.round(d.kcal) + ' kcal')
+              React.createElement('div', { style: { fontSize: 14, fontWeight: 800, color: cor, flex: 'none', textAlign: 'right' } },
+                Math.round(d.kcal) + ' kcal ›',
+                React.createElement('div', { style: { fontSize: 11, fontWeight: 700, color: 'var(--fi-texto2)' } }, (d.n || 0) + (d.n === 1 ? ' registo' : ' registos'))
+              )
             );
           })
         : React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Ainda sem dias registados.')
@@ -45878,22 +46550,310 @@ function FitnessApp(props) {
   // Faixa "Próxima avaliação física" — já disponível na Fase 1.
   function renderProxAvaliacaoFaixa() {
     if (!perfil || !perfil.prox_avaliacao) return null;
-    var dias = fiDiasAte(perfil.prox_avaliacao);
-    var atrasada = dias < 0;
-    var hoje = dias === 0;
-    var texto = atrasada
-      ? '⚠️ Avaliação em atraso — era ' + fiFmtDataCurta(perfil.prox_avaliacao)
-      : hoje
-        ? '🎯 Próxima avaliação física: hoje!'
-        : 'Próxima avaliação física: ' + fiFmtDataCurta(perfil.prox_avaliacao) + ' · faltam ' + dias + ' dia' + (dias === 1 ? '' : 's');
-    return React.createElement(FiCard, {
-      style: {
-        marginBottom: 12,
-        background: (atrasada || hoje) ? 'var(--fi-vermelho)' : undefined,
-        borderColor: (atrasada || hoje) ? 'var(--fi-vermelho)' : undefined
-      }
-    },
-      React.createElement('p', { style: { fontSize: 13, fontWeight: 800, color: (atrasada || hoje) ? '#fff' : 'var(--fi-texto)', margin: 0 } }, texto)
+    var info = fiTextoProxAvaliacao(fiDiasAte(perfil.prox_avaliacao), fiFmtDataCurta(perfil.prox_avaliacao));
+    return React.createElement(FiCard, { style: { marginBottom: 12, borderColor: info.destaque ? 'var(--fi-verde)' : undefined } },
+      React.createElement('p', { role: info.destaque ? 'status' : undefined, style: { fontSize: 13, fontWeight: 800, color: 'var(--fi-texto)', margin: 0 } }, (info.destaque ? '🎯 ' : '') + info.texto),
+      info.registar && React.createElement('button', {
+        className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 10, minHeight: 44 },
+        onClick: function () { setTab('progresso'); abrirNovaAvaliacao(); }
+      }, 'Registar avaliação')
+    );
+  }
+  // Macros do plano em uso: soma da opção escolhida (favorita ou a primeira) de
+  // cada refeição, nas quantidades já ajustadas. Só se calcula quando TODAS as
+  // refeições têm uma opção com ingredientes; senão a comparação seria enganadora.
+  function macrosDoPlano() {
+    if (!meta.ativa || !ordenadas.length) return null;
+    var soma = { prot: 0, hc: 0, gord: 0 }, completo = true;
+    ordenadas.forEach(function (r) {
+      var o = opcaoEscolhidaRefeicao(r.id);
+      var itensOpcao = o ? itens.filter(function (it) { return it.opcao_id === o.id; }) : [];
+      var calc = fiCalcularGramasOpcao(itensOpcao, alimentosPorId, Math.round(meta.ativa * (r.pct / 100)));
+      if (!calc.itens.length) { completo = false; return; }
+      soma.prot += calc.totais.prot; soma.hc += calc.totais.hc; soma.gord += calc.totais.gord;
+    });
+    return completo ? soma : null;
+  }
+  function renderDiferencaMacros() {
+    if (!macrosRef) return null;
+    var texto = fiDiferencaMacros(macrosDoPlano(), { prot: macrosRef.prot_g, hc: macrosRef.hc_g, gord: macrosRef.gord_g });
+    if (!texto) return null;
+    return React.createElement('p', { role: 'note', style: { margin: '0 2px 12px', fontSize: 12.5, color: 'var(--fi-texto2)', fontWeight: 700 } }, 'ℹ️ ' + texto);
+  }
+  // ── "O que vou comer?" ──────────────────────────────────────────────
+  // Escolhe-se primeiro entre as opções do plano da refeição; a resposta sai
+  // na hora, sem gravar nada. "Registar" grava como qualquer outro registo
+  // (edita-se e apaga-se na refeição).
+  function renderOQueVouComer(totalHoje, idxDaHora) {
+    if (!comerAberto) {
+      return React.createElement('button', { className: 'fi-hoje-recolhida', 'aria-expanded': false, onClick: function () { setComerAberto(true); } },
+        React.createElement('span', { style: { fontWeight: 800 } }, '🍽️ O que vou comer?'),
+        React.createElement('span', { style: { color: 'var(--fi-texto2)', fontWeight: 700 } }, '▸')
+      );
+    }
+    var refAtual = ordenadas.filter(function (r) { return r.id === comerRefId; })[0] || ordenadas[idxDaHora >= 0 ? idxDaHora : 0] || null;
+    var opcoesRef = refAtual ? opcoes.filter(function (o) { return o.refeicao_id === refAtual.id; }).sort(function (a, b) { return (b.favorito ? 1 : 0) - (a.favorito ? 1 : 0) || a.ordem - b.ordem; }) : [];
+    var kcalRef = refAtual && meta.ativa ? Math.round(meta.ativa * (refAtual.pct / 100)) : 0;
+    var escolhida = opcoesRef.filter(function (o) { return o.id === comerOpcaoId; })[0] || null;
+    var resposta = null;
+    if (escolhida) {
+      var calc = fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === escolhida.id; }), alimentosPorId, kcalRef);
+      var hojeIsoReal = new Date().toISOString().slice(0, 10);
+      var bal = fiBalancoSemana(diasQueContam, meta.ativa, hojeIsoReal);
+      // candidatos de proteína: as outras opções do plano (uma dose) e os alimentos (100 g)
+      var candidatos = opcoes.filter(function (o) { return o.id !== escolhida.id; }).map(function (o) {
+        var r2 = ordenadas.filter(function (r) { return r.id === o.refeicao_id; })[0];
+        var c2 = fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === o.id; }), alimentosPorId, r2 && meta.ativa ? Math.round(meta.ativa * (r2.pct / 100)) : 0);
+        return { nome: o.nome, kcal: c2.totais.kcal, prot: c2.totais.prot };
+      }).concat(alimentos.map(function (a) { return { nome: '100 ' + (a.medida === 'ml' ? 'ml' : 'g') + ' de ' + a.nome, kcal: Number(a.kcal_100) || 0, prot: Number(a.prot_100) || 0 }; }));
+      resposta = fiRespostaPrato({
+        kcalPrato: calc.totais.kcal, protPrato: calc.totais.prot, kcalComidas: totalHoje.kcal, protComidas: totalHoje.prot,
+        kcalMeta: meta.ativa, protMeta: protAlvo, saldoSemana: bal.saldo, diasRestantes: bal.diasRestantes, candidatos: candidatos
+      });
+    }
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }, onClick: function () { setComerAberto(false); setComerOpcaoId(null); } },
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, '🍽️ O que vou comer?'),
+        React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, '▾')
+      ),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 } },
+        ordenadas.map(function (r) {
+          var sel = refAtual && r.id === refAtual.id;
+          return React.createElement('button', { key: r.id, className: 'fi-chip' + (sel ? ' fi-chip-ativo' : ''), onClick: function () { setComerRefId(r.id); setComerOpcaoId(null); } }, r.nome);
+        })
+      ),
+      opcoesRef.length
+        ? React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+            opcoesRef.map(function (o) {
+              var sel = escolhida && o.id === escolhida.id;
+              return React.createElement('button', { key: o.id, className: 'fi-chip' + (sel ? ' fi-chip-ativo' : ''), style: { minHeight: 40 }, onClick: function () { setComerOpcaoId(o.id); } }, (o.favorito ? '★ ' : '') + o.nome);
+            })
+          )
+        : React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'Esta refeição ainda não tem opções no Plano.'),
+      resposta && React.createElement('div', { role: 'status', style: { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--fi-borda)' } },
+        resposta.linhas.map(function (l, i) {
+          return React.createElement('p', { key: i, style: { margin: '0 0 4px', fontSize: 13.5, fontWeight: i === 0 ? 800 : 600, color: i === 0 && resposta.cabe === false ? 'var(--fi-amarelo)' : 'var(--fi-texto)' } }, l);
+        }),
+        React.createElement('button', {
+          className: 'fi-btn fi-btn-ativo', style: { width: '100%', marginTop: 8, minHeight: 44 }, disabled: hojeSaving,
+          onClick: function () { marcarComi(escolhida, refAtual); setComerOpcaoId(null); setComerAberto(false); }
+        }, 'Registar ' + escolhida.nome)
+      ),
+      !resposta && opcoesRef.length > 0 && React.createElement('p', { style: { margin: '8px 0 0', fontSize: 12, color: 'var(--fi-texto2)' } }, 'Escolhe um prato para ver se cabe no dia. Nada é gravado até tocares em "Registar".')
+    );
+  }
+  // ── Treino e caminhada no Hoje ──────────────────────────────────────
+  // Bloco discreto, fechado por omissão. Regista com um toque e só quando o
+  // utilizador o abre: a app nunca lembra nem pede exercício.
+  function registarTreinoNoDia(treino) {
+    if (hojeSavingRef.current) return;
+    var exs = exercicios.filter(function (e) { return e.treino_id === treino.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
+    setHojeSaving(true);
+    db.from('fitness_treino_log').insert({
+      data: hojeData, treino_id: treino.id, notas: null,
+      feitos: exs.map(function (e) { return { exercicio_id: e.id, nome: e.nome, feito: true }; })
+    }).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar o treino', res.error); return; }
+      setHojeErro(null);
+      carregarTreinos();
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar o treino', e); });
+  }
+  function registarCaminhadaNoDia(minutos) {
+    var min = parseInt(minutos, 10);
+    if (!min || min <= 0 || hojeSavingRef.current) return;
+    setHojeSaving(true);
+    db.from('fitness_treino_log').insert({ data: hojeData, treino_id: null, feitos: { tipo: 'caminhada', minutos: min } }).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('registar a caminhada', res.error); return; }
+      setHojeErro(null);
+      setCaminhadaHojeMin('');
+      carregarTreinos();
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('registar a caminhada', e); });
+  }
+  function guardarCaminhadaEditada() {
+    var min = parseInt(caminhadaEditMin, 10);
+    if (!min || min <= 0 || hojeSavingRef.current) return;
+    setHojeSaving(true);
+    db.from('fitness_treino_log').update({ feitos: { tipo: 'caminhada', minutos: min } }).eq('id', caminhadaEditId).then(function (res) {
+      setHojeSaving(false);
+      if (res.error) { falhaHoje('alterar a caminhada', res.error); return; }
+      setHojeErro(null);
+      setCaminhadaEditId(null);
+      carregarTreinos();
+    }).catch(function (e) { setHojeSaving(false); falhaHoje('alterar a caminhada', e); });
+  }
+  function renderTreinoHoje() {
+    var resumo = fiResumoTreinoDia(treinoLog, treinos, hojeData);
+    var btnIcone = { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer', minWidth: 36, minHeight: 36 };
+    if (!treinoHojeAberto) {
+      return React.createElement('button', { className: 'fi-hoje-recolhida', 'aria-expanded': false, style: { marginTop: 12 }, onClick: function () { setTreinoHojeAberto(true); } },
+        React.createElement('span', { style: { fontWeight: 800 } }, '🏋️ Treino e caminhada'),
+        React.createElement('span', { style: { color: 'var(--fi-texto2)', fontWeight: 700 } }, (resumo.texto ? '✓ ' + resumo.texto + ' ' : '') + '▸')
+      );
+    }
+    return React.createElement(FiCard, { style: { marginTop: 12 } },
+      React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }, onClick: function () { setTreinoHojeAberto(false); } },
+        React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, '🏋️ Treino e caminhada'),
+        React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, '▾')
+      ),
+      treinosCarregando && !treinos.length && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, 'A carregar…'),
+      resumo.sessoes.map(function (x) {
+        return React.createElement('div', { key: x.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+          React.createElement('div', { className: 'fi-hoje-linha-info' }, React.createElement('span', { className: 'fi-hoje-linha-nome' }, '✓ ' + x.nome)),
+          React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+            React.createElement('button', { 'aria-label': 'Editar sessão', style: btnIcone, onClick: function () { var l = treinoLog.filter(function (y) { return y.id === x.id; })[0]; if (l) abrirEditarSessao(l); } }, '✏️'),
+            React.createElement('button', { 'aria-label': 'Apagar sessão', style: btnIcone, onClick: function () { setConfirmApagarSessao(x.id); } }, '🗑️')
+          )
+        );
+      }),
+      resumo.caminhadas.map(function (x) {
+        if (caminhadaEditId === x.id) {
+          return React.createElement('div', { key: x.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+            React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', 'aria-label': 'Minutos de caminhada', style: { maxWidth: 110 }, value: caminhadaEditMin, onChange: function (e) { setCaminhadaEditMin(e.target.value); } }),
+            React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+              React.createElement('button', { className: 'fi-btn', style: { padding: '8px 10px', fontSize: 12 }, onClick: function () { setCaminhadaEditId(null); } }, 'Cancelar'),
+              React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { padding: '8px 10px', fontSize: 12 }, disabled: hojeSaving, onClick: guardarCaminhadaEditada }, 'Guardar')
+            )
+          );
+        }
+        return React.createElement('div', { key: x.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+          React.createElement('div', { className: 'fi-hoje-linha-info' }, React.createElement('span', { className: 'fi-hoje-linha-nome' }, '✓ Caminhada · ' + x.minutos + ' min')),
+          React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+            React.createElement('button', { 'aria-label': 'Editar caminhada', style: btnIcone, onClick: function () { setCaminhadaEditId(x.id); setCaminhadaEditMin(String(x.minutos)); } }, '✏️'),
+            React.createElement('button', { 'aria-label': 'Apagar caminhada', style: btnIcone, onClick: function () { setConfirmApagarSessao(x.id); } }, '🗑️')
+          )
+        );
+      }),
+      treinos.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 } },
+        treinos.map(function (t) {
+          return React.createElement('button', { key: t.id, className: 'fi-btn', style: { flex: '1 1 140px', minHeight: 44 }, disabled: hojeSaving, onClick: function () { registarTreinoNoDia(t); } }, 'Fiz: ' + t.nome);
+        })
+      ),
+      !treinosCarregando && !treinos.length && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', marginTop: 8 } }, 'Os treinos criam-se no separador Treino.'),
+      React.createElement(FiLabel, { style: { margin: '12px 0 6px' } }, 'Caminhada'),
+      React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' } },
+        [20, 30, 45, 60].map(function (m) {
+          return React.createElement('button', { key: m, className: 'fi-chip', style: { minHeight: 40 }, disabled: hojeSaving, onClick: function () { registarCaminhadaNoDia(m); } }, m + ' min');
+        }),
+        React.createElement('input', { type: 'number', className: 'fi-input', autoComplete: 'off', placeholder: 'outro', 'aria-label': 'Outros minutos de caminhada', style: { maxWidth: 90 }, value: caminhadaHojeMin, onChange: function (e) { setCaminhadaHojeMin(e.target.value); } }),
+        caminhadaHojeMin !== '' && React.createElement('button', { className: 'fi-btn fi-btn-ativo', 'aria-label': 'Registar caminhada', style: { padding: '8px 12px', fontSize: 12 }, disabled: hojeSaving, onClick: function () { registarCaminhadaNoDia(caminhadaHojeMin); } }, 'Registar')
+      )
+    );
+  }
+  // Aviso semanal (Hoje e Progresso): só aparece quando fiAvisoSemanal o devolve.
+  function renderAvisoSemanal() {
+    if (!avisoSemanal) return null;
+    return React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-amarelo)' } },
+      React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13.5, fontWeight: 800, color: 'var(--fi-amarelo)' } }, '⚠️ ' + avisoSemanal),
+      projecaoReal && React.createElement('p', { style: { margin: '6px 0 0', fontSize: 12, color: 'var(--fi-texto2)' } }, projecaoReal.texto)
+    );
+  }
+  // Vários dias seguidos bem abaixo do alvo: sugestão neutra, sem números de calorias.
+  function renderSinalCansaco() {
+    if (!diasCansaco) return null;
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13, fontWeight: 700 } },
+        'Os últimos ' + diasCansaco + ' dias ficaram bem abaixo do alvo. Se te sentes cansado, pode valer a pena falar com o médico ou com o treinador.')
+    );
+  }
+  // Dias fora do normal: confirmar (ou tirar a confirmação). Fica só neste aparelho.
+  function confirmarDia(dataISO, confirmar) {
+    var novo = fiPorRespostaPlano(diasConfirmados, dataISO, confirmar ? 'sim' : null);
+    setDiasConfirmados(novo);
+    try { window.localStorage.setItem(FI_CHAVE_DIAS_CONFIRMADOS, JSON.stringify(novo)); }
+    catch (e) {
+      console.warn('[fitness] guardar dia confirmado:', (e && e.message) || e);
+      setHojeErro('A confirmação não ficou guardada neste aparelho (vale só até fechares a app).');
+    }
+  }
+  // No dia aberto (que não seja hoje): se ficou fora do normal, pergunta se é para confirmar.
+  function renderConfirmarDia(totalHoje) {
+    var hojeIsoReal = new Date().toISOString().slice(0, 10);
+    if (hojeData >= hojeIsoReal || !fiDiaForaDoNormal(totalHoje.kcal, meta.ativa)) return null;
+    var pct = Math.round(totalHoje.kcal / meta.ativa * 100);
+    if (diasConfirmados[hojeData] === 'sim') {
+      return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12.5, color: 'var(--fi-texto2)', margin: '0 2px 12px' } },
+        React.createElement('span', { style: { fontWeight: 700 } }, '✓ Dia confirmado (' + pct + '% do alvo): conta para as médias.'),
+        React.createElement('button', { className: 'fi-btn', style: { padding: '6px 10px', fontSize: 12 }, onClick: function () { confirmarDia(hojeData, false); } }, 'Desfazer')
+      );
+    }
+    return React.createElement(FiCard, { style: { marginBottom: 12 } },
+      React.createElement('p', { style: { margin: '0 0 4px', fontSize: 14, fontWeight: 800 } }, 'Este dia ficou a ' + pct + '% do alvo. Queres confirmar este dia?'),
+      React.createElement('p', { style: { margin: '0 0 10px', fontSize: 12, color: 'var(--fi-texto2)' } }, 'Enquanto não confirmares, fica de fora das médias. Se faltam registos, podes acrescentar, editar ou apagar aqui em baixo.'),
+      React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', minHeight: 46 }, onClick: function () { confirmarDia(hojeData, true); } }, '✓ Está certo, confirmo')
+    );
+  }
+  // "Comeste só o plano?" — responder (sim/nao) ou tirar a resposta (null).
+  // Fica só neste aparelho; se não der para guardar, vale até fechar a app
+  // e o ecrã diz que não ficou guardado.
+  function responderSoPlano(dataISO, resposta) {
+    var novo = fiPorRespostaPlano(respostasPlano, dataISO, resposta);
+    setRespostasPlano(novo);
+    try { window.localStorage.setItem(FI_CHAVE_SO_PLANO, JSON.stringify(novo)); }
+    catch (e) {
+      console.warn('[fitness] guardar resposta "só o plano":', (e && e.message) || e);
+      setHojeErro('A resposta não ficou guardada neste aparelho (vale só até fechares a app).');
+    }
+    if (resposta === 'nao' && ordenadas.length) {
+      // Houve extras: abre logo o "Fora do plano" da última refeição.
+      var ultima = ordenadas[ordenadas.length - 1];
+      setHojeRefAbertas(function (m) { var n = Object.assign({}, m); n[ultima.id] = true; return n; });
+      setHojeOutrasAbertas(function (m) { var n = Object.assign({}, m); n[ultima.id] = true; return n; });
+      abrirComiOutra(ultima.id);
+    }
+  }
+  function renderPerguntaSoPlano() {
+    var resposta = respostasPlano[hojeData] || null;
+    var perfeito = fiDiaPerfeito(ordenadas.map(function (r) { return r.id; }), registoDia);
+    if (!perfeito && !resposta) return null;
+    if (!resposta) {
+      return React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-verde)' } },
+        React.createElement('p', { style: { margin: '0 0 10px', fontSize: 14, fontWeight: 800 } }, 'Dia fechado igual ao plano. Comeste só o plano?'),
+        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+          React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1, minHeight: 46 }, onClick: function () { responderSoPlano(hojeData, 'sim'); } }, '✓ Sim, só o plano'),
+          React.createElement('button', { className: 'fi-btn', style: { flex: 1, minHeight: 46 }, onClick: function () { responderSoPlano(hojeData, 'nao'); } }, 'Houve extras')
+        )
+      );
+    }
+    return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12.5, color: 'var(--fi-texto2)', margin: '0 2px 12px' } },
+      React.createElement('span', { style: { fontWeight: 700 } }, resposta === 'sim' ? '✓ Confirmaste: só o plano.' : 'Disseste que houve extras: regista-os em "Fora do plano".'),
+      React.createElement('button', { className: 'fi-btn', style: { padding: '6px 10px', fontSize: 12 }, onClick: function () { responderSoPlano(hojeData, null); } }, 'Alterar')
+    );
+  }
+  // Cartão do topo: comido, em falta e UMA linha de estado. Dentro do alvo
+  // diz só "Vais bem."; os avisos só aparecem quando há desvio (fiEstadoDia).
+  function renderEstadoHoje(totalHoje) {
+    var comRegisto = {};
+    registoDia.forEach(function (reg) { if (reg.refeicao_id) comRegisto[reg.refeicao_id] = true; });
+    var planoRegistado = ordenadas.reduce(function (s2, r) {
+      return s2 + (comRegisto[r.id] && meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : 0);
+    }, 0);
+    var est = fiEstadoDia({
+      kcalMeta: meta.ativa, protMeta: protAlvo, kcal: totalHoje.kcal, prot: totalHoje.prot,
+      planoKcalRegistado: planoRegistado, refeicoesTotal: ordenadas.length,
+      refeicoesRegistadas: ordenadas.filter(function (r) { return comRegisto[r.id]; }).length
+    });
+    var corLinha = est.nivel === 'atencao' ? 'var(--fi-amarelo)' : (est.nivel === 'ok' ? FI_COR : 'var(--fi-texto2)');
+    var faltaTxt = est.faltaKcal == null ? '—' : (est.faltaKcal >= 0 ? est.faltaKcal + ' kcal' : '+' + (-est.faltaKcal) + ' kcal');
+    var faltaProtTxt = est.faltaProt == null ? '' : (est.faltaProt > 0 ? 'P ' + est.faltaProt + ' g' : 'proteína ✓');
+    return React.createElement(FiCard, { style: { marginBottom: 14 } },
+      React.createElement('div', { className: 'fi-hoje-estado' },
+        React.createElement('div', null,
+          React.createElement(FiLabel, { style: { margin: 0 } }, 'Comido'),
+          React.createElement('div', { className: 'fi-hoje-estado-num' }, Math.round(totalHoje.kcal) + ' kcal'),
+          React.createElement('div', { className: 'fi-hoje-estado-sub' }, 'P ' + Math.round(totalHoje.prot) + ' g')
+        ),
+        React.createElement('div', null,
+          React.createElement(FiLabel, { style: { margin: 0 } }, est.faltaKcal != null && est.faltaKcal < 0 ? 'Acima do alvo' : 'Falta'),
+          React.createElement('div', { className: 'fi-hoje-estado-num', style: { color: est.faltaKcal != null && est.faltaKcal < 0 ? 'var(--fi-vermelho)' : undefined } }, faltaTxt),
+          React.createElement('div', { className: 'fi-hoje-estado-sub' }, faltaProtTxt)
+        )
+      ),
+      est.nivel === 'ok' && React.createElement('div', { className: 'fi-hoje-estado-linha', role: 'status', style: { color: corLinha } }, '✓ Vais bem.'),
+      est.nivel !== 'ok' && est.linhas.map(function (l, i) {
+        return React.createElement('div', { key: i, className: 'fi-hoje-estado-linha', role: 'status', style: { color: corLinha } }, (est.nivel === 'atencao' ? '⚠️ ' : '') + l);
+      })
     );
   }
   function renderHoje() {
@@ -45901,27 +46861,104 @@ function FitnessApp(props) {
       acc.kcal += Number(reg.kcal || 0); acc.prot += Number(reg.prot || 0); acc.hc += Number(reg.hc || 0); acc.gord += Number(reg.gord || 0);
       return acc;
     }, { kcal: 0, prot: 0, hc: 0, gord: 0 });
+    // Refeição da hora: só hoje se usa o relógio; noutro dia abre a primeira por registar.
+    var agora = new Date();
+    var eHoje = hojeData === agora.toISOString().slice(0, 10);
+    var feitasHoje = ordenadas.map(function (r) { return registoDia.some(function (reg) { return reg.refeicao_id === r.id; }); });
+    var idxDaHora = fiRefeicaoDaHora(feitasHoje, eHoje ? agora.getHours() + agora.getMinutes() / 60 : null);
+    var idsRefeicoes = ordenadas.map(function (r) { return r.id; });
+    var registosSoltos = registoDia.filter(function (reg) { return idsRefeicoes.indexOf(reg.refeicao_id) === -1; });
+    var nRepetidos = Object.keys(repetidosDia).length;
     return React.createElement('div', { style: { padding: 16 } },
       renderProxAvaliacaoFaixa(),
-      renderAnelHoje(totalHoje),
       renderSeletorDia(),
+      hojeErro && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-vermelho)' } },
+        React.createElement('div', { role: 'alert', style: { display: 'flex', gap: 8, alignItems: 'flex-start' } },
+          React.createElement('p', { style: { flex: 1, margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--fi-vermelho)' } }, '⚠️ ' + hojeErro),
+          React.createElement('button', { 'aria-label': 'Fechar aviso', onClick: function () { setHojeErro(null); }, style: { background: 'none', border: 'none', fontSize: 16, cursor: 'pointer' } }, '✕')
+        )
+      ),
+      !eHoje && !hojeCarregando && React.createElement('p', { style: { margin: '0 2px 10px', fontSize: 12.5, fontWeight: 700, color: 'var(--fi-texto2)', textAlign: 'center' } },
+        registoDia.length
+          ? 'Dia de ' + fiFmtDataComDia(hojeData) + ': ' + registoDia.length + (registoDia.length === 1 ? ' registo' : ' registos') + '. Podes editar, apagar ou acrescentar.'
+          : 'Dia de ' + fiFmtDataComDia(hojeData) + ': sem registos. Podes acrescentar o que faltar.'),
+      renderEstadoHoje(totalHoje),
+      eHoje && renderOQueVouComer(totalHoje, idxDaHora),
+      !hojeCarregando && nRepetidos > 0 && React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-amarelo)' } },
+        React.createElement('p', { role: 'status', style: { margin: 0, fontSize: 13, fontWeight: 800, color: 'var(--fi-amarelo)' } },
+          '⚠️ ' + (nRepetidos === 1 ? 'Há 1 registo que parece repetido' : 'Há ' + nRepetidos + ' registos que parecem repetidos') + ' (mesmo prato, na mesma refeição, à mesma hora). Estão marcados em baixo; apaga o que estiver a mais.')
+      ),
+      !hojeCarregando && renderConfirmarDia(totalHoje),
+      renderAvisoSemanal(),
+      renderSinalCansaco(),
+      !hojeCarregando && renderPerguntaSoPlano(),
       hojeCarregando && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', textAlign: 'center', margin: '0 0 10px' } }, 'A carregar…'),
-      ordenadas.map(function (r) {
+      ordenadas.map(function (r, idxRef) {
         var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : null;
         var opcoesRefeicao = opcoes.filter(function (o) { return o.refeicao_id === r.id; }).sort(function (a, b) { return a.ordem - b.ordem; });
         var registosLivres = registoDia.filter(function (reg) { return reg.refeicao_id === r.id && reg.opcao_id == null; });
+        var registadas = opcoesRefeicao.filter(function (o) { return registoDia.some(function (reg) { return reg.opcao_id === o.id; }); });
+        var registosOpcao = registoDia.filter(function (reg) { return reg.refeicao_id === r.id && reg.opcao_id != null; });
+        var temRegisto = registosOpcao.length > 0 || registosLivres.length > 0;
+        var aberta = hojeRefAbertas[r.id] != null ? hojeRefAbertas[r.id] : (eHoje ? idxRef === idxDaHora : (temRegisto || idxRef === idxDaHora));
+        var alternar = function () { setHojeRefAbertas(function (m) { var n = Object.assign({}, m); n[r.id] = !aberta; return n; }); };
+        if (!aberta) {
+          var kcalFeitas = registoDia.filter(function (reg) { return reg.refeicao_id === r.id; }).reduce(function (s3, reg) { return s3 + Number(reg.kcal || 0); }, 0);
+          var passada = idxDaHora === -1 || idxRef < idxDaHora;
+          return React.createElement('button', { key: r.id, className: 'fi-hoje-recolhida', 'aria-expanded': false, onClick: alternar },
+            React.createElement('span', { style: { fontWeight: 800 } }, (temRegisto ? '✓ ' : '') + r.nome),
+            React.createElement('span', { style: { color: !temRegisto && passada ? 'var(--fi-amarelo)' : 'var(--fi-texto2)', fontWeight: 700 } },
+              temRegisto ? fiFmtKcal(kcalFeitas) : (passada ? 'por registar ▸' : (kcalRefeicao ? fiFmtKcal(kcalRefeicao) : '') + ' ▸'))
+          );
+        }
+        // "O de sempre": a opção favorita (ou a primeira) — a mesma escolha da lista de compras.
+        var deSempre = opcaoEscolhidaRefeicao(r.id);
+        var outras = opcoesRefeicao.filter(function (o) { return registadas.indexOf(o) === -1 && (temRegisto || !deSempre || o.id !== deSempre.id); });
+        var outrasAbertas = !!hojeOutrasAbertas[r.id];
+        var kcalDeSempre = deSempre ? fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === deSempre.id; }), alimentosPorId, kcalRefeicao || 0).totais.kcal : 0;
         return React.createElement(FiCard, { key: r.id, style: { marginBottom: 12 } },
-          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 } },
-            React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, r.nome),
-            React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, kcalRefeicao ? fiFmtKcal(kcalRefeicao) : '—')
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, cursor: 'pointer' }, onClick: alternar },
+            React.createElement('span', { style: { fontWeight: 900, fontSize: 15 } }, (temRegisto ? '✓ ' : '') + r.nome),
+            React.createElement('span', { style: { fontSize: 12, color: 'var(--fi-texto2)' } }, (kcalRefeicao ? fiFmtKcal(kcalRefeicao) : '—') + ' ▾')
           ),
-          opcoesRefeicao.map(function (o) { return renderOpcaoHoje(o, r, kcalRefeicao || 0); }),
+          !temRegisto && deSempre && React.createElement('button', {
+            className: 'fi-btn fi-btn-ativo fi-hoje-sempre', disabled: hojeSaving,
+            onClick: function () { marcarComi(deSempre, r); }
+          }, (hojeSaving ? 'A gravar… ' : '✓ Comi o plano: ') + deSempre.nome + ' · ' + fiFmtKcal(kcalDeSempre)),
+          registosOpcao.map(function (reg) {
+            var oReg = opcoes.filter(function (x) { return x.id === reg.opcao_id; })[0];
+            return oReg ? renderOpcaoHoje(oReg, r, kcalRefeicao || 0, reg) : renderRegistoLivre(reg);
+          }),
           registosLivres.map(function (reg) { return renderRegistoLivre(reg); }),
-          !opcoesRefeicao.length && !registosLivres.length && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Sem opções nesta refeição ainda.'),
-          comiOutraAberta === r.id ? renderFormComiOutra(r.id) : React.createElement('button', { className: 'fi-btn', style: { width: '100%', marginTop: 8 }, onClick: function () { abrirComiOutra(r.id); } }, '🍕 Comi outra coisa')
+          !opcoesRefeicao.length && !registosLivres.length && React.createElement('p', { style: { fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Sem opções nesta refeição ainda. Cria-as no Plano.'),
+          React.createElement('button', {
+            className: 'fi-hoje-outras', 'aria-expanded': outrasAbertas,
+            onClick: function () { setHojeOutrasAbertas(function (m) { var n = Object.assign({}, m); n[r.id] = !m[r.id]; return n; }); }
+          }, (outrasAbertas ? '▾ ' : '▸ ') + (temRegisto ? 'Juntar outra coisa' : 'Comi outra coisa')),
+          outrasAbertas && outras.map(function (o) { return renderOpcaoHoje(o, r, kcalRefeicao || 0); }),
+          outrasAbertas && (comiOutraAberta === r.id ? renderFormComiOutra(r.id) : React.createElement('button', { className: 'fi-btn', style: { width: '100%', marginTop: 8 }, onClick: function () { abrirComiOutra(r.id); } }, '🍕 Fora do plano'))
         );
       }),
+      registosSoltos.length > 0 && React.createElement(FiCard, { style: { marginBottom: 12 } },
+        React.createElement(FiLabel, null, 'Outros registos deste dia'),
+        React.createElement('p', { style: { margin: '0 0 6px', fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Contam para o total do dia, mas são de uma refeição que já não existe no plano.'),
+        registosSoltos.map(function (reg) {
+          var oSolto = reg.opcao_id != null ? opcoes.filter(function (x) { return x.id === reg.opcao_id; })[0] : null;
+          return React.createElement('div', { key: reg.id, className: 'fi-hoje-linha fi-hoje-linha-feita' },
+            React.createElement('div', { className: 'fi-hoje-linha-info' },
+              React.createElement('span', { className: 'fi-hoje-linha-nome' }, oSolto ? oSolto.nome : (reg.livre_nome || 'Registo sem nome')),
+              React.createElement('span', { className: 'fi-hoje-linha-kcal' }, fiFmtKcal(reg.kcal)),
+              repetidosDia[reg.id] && React.createElement('span', { style: { fontSize: 11, fontWeight: 800, color: 'var(--fi-amarelo)' } }, 'Parece repetido')
+            ),
+            React.createElement('div', { className: 'fi-hoje-linha-acoes' },
+              React.createElement('button', { 'aria-label': 'Apagar registo', onClick: function () { setConfirmApagarRegisto(reg.id); }, style: { background: 'none', border: 'none', fontSize: 14, cursor: 'pointer' } }, '🗑️')
+            )
+          );
+        })
+      ),
+      renderAnelHoje(totalHoje),
       renderAgua(),
+      renderTreinoHoje(),
       renderHistoricoHoje()
     );
   }
@@ -46525,10 +47562,10 @@ function FitnessApp(props) {
   }
   function apagarSessao(id) {
     db.from('fitness_treino_log').delete().eq('id', id).then(function (res) {
-      if (res.error) { console.error('[fitness] apagar sessão:', res.error); window.mostrarErro('Fitness', res.error); return; }
+      if (res.error) { setConfirmApagarSessao(null); falhaHoje('apagar o registo de treino', res.error); return; }
       setConfirmApagarSessao(null);
       carregarTreinos();
-    }).catch(function (e) { console.error('[fitness] apagar sessão:', e); window.mostrarErro('Fitness', e); });
+    }).catch(function (e) { setConfirmApagarSessao(null); falhaHoje('apagar o registo de treino', e); });
   }
 
   // Caminhada: fitness_treino_log com treino_id null e feitos = { tipo: 'caminhada', minutos: N }.
@@ -50099,6 +51136,24 @@ function NotasApp(props) {
 // a funcionar. Reativar: pôr true (e voltar a ligar o registo no Supabase).
 var SIGNUP_ENABLED = false;
 
+// App a abrir logo depois do login, ou null para ficar no hub.
+// urlApp = valor de ?app= no endereço; perfil = linha de profiles.
+//  - ?app=lucas   → Escola Grenchen (gestão), só admin — como já era.
+//  - ?app=fitness → Carvalho Fitness, só admin: é a mesma condição com que a
+//    app é mostrada mais abaixo (activeApp === 'fitness' && isAdmin). O atalho
+//    não dá acesso a quem não o tem; para esses é ignorado.
+//  - senão, a app inicial escolhida no perfil (default_app), se o utilizador
+//    tiver acesso a ela — como já era.
+// Qualquer outro valor de ?app= é ignorado, como antes.
+function csAppInicial(urlApp, perfil) {
+  if (!perfil) return null;
+  var allowed = perfil.allowed_apps || [];
+  if (urlApp === 'lucas' && perfil.is_admin) return 'escola_lucas';
+  if (urlApp === 'fitness' && perfil.is_admin) return 'fitness';
+  if (perfil.default_app && (perfil.is_admin || allowed.indexOf(perfil.default_app) !== -1)) return perfil.default_app;
+  return null;
+}
+
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -51059,15 +52114,11 @@ function CarvalhoSuite() {
         setProfileErr('');
         applyTheme(data.theme || 'dark');
         if (isInitialEntry) {
-          var allowed = data.allowed_apps || [];
           var _urlParams = new URLSearchParams(window.location.search);
-          var _urlApp = _urlParams.get('app');
-          // Atalho da Escola Grenchen: ?app=lucas abre diretamente a gestão (só admin)
-          if (_urlApp === 'lucas' && data.is_admin) {
-            setApp('escola_lucas');
-            setScreen('app');
-          } else if (data.default_app && (data.is_admin || allowed.indexOf(data.default_app) !== -1)) {
-            setApp(data.default_app);
+          // Atalhos ?app=lucas e ?app=fitness, ou a app inicial do perfil (ver csAppInicial).
+          var _appInicial = csAppInicial(_urlParams.get('app'), data);
+          if (_appInicial) {
+            setApp(_appInicial);
             setScreen('app');
           }
         }
