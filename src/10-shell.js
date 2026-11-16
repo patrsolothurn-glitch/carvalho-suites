@@ -4,6 +4,24 @@
 // a funcionar. Reativar: pôr true (e voltar a ligar o registo no Supabase).
 var SIGNUP_ENABLED = false;
 
+// App a abrir logo depois do login, ou null para ficar no hub.
+// urlApp = valor de ?app= no endereço; perfil = linha de profiles.
+//  - ?app=lucas   → Escola Grenchen (gestão), só admin — como já era.
+//  - ?app=fitness → Carvalho Fitness, só admin: é a mesma condição com que a
+//    app é mostrada mais abaixo (activeApp === 'fitness' && isAdmin). O atalho
+//    não dá acesso a quem não o tem; para esses é ignorado.
+//  - senão, a app inicial escolhida no perfil (default_app), se o utilizador
+//    tiver acesso a ela — como já era.
+// Qualquer outro valor de ?app= é ignorado, como antes.
+function csAppInicial(urlApp, perfil) {
+  if (!perfil) return null;
+  var allowed = perfil.allowed_apps || [];
+  if (urlApp === 'lucas' && perfil.is_admin) return 'escola_lucas';
+  if (urlApp === 'fitness' && perfil.is_admin) return 'fitness';
+  if (perfil.default_app && (perfil.is_admin || allowed.indexOf(perfil.default_app) !== -1)) return perfil.default_app;
+  return null;
+}
+
 function CarvalhoSuite() {
   useFont();
   var _useState177 = (0, _react.useState)('login'),
@@ -964,15 +982,11 @@ function CarvalhoSuite() {
         setProfileErr('');
         applyTheme(data.theme || 'dark');
         if (isInitialEntry) {
-          var allowed = data.allowed_apps || [];
           var _urlParams = new URLSearchParams(window.location.search);
-          var _urlApp = _urlParams.get('app');
-          // Atalho da Escola Grenchen: ?app=lucas abre diretamente a gestão (só admin)
-          if (_urlApp === 'lucas' && data.is_admin) {
-            setApp('escola_lucas');
-            setScreen('app');
-          } else if (data.default_app && (data.is_admin || allowed.indexOf(data.default_app) !== -1)) {
-            setApp(data.default_app);
+          // Atalhos ?app=lucas e ?app=fitness, ou a app inicial do perfil (ver csAppInicial).
+          var _appInicial = csAppInicial(_urlParams.get('app'), data);
+          if (_appInicial) {
+            setApp(_appInicial);
             setScreen('app');
           }
         }
