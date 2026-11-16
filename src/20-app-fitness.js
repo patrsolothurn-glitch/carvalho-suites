@@ -440,6 +440,48 @@ function fiRefeicaoDaHora(feitas, hora) {
   return -1;
 }
 
+// Dia "perfeito": todas as refeições do plano têm registo, todos os registos
+// são opções do plano na dose normal (fator 1) e não há nada fora do plano.
+// É o caso em que o registo pode estar só a repetir o plano — por isso a app
+// pergunta uma vez "comeste só o plano?".
+function fiDiaPerfeito(refeicaoIds, registos) {
+  if (!refeicaoIds.length || !registos.length) return false;
+  var porRefeicao = {};
+  for (var i = 0; i < registos.length; i++) {
+    var reg = registos[i];
+    if (reg.opcao_id == null) return false;
+    if (reg.fator != null && Number(reg.fator) !== 1) return false;
+    if (refeicaoIds.indexOf(reg.refeicao_id) === -1) return false;
+    porRefeicao[reg.refeicao_id] = (porRefeicao[reg.refeicao_id] || 0) + 1;
+  }
+  return refeicaoIds.every(function (id) { return porRefeicao[id] === 1; });
+}
+// Respostas a "comeste só o plano?" — guardadas só neste aparelho
+// (localStorage), uma por dia: { 'AAAA-MM-DD': 'sim' | 'nao' }.
+// Texto inválido ou de outro formato dá um mapa vazio, nunca um erro.
+var FI_CHAVE_SO_PLANO = 'fi_so_plano';
+function fiLerRespostasPlano(texto) {
+  var mapa = {};
+  if (!texto) return mapa;
+  var bruto;
+  try { bruto = JSON.parse(texto); } catch (e) { return mapa; }
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return mapa;
+  Object.keys(bruto).forEach(function (k) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && (bruto[k] === 'sim' || bruto[k] === 'nao')) mapa[k] = bruto[k];
+  });
+  return mapa;
+}
+// Devolve um mapa novo com a resposta do dia posta (ou tirada, com resposta
+// null) e só os 30 dias mais recentes, para a chave não crescer sem fim.
+function fiPorRespostaPlano(mapa, dataISO, resposta) {
+  var novo = {};
+  Object.keys(mapa).forEach(function (k) { if (k !== dataISO) novo[k] = mapa[k]; });
+  if (resposta === 'sim' || resposta === 'nao') novo[dataISO] = resposta;
+  var datas = Object.keys(novo).sort();
+  while (datas.length > 30) delete novo[datas.shift()];
+  return novo;
+}
+
 // ── Open Food Facts (pesquisa pública, sem chave) ───────────────────
 function fiBuscarOFF(query, soMigros) {
   var url = soMigros
@@ -601,6 +643,10 @@ function FitnessApp(props) {
   var _s65 = React.useState(null); var confirmApagarRegisto = _s65[0], setConfirmApagarRegisto = _s65[1];
   var _s66 = React.useState(false); var aguaSaving = _s66[0], setAguaSaving = _s66[1];
   var _s114 = React.useState(false); var metaAberta = _s114[0], setMetaAberta = _s114[1]; // Plano: cartão "Como calculei" aberto (fechado por omissão)
+  var _s116 = React.useState(function () {
+    try { return fiLerRespostasPlano(window.localStorage.getItem(FI_CHAVE_SO_PLANO)); }
+    catch (e) { console.warn('[fitness] ler respostas "só o plano":', (e && e.message) || e); return {}; }
+  }); var respostasPlano = _s116[0], setRespostasPlano = _s116[1]; // { [data]: 'sim'|'nao' } — só neste aparelho
   var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
@@ -2366,6 +2412,43 @@ function FitnessApp(props) {
       React.createElement('p', { style: { fontSize: 13, fontWeight: 800, color: (atrasada || hoje) ? '#fff' : 'var(--fi-texto)', margin: 0 } }, texto)
     );
   }
+  // "Comeste só o plano?" — responder (sim/nao) ou tirar a resposta (null).
+  // Fica só neste aparelho; se não der para guardar, vale até fechar a app
+  // e o ecrã diz que não ficou guardado.
+  function responderSoPlano(dataISO, resposta) {
+    var novo = fiPorRespostaPlano(respostasPlano, dataISO, resposta);
+    setRespostasPlano(novo);
+    try { window.localStorage.setItem(FI_CHAVE_SO_PLANO, JSON.stringify(novo)); }
+    catch (e) {
+      console.warn('[fitness] guardar resposta "só o plano":', (e && e.message) || e);
+      setHojeErro('A resposta não ficou guardada neste aparelho (vale só até fechares a app).');
+    }
+    if (resposta === 'nao' && ordenadas.length) {
+      // Houve extras: abre logo o "Fora do plano" da última refeição.
+      var ultima = ordenadas[ordenadas.length - 1];
+      setHojeRefAbertas(function (m) { var n = Object.assign({}, m); n[ultima.id] = true; return n; });
+      setHojeOutrasAbertas(function (m) { var n = Object.assign({}, m); n[ultima.id] = true; return n; });
+      abrirComiOutra(ultima.id);
+    }
+  }
+  function renderPerguntaSoPlano() {
+    var resposta = respostasPlano[hojeData] || null;
+    var perfeito = fiDiaPerfeito(ordenadas.map(function (r) { return r.id; }), registoDia);
+    if (!perfeito && !resposta) return null;
+    if (!resposta) {
+      return React.createElement(FiCard, { style: { marginBottom: 12, borderColor: 'var(--fi-verde)' } },
+        React.createElement('p', { style: { margin: '0 0 10px', fontSize: 14, fontWeight: 800 } }, 'Dia fechado igual ao plano. Comeste só o plano?'),
+        React.createElement('div', { style: { display: 'flex', gap: 8 } },
+          React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1, minHeight: 46 }, onClick: function () { responderSoPlano(hojeData, 'sim'); } }, '✓ Sim, só o plano'),
+          React.createElement('button', { className: 'fi-btn', style: { flex: 1, minHeight: 46 }, onClick: function () { responderSoPlano(hojeData, 'nao'); } }, 'Houve extras')
+        )
+      );
+    }
+    return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12.5, color: 'var(--fi-texto2)', margin: '0 2px 12px' } },
+      React.createElement('span', { style: { fontWeight: 700 } }, resposta === 'sim' ? '✓ Confirmaste: só o plano.' : 'Disseste que houve extras: regista-os em "Fora do plano".'),
+      React.createElement('button', { className: 'fi-btn', style: { padding: '6px 10px', fontSize: 12 }, onClick: function () { responderSoPlano(hojeData, null); } }, 'Alterar')
+    );
+  }
   // Cartão do topo: comido, em falta e UMA linha de estado. Dentro do alvo
   // diz só "Vais bem."; os avisos só aparecem quando há desvio (fiEstadoDia).
   function renderEstadoHoje(totalHoje) {
@@ -2421,6 +2504,7 @@ function FitnessApp(props) {
         )
       ),
       renderEstadoHoje(totalHoje),
+      !hojeCarregando && renderPerguntaSoPlano(),
       hojeCarregando && React.createElement('p', { style: { fontSize: 12, color: 'var(--fi-texto2)', textAlign: 'center', margin: '0 0 10px' } }, 'A carregar…'),
       ordenadas.map(function (r, idxRef) {
         var kcalRefeicao = meta.ativa ? Math.round(meta.ativa * (r.pct / 100)) : null;
