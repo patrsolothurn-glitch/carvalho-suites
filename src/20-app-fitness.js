@@ -486,6 +486,47 @@ function fiPorRespostaPlano(mapa, dataISO, resposta) {
   return novo;
 }
 
+// ── Estimar um prato fora da lista (IA) ─────────────────────────────
+var FI_MAX_PRATO = 200;       // igual ao limite da função fitness-prato
+var FI_MAX_QUANTIDADE = 60;
+var FI_TEMPO_ESTIMATIVA_MS = 15000;
+var FI_ESTIMATIVA_INDISPONIVEL = 'Estimativa indisponível, escolhe um prato da lista.';
+// Minúsculas, sem acentos e sem espaços a mais — para comparar nomes.
+function fiNormalizarTexto(t) {
+  return String(t == null ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+}
+// Gramas (ou ml) escritos na quantidade: "300 g", "250ml", "0,3 kg", "1.5 l".
+// Devolve o número, ou null se a quantidade não for um peso/volume.
+function fiGramasDaQuantidade(q) {
+  var m = /^\s*(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gramas|ml|l|litros?)\s*$/i.exec(String(q == null ? '' : q));
+  if (!m) return null;
+  var n = parseFloat(m[1].replace(',', '.'));
+  if (!(n > 0)) return null;
+  var u = m[2].toLowerCase();
+  return (u === 'kg' || u === 'l' || u === 'litro' || u === 'litros') ? n * 1000 : n;
+}
+// O prato escrito já existe na lista do utilizador? Só conta o nome EXATO
+// (ignorando maiúsculas, acentos e espaços): um nome parecido podia dar os
+// valores de outra coisa. alimentos = fitness_alimentos; pratos = opções do
+// plano já com os totais de uma dose [{ nome, kcal, prot, hc, gord }].
+// Devolve { tipo: 'alimento', alimento, gramas } | { tipo: 'prato', prato } | null.
+function fiProcurarNaLista(texto, quantidade, alimentos, pratos) {
+  var alvo = fiNormalizarTexto(texto);
+  if (!alvo) return null;
+  var al = (alimentos || []).filter(function (a) { return fiNormalizarTexto(a.nome) === alvo; })[0];
+  if (al) return { tipo: 'alimento', alimento: al, gramas: fiGramasDaQuantidade(quantidade) };
+  var pr = (pratos || []).filter(function (p) { return fiNormalizarTexto(p.nome) === alvo && Number(p.kcal) > 0; })[0];
+  if (pr) return { tipo: 'prato', prato: pr };
+  return null;
+}
+// Valida o que a função fitness-prato devolveu. Qualquer coisa que não sejam
+// quatro números plausíveis com "estimativa: true" é tratada como falha.
+function fiValidarEstimativa(d) {
+  if (!d || typeof d !== 'object' || d.estimativa !== true) return null;
+  var ok = function (v, max) { return typeof v === 'number' && isFinite(v) && v >= 0 && v <= max; };
+  if (!ok(d.kcal, 6000) || !(d.kcal > 0) || !ok(d.prot, 600) || !ok(d.hc, 1000) || !ok(d.gord, 600)) return null;
+  return { kcal: Math.round(d.kcal), prot: Math.round(d.prot * 10) / 10, hc: Math.round(d.hc * 10) / 10, gord: Math.round(d.gord * 10) / 10 };
+}
 // Balanço da semana (segunda a domingo): soma do que os dias JÁ FECHADOS
 // (antes de hoje) ficaram acima (+) ou abaixo (−) do alvo. Só entram dias com
 // registo. diasRestantes = dias de amanhã até domingo.
@@ -937,6 +978,11 @@ function FitnessApp(props) {
   var _s127 = React.useState([]); var extrasRecentes = _s127[0], setExtrasRecentes = _s127[1]; // últimos extras (fora do plano), para repetir com um toque
   var _s128 = React.useState(false); var perfilFalhou = _s128[0], setPerfilFalhou = _s128[1]; // a leitura do perfil deu erro (não é o mesmo que não haver perfil)
   var _s129 = React.useState(null); var perfErroCoach = _s129[0], setPerfErroCoach = _s129[1]; // valor inválido no alvo do treinador (editor de perfil)
+  var _s130 = React.useState({ prato: '', quantidade: '' }); var estimarForm = _s130[0], setEstimarForm = _s130[1]; // "Estimar prato" (Fora do plano)
+  var _s131 = React.useState(false); var estimando = _s131[0], setEstimando = _s131[1];
+  var _s132 = React.useState(null); var estimativaAviso = _s132[0], setEstimativaAviso = _s132[1]; // mensagem depois de estimar (ou de falhar)
+  var _s133 = React.useState(null); var estimativaOrigem = _s133[0], setEstimativaOrigem = _s133[1]; // 'ia' | 'lista' | null — de onde vieram os valores do formulário
+  var estimarGeracaoRef = React.useRef(0);
   var _s115 = React.useState({}); var hojeRefAbertas = _s115[0], setHojeRefAbertas = _s115[1]; // { [refeicaoId]: true/false } — abrir/recolher à mão; sem valor = regra da hora
   var _s111 = React.useState(null); var hojeErro = _s111[0], setHojeErro = _s111[1]; // última gravação falhada no Hoje (texto), fica visível no ecrã
   var _s112 = React.useState(false); var hojeSaving = _s112[0], setHojeSavingEstado = _s112[1]; // desativa os botões enquanto grava
@@ -2543,12 +2589,18 @@ function FitnessApp(props) {
       carregarHoje(hojeData);
     }).catch(function (e) { setHojeSaving(false); setConfirmApagarRegisto(null); falhaHoje('apagar o registo', e); });
   }
+  function limparEstimativa() {
+    estimarGeracaoRef.current += 1; // uma resposta atrasada da IA deixa de contar
+    setEstimando(false); setEstimativaAviso(null); setEstimativaOrigem(null); setEstimarForm({ prato: '', quantidade: '' });
+  }
   function abrirComiOutra(refeicaoId) {
+    limparEstimativa();
     setComiOutraAberta(refeicaoId);
     setComiOutraEditandoId(null);
     setComiOutraForm({ modo: 'alimento', alimento_id: alimentos[0] ? alimentos[0].id : '', gramas: '', nome: '', kcal: '', prot: '', hc: '', gord: '' });
   }
   function abrirEditarComiOutra(reg) {
+    limparEstimativa();
     setComiOutraAberta(reg.refeicao_id);
     setComiOutraEditandoId(reg.id);
     setComiOutraForm({ modo: 'livre', alimento_id: '', gramas: '', nome: reg.livre_nome || '', kcal: String(reg.kcal), prot: String(reg.prot || 0), hc: String(reg.hc || 0), gord: String(reg.gord || 0) });
@@ -2675,6 +2727,84 @@ function FitnessApp(props) {
       )
     );
   }
+  // Estimar um prato escrito à mão. 1.º procura na lista do utilizador (valores
+  // exatos, SEM chamar a IA); só se não existir chama a função fitness-prato.
+  // Nunca grava: preenche o formulário, o utilizador corrige e toca em Guardar.
+  // Se a IA falhar, não tiver crédito ou passar de 15 s: mensagem, e o resto
+  // do formulário continua a funcionar.
+  function estimarPrato() {
+    var prato = estimarForm.prato.trim(), quantidade = estimarForm.quantidade.trim();
+    if (!prato || estimando) return;
+    if (prato.length > FI_MAX_PRATO) { setEstimativaAviso('O texto do prato tem de ter no máximo ' + FI_MAX_PRATO + ' caracteres.'); return; }
+    var pratosDoPlano = opcoes.map(function (o) {
+      var r2 = ordenadas.filter(function (r) { return r.id === o.refeicao_id; })[0];
+      var c2 = fiCalcularGramasOpcao(itens.filter(function (it) { return it.opcao_id === o.id; }), alimentosPorId, r2 && meta.ativa ? Math.round(meta.ativa * (r2.pct / 100)) : 0);
+      return { nome: o.nome, kcal: c2.totais.kcal, prot: c2.totais.prot, hc: c2.totais.hc, gord: c2.totais.gord };
+    });
+    var naLista = fiProcurarNaLista(prato, quantidade, alimentos, pratosDoPlano);
+    var arred = function (v) { return String(Math.round(v * 10) / 10); };
+    if (naLista && naLista.tipo === 'alimento') {
+      var al = naLista.alimento;
+      if (naLista.gramas) {
+        var g = naLista.gramas;
+        setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'livre', nome: al.nome + ' (' + Math.round(g) + ' ' + (al.medida === 'ml' ? 'ml' : 'g') + ')', kcal: String(Math.round(al.kcal_100 / 100 * g)), prot: arred(al.prot_100 / 100 * g), hc: arred(al.hc_100 / 100 * g), gord: arred(al.gord_100 / 100 * g) }));
+        setEstimativaOrigem('lista'); setEstimativaAviso('Está na tua lista: usei os valores exatos, sem estimativa.');
+      } else {
+        setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'alimento', alimento_id: al.id, gramas: '' }));
+        setEstimativaOrigem(null); setEstimativaAviso('Está na tua lista de alimentos: indica as gramas e os valores são os exatos.');
+      }
+      return;
+    }
+    if (naLista && naLista.tipo === 'prato') {
+      var pr = naLista.prato;
+      setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'livre', nome: pr.nome, kcal: String(Math.round(pr.kcal)), prot: arred(pr.prot), hc: arred(pr.hc), gord: arred(pr.gord) }));
+      setEstimativaOrigem('lista'); setEstimativaAviso('É um prato do teu plano: usei os valores exatos de uma dose, sem estimativa.');
+      return;
+    }
+    if (!db || !db.functions) { setEstimativaAviso(FI_ESTIMATIVA_INDISPONIVEL); return; }
+    estimarGeracaoRef.current += 1;
+    var geracao = estimarGeracaoRef.current;
+    setEstimando(true); setEstimativaAviso(null); setEstimativaOrigem(null);
+    var falhou = function (texto) {
+      if (estimarGeracaoRef.current !== geracao) return;
+      estimarGeracaoRef.current += 1; // fecha esta tentativa: uma resposta que chegue depois é ignorada
+      setEstimando(false); setEstimativaAviso(texto || FI_ESTIMATIVA_INDISPONIVEL);
+    };
+    var relogio = setTimeout(function () { falhou(); }, FI_TEMPO_ESTIMATIVA_MS);
+    db.functions.invoke('fitness-prato', { body: { prato: prato, quantidade: quantidade } }).then(function (res) {
+      clearTimeout(relogio);
+      if (estimarGeracaoRef.current !== geracao) return;
+      if (res && res.error) {
+        // Só interessa distinguir o limite diário; tudo o resto é "indisponível".
+        var ctx = res.error.context;
+        var lerCorpo = (ctx && typeof ctx.json === 'function') ? ctx.json().then(function (c) { return c; }, function () { return null; }) : Promise.resolve(null);
+        lerCorpo.then(function (corpo) {
+          console.error('[fitness] estimar prato: falhou (' + ((corpo && corpo.error) || 'sem detalhe') + ')');
+          falhou(corpo && corpo.error === 'limite_diario' ? 'Já usaste as estimativas de hoje. Escolhe um prato da lista ou escreve as calorias.' : null);
+        });
+        return;
+      }
+      var est = fiValidarEstimativa(res && res.data);
+      if (!est) { console.error('[fitness] estimar prato: resposta inválida'); falhou(); return; }
+      estimarGeracaoRef.current += 1;
+      setEstimando(false);
+      setComiOutraForm(Object.assign({}, comiOutraForm, { modo: 'livre', nome: prato + (quantidade ? ' (' + quantidade + ')' : ''), kcal: String(est.kcal), prot: String(est.prot), hc: String(est.hc), gord: String(est.gord) }));
+      setEstimativaOrigem('ia'); setEstimativaAviso('Estimativa (±20-30%). Corrige os valores se souberes melhor e depois toca em Guardar.');
+    }).catch(function (e) {
+      clearTimeout(relogio);
+      console.error('[fitness] estimar prato: falhou (' + ((e && e.name) || 'erro') + ')');
+      falhou();
+    });
+  }
+  function renderEstimarPrato() {
+    return React.createElement(React.Fragment, null,
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', maxLength: FI_MAX_PRATO, placeholder: 'Que prato foi?', 'aria-label': 'Prato a estimar', value: estimarForm.prato, onChange: function (e) { setEstimarForm(Object.assign({}, estimarForm, { prato: e.target.value })); }, style: { marginBottom: 8 } }),
+      React.createElement('input', { type: 'text', className: 'fi-input', autoComplete: 'off', maxLength: FI_MAX_QUANTIDADE, placeholder: 'Quantidade (ex.: 1 prato, 300 g)', 'aria-label': 'Quantidade', value: estimarForm.quantidade, onChange: function (e) { setEstimarForm(Object.assign({}, estimarForm, { quantidade: e.target.value })); }, style: { marginBottom: 8 } }),
+      React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { width: '100%', minHeight: 44, marginBottom: 8 }, disabled: estimando || !estimarForm.prato.trim(), onClick: estimarPrato }, estimando ? 'A estimar… (até 15 s)' : 'Estimar'),
+      estimativaAviso && React.createElement('p', { role: 'status', style: { margin: '0 0 8px', fontSize: 12.5, fontWeight: 700, color: 'var(--fi-amarelo)' } }, estimativaAviso),
+      React.createElement('p', { style: { margin: '0 0 8px', fontSize: 11.5, color: 'var(--fi-texto2)' } }, 'Se o prato estiver na tua lista, uso os valores exatos. Nada é gravado até tocares em Guardar.')
+    );
+  }
   // Repete um extra recente nesta refeição, com um toque (mesmos valores).
   function repetirExtra(refeicaoId, x) {
     if (hojeSavingRef.current) return;
@@ -2702,13 +2832,14 @@ function FitnessApp(props) {
         )
       ),
       !comiOutraEditandoId && React.createElement('div', { style: { display: 'flex', gap: 8, marginBottom: 10 } },
-        ['alimento', 'livre'].map(function (m) {
+        ['alimento', 'livre', 'ia'].map(function (m) {
           var sel = f.modo === m;
-          var rotulo = m === 'alimento' ? 'Alimento da lista' : 'Só calorias';
+          var rotulo = m === 'alimento' ? 'Da lista' : (m === 'livre' ? 'Só calorias' : 'Estimar prato');
           return React.createElement('button', { key: m, className: 'fi-chip', style: { flex: 1, background: sel ? FI_COR : undefined, color: sel ? '#fff' : undefined, borderColor: sel ? FI_COR : undefined }, onClick: function () { setComiOutraForm(Object.assign({}, f, { modo: m })); } }, rotulo);
         })
       ),
-      f.modo === 'alimento'
+      f.modo !== 'ia' && estimativaAviso && React.createElement('p', { role: 'status', style: { margin: '0 0 8px', fontSize: 12.5, fontWeight: 800, color: estimativaOrigem === 'ia' ? 'var(--fi-amarelo)' : 'var(--fi-texto)' } }, estimativaAviso),
+      f.modo === 'ia' ? renderEstimarPrato() : f.modo === 'alimento'
         ? React.createElement(React.Fragment, null,
             React.createElement('select', { className: 'fi-input', value: f.alimento_id, onChange: function (e) { setComiOutraForm(Object.assign({}, f, { alimento_id: e.target.value })); }, style: { marginBottom: 8 } },
               alimentos.map(function (a) { return React.createElement('option', { key: a.id, value: a.id }, a.nome); })
@@ -2726,7 +2857,7 @@ function FitnessApp(props) {
           ),
       React.createElement('div', { style: { display: 'flex', gap: 8 } },
         React.createElement('button', { className: 'fi-btn', style: { flex: 1 }, onClick: function () { setComiOutraAberta(null); setComiOutraEditandoId(null); } }, 'Cancelar'),
-        React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: comiOutraSaving, onClick: function () { guardarComiOutra(refeicaoId); } }, comiOutraSaving ? 'A guardar…' : '✓ Guardar')
+        f.modo !== 'ia' && React.createElement('button', { className: 'fi-btn fi-btn-ativo', style: { flex: 1 }, disabled: comiOutraSaving, onClick: function () { guardarComiOutra(refeicaoId); } }, comiOutraSaving ? 'A guardar…' : '✓ Guardar')
       )
     );
   }
