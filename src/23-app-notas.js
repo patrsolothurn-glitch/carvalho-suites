@@ -698,7 +698,8 @@ function NtCaixas(p) {
             React.createElement(NtBadge, { imp: 'importante', curto: true }),
             React.createElement('span', { style: { fontSize: largo ? 14 : 13, fontWeight: 800 } }, c.imp + (c.imp === 1 ? ' importante' : ' importantes'))) : null
         });
-      })
+      }),
+      p.kontrollen ? React.createElement(NtCaixa, { key: 'kontrollen', largo: largo, aria: 'Abrir Kontrollen', icone: '🔍', titulo: 'Kontrollen', sub: 'Controlos regulares', onAbrir: p.kontrollen.onAbrir }) : null
     )
   );
 }
@@ -1832,6 +1833,330 @@ function NtCofresFamilia(p) {
     corpo);
 }
 
+// ── KONTROLLEN ───────────────────────────────────────────────────────────────
+// Registo de controlos regulares (anuais, de meio ano…). SÓ no cartão do Patricio e só para o admin (ver sql/42):
+//   notas_kontroll_tipos    (id, dono, nome, intervalo_meses, created_at)
+//   notas_kontroll_registos (id, dono, tipo_id, data, hora_inicio, hora_fim, assunto, feita, created_at, updated_at)
+// RLS só-dono (+ admin). Não toca em notas_notas. Cada tipo tem "última vez" (última vez feita), "próxima prevista"
+// (última feita + intervalo) e a contagem. Gravação honesta como nas Notas: .select('id'), erro real, 0 linhas = erro,
+// e o ecrã só muda depois de a base confirmar (sem atualização otimista).
+var NT_KC_TIPOS = 'notas_kontroll_tipos';
+var NT_KC_REGS = 'notas_kontroll_registos';
+var NT_KC_MAX_NOME = 100;
+var NT_KC_MAX_ASSUNTO = 300;
+var NT_KC_MAX_MESES = 120;
+
+function ntKcPad(n) { return (n < 10 ? '0' : '') + n; }
+function ntKcDiasDoMes(a, m) { return [31, (a % 4 === 0 && (a % 100 !== 0 || a % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]; }
+// 'AAAA-MM-DD' que existe no calendário.
+function ntKcDataValida(s) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+  if (!m) return false;
+  var mes = +m[2], dia = +m[3];
+  return mes >= 1 && mes <= 12 && dia >= 1 && dia <= ntKcDiasDoMes(+m[1], mes);
+}
+function ntKcHoje() { var d = new Date(); return d.getFullYear() + '-' + ntKcPad(d.getMonth() + 1) + '-' + ntKcPad(d.getDate()); }
+// Soma n meses (inteiro >= 1). Se o dia não existir no mês de chegada, fica no último dia desse mês (31 jan + 1 mês = 28/29 fev).
+function ntKcSomaMeses(s, n) {
+  if (!ntKcDataValida(s) || typeof n !== 'number' || n !== Math.floor(n) || n < 1) return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  var tot = (+m[1]) * 12 + (+m[2] - 1) + n;
+  var a = Math.floor(tot / 12), mes = tot % 12, dia = +m[3], ult = ntKcDiasDoMes(a, mes + 1);
+  return a + '-' + ntKcPad(mes + 1) + '-' + ntKcPad(dia > ult ? ult : dia);
+}
+function ntKcDataFmt(s) { return ntKcDataValida(s) ? s.slice(8, 10) + '.' + s.slice(5, 7) + '.' + s.slice(0, 4) : '—'; }
+function ntKcHora(s) { return s ? String(s).slice(0, 5) : ''; }
+function ntKcHoras(r) {
+  var hi = ntKcHora(r.hora_inicio), hf = ntKcHora(r.hora_fim);
+  return hi && hf ? hi + '–' + hf : hi ? hi : hf ? 'até ' + hf : '';
+}
+// Mais recente primeiro: data, depois hora de início, depois criação.
+function ntKcPorDataDesc(a, b) {
+  if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+  var ha = ntKcHora(a.hora_inicio), hb = ntKcHora(b.hora_inicio);
+  if (ha !== hb) return ha < hb ? 1 : -1;
+  var ca = a.created_at || '', cb = b.created_at || '';
+  return ca === cb ? 0 : (ca < cb ? 1 : -1);
+}
+// Resumo de um tipo: contagens, última vez feita e próxima prevista (última feita + intervalo). Sem feitas: sem datas.
+function ntKcResumo(tipo, regs) {
+  var meus = regs.filter(function (r) { return r.tipo_id === tipo.id; });
+  var ultima = null, marcada = null, feitas = 0;
+  meus.forEach(function (r) {
+    if (r.feita === true) { feitas++; if (!ultima || r.data > ultima) ultima = r.data; }
+    else if (!marcada || r.data < marcada) marcada = r.data;
+  });
+  return { total: meus.length, feitas: feitas, porFazer: meus.length - feitas, ultima: ultima, marcada: marcada,
+    proxima: ultima ? ntKcSomaMeses(ultima, Number(tipo.intervalo_meses)) : null };
+}
+function ntKcTextoIntervalo(n) { return n === 12 ? 'todos os anos (12 meses)' : n === 6 ? 'de meio em meio ano (6 meses)' : 'de ' + n + ' em ' + n + ' meses'; }
+function ntKcValidaTipo(nome, iv) {
+  var n = String(nome == null ? '' : nome).trim();
+  if (!n) return 'Escreve o nome do controlo.';
+  if (n.length > NT_KC_MAX_NOME) return 'O nome tem mais de ' + NT_KC_MAX_NOME + ' caracteres.';
+  var s = String(iv == null ? '' : iv).trim();
+  if (!/^\d+$/.test(s)) return 'O intervalo tem de ser um número inteiro de meses (por exemplo 6 ou 12).';
+  var k = parseInt(s, 10);
+  if (k < 1 || k > NT_KC_MAX_MESES) return 'O intervalo tem de estar entre 1 e ' + NT_KC_MAX_MESES + ' meses.';
+  return null;
+}
+function ntKcValidaReg(f) {
+  if (!ntKcDataValida(f.data)) return 'Escolhe uma data válida.';
+  var hi = f.hi || '', hf = f.hf || '', re = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (hi && !re.test(hi)) return 'A hora de início não é válida.';
+  if (hf && !re.test(hf)) return 'A hora de fim não é válida.';
+  if (hi && hf && hf < hi) return 'A hora de fim é anterior à hora de início.';
+  if (String(f.assunto || '').length > NT_KC_MAX_ASSUNTO) return 'O assunto tem mais de ' + NT_KC_MAX_ASSUNTO + ' caracteres.';
+  return null;
+}
+
+function NtKontrollen(p) {
+  var db = p.db, dono = p.dono;
+  var _t = React.useState([]); var tipos = _t[0], setTipos = _t[1];
+  var _r = React.useState([]); var regs = _r[0], setRegs = _r[1];
+  var _c = React.useState(false); var carregado = _c[0], setCarregado = _c[1];
+  var _ec = React.useState(''); var erroCarga = _ec[0], setErroCarga = _ec[1];
+  var _v = React.useState('tipos'); var vista = _v[0], setVista = _v[1];   // tipos | tipo | ftipo | freg
+  var _ti = React.useState(null); var tipoId = _ti[0], setTipoId = _ti[1];
+  var _et = React.useState(null); var editTipo = _et[0], setEditTipo = _et[1]; // id do tipo em edição (null = novo)
+  var _er = React.useState(null); var editReg = _er[0], setEditReg = _er[1];   // id do registo em edição (null = novo)
+  var _og = React.useState('tipos'); var origemFTipo = _og[0], setOrigemFTipo = _og[1]; // ecrã de onde se abriu o formulário do tipo (volta para lá)
+  var _fn = React.useState(''); var fNome = _fn[0], setFNome = _fn[1];
+  var _fi = React.useState('12'); var fIv = _fi[0], setFIv = _fi[1];
+  var _fd = React.useState(''); var fData = _fd[0], setFData = _fd[1];
+  var _fh = React.useState(''); var fHi = _fh[0], setFHi = _fh[1];
+  var _ff = React.useState(''); var fHf = _ff[0], setFHf = _ff[1];
+  var _fa = React.useState(''); var fAssunto = _fa[0], setFAssunto = _fa[1];
+  var _fe = React.useState(false); var fFeita = _fe[0], setFFeita = _fe[1];
+  var _fr = React.useState(''); var fErro = _fr[0], setFErro = _fr[1];   // validação do formulário
+  var _er2 = React.useState(''); var erro = _er2[0], setErro = _er2[1];  // erro real devolvido pela base
+  var _sv = React.useState(false); var saving = _sv[0], setSaving = _sv[1];
+  var savingRef = React.useRef(false);
+  var carregarRef = React.useRef(null);
+
+  function carregar() {
+    if (!db) { setErroCarga('Sem ligação ao servidor.'); setCarregado(true); return; }
+    db.from(NT_KC_TIPOS).select('*').eq('dono', dono).order('created_at', { ascending: true }).then(function (r1) {
+      if (r1 && r1.error) { ntAvisarRes('carregar controlos', r1.error); setErroCarga('Não foi possível carregar os controlos: ' + ntMsgErro(r1.error)); setCarregado(true); return; }
+      return db.from(NT_KC_REGS).select('*').eq('dono', dono).order('data', { ascending: false }).then(function (r2) {
+        if (r2 && r2.error) { ntAvisarRes('carregar registos dos controlos', r2.error); setErroCarga('Não foi possível carregar os registos: ' + ntMsgErro(r2.error)); setCarregado(true); return; }
+        setTipos((r1 && r1.data) || []); setRegs((r2 && r2.data) || []); setErroCarga(''); setCarregado(true);
+      });
+    }).catch(function (e) { ntAvisar('carregar controlos', e); setErroCarga('Não foi possível carregar os controlos: ' + ntMsgErro(e)); setCarregado(true); });
+  }
+  carregarRef.current = carregar;
+  React.useEffect(function () { carregarRef.current(); }, [dono]);
+
+  // Escrita honesta: sem atualização otimista. Só depois de a base confirmar pelo menos 1 linha é que se muda o ecrã.
+  function gravar(oQue, consulta, depois) {
+    if (savingRef.current) return;
+    savingRef.current = true; setSaving(true); setErro('');
+    var falhou = function (msg) { savingRef.current = false; setSaving(false); setErro('Não foi possível ' + oQue + ': ' + msg); };
+    consulta.then(function (res) {
+      if (res && res.error) { ntAvisarRes(oQue, res.error); falhou(ntMsgErro(res.error)); return; }
+      if (!res || !res.data || !res.data.length) { ntAvisar(oQue, new Error(NT_ZERO_LINHAS)); falhou(NT_ZERO_LINHAS); return; }
+      savingRef.current = false; setSaving(false);
+      depois(res.data);
+    }).catch(function (e) { ntAvisar(oQue, e); falhou(ntMsgErro(e)); });
+  }
+
+  var tipo = null;
+  for (var i = 0; i < tipos.length; i++) { if (tipos[i].id === tipoId) { tipo = tipos[i]; break; } }
+
+  // Botão "Voltar" da barra de cima: o NotasApp pergunta primeiro a este ecrã; true = tratei eu.
+  p.voltarRef.current = function () {
+    if (saving) return true;
+    setErro(''); setFErro('');
+    if (vista === 'freg') { setVista('tipo'); return true; }
+    if (vista === 'ftipo') { setVista(origemFTipo); return true; }
+    if (vista === 'tipo') { setTipoId(null); setVista('tipos'); return true; }
+    return false;
+  };
+
+  function abrirNovoTipo() { setOrigemFTipo('tipos'); setEditTipo(null); setFNome(''); setFIv('12'); setFErro(''); setErro(''); setVista('ftipo'); }
+  function abrirEditarTipo(t) { setOrigemFTipo(vista === 'tipo' ? 'tipo' : 'tipos'); setEditTipo(t.id); setFNome(t.nome); setFIv(String(t.intervalo_meses)); setFErro(''); setErro(''); setVista('ftipo'); }
+  function guardarTipo() {
+    var v = ntKcValidaTipo(fNome, fIv);
+    if (v) { setFErro(v); return; }
+    setFErro('');
+    var nome = fNome.trim(), iv = parseInt(String(fIv).trim(), 10);
+    if (editTipo) {
+      var ant = null; for (var j = 0; j < tipos.length; j++) { if (tipos[j].id === editTipo) { ant = tipos[j]; break; } }
+      if (ant && ant.nome === nome && Number(ant.intervalo_meses) === iv) { setVista(origemFTipo); return; } // nada mudou: não pede nada
+      var idEd = editTipo;
+      gravar('guardar o controlo', db.from(NT_KC_TIPOS).update({ nome: nome, intervalo_meses: iv }).eq('id', idEd).select('id'), function () { setVista(origemFTipo); carregarRef.current(); });
+    } else {
+      var linha = { id: ntNovoId(), dono: dono, nome: nome, intervalo_meses: iv };
+      gravar('criar o controlo', db.from(NT_KC_TIPOS).insert(linha).select('id'), function () {
+        setTipos(function (pv) { return pv.concat([Object.assign({ created_at: new Date().toISOString() }, linha)]); }); // já confirmado pela base
+        setTipoId(linha.id); setVista('tipo'); carregarRef.current();
+      });
+    }
+  }
+  function apagarTipo(t) {
+    var n = regs.filter(function (r) { return r.tipo_id === t.id; }).length;
+    if (typeof window.confirm === 'function' && !window.confirm('Apagar o controlo “' + t.nome + '”' + (n ? ' e as ' + n + (n === 1 ? ' vez registada' : ' vezes registadas') : '') + '? Não dá para desfazer.')) return;
+    gravar('apagar o controlo', db.from(NT_KC_TIPOS).delete().eq('id', t.id).select('id'), function () { setTipoId(null); setVista('tipos'); carregarRef.current(); });
+  }
+
+  function abrirNovoReg() { setEditReg(null); setFData(ntKcHoje()); setFHi(''); setFHf(''); setFAssunto(''); setFFeita(false); setFErro(''); setErro(''); setVista('freg'); }
+  function abrirEditarReg(r) { setEditReg(r.id); setFData(r.data || ''); setFHi(ntKcHora(r.hora_inicio)); setFHf(ntKcHora(r.hora_fim)); setFAssunto(r.assunto || ''); setFFeita(r.feita === true); setFErro(''); setErro(''); setVista('freg'); }
+  function guardarReg() {
+    var v = ntKcValidaReg({ data: fData, hi: fHi, hf: fHf, assunto: fAssunto });
+    if (v) { setFErro(v); return; }
+    setFErro('');
+    var campos = { data: fData, hora_inicio: fHi || null, hora_fim: fHf || null, assunto: fAssunto.trim(), feita: fFeita };
+    if (editReg) {
+      var idEd = editReg;
+      gravar('guardar a vez', db.from(NT_KC_REGS).update(Object.assign({}, campos, { updated_at: new Date().toISOString() })).eq('id', idEd).select('id'), function () { setVista('tipo'); carregarRef.current(); });
+    } else {
+      var agora = new Date().toISOString();
+      gravar('criar a vez', db.from(NT_KC_REGS).insert(Object.assign({ id: ntNovoId(), dono: dono, tipo_id: tipoId, created_at: agora, updated_at: agora }, campos)).select('id'), function () { setVista('tipo'); carregarRef.current(); });
+    }
+  }
+  function marcarFeita(r, valor) {
+    gravar(valor ? 'marcar como feita' : 'marcar como por fazer', db.from(NT_KC_REGS).update({ feita: valor, updated_at: new Date().toISOString() }).eq('id', r.id).select('id'), function () { carregarRef.current(); });
+  }
+  function apagarReg(r) {
+    if (typeof window.confirm === 'function' && !window.confirm('Apagar a vez de ' + ntKcDataFmt(r.data) + '? Não dá para desfazer.')) return;
+    gravar('apagar a vez', db.from(NT_KC_REGS).delete().eq('id', r.id).select('id'), function () { carregarRef.current(); });
+  }
+
+  // ── aspeto: contorno fino/bold, alto contraste, igual às caixas; nenhuma linha tem destaque só por ser a primeira ──
+  var cartao = { background: T.surface, color: T.text, border: '2px solid ' + NT_ACENTO, borderRadius: 18, padding: '14px', marginBottom: 12, boxSizing: 'border-box' };
+  var cartaoPorFazer = Object.assign({}, cartao, { border: '3px solid ' + NT_ACENTO, background: ntAlfa(NT_ACENTO, 0.12) });
+  var cartaoFeita = Object.assign({}, cartao, { border: '2px solid ' + T.border });
+  var inp = { width: '100%', boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.text, borderRadius: 12, padding: '12px 13px', fontSize: 16, fontFamily: 'inherit', outline: 'none' };
+  var rotulo = { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' };
+  var linhaInfo = { fontSize: 14, fontWeight: 800, marginTop: 4 };
+  var h = React.createElement;
+  var ocupado = !!saving;
+
+  function pilula(txt, forte) {
+    return h('span', { style: { display: 'inline-block', fontSize: 12, fontWeight: 900, letterSpacing: 0.3, padding: '3px 9px', borderRadius: 999, border: (forte ? '2px' : '1.5px') + ' solid ' + (forte ? NT_ACENTO : T.border), color: T.text } }, txt);
+  }
+  function resumoLinhas(rs, iv) {
+    return [
+      h('div', { key: 'u', style: linhaInfo }, 'Última vez: ' + (rs.ultima ? ntKcDataFmt(rs.ultima) : '—')),
+      h('div', { key: 'p', style: linhaInfo }, 'Próxima prevista: ' + (rs.proxima ? ntKcDataFmt(rs.proxima) : (rs.total ? 'depois da primeira vez feita' : '—'))),
+      rs.marcada ? h('div', { key: 'm', style: linhaInfo }, 'Marcada: ' + ntKcDataFmt(rs.marcada)) : null,
+      h('div', { key: 'c', style: { fontSize: 13, fontWeight: 800, color: T.text, marginTop: 6 } },
+        rs.feitas + (rs.feitas === 1 ? ' vez feita' : ' vezes feitas') + (rs.porFazer ? ' · ' + rs.porFazer + ' por fazer' : '') + ' · ' + ntKcTextoIntervalo(iv))
+    ];
+  }
+
+  function renderTipos() {
+    if (!tipos.length) {
+      return h('div', null,
+        h(NtBtn, { onClick: abrirNovoTipo }, '+ Novo controlo'),
+        h('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 700 } }, 'Ainda não há controlos. Cria o primeiro (por exemplo “Kleider Kontrol”, 12 meses).'));
+    }
+    return h('div', null,
+      h(NtBtn, { onClick: abrirNovoTipo }, '+ Novo controlo'),
+      h('div', { style: { marginTop: 16 } }, tipos.map(function (t) {
+        var rs = ntKcResumo(t, regs);
+        return h('div', { key: t.id, style: cartao },
+          h('button', { type: 'button', 'aria-label': 'Abrir controlo ' + t.nome, onClick: function () { setTipoId(t.id); setVista('tipo'); },
+            style: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', color: T.text, border: 'none', padding: 0, margin: 0, cursor: 'pointer', font: 'inherit' } },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+              h('div', { style: { flex: 1, minWidth: 0, fontSize: 20, fontWeight: 900, lineHeight: 1.2, overflowWrap: 'anywhere' } }, t.nome),
+              h('span', { style: { color: NT_ACENTO, fontSize: 28, fontWeight: 900 } }, '›')),
+            resumoLinhas(rs, Number(t.intervalo_meses))),
+          h('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
+            h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { abrirEditarTipo(t); } }, 'Editar'),
+            h(NtBtn, { small: true, flex: true, kind: 'danger', disabled: ocupado, onClick: function () { apagarTipo(t); } }, 'Apagar')));
+      })));
+  }
+
+  function renderTipo() {
+    if (!tipo) return h('div', { style: { color: T.muted, textAlign: 'center', padding: 30, fontWeight: 700 } }, 'Controlo não encontrado.');
+    var rs = ntKcResumo(tipo, regs);
+    var lista = regs.filter(function (r) { return r.tipo_id === tipo.id; }).sort(ntKcPorDataDesc);
+    return h('div', null,
+      h('div', { style: cartao },
+        h('div', { style: { fontSize: 22, fontWeight: 900, lineHeight: 1.2, overflowWrap: 'anywhere' } }, tipo.nome),
+        resumoLinhas(rs, Number(tipo.intervalo_meses)),
+        h('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
+          h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { abrirEditarTipo(tipo); } }, 'Editar controlo'),
+          h(NtBtn, { small: true, flex: true, kind: 'danger', disabled: ocupado, onClick: function () { apagarTipo(tipo); } }, 'Apagar controlo'))),
+      h(NtBtn, { onClick: abrirNovoReg }, '+ Nova vez'),
+      !lista.length
+        ? h('div', { style: { textAlign: 'center', color: T.muted, padding: '40px 10px', fontSize: 14, fontWeight: 700 } }, 'Ainda não há vezes registadas.')
+        : h('div', { style: { marginTop: 16 } }, lista.map(function (r) {
+            var feita = r.feita === true, horas = ntKcHoras(r);
+            return h('div', { key: r.id, 'data-estado': feita ? 'feita' : 'por-fazer', style: feita ? cartaoFeita : cartaoPorFazer },
+              h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' } },
+                h('div', { style: { fontSize: 18, fontWeight: 900 } }, ntKcDataFmt(r.data) + (horas ? ' · ' + horas : '')),
+                feita ? pilula('FEITA ✓', false) : pilula('POR FAZER', true)),
+              r.assunto ? h('div', { style: { fontSize: 15, fontWeight: 700, marginTop: 6, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' } }, r.assunto) : null,
+              h('div', { style: { display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' } },
+                feita
+                  ? h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { marcarFeita(r, false); } }, 'Marcar por fazer')
+                  : h(NtBtn, { small: true, flex: true, disabled: ocupado, onClick: function () { marcarFeita(r, true); } }, '✓ Marcar como feita'),
+                h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { abrirEditarReg(r); } }, 'Editar'),
+                h(NtBtn, { small: true, flex: true, kind: 'danger', disabled: ocupado, onClick: function () { apagarReg(r); } }, 'Apagar')));
+          })));
+  }
+
+  function renderFormTipo() {
+    return h('div', null,
+      h('div', { style: { fontSize: 18, fontWeight: 900, marginBottom: 4 } }, editTipo ? 'Editar controlo' : 'Novo controlo'),
+      h('div', { style: rotulo }, 'Nome'),
+      h('input', { type: 'text', value: fNome, autoComplete: 'off', maxLength: NT_KC_MAX_NOME, placeholder: 'Por exemplo: Kleider Kontrol', 'aria-label': 'Nome do controlo', disabled: ocupado,
+        onChange: function (e) { setFNome(e.target.value); }, style: inp }),
+      h('div', { style: rotulo }, 'De quanto em quanto tempo (meses)'),
+      h('div', { style: { display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' } },
+        h(NtChip, { ativo: String(fIv).trim() === '6', disabled: ocupado, onClick: function () { setFIv('6'); } }, '6 meses'),
+        h(NtChip, { ativo: String(fIv).trim() === '12', disabled: ocupado, onClick: function () { setFIv('12'); } }, '12 meses')),
+      h('input', { type: 'number', inputMode: 'numeric', min: 1, max: NT_KC_MAX_MESES, step: 1, value: fIv, autoComplete: 'off', 'aria-label': 'Intervalo em meses', disabled: ocupado,
+        onChange: function (e) { setFIv(e.target.value); }, style: inp }),
+      fErro ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 10 } }, fErro) : null,
+      h('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
+        h(NtBtn, { flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { p.voltarRef.current(); } }, 'Cancelar'),
+        h(NtBtn, { flex: true, disabled: ocupado, onClick: guardarTipo }, ocupado ? 'A guardar…' : (editTipo ? 'Guardar alterações' : 'Criar controlo'))));
+  }
+
+  function renderFormReg() {
+    return h('div', null,
+      h('div', { style: { fontSize: 18, fontWeight: 900, marginBottom: 4 } }, (editReg ? 'Editar vez' : 'Nova vez') + (tipo ? ' · ' + tipo.nome : '')),
+      h('div', { style: rotulo }, 'Data'),
+      h('input', { type: 'date', value: fData, autoComplete: 'off', 'aria-label': 'Data', disabled: ocupado, onChange: function (e) { setFData(e.target.value); }, style: inp }),
+      h('div', { style: { display: 'flex', gap: 10 } },
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { style: rotulo }, 'Hora de início'),
+          h('input', { type: 'time', value: fHi, autoComplete: 'off', 'aria-label': 'Hora de início', disabled: ocupado, onChange: function (e) { setFHi(e.target.value); }, style: inp })),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { style: rotulo }, 'Hora de fim'),
+          h('input', { type: 'time', value: fHf, autoComplete: 'off', 'aria-label': 'Hora de fim', disabled: ocupado, onChange: function (e) { setFHf(e.target.value); }, style: inp }))),
+      h('div', { style: rotulo }, 'Assunto'),
+      h('textarea', { value: fAssunto, autoComplete: 'off', rows: 4, maxLength: NT_KC_MAX_ASSUNTO, placeholder: 'O que foi (ou vai ser) controlado', 'aria-label': 'Assunto', disabled: ocupado,
+        onChange: function (e) { setFAssunto(e.target.value); }, style: Object.assign({}, inp, { resize: 'vertical', lineHeight: 1.4 }) }),
+      h('div', { style: rotulo }, 'Estado'),
+      h('div', { style: { display: 'flex', gap: 6 } },
+        h(NtChip, { grow: true, ativo: !fFeita, disabled: ocupado, onClick: function () { setFFeita(false); } }, 'Por fazer'),
+        h(NtChip, { grow: true, ativo: fFeita, disabled: ocupado, onClick: function () { setFFeita(true); } }, 'Feita ✓')),
+      fErro ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 10 } }, fErro) : null,
+      h('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
+        h(NtBtn, { flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { p.voltarRef.current(); } }, 'Cancelar'),
+        h(NtBtn, { flex: true, disabled: ocupado, onClick: guardarReg }, ocupado ? 'A guardar…' : (editReg ? 'Guardar alterações' : 'Criar vez'))));
+  }
+
+  var corpo;
+  if (!carregado) corpo = h('div', { style: { textAlign: 'center', color: T.muted, padding: 40, fontWeight: 700 } }, 'A carregar…');
+  else if (erroCarga && !tipos.length) {
+    corpo = h('div', { style: { textAlign: 'center', padding: 30 } },
+      h('div', { style: { color: T.red, fontWeight: 800, marginBottom: 14, overflowWrap: 'anywhere' } }, erroCarga),
+      h(NtBtn, { onClick: function () { setCarregado(false); carregar(); } }, 'Tentar outra vez'));
+  } else if (vista === 'ftipo') corpo = renderFormTipo();
+  else if (vista === 'freg') corpo = renderFormReg();
+  else if (vista === 'tipo') corpo = renderTipo();
+  else corpo = renderTipos();
+  return h('div', null,
+    erro ? h(NtAvisoErro, { texto: erro, onFechar: function () { setErro(''); } }) : null,
+    erroCarga && tipos.length ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginBottom: 12 } }, erroCarga) : null,
+    corpo);
+}
+
 // ── APP ─────────────────────────────────────────────────────────────
 function NotasApp(props) {
   var onBack = props.onBack, profile = props.profile || {};
@@ -1868,6 +2193,8 @@ function NotasApp(props) {
   var _bd = React.useState(null); var desfazer = _bd[0], setDesfazer = _bd[1];   // barra "Nota arquivada · Anular"
   var _ba = React.useState(''); var buscaArq = _ba[0], setBuscaArq = _ba[1];     // pesquisa dentro do Arquivo
   var _no = React.useState('lista'); var notaOrigem = _no[0], setNotaOrigem = _no[1]; // de onde se abriu a nota
+  var _kc = React.useState(false); var kontrollenAberto = _kc[0], setKontrollenAberto = _kc[1]; // ecrã Kontrollen (só admin, cartão do Patricio)
+  var kontrollenVoltarRef = React.useRef(null);
   var _cm = React.useState(null); var cofreModo = _cm[0], setCofreModo = _cm[1]; // null | 'cofre' | 'familia' (cofre de passwords; 'familia' = painel só leitura do admin)
   var _cd = React.useState(null); var codigos = _cd[0], setCodigos = _cd[1];   // admin: { dono: true } de quem tem código (só colunas dono, updated_at)
   var _eu = React.useState(null); var editAbertaEm = _eu[0], setEditAbertaEm = _eu[1]; // updated_at da nota quando o formulário abriu (para detetar conflito)
@@ -1947,6 +2274,7 @@ function NotasApp(props) {
 
   var podeEditar = cartao ? ntPodeEditar(cartao, myId) : false;
   var temCofre = !!cartao && cartao === myId && NT_MEMBROS.indexOf(myId) !== -1 && podeEditar; // só o cartão PRÓPRIO; nunca Família nem só leitura
+  var temKontrollen = isAdmin && cartao === 'patricio' && myId === 'patricio'; // só o admin, só o seu cartão
   var usaPastas = cartao === 'patricio'; // só o cartão do Patricio tem caixas; os outros ficam como estão
   var doTodos = cartao ? notas.filter(function (n) { return n.dono === cartao; }) : [];
   var doCartao = usaPastas && pasta ? doTodos.filter(function (n) { return ntPasta(n) === pasta; }) : doTodos;
@@ -2521,6 +2849,7 @@ function NotasApp(props) {
   function abrirNota(n, origem) { setNotaOrigem(origem === 'arquivo' ? 'arquivo' : 'lista'); setSelId(n.id); setVista('nota'); if (ntELista(n)) carregarItensRef.current(); }
   function voltar() {
     if (!cartao) { onBack(); return; }
+    if (kontrollenAberto) { if (kontrollenVoltarRef.current && kontrollenVoltarRef.current()) return; setKontrollenAberto(false); return; } // o ecrã Kontrollen trata primeiro dos seus sub-ecrãs
     if (cofreModo) { setCofreModo(null); return; } // sair do cofre desmonta-o e tranca-o
     if (vista === 'form') { cancelarForm(); return; }
     if (vista === 'nota') { setSelId(null); setVista(notaOrigem === 'arquivo' ? 'arquivo' : 'lista'); return; }
@@ -2532,13 +2861,15 @@ function NotasApp(props) {
   }
 
   var titulo = 'Notas Carvalho';
-  if (cartao && cofreModo && temCofre) {
+  if (cartao && kontrollenAberto && temKontrollen) {
+    titulo = 'Kontrollen';
+  } else if (cartao && cofreModo && temCofre) {
     titulo = cofreModo === 'familia' && isAdmin ? 'Cofres da família' : 'Passwords';
   } else if (cartao) {
     titulo = (usaPastas && pasta ? ntNomePasta(pasta) : (cartao === myId && profile.display_name ? profile.display_name : NT_NOMES[cartao])) + (vista === 'lixo' ? ' · Lixo' : vista === 'arquivo' ? ' · Arquivo' : '');
   }
   var direita = null;
-  if (cartao && vista === 'lista' && !cofreModo) {
+  if (cartao && vista === 'lista' && !cofreModo && !kontrollenAberto) {
     var estiloTopo = { background: 'none', border: '1px solid ' + T.border, color: T.text, borderRadius: 10, padding: '6px 9px', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
     direita = React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', padding: '4px 0' } },
       usaPastas && !pasta ? null : React.createElement('button', { onClick: function () { setBuscaArq(''); setVista('arquivo'); }, style: estiloTopo }, '📦 Arquivo' + (arquivadas.length ? ' (' + arquivadas.length + ')' : '')),
@@ -2565,6 +2896,8 @@ function NotasApp(props) {
           codigo: temBloco ? React.createElement(NtCodigoCartao, { dono: d, nome: NT_NOMES[d], db: db, tem: codigos === null ? null : !!codigos[d], onErro: setErroGrav, onGravado: function (k) { setErroGrav(''); setCodigos(function (pr) { var n = Object.assign({}, pr || {}); n[k] = true; return n; }); } }) : null,
           onClick: function () { setVista('lista'); setSelId(null); resetFiltros(); setPasta(null); setCartao(d); } });
       }));
+  } else if (kontrollenAberto && temKontrollen) {
+    corpo = React.createElement(NtKontrollen, { key: 'kontrollen|' + myId, db: db, dono: myId, voltarRef: kontrollenVoltarRef });
   } else if (cofreModo && temCofre) {
     corpo = cofreModo === 'familia'
       ? (isAdmin ? React.createElement(NtCofresFamilia, { key: 'familia|' + myId, db: db, adminId: myId }) : null)
@@ -2603,7 +2936,8 @@ function NotasApp(props) {
     corpo = React.createElement(NtLixoLista, { notas: lixo, readOnly: !podeEditar, busyId: busyId, onRestaurar: restaurar, onApagarDef: apagarDefinitivo, itens: itens, itensOk: itensOk });
   } else if (usaPastas && !pasta) {
     corpo = React.createElement(NtCaixas, { notas: doTodos.filter(ntNaLista), podeEditar: podeEditar, onNova: abrirNova, onAbrir: function (k) { resetFiltros(); setPasta(k); },
-      cofre: temCofre ? { onAbrir: function () { setCofreModo('cofre'); }, onFamilia: isAdmin ? function () { setCofreModo('familia'); } : null } : null });
+      cofre: temCofre ? { onAbrir: function () { setCofreModo('cofre'); }, onFamilia: isAdmin ? function () { setCofreModo('familia'); } : null } : null,
+      kontrollen: temKontrollen ? { onAbrir: function () { setKontrollenAberto(true); } } : null });
   } else {
     // Vista, pesquisa e filtros são só estado do ecrã: nunca gravam nem pedem nada ao Supabase.
     var filtrando = ntFiltrosAtivos(filtros, busca);
