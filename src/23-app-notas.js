@@ -38,10 +38,12 @@ function ntAlfa(hex, a) {
   return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16) + ',' + a + ')';
 }
 var NT_IMP_ORDEM = ['importante', 'normal', 'baixo'];
-// Pastas (coluna pasta, sql/38): só no cartão do Patricio, duas caixas. null/em falta/desconhecido = 'privado'.
+// Pastas (coluna pasta, sql/38 e sql/41): só no cartão do Patricio, três caixas. null/em falta/desconhecido = 'privado'.
+// 'kontrollen' (sql/41): marcações de controlo anuais ou de meio ano (roupa, material, etc.).
 var NT_PASTAS = [
   { key: 'privado', nome: 'Privado', icone: '🔒' },
-  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' }
+  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' },
+  { key: 'kontrollen', nome: 'Kontrollen', icone: '🔍' }
 ];
 var NT_VISTA_KEY = 'notas_vista';
 var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
@@ -177,8 +179,9 @@ function ntImp(n) {
   if (v === 'urgente') return 'importante';
   return v === 'importante' || v === 'baixo' ? v : 'normal';
 }
-function ntPasta(n) { return n && n.pasta === 'geschaeft' ? 'geschaeft' : 'privado'; }
-function ntNomePasta(k) { return k === 'geschaeft' ? 'Geschäft' : 'Privado'; }
+function ntPastaConhecida(k) { for (var i = 0; i < NT_PASTAS.length; i++) { if (NT_PASTAS[i].key === k) return true; } return false; }
+function ntPasta(n) { return n && ntPastaConhecida(n.pasta) ? n.pasta : 'privado'; }
+function ntNomePasta(k) { for (var i = 0; i < NT_PASTAS.length; i++) { if (NT_PASTAS[i].key === k) return NT_PASTAS[i].nome; } return 'Privado'; }
 function ntFixada(n) { return !!(n && n.fixada === true); }
 function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
 // Vista "Por data": dentro da lista direta e de cada semana, ordena por
@@ -1950,7 +1953,8 @@ function NotasApp(props) {
   var ativas = doCartao.filter(ntNaLista); // as arquivadas (feita_em) NÃO entram na lista, filtros, pesquisa, Fixadas nem por importância
   var arquivadas = doCartao.filter(ntNoArquivo).sort(function (a, b) { return new Date(b.feita_em) - new Date(a.feita_em); });
   var arquivadasVis = ntFiltrar(arquivadas, NT_FILTROS_VAZIOS, buscaArq, new Date());
-  var lixo = doTodos.filter(function (n) { return !ntAtiva(n); }).sort(function (a, b) { return new Date(b.deleted_at) - new Date(a.deleted_at); });
+  // Lixo POR PASTA (como o Arquivo): dentro de uma caixa só as apagadas dessa pasta; nos outros cartões, o Lixo do cartão.
+  var lixo = doCartao.filter(function (n) { return !ntAtiva(n); }).sort(function (a, b) { return new Date(b.deleted_at) - new Date(a.deleted_at); });
   var notaSel = null;
   if (selId) { for (var i = 0; i < notas.length; i++) { if (notas[i].id === selId) { notaSel = notas[i]; break; } } }
 
@@ -2033,7 +2037,7 @@ function NotasApp(props) {
       };
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
-      if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
+      if (usaPastas && fPasta !== 'privado' && ntPastaConhecida(fPasta)) linhaNova.pasta = fPasta; // 'privado' é o valor por omissão da coluna
       if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; textosColar = ntParseArtigos(fColar); } // lista de compras (coluna tipo)
       consulta = db.from('notas_notas').insert(linhaNova).select('id');
       if (novaListaId && textosColar.length) {
@@ -2538,7 +2542,7 @@ function NotasApp(props) {
     var estiloTopo = { background: 'none', border: '1px solid ' + T.border, color: T.text, borderRadius: 10, padding: '6px 9px', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' };
     direita = React.createElement('div', { style: { display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', padding: '4px 0' } },
       usaPastas && !pasta ? null : React.createElement('button', { onClick: function () { setBuscaArq(''); setVista('arquivo'); }, style: estiloTopo }, '📦 Arquivo' + (arquivadas.length ? ' (' + arquivadas.length + ')' : '')),
-      React.createElement('button', { onClick: function () { setVista('lixo'); }, style: estiloTopo }, '🗑 Lixo' + (lixo.length ? ' (' + lixo.length + ')' : ''))
+      usaPastas && !pasta ? null : React.createElement('button', { onClick: function () { setVista('lixo'); }, style: estiloTopo }, '🗑 Lixo' + (lixo.length ? ' (' + lixo.length + ')' : ''))
     );
   }
 
