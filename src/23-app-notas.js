@@ -38,12 +38,10 @@ function ntAlfa(hex, a) {
   return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16) + ',' + a + ')';
 }
 var NT_IMP_ORDEM = ['importante', 'normal', 'baixo'];
-// Pastas (coluna pasta, sql/38 e sql/41): só no cartão do Patricio, três caixas. null/em falta/desconhecido = 'privado'.
-// 'kontrollen' (sql/41): marcações de controlo anuais ou de meio ano (roupa, material, etc.).
+// Pastas (coluna pasta, sql/38): só no cartão do Patricio, duas caixas. null/em falta/desconhecido = 'privado'.
 var NT_PASTAS = [
   { key: 'privado', nome: 'Privado', icone: '🔒' },
-  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' },
-  { key: 'kontrollen', nome: 'Kontrollen', icone: '🔍' }
+  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' }
 ];
 var NT_VISTA_KEY = 'notas_vista';
 var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
@@ -179,9 +177,8 @@ function ntImp(n) {
   if (v === 'urgente') return 'importante';
   return v === 'importante' || v === 'baixo' ? v : 'normal';
 }
-function ntPastaConhecida(k) { for (var i = 0; i < NT_PASTAS.length; i++) { if (NT_PASTAS[i].key === k) return true; } return false; }
-function ntPasta(n) { return n && ntPastaConhecida(n.pasta) ? n.pasta : 'privado'; }
-function ntNomePasta(k) { for (var i = 0; i < NT_PASTAS.length; i++) { if (NT_PASTAS[i].key === k) return NT_PASTAS[i].nome; } return 'Privado'; }
+function ntPasta(n) { return n && n.pasta === 'geschaeft' ? 'geschaeft' : 'privado'; }
+function ntNomePasta(k) { return k === 'geschaeft' ? 'Geschäft' : 'Privado'; }
 function ntFixada(n) { return !!(n && n.fixada === true); }
 function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
 // Vista "Por data": dentro da lista direta e de cada semana, ordena por
@@ -2365,7 +2362,7 @@ function NotasApp(props) {
       };
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
-      if (usaPastas && fPasta !== 'privado' && ntPastaConhecida(fPasta)) linhaNova.pasta = fPasta; // 'privado' é o valor por omissão da coluna
+      if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
       if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; textosColar = ntParseArtigos(fColar); } // lista de compras (coluna tipo)
       consulta = db.from('notas_notas').insert(linhaNova).select('id');
       if (novaListaId && textosColar.length) {
