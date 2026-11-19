@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-19T15:31:58.260Z
+  Gerado em: 2026-11-19T17:34:51.032Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-482";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-483";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -51782,6 +51782,38 @@ function saGuardarPendentes(lista) {
 }
 function saAdicionarPendente(path) { var l = saLerPendentes(); if (path && l.indexOf(path) === -1) { l.push(path); saGuardarPendentes(l); } return l; }
 
+// ── ler o ficheiro para a memória ANTES de o enviar ──
+// Um ficheiro que vem de um content:// virtual (por exemplo do Google Drive no Android) nem sempre pode ser transmitido
+// diretamente pelo browser ("Failed to fetch"). Por isso lê-se tudo para a memória (arrayBuffer, ou FileReader se o
+// browser não tiver arrayBuffer) e envia-se um Blob normal, com o mesmo tipo MIME.
+var SA_MSG_LER = 'Não foi possível ler o ficheiro do telemóvel (se vem do Drive, torna-o disponível offline e tenta outra vez). Nada foi guardado.';
+// Log de uma falha com o nome, o tamanho e o tipo do ficheiro (NUNCA o conteúdo), para perceber o que falhou.
+function saLogFicheiro(op, err, file) {
+  console.error('[saude] falha ao ' + op + ' — ficheiro: ' + (file && file.name) + ', ' + (file && file.size) + ' bytes, tipo ' + (file && file.type) + ':', err);
+}
+function saLerFicheiro(file) {
+  var mime = saMimeDe(file);
+  var porBuffer = function (buf) {
+    if (!buf || !(buf.byteLength > 0)) return { ok: false, erro: 'O ficheiro está vazio (não foi lido nenhum byte). Nada foi guardado.' };
+    if (buf.byteLength > SA_MAX_BYTES) return { ok: false, erro: 'O ficheiro é demasiado grande (máximo 15 MB). Nada foi guardado.' };
+    return { ok: true, blob: new Blob([buf], { type: mime }), bytes: buf.byteLength };
+  };
+  var falha = function (e) { saLogFicheiro('ler o ficheiro do telemóvel', e, file); return { ok: false, erro: SA_MSG_LER + ' Erro: ' + saMsgErro(e) }; };
+  try {
+    var lido = typeof file.arrayBuffer === 'function'
+      ? file.arrayBuffer()
+      : new Promise(function (resolve, reject) {
+        var fr = new FileReader();
+        fr.onload = function () { resolve(fr.result); };
+        fr.onerror = function () { reject(fr.error || new Error('A leitura do ficheiro falhou')); };
+        fr.readAsArrayBuffer(file);
+      });
+    return lido.then(porBuffer).then(null, falha);
+  } catch (e) {
+    return Promise.resolve(falha(e));
+  }
+}
+
 // ── operações com ficheiro + linha (sem deixar ficheiros órfãos nem linhas sem ficheiro) ──
 // Criar: 1) envia o ficheiro; 2) grava a linha; se o 2) falhar, remove o ficheiro. Se a remoção também falhar,
 // devolve o caminho em "orfao" (a app põe-no na lista de limpeza). Nunca rejeita: devolve { ok, erro, orfao, row }.
@@ -51796,16 +51828,19 @@ function saCriarDoc(db, o) {
       return { ok: false, erro: base + ' O ficheiro enviado foi removido: nada ficou guardado.' };
     }, function (e) { saLog('remover ficheiro enviado', e); return { ok: false, erro: base + ' O ficheiro enviado também não foi removido (' + saMsgErro(e) + '); fica na lista de limpeza.', orfao: path }; });
   };
-  return db.storage.from(SA_BUCKET).upload(path, o.file, { contentType: saMimeDe(o.file), upsert: false }).then(function (up) {
-    if (up && up.error) { saLog('enviar ficheiro', up.error); return { ok: false, erro: 'Não foi possível enviar o ficheiro: ' + saMsgErro(up.error) + '. Nada foi guardado.' }; }
+  return saLerFicheiro(o.file).then(function (lf) {
+    if (!lf.ok) return { ok: false, erro: lf.erro };   // não se leu: não se envia nada (nem fica nada para limpar)
+    return db.storage.from(SA_BUCKET).upload(path, lf.blob, { contentType: saMimeDe(o.file), upsert: false }).then(function (up) {
+    if (up && up.error) { saLogFicheiro('enviar ficheiro', up.error, o.file); return { ok: false, erro: 'Não foi possível enviar o ficheiro: ' + saMsgErro(up.error) + '. Nada foi guardado.' }; }
     enviado = true;
     return db.from('saude_docs').insert(row).select('id').then(function (ins) {
       if (ins && ins.error) { saLog('guardar documento', ins.error); return desfazer('Não foi possível guardar o documento: ' + saMsgErro(ins.error) + '.'); }
       if (!ins || !ins.data || !ins.data.length) { saLog('guardar documento', new Error(SA_ZERO_LINHAS)); return desfazer('Não foi possível guardar o documento: ' + SA_ZERO_LINHAS + '.'); }
       return { ok: true, row: row };
     });
+    });
   }).then(null, function (e) {
-    saLog('criar documento', e);
+    saLogFicheiro('criar documento', e, o.file);
     return enviado ? desfazer('Não foi possível guardar o documento: ' + saMsgErro(e) + '.') : { ok: false, erro: 'Não foi possível enviar o ficheiro: ' + saMsgErro(e) + '. Nada foi guardado.' };
   });
 }
