@@ -98,6 +98,7 @@ const SRC_FILES = [
   'src/20-app-fitness.js',
   'src/22-home-extras.js',
   'src/23-app-notas.js',
+  'src/24-app-saude.js',
   'src/10-shell.js', 'src/tail.html',
   'build.js', 'deploy.js',
 ];
