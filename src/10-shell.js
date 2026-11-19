@@ -1513,6 +1513,7 @@ function CarvalhoSuite() {
     if (activeApp === 'pollen' && (isAdmin || myAllowedApps.includes('pollen'))) return /*#__PURE__*/React.createElement(PollenApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'notas' && (isAdmin || myAllowedApps.includes('notas'))) return /*#__PURE__*/React.createElement(NotasApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'fitness' && isAdmin) return /*#__PURE__*/React.createElement(FitnessApp, { profile: profile, onBack: function() { setApp(null); } });
+    if (activeApp === 'saude' && isAdmin) return /*#__PURE__*/React.createElement(SaudeApp, { profile: profile, onBack: function() { setApp(null); } });
     if (activeApp === 'escolar') return /*#__PURE__*/React.createElement(EscolarApp, _extends({
       onBack: goBack,
       activeUser: (profile && profile.member_id) || 'patricio'

@@ -46,6 +46,7 @@ const JS_SECTIONS = [
   '20-app-fitness.js', // app Carvalho Fitness — plano alimentar, progresso e treino (só Patricio)
   '22-home-extras.js', // Home: popup Kompliment des Tages, tempo, painel admin do Kompliment
   '23-app-notas.js', // app Notas Carvalho
+  '24-app-saude.js', // app Carvalho Saúde — papéis clínicos e Zeugnis (admin only)
   '10-shell.js', // CarvalhoSuite — menu principal, login, Definições, Perfil, Avisos
 ];
 
