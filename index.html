@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-19T17:34:51.032Z
+  Gerado em: 2026-11-19T21:23:34.197Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-483";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-484";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -48799,11 +48799,73 @@ function ntRolarPara(id) {
   }
 }
 
-// Texto copiado: título, linha em branco e o texto inteiro. Sem texto, só o título.
+// ── LIGAÇÕES AO DRIVE (só o link; nada é enviado para o Storage) ──
+// Guardadas na coluna jsonb notas_notas.ligacoes: [{ nome, url }, …]. Só https://drive.google.com/ e https://docs.google.com/.
+var NT_MAX_LIG = 20, NT_MAX_LIG_NOME = 100, NT_MAX_LIG_URL = 500;
+var NT_LIG_DOMINIOS = ['drive.google.com', 'docs.google.com'];
+// Valida um link do Drive. Devolve { ok, valor, erro }; valor é o texto sem espaços nas pontas.
+function ntLigUrl(texto) {
+  var s = String(texto == null ? '' : texto).trim();
+  var MSG = 'O link tem de ser https://drive.google.com/… ou https://docs.google.com/… (Google Drive ou Google Docs).';
+  if (!s) return { ok: false, valor: null, erro: 'Falta o link.' };
+  if (s.length > NT_MAX_LIG_URL) return { ok: false, valor: null, erro: 'O link é demasiado longo (máximo ' + NT_MAX_LIG_URL + ' caracteres).' };
+  if (/[\s\u0000-\u001f\u007f​-‏‪-‮⁠]/.test(s)) return { ok: false, valor: null, erro: 'O link não pode ter espaços nem caracteres estranhos.' };
+  var m = /^https:\/\/([^\/?#]*)(?:[\/?#]|$)/i.exec(s);
+  if (!m || /[@:\\]/.test(m[1]) || NT_LIG_DOMINIOS.indexOf(m[1].toLowerCase()) === -1) return { ok: false, valor: null, erro: MSG };
+  if (s.charAt(8 + m[1].length) !== '/') return { ok: false, valor: null, erro: MSG }; // exige o "/" a seguir ao domínio (https://drive.google.com/…)
+  return { ok: true, valor: s, erro: null };
+}
+// Ligações de uma nota, já limpas: só as que têm nome e URL válidos (nunca um esquema perigoso guardado por outro caminho).
+function ntLigacoes(n) {
+  var l = n && n.ligacoes;
+  if (!Array.isArray(l)) return [];
+  var out = [];
+  l.forEach(function (x) {
+    if (!x || typeof x.nome !== 'string' || typeof x.url !== 'string') return;
+    var nome = x.nome.trim();
+    if (!nome || nome.length > NT_MAX_LIG_NOME || !ntLigUrl(x.url).ok) return;
+    out.push({ nome: nome, url: x.url.trim() });
+  });
+  return out;
+}
+// Valida as ligações do formulário. Linhas totalmente vazias são ignoradas. Devolve { ok, valor (lista limpa), erro }.
+function ntValidaLigacoes(lista) {
+  var out = [];
+  var ls = Array.isArray(lista) ? lista : [];
+  for (var i = 0; i < ls.length; i++) {
+    var nome = String((ls[i] && ls[i].nome) == null ? '' : ls[i].nome).trim();
+    var url = String((ls[i] && ls[i].url) == null ? '' : ls[i].url).trim();
+    if (!nome && !url) continue;
+    var q = 'Ligação ' + (i + 1) + ': ';
+    if (!nome) return { ok: false, valor: null, erro: q + 'falta o nome.' };
+    if (nome.length > NT_MAX_LIG_NOME) return { ok: false, valor: null, erro: q + 'o nome tem mais de ' + NT_MAX_LIG_NOME + ' caracteres.' };
+    var r = ntLigUrl(url);
+    if (!r.ok) return { ok: false, valor: null, erro: q + r.erro };
+    out.push({ nome: nome, url: r.valor });
+  }
+  if (out.length > NT_MAX_LIG) return { ok: false, valor: null, erro: 'No máximo ' + NT_MAX_LIG + ' ligações por nota.' };
+  return { ok: true, valor: out, erro: null };
+}
+// Erro de gravação com ligações: se a coluna ainda não existe na base (SQL das ligações por correr), explica-o além da mensagem real.
+function ntMsgGravarLig(err, comLig) {
+  var base = ntMsgErro(err);
+  var txt = String((err && (err.message || '')) || '') + ' ' + String((err && err.code) || '');
+  if (comLig && /ligacoes|PGRST204|42703/i.test(txt)) return base + ' — A base ainda não tem a coluna das ligações (falta correr o SQL das ligações). Sem ligações, a nota grava normalmente.';
+  return base;
+}
+function ntLigIguais(a, b) { return JSON.stringify(a || []) === JSON.stringify(b || []); }
+// Para copiar/partilhar: uma linha por ligação, "nome: url".
+function ntLigTexto(n) {
+  var l = ntLigacoes(n);
+  return l.length ? 'Ligações:\n' + l.map(function (x) { return x.nome + ': ' + x.url; }).join('\n') : '';
+}
+// Texto copiado: título, linha em branco e o texto inteiro (sem texto, só o título); depois as ligações (nome + URL), se houver.
 function ntTextoParaCopiar(n) {
   var titulo = String(n.titulo || '');
   var texto = String(n.texto || '');
-  return texto.trim() ? titulo + '\n\n' + texto : titulo;
+  var base = texto.trim() ? titulo + '\n\n' + texto : titulo;
+  var lig = ntLigTexto(n);
+  return lig ? base + '\n\n' + lig : base;
 }
 // Plano B (PWA instalada / sem navigator.clipboard): textarea escondido + execCommand('copy').
 // Devolve true só se o navegador confirmou a cópia.
@@ -48865,7 +48927,9 @@ function ntPartilhar(n, cp) {
   var nav = typeof navigator !== 'undefined' ? navigator : null;
   if (!nav || typeof nav.share !== 'function') return cp.copiar(n);
   var pr;
-  try { pr = nav.share({ title: String(n.titulo || ''), text: String(n.texto || '').trim() ? String(n.texto) : String(n.titulo || '') }); } catch (e) { pr = Promise.reject(e); }
+  var corpo = String(n.texto || '').trim() ? String(n.texto) : String(n.titulo || '');
+  var ligTxt = ntLigTexto(n);
+  try { pr = nav.share({ title: String(n.titulo || ''), text: ligTxt ? corpo + '\n\n' + ligTxt : corpo }); } catch (e) { pr = Promise.reject(e); }
   return Promise.resolve(pr).catch(function (err) {
     if (err && err.name === 'AbortError') return undefined; // a pessoa fechou a folha de partilha
     return cp.copiar(n);
@@ -48920,6 +48984,66 @@ function NtBadge(p) {
       background: 'transparent', color: cor, border: '1.5px solid ' + cor
     }
   }, p.curto ? d.num : d.num + ' · ' + d.rot);
+}
+
+// Etiqueta pequena "📎 N" (só quando a nota tem ligações). Não é um botão: não muda nada na lista.
+function NtEtiquetaLig(p) {
+  var n = ntLigacoes(p.nota).length;
+  if (!n) return null;
+  return React.createElement('span', {
+    'data-lig': String(n), title: n + (n === 1 ? ' ligação' : ' ligações'), 'aria-label': n + (n === 1 ? ' ligação' : ' ligações'),
+    style: { fontSize: 11, color: T.text, fontWeight: 800 }
+  }, '📎 ' + n);
+}
+// Ligações na vista da nota: nome + botão grande "📎 Abrir no Drive" (separador novo, rel="noopener noreferrer").
+function NtLigacoesVista(p) {
+  var ls = ntLigacoes(p.nota);
+  if (!ls.length) return null;
+  return React.createElement('div', { 'data-ligacoes': '1', style: { marginTop: 18 } },
+    React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, marginBottom: 6 } }, 'Ligações'),
+    ls.map(function (l, i) {
+      return React.createElement('div', { key: i, style: { background: T.surface, border: '1.5px solid ' + T.border, borderRadius: 12, padding: 10, marginTop: i ? 8 : 0 } },
+        React.createElement('div', { style: { fontSize: 15, fontWeight: 900, wordBreak: 'break-word', overflowWrap: 'anywhere', marginBottom: 8 } }, l.nome),
+        React.createElement('a', {
+          href: l.url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Abrir no Drive: ' + l.nome,
+          style: {
+            display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', width: '100%', minHeight: 52, padding: '0 14px',
+            borderRadius: 12, background: NT_ACENTO, color: '#fff', fontSize: 16, fontWeight: 900, textDecoration: 'none'
+          }
+        }, '📎 Abrir no Drive')
+      );
+    })
+  );
+}
+// Secção "Ligações" do formulário: nome + link por linha, apagar cada uma e juntar mais. Só rascunho: grava com a nota.
+function NtLigacoesForm(p) {
+  var inp = {
+    width: '100%', boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.border,
+    borderRadius: 12, padding: '12px 13px', fontSize: 16, fontFamily: 'inherit', outline: 'none', fontWeight: 700
+  };
+  var ls = p.ligs || [];
+  return React.createElement('div', { 'data-ligacoes-form': '1' },
+    React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Ligações (Google Drive)'),
+    ls.map(function (l, i) {
+      return React.createElement('div', { key: i, 'data-lig-linha': String(i), style: { background: T.surface2, border: '1.5px solid ' + T.border, borderRadius: 12, padding: 10, marginBottom: 8 } },
+        React.createElement('input', {
+          type: 'text', name: 'lig-nome-' + i, value: l.nome, autoComplete: 'off', autoCapitalize: 'sentences', maxLength: NT_MAX_LIG_NOME, disabled: p.saving,
+          placeholder: 'Nome (ex.: Currículo)', 'aria-label': 'Nome da ligação ' + (i + 1),
+          onChange: function (e) { p.onMudar(i, 'nome', e.target.value); }, style: inp
+        }),
+        React.createElement('input', {
+          type: 'text', name: 'lig-url-' + i, value: l.url, inputMode: 'url', autoComplete: 'off', autoCapitalize: 'off', autoCorrect: 'off', spellCheck: false,
+          maxLength: NT_MAX_LIG_URL + 50, disabled: p.saving, placeholder: 'https://drive.google.com/…', 'aria-label': 'Link da ligação ' + (i + 1),
+          onChange: function (e) { p.onMudar(i, 'url', e.target.value); }, style: Object.assign({}, inp, { marginTop: 8 })
+        }),
+        React.createElement('button', {
+          type: 'button', disabled: p.saving, 'aria-label': 'Apagar a ligação ' + (i + 1), onClick: function () { p.onApagar(i); },
+          style: { marginTop: 8, width: '100%', minHeight: 44, borderRadius: 10, border: '1.5px solid ' + T.red, background: 'transparent', color: T.red, fontSize: 14, fontWeight: 800, cursor: p.saving ? 'default' : 'pointer', opacity: p.saving ? 0.55 : 1 }
+        }, '🗑 Apagar ligação')
+      );
+    }),
+    ls.length < NT_MAX_LIG ? React.createElement(NtBtn, { kind: 'ghost', disabled: p.saving, onClick: p.onJuntar }, '📎 Juntar ligação') : null
+  );
 }
 
 // Botão-pílula (vistas, filtros, importância no formulário).
@@ -49275,7 +49399,8 @@ function NtArquivo(p) {
         React.createElement('div', { style: { fontSize: 17, fontWeight: 900, lineHeight: 1.25, wordBreak: 'break-word' } }, n.titulo),
         React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 } },
           React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, 'Feita em ' + ntDataFmt(n.feita_em)),
-          React.createElement(NtBadge, { imp: ntImp(n), curto: true })
+          React.createElement(NtBadge, { imp: ntImp(n), curto: true }),
+          React.createElement(NtEtiquetaLig, { nota: n })
         ),
         lista ? React.createElement('div', { style: { fontSize: 14, fontWeight: 900, marginTop: 4 } }, '☑ ' + (p.itensOk ? ntContaItens(itensN).comprados + '/' + ntContaItens(itensN).total : '…')) : null,
         resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
@@ -49350,7 +49475,8 @@ function NtLinha(p) {
       React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 } },
         React.createElement('span', { style: { fontSize: 11, color: T.muted, fontWeight: 700 } }, ntDataFmt(n.created_at)),
         React.createElement(NtBadge, { imp: imp, curto: true }),
-        fix ? React.createElement('span', { style: { fontSize: 11, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
+        fix ? React.createElement('span', { style: { fontSize: 11, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null,
+        React.createElement(NtEtiquetaLig, { nota: n })
       ),
       lista ? React.createElement('div', { 'data-progresso': n.id, style: { fontSize: 15, fontWeight: 900, marginTop: 4 } }, '☑ ' + (p.itensOk ? ntTxtProgresso(cont) : '…')) : null,
       resumo ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, lineHeight: 1.35, wordBreak: 'break-word' } }, resumo) : null
@@ -49486,6 +49612,7 @@ function NtLixoLista(p) {
         React.createElement('div', { style: { fontSize: 11, color: T.muted, marginTop: 3, fontWeight: 700, paddingRight: 44 } }, 'Apagada em ' + ntDataFmt(n.deleted_at)),
         React.createElement('div', { style: { fontSize: 11, color: dias <= 5 ? '#F59E0B' : T.muted, marginTop: 2, fontWeight: 800, paddingRight: 44 } },
           dias <= 0 ? 'Apaga definitivamente hoje' : ('Apaga definitivamente em ' + dias + (dias === 1 ? ' dia' : ' dias'))),
+        ntLigacoes(n).length ? React.createElement('div', { style: { marginTop: 3, paddingRight: 44 } }, React.createElement(NtEtiquetaLig, { nota: n })) : null,
         ntELista(n) ? React.createElement('div', { style: { fontSize: 13, fontWeight: 900, marginTop: 4, paddingRight: 44 } }, '☑ Lista · ' + (p.itensOk ? ntTxtProgresso(ntContaItens(ntItensDaLista(p.itens, n.id))) : '…')) : null,
         ntResumo(n.texto) ? React.createElement('div', { style: { fontSize: 13, color: T.muted, marginTop: 4, wordBreak: 'break-word', paddingRight: 44 } }, ntResumo(n.texto)) : null,
         p.readOnly ? null : React.createElement('div', { style: { display: 'flex', gap: 8, marginTop: 10 } },
@@ -49528,6 +49655,7 @@ function NtVista(p) {
       fix ? React.createElement('span', { style: { fontSize: 12, color: T.text, fontWeight: 800 } }, '📌 Fixada') : null
     ),
     React.createElement('div', { style: { fontSize: 16, color: T.text, marginTop: 16, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' } }, n.texto || ''),
+    React.createElement(NtLigacoesVista, { nota: n }),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 } },
       React.createElement('button', { type: 'button', 'aria-label': cp.feito ? 'Nota copiada' : 'Copiar a nota', onClick: function () { cp.copiar(n); },
         style: Object.assign({}, peq, cp.feito ? ativo : {}) }, cp.feito ? '✓ Copiada' : '📋 Copiar'),
@@ -49730,6 +49858,7 @@ function NtForm(p) {
       value: p.texto, autoComplete: 'off', placeholder: 'Escreve aqui…', rows: 12,
       onChange: function (e) { p.onTexto(e.target.value); }, style: Object.assign({}, inp, { resize: 'vertical', lineHeight: 1.45 })
     }),
+    p.soTitulo ? null : React.createElement(NtLigacoesForm, { ligs: p.ligs, saving: p.saving, onMudar: p.onLigMudar, onApagar: p.onLigApagar, onJuntar: p.onLigJuntar }),
     React.createElement('div', { style: { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' } }, 'Importância'),
     React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
       NT_IMP_ORDEM.map(function (k) {
@@ -50802,6 +50931,7 @@ function NotasApp(props) {
   var _llb = React.useState(false); var limparBusy = _llb[0], setLimparBusy = _llb[1];
   var _lub = React.useState({}); var usarBusy = _lub[0], setUsarBusy = _lub[1];  // "usar outra vez" em curso, por id da lista
   var _ltp = React.useState('nota'); var fTipo = _ltp[0], setFTipo = _ltp[1];     // 'nota' | 'lista' (formulário aberto)
+  var _llg = React.useState([]); var fLigs = _llg[0], setFLigs = _llg[1];          // ligações do Drive do formulário (rascunho: [{ nome, url }]); gravam com a nota
   var _lcl = React.useState(''); var fColar = _lcl[0], setFColar = _lcl[1];       // texto colado ("Colar artigos") ao criar uma lista; NUNCA vai para a coluna texto
   var _am = React.useState({}); var arqMinim = _am[0], setArqMinim = _am[1];       // secções do Arquivo minimizadas ({ listas, notas }), só em memória
   var carregarItensRef = React.useRef(null);
@@ -50887,18 +51017,21 @@ function NotasApp(props) {
   function abrirNova(tipo) {
     if (!podeEditar) return;
     var tp = tipo === 'lista' && cartao === 'familia' ? 'lista' : 'nota'; // listas só no cartão Família (o onClick passa o evento: ignora-o)
-    setFTipo(tp); setFColar('');
+    setFTipo(tp); setFColar(''); setFLigs([]);
     setEditId(null); setFTitulo(tp === 'lista' ? ntTituloListaPadrao() : ''); setFTexto(''); setFImp('normal'); setFPasta(usaPastas && pasta ? pasta : 'privado'); setFErro('');
     setEditAbertaEm(null); setConflito(null); setBaseConflito(null);
     setVista('form');
   }
   function abrirEditar(n) {
     if (!ntPodeEditar(n.dono, myId)) return;
-    setFTipo(ntELista(n) ? 'lista' : 'nota'); setFColar('');
+    setFTipo(ntELista(n) ? 'lista' : 'nota'); setFColar(''); setFLigs(ntLigacoes(n));
     setEditId(n.id); setFTitulo(n.titulo); setFTexto(n.texto || ''); setFImp(ntImp(n)); setFPasta(ntPasta(n)); setFErro('');
     setEditAbertaEm(n.updated_at); setConflito(null); setBaseConflito(null);
     setVista('form');
   }
+  function ligMudar(i, campo, v) { setFLigs(function (p) { return p.map(function (l, k) { if (k !== i) return l; var n = Object.assign({}, l); n[campo] = v; return n; }); }); }
+  function ligApagar(i) { setFLigs(function (p) { return p.filter(function (l, k) { return k !== i; }); }); }
+  function ligJuntar() { setFLigs(function (p) { return p.length >= NT_MAX_LIG ? p : p.concat([{ nome: '', url: '' }]); }); }
   function cancelarForm() {
     if (savingRef.current) return;
     setFErro(''); setConflito(null); setBaseConflito(null);
@@ -50914,6 +51047,11 @@ function NotasApp(props) {
     if (savingRef.current) return;
     if (!cartao || !ntPodeEditar(cartao, myId)) return;
     if (!editId && fTipo === 'lista' && ntParseArtigos(fColar).length > NT_MAX_COLAR) { setFErro('Máximo ' + NT_MAX_COLAR + ' artigos de cada vez (colaste ' + ntParseArtigos(fColar).length + ').'); return; }
+    var ligOk = null; // ligações validadas (listas de compras não têm ligações)
+    if (fTipo !== 'lista') {
+      ligOk = ntValidaLigacoes(fLigs);
+      if (!ligOk.ok) { setFErro(ligOk.erro); return; }
+    }
     if (!db) { setFErro('Sem ligação ao servidor — não foi guardado.'); return; }
     var agoraIso = new Date().toISOString();
     var anterior = null;
@@ -50928,6 +51066,7 @@ function NotasApp(props) {
       if (fTexto !== (anterior.texto || '')) { patch.texto = fTexto; mudouConteudo = true; }
       if (fImp !== ntImp(anterior)) patch.importancia = fImp;
       if (usaPastas && fPasta !== ntPasta(anterior)) patch.pasta = fPasta; // mudar só a pasta envia só id e pasta
+      if (ligOk && !ntLigIguais(ligOk.valor, ntLigacoes(anterior))) { patch.ligacoes = ligOk.valor; mudouConteudo = true; } // só se mudaram (sem tocar na coluna, notas sem ligações gravam como sempre)
       if (mudouConteudo) patch.updated_at = agoraIso;
       if (!Object.keys(patch).length) { // nada mudou: fecha sem pedir nada
         setFErro(''); setFTitulo(''); setFTexto(''); setFImp('normal'); setEditId(null); setVista('nota');
@@ -50961,6 +51100,7 @@ function NotasApp(props) {
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
       if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
+      if (ligOk && ligOk.valor.length) { nova.ligacoes = ligOk.valor; linhaNova.ligacoes = ligOk.valor; } // sem ligações não envia a coluna
       if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; textosColar = ntParseArtigos(fColar); } // lista de compras (coluna tipo)
       consulta = db.from('notas_notas').insert(linhaNova).select('id');
       if (novaListaId && textosColar.length) {
@@ -50985,7 +51125,7 @@ function NotasApp(props) {
       setSaving(false);
       if (res && res.error) {
         ntAvisarRes(editId ? 'editar nota' : 'criar nota', res.error);
-        setFErro('Erro ao guardar: ' + ntMsgErro(res.error));
+        setFErro('Erro ao guardar: ' + ntMsgGravarLig(res.error, !!(patch ? patch.ligacoes : (ligOk && ligOk.valor.length))));
         removeOptimistic();
         return;
       }
@@ -51001,7 +51141,7 @@ function NotasApp(props) {
       }
       ok = true;
       setFErro(''); setConflito(null); setBaseConflito(null);
-      setFTitulo(''); setFTexto(''); setFImp('normal');
+      setFTitulo(''); setFTexto(''); setFImp('normal'); setFLigs([]);
       var idFinal = editId;
       setEditId(null);
       if (usaPastas && !idFinal) setPasta(fPasta); // nota nova: abre a pasta onde ficou
@@ -51043,10 +51183,10 @@ function NotasApp(props) {
     db.from('notas_notas').update(patch).eq('id', idEd).select('id').then(function (res) {
       savingRef.current = false;
       setSaving(false);
-      if (res && res.error) { ntAvisarRes('gravar por cima (conflito)', res.error); setFErro('Erro ao guardar: ' + ntMsgErro(res.error)); return; }
+      if (res && res.error) { ntAvisarRes('gravar por cima (conflito)', res.error); setFErro('Erro ao guardar: ' + ntMsgGravarLig(res.error, !!patch.ligacoes)); return; }
       if (!res || !res.data || !res.data.length) { ntAvisar('gravar por cima (conflito)', new Error(NT_ZERO_LINHAS)); setFErro('Erro ao guardar: ' + NT_ZERO_LINHAS); return; }
       setFErro(''); setConflito(null); setBaseConflito(null);
-      setFTitulo(''); setFTexto(''); setFImp('normal');
+      setFTitulo(''); setFTexto(''); setFImp('normal'); setFLigs([]);
       setEditId(null);
       setVista('nota');
       carregarRef.current();
@@ -51502,6 +51642,7 @@ function NotasApp(props) {
       titulo: fTitulo, texto: fTexto, imp: fImp, erro: fErro, saving: saving, editando: !!editId,
       mostrarPasta: usaPastas && podeEditar, pasta: fPasta, onPasta: setFPasta, soTitulo: fTipo === 'lista',
       colar: fTipo === 'lista' && !editId, colarTxt: fColar, onColarTxt: setFColar, nColar: ntParseArtigos(fColar).length,
+      ligs: fLigs, onLigMudar: ligMudar, onLigApagar: ligApagar, onLigJuntar: ligJuntar,
       onTitulo: setFTitulo, onTexto: setFTexto, onImp: setFImp, onGuardar: guardar, onCancelar: cancelarForm,
       conflito: conflito, baseConflito: baseConflito, onVerBase: verVersaoDaBase, onGravarPorCima: gravarPorCimaConflito
     });
