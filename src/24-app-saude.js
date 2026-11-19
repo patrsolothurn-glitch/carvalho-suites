@@ -267,6 +267,57 @@ function saUrlAssinado(db, path) {
   }, function (e) { saLog('abrir ficheiro', e); return { ok: false, erro: 'Não foi possível abrir o ficheiro: ' + saMsgErro(e) }; });
 }
 
+// ── FASE 2: "Ler documento" (opcional) ──
+// O botão só aparece se a função saude-ler existir no Supabase (a app sabe-o com um pedido OPTIONS, sem erros visíveis).
+// A função só SUGERE título, data, tipo e (Zeugnis) período e percentagem: a app mostra a sugestão e só preenche o
+// formulário se o Patricio carregar em "Usar sugestão"; nada se grava sozinho.
+var SA_LER_MAX_BYTES = 5900000;   // o pedido à IA vai em base64 (+33%); o limite da função é ~6 MB de ficheiro
+var SA_LER_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+function saUrlFuncaoLer(db) {
+  var u = db && (db.supabaseUrl || (db.rest && db.rest.url ? String(db.rest.url).replace(/\/rest\/v1\/?$/, '') : ''));
+  return u ? String(u).replace(/\/$/, '') + '/functions/v1/saude-ler' : '';
+}
+function saLeitorExiste(db) {
+  var u = saUrlFuncaoLer(db);
+  if (!u || typeof window.fetch !== 'function') return Promise.resolve(false);
+  return window.fetch(u, { method: 'OPTIONS' }).then(function (r) { return !!(r && r.ok); }, function () { return false; });
+}
+function saPodeLer(file) { return !!file && file.size > 0 && file.size <= SA_LER_MAX_BYTES && SA_LER_MIMES.indexOf(saMimeDe(file)) !== -1; }
+// Revalida a resposta da função (não confia nela): só passa o que for válido.
+function saNormalizarSugestao(d) {
+  if (!d || typeof d !== 'object') return null;
+  var titulo = typeof d.titulo === 'string' ? d.titulo.replace(/\s+/g, ' ').trim().slice(0, SA_MAX_TITULO) : '';
+  var data = saDataValida(d.data_doc) ? d.data_doc : '';
+  var tipo = saTipoValido(d.tipo) ? d.tipo : 'outro';
+  var z = d.zeugnis, zeugnis = null;
+  if (tipo === 'zeugnis' && z && saDataValida(z.de) && saDataValida(z.ate) && z.ate >= z.de && typeof z.percentagem === 'number' && z.percentagem === Math.floor(z.percentagem) && z.percentagem >= 0 && z.percentagem <= 100) zeugnis = { de: z.de, ate: z.ate, percentagem: z.percentagem };
+  if (!titulo && !data && !zeugnis && tipo === 'outro') return null;
+  return { titulo: titulo, data_doc: data, tipo: tipo, zeugnis: zeugnis };
+}
+function saMsgLeitor(err) {
+  var st = err && err.context && err.context.status;
+  if (st === 429) return 'Chegaste ao limite diário de leituras. Preenche à mão.';
+  if (st === 403) return 'A leitura só está disponível para o administrador.';
+  if (st === 401) return 'A sessão expirou. Sai e entra outra vez.';
+  if (st === 422) return 'A IA não conseguiu ler este documento. Preenche à mão.';
+  return 'Não foi possível ler o documento agora (' + saMsgErro(err) + '). Preenche à mão.';
+}
+function saLerDocumento(db, file) {
+  return new Promise(function (resolve) {
+    var fr = new FileReader();
+    fr.onload = function () { resolve(String(fr.result || '').split(',')[1] || ''); };
+    fr.onerror = function () { resolve(''); };
+    fr.readAsDataURL(file);
+  }).then(function (b64) {
+    if (!b64) return { ok: false, erro: 'Não foi possível ler o ficheiro neste aparelho.' };
+    return db.functions.invoke('saude-ler', { body: { ficheiro_base64: b64, mime: saMimeDe(file) } }).then(function (res) {
+      if (res && res.error) { saLog('ler documento', res.error); return { ok: false, erro: saMsgLeitor(res.error) }; }
+      var sug = saNormalizarSugestao(res && res.data);
+      return sug ? { ok: true, sug: sug } : { ok: false, erro: 'A IA não conseguiu ler este documento. Preenche à mão.' };
+    });
+  }).then(null, function (e) { saLog('ler documento', e); return { ok: false, erro: saMsgLeitor(e) }; });
+}
+
 // ── backup no Drive (âmbito drive.file: a app só vê os ficheiros que ela própria cria) ──
 // Precisa de um "ID de cliente" OAuth (Web) criado pelo Patricio no Google Cloud; guarda-se só neste aparelho.
 var saDriveSessao = { token: null, expira: 0, pasta: null };
@@ -441,6 +492,10 @@ function SaudeApp(props) {
   var _db = React.useState(null); var driveBusy = _db[0], setDriveBusy = _db[1];
   var _pn = React.useState(saLerPendentes().length); var pendentes = _pn[0], setPendentes = _pn[1];
   var _cg = React.useState(saDriveClientId()); var fCliente = _cg[0], setFCliente = _cg[1];
+  var _lo = React.useState(false); var leitorOk = _lo[0], setLeitorOk = _lo[1];        // a função saude-ler existe?
+  var _ld = React.useState(false); var lendo = _ld[0], setLendo = _ld[1];
+  var _sg = React.useState(null); var sugestao = _sg[0], setSugestao = _sg[1];         // sugestão da IA (não guardada)
+  var _zp = React.useState(null); var zPre = _zp[0], setZPre = _zp[1];                  // período/percentagem sugeridos para o Zeugnis
   var savingRef = React.useRef(false);
   var carregarRef = React.useRef(null);
 
@@ -461,6 +516,7 @@ function SaudeApp(props) {
     });
   }
   carregarRef.current = carregar;
+  React.useEffect(function () { var vivo = true; saLeitorExiste(db).then(function (ok) { if (vivo) setLeitorOk(ok); }); return function () { vivo = false; }; }, []);
   React.useEffect(function () {
     carregarRef.current();
     var pend = saLerPendentes();   // ficheiros que ficaram por remover: tenta outra vez ao abrir
@@ -576,14 +632,29 @@ function SaudeApp(props) {
 
   // ── documentos ──
   function abrirNovoDoc(casoPre, orig) {
-    setEditId(null); setFTitulo(''); setFData(saHoje()); setFTipo('exame'); setFNotas(''); setFFicheiro(null);
+    setEditId(null); setFTitulo(''); setFData(saHoje()); setFTipo('exame'); setFNotas(''); setFFicheiro(null); setSugestao(null); setZPre(null);
     setFCaso(casoPre || (casosDaPessoa[0] ? casosDaPessoa[0].id : '')); ir('fdoc', orig);
   }
   function abrirEditarDoc(d) { setEditId(d.id); setFTitulo(d.titulo); setFData(d.data_doc); setFTipo(d.tipo); setFNotas(d.notas || ''); setFFicheiro(null); setFCaso(d.caso); ir('fdoc'); }   // sem mudar 'origem': o documento continua a saber de onde veio
   function escolherFicheiro(e) {
     var f = e && e.target && e.target.files && e.target.files[0];
-    setFFicheiro(f || null);
+    setFFicheiro(f || null); setSugestao(null); setZPre(null);
     if (f && !fTitulo.trim()) setFTitulo(f.name.replace(/\.[A-Za-z0-9]{1,5}$/, '').slice(0, SA_MAX_TITULO));
+  }
+  function lerAgora() {
+    if (!fFicheiro || lendo) return;
+    if (typeof window.confirm === 'function' && !window.confirm('Enviar este ficheiro para a IA (Anthropic) para sugerir título, data e tipo? O ficheiro sai do teu armazenamento só para esta leitura. Nada é guardado sem tu confirmares.')) return;
+    setLendo(true); setErro(''); setSugestao(null);
+    saLerDocumento(db, fFicheiro).then(function (r) { setLendo(false); if (!r.ok) { setErro(r.erro); return; } setSugestao(r.sug); });
+  }
+  function usarSugestao() {
+    if (!sugestao) return;
+    if (sugestao.titulo) setFTitulo(sugestao.titulo);
+    if (sugestao.data_doc) setFData(sugestao.data_doc);
+    setFTipo(sugestao.tipo);
+    setZPre(sugestao.zeugnis);
+    setSugestao(null);
+    setAviso('Sugestão aplicada ao formulário: confirma ou corrige e carrega em Guardar documento.');
   }
   function guardarDoc() {
     var dados = { titulo: fTitulo, data_doc: fData, tipo: fTipo, caso: fCaso, notas: fNotas, file: fFicheiro };
@@ -600,6 +671,10 @@ function SaudeApp(props) {
         if (!r.ok) { setErro(r.erro); return; }
         setDocs(function (pv) { return pv.concat([Object.assign({ created_at: new Date().toISOString() }, r.row)]); });   // já confirmado pela base
         setDocId(r.row.id); setCasoId(fCaso); carregarRef.current(); setEcra('doc'); setOrigem('docs');
+        if (zPre && fTipo === 'zeugnis') {   // a sugestão da IA só preenche o formulário do Zeugnis: quem grava é o Patricio
+          setEditId(null); setZDe(zPre.de); setZAte(zPre.ate); setZPerc(String(zPre.percentagem)); setZMedico(''); setZDoc(r.row.id); setZPre(null);
+          setOrigem('zeugnis'); setEcra('fzeug'); setAviso('Sugestão da IA: confirma o período e a percentagem do Zeugnis e carrega em Criar Zeugnis.');
+        }
         // Backup no Drive: só se já houver sessão do Google (um toque antes). Nunca bloqueia nem faz falhar o guardar.
         if (saDriveSessao.token && saDriveSessao.expira > Date.now() + 60000) {
           setDriveBusy(r.row.id);
@@ -843,11 +918,23 @@ function SaudeApp(props) {
       })),
       msgForm(), botoesForm(editId ? 'Guardar alterações' : 'Criar caso', guardarCaso));
   }
+  function renderLeitor() {
+    if (!saPodeLer(fFicheiro)) return h('div', { style: { fontSize: 12, fontWeight: 700, color: T.muted, marginTop: 8 } }, 'Este ficheiro não pode ser lido pela IA (só PDF, JPEG, PNG ou WebP até 5,9 MB). Preenche à mão.');
+    return h('div', { style: Object.assign({}, cartao, { marginTop: 12 }) },
+      h(SaBtn, { cheio: true, kind: 'contorno', disabled: ocupado || lendo, onClick: lerAgora }, lendo ? 'A ler…' : '🔎 Ler documento'),
+      sugestao ? h('div', { 'data-sugestao': '1', style: { marginTop: 12 } },
+        h('div', { style: { fontSize: 14, fontWeight: 900 } }, 'Sugestão da IA (ainda não guardada)'),
+        h('div', { style: { fontSize: 14, fontWeight: 700, marginTop: 6, overflowWrap: 'anywhere' } },
+          'Título: ' + (sugestao.titulo || '—') + ' · Data: ' + (sugestao.data_doc ? saDataFmt(sugestao.data_doc) : '—') + ' · Tipo: ' + saRotuloTipo(sugestao.tipo)),
+        sugestao.zeugnis ? h('div', { style: { fontSize: 14, fontWeight: 700, marginTop: 4 } }, 'Zeugnis: ' + saDataFmt(sugestao.zeugnis.de) + ' – ' + saDataFmt(sugestao.zeugnis.ate) + ' · ' + sugestao.zeugnis.percentagem + '%') : null,
+        h('div', { style: linhaBotoes }, h(SaBtn, { small: true, flex: true, onClick: usarSugestao }, 'Usar sugestão'), h(SaBtn, { small: true, flex: true, kind: 'ghost', onClick: function () { setSugestao(null); } }, 'Descartar'))) : null);
+  }
   function renderFormDoc() {
     return h('div', null, h('div', { style: { fontSize: 20, fontWeight: 900 } }, editId ? 'Editar documento' : 'Novo documento'),
       !editId ? h('div', null, h('div', { style: rotulo }, 'Foto ou PDF (até 15 MB)'),
         h('input', { type: 'file', accept: 'image/*,application/pdf', autoComplete: 'off', 'aria-label': 'Ficheiro do documento', disabled: ocupado, onChange: escolherFicheiro, style: Object.assign({}, inp, { padding: 12 }) }),
         fFicheiro ? h('div', { style: { fontSize: 13, fontWeight: 700, marginTop: 6, overflowWrap: 'anywhere' } }, fFicheiro.name + ' · ' + Math.max(1, Math.round(fFicheiro.size / 1024)) + ' KB') : null) : h('div', { style: { fontSize: 13, fontWeight: 700, color: T.muted, marginTop: 6 } }, 'O ficheiro não se muda ao editar: para trocar, apaga o documento e adiciona outro.'),
+      !editId && leitorOk && fFicheiro ? renderLeitor() : null,
       h('div', { style: rotulo }, 'Título'), campoTexto('Título do documento', fTitulo, setFTitulo, { max: SA_MAX_TITULO, ph: 'Por exemplo: Relatório de controlo' }),
       h('div', { style: rotulo }, 'Data do documento'), campoTexto('Data do documento', fData, setFData, { tipo: 'date' }),
       h('div', { style: rotulo }, 'Caso'), h('select', { value: fCaso, autoComplete: 'off', 'aria-label': 'Caso', disabled: ocupado, onChange: function (e) { setFCaso(e.target.value); }, style: inp },
