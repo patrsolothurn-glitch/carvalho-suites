@@ -38,10 +38,12 @@ function ntAlfa(hex, a) {
   return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16) + ',' + a + ')';
 }
 var NT_IMP_ORDEM = ['importante', 'normal', 'baixo'];
-// Pastas (coluna pasta, sql/38): só no cartão do Patricio, duas caixas. null/em falta/desconhecido = 'privado'.
+// Pastas (coluna pasta, sql/38): só no cartão do Patricio, três caixas. null/em falta/desconhecido = 'privado'.
+// 'documentos' (caixa à parte para o que quase não se mexe, ex.: currículo) precisa do SQL que alarga o check da coluna.
 var NT_PASTAS = [
   { key: 'privado', nome: 'Privado', icone: '🔒' },
-  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' }
+  { key: 'geschaeft', nome: 'Geschäft', icone: '💼' },
+  { key: 'documentos', nome: 'Documentos', icone: '📎' }
 ];
 var NT_VISTA_KEY = 'notas_vista';
 var NT_FILTROS_VAZIOS = { imp: 'todas', datas: 'todas', de: '', ate: '', fix: false };
@@ -177,8 +179,14 @@ function ntImp(n) {
   if (v === 'urgente') return 'importante';
   return v === 'importante' || v === 'baixo' ? v : 'normal';
 }
-function ntPasta(n) { return n && n.pasta === 'geschaeft' ? 'geschaeft' : 'privado'; }
-function ntNomePasta(k) { return k === 'geschaeft' ? 'Geschäft' : 'Privado'; }
+function ntPasta(n) { return n && (n.pasta === 'geschaeft' || n.pasta === 'documentos') ? n.pasta : 'privado'; }
+function ntNomePasta(k) { return k === 'geschaeft' ? 'Geschäft' : k === 'documentos' ? 'Documentos' : 'Privado'; }
+// Erro ao gravar com a pasta "Documentos": se a base ainda não aceita esse valor (SQL por correr), explica-o além da mensagem real.
+function ntMsgGravarPasta(err, pasta, base) {
+  var txt = String((err && (err.message || '')) || '') + ' ' + String((err && err.code) || '');
+  if (pasta === 'documentos' && /pasta_check|23514|check constraint/i.test(txt)) return base + ' — A base ainda não aceita a pasta Documentos (falta correr o SQL da caixa Documentos). As outras pastas gravam normalmente.';
+  return base;
+}
 function ntFixada(n) { return !!(n && n.fixada === true); }
 function ntPorDataDesc(a, b) { return new Date(b.created_at) - new Date(a.created_at); }
 // Vista "Por data": dentro da lista direta e de cada semana, ordena por
@@ -2605,7 +2613,7 @@ function NotasApp(props) {
       };
       var linhaNova = { id: nova.id, dono: nova.dono, titulo: nova.titulo, texto: nova.texto, created_at: agoraIso, updated_at: agoraIso };
       if (fImp !== 'normal') linhaNova.importancia = fImp; // 'normal' é o valor por omissão da coluna
-      if (usaPastas && fPasta === 'geschaeft') linhaNova.pasta = 'geschaeft'; // 'privado' é o valor por omissão da coluna
+      if (usaPastas && fPasta !== 'privado') linhaNova.pasta = fPasta; // 'privado' é o valor por omissão da coluna
       if (ligOk && ligOk.valor.length) { nova.ligacoes = ligOk.valor; linhaNova.ligacoes = ligOk.valor; } // sem ligações não envia a coluna
       if (fTipo === 'lista' && cartao === 'familia') { nova.tipo = 'lista'; linhaNova.tipo = 'lista'; novaListaId = nova.id; textosColar = ntParseArtigos(fColar); } // lista de compras (coluna tipo)
       consulta = db.from('notas_notas').insert(linhaNova).select('id');
@@ -2631,7 +2639,7 @@ function NotasApp(props) {
       setSaving(false);
       if (res && res.error) {
         ntAvisarRes(editId ? 'editar nota' : 'criar nota', res.error);
-        setFErro('Erro ao guardar: ' + ntMsgGravarLig(res.error, !!(patch ? patch.ligacoes : (ligOk && ligOk.valor.length))));
+        setFErro('Erro ao guardar: ' + ntMsgGravarPasta(res.error, (usaPastas && (!patch || patch.pasta)) ? fPasta : null, ntMsgGravarLig(res.error, !!(patch ? patch.ligacoes : (ligOk && ligOk.valor.length)))));
         removeOptimistic();
         return;
       }
@@ -2689,7 +2697,7 @@ function NotasApp(props) {
     db.from('notas_notas').update(patch).eq('id', idEd).select('id').then(function (res) {
       savingRef.current = false;
       setSaving(false);
-      if (res && res.error) { ntAvisarRes('gravar por cima (conflito)', res.error); setFErro('Erro ao guardar: ' + ntMsgGravarLig(res.error, !!patch.ligacoes)); return; }
+      if (res && res.error) { ntAvisarRes('gravar por cima (conflito)', res.error); setFErro('Erro ao guardar: ' + ntMsgGravarPasta(res.error, patch.pasta, ntMsgGravarLig(res.error, !!patch.ligacoes))); return; }
       if (!res || !res.data || !res.data.length) { ntAvisar('gravar por cima (conflito)', new Error(NT_ZERO_LINHAS)); setFErro('Erro ao guardar: ' + NT_ZERO_LINHAS); return; }
       setFErro(''); setConflito(null); setBaseConflito(null);
       setFTitulo(''); setFTexto(''); setFImp('normal'); setFLigs([]);
