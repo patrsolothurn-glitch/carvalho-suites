@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-18T21:39:14.189Z
+  Gerado em: 2026-11-19T14:14:22.005Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-480";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-481";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -50331,6 +50331,8 @@ function NtCofresFamilia(p) {
 // RLS só-dono (+ admin). Não toca em notas_notas. Cada tipo tem "última vez" (última vez feita), "próxima prevista"
 // (última feita + intervalo) e a contagem. Gravação honesta como nas Notas: .select('id'), erro real, 0 linhas = erro,
 // e o ecrã só muda depois de a base confirmar (sem atualização otimista).
+// Links do Drive (coluna opcional drive_url em cada tabela, ver SQL-KONTROLLEN-DRIVE.md): só se guarda o LINK, nunca a foto.
+// A app só mostra os campos e só envia drive_url quando a coluna existe (vê-se pelas linhas lidas), por isso funciona antes do SQL.
 var NT_KC_TIPOS = 'notas_kontroll_tipos';
 var NT_KC_REGS = 'notas_kontroll_registos';
 var NT_KC_MAX_NOME = 100;
@@ -50401,6 +50403,34 @@ function ntKcValidaReg(f) {
   return null;
 }
 
+var NT_KC_MAX_LINK = 500;
+var NT_KC_DOMINIOS_DRIVE = ['drive.google.com', 'docs.google.com', 'photos.google.com', 'photos.app.goo.gl'];
+// Valida o link do Drive colado à mão. Vazio = sem link (serve para apagar). Só https, só os domínios acima (sem
+// utilizador, palavra-passe nem porta), sem espaços nem caracteres de controlo, no máximo NT_KC_MAX_LINK caracteres.
+// Devolve { ok, valor, erro }; valor é o texto sem espaços nas pontas (ou null).
+function ntKcLinkDrive(texto) {
+  var s = String(texto == null ? '' : texto).trim();
+  if (!s) return { ok: true, valor: null, erro: null };
+  if (s.length > NT_KC_MAX_LINK) return { ok: false, valor: null, erro: 'O link é demasiado longo (máximo ' + NT_KC_MAX_LINK + ' caracteres).' };
+  if (/[\s\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060]/.test(s)) return { ok: false, valor: null, erro: 'O link não pode ter espaços nem caracteres estranhos.' };
+  if (!/^https:\/\//i.test(s)) return { ok: false, valor: null, erro: 'O link tem de começar por https://' };
+  var m = /^https:\/\/([^\/?#]*)/i.exec(s);
+  var auth = m ? m[1] : '';
+  if (!auth || /[@:\\]/.test(auth)) return { ok: false, valor: null, erro: 'O link não é válido (sem utilizador, palavra-passe nem porta).' };
+  if (NT_KC_DOMINIOS_DRIVE.indexOf(auth.toLowerCase()) === -1) return { ok: false, valor: null, erro: 'Só aceito links do Google Drive, Google Docs ou Google Fotos (' + NT_KC_DOMINIOS_DRIVE.join(', ') + ').' };
+  return { ok: true, valor: s, erro: null };
+}
+// Para mostrar: só devolve o link se for válido (nunca um esquema perigoso guardado por outro caminho).
+function ntKcLinkSeguro(texto) { var r = ntKcLinkDrive(texto); return r.ok ? r.valor : null; }
+// A coluna drive_url existe? Vê-se pelas linhas já lidas (select('*') só traz as colunas que existem): sem pedidos de teste
+// (que mostrariam um erro ao utilizador). Sem linhas na própria tabela, usa as da outra (o SQL cria as duas colunas juntas).
+function ntKcTemColuna(linhas, alternativa) {
+  var ls = linhas || [];
+  if (!ls.length) return !!alternativa;
+  for (var i = 0; i < ls.length; i++) { if (Object.prototype.hasOwnProperty.call(ls[i], 'drive_url')) return true; }
+  return false;
+}
+
 function NtKontrollen(p) {
   var db = p.db, dono = p.dono;
   var _t = React.useState([]); var tipos = _t[0], setTipos = _t[1];
@@ -50420,6 +50450,11 @@ function NtKontrollen(p) {
   var _fa = React.useState(''); var fAssunto = _fa[0], setFAssunto = _fa[1];
   var _fe = React.useState(false); var fFeita = _fe[0], setFFeita = _fe[1];
   var _fr = React.useState(''); var fErro = _fr[0], setFErro = _fr[1];   // validação do formulário
+  var _fl = React.useState(''); var fLinkReg = _fl[0], setFLinkReg = _fl[1];       // "Foto no Drive (link)" da vez
+  var _ft = React.useState(''); var fLinkTipo = _ft[0], setFLinkTipo = _ft[1];     // "Pasta no Drive" do controlo
+  var _pg = React.useState(null); var perguntaId = _pg[0], setPerguntaId = _pg[1]; // vez a que se pergunta o link da foto ao marcar como feita
+  var _pl = React.useState(''); var fLinkPergunta = _pl[0], setFLinkPergunta = _pl[1];
+  var _pe = React.useState(''); var perguntaErro = _pe[0], setPerguntaErro = _pe[1];
   var _er2 = React.useState(''); var erro = _er2[0], setErro = _er2[1];  // erro real devolvido pela base
   var _sv = React.useState(false); var saving = _sv[0], setSaving = _sv[1];
   var savingRef = React.useRef(false);
@@ -50453,31 +50488,39 @@ function NtKontrollen(p) {
 
   var tipo = null;
   for (var i = 0; i < tipos.length; i++) { if (tipos[i].id === tipoId) { tipo = tipos[i]; break; } }
+  var colTipo = ntKcTemColuna(tipos, false);   // coluna drive_url em notas_kontroll_tipos
+  var colReg = ntKcTemColuna(regs, colTipo);   // coluna drive_url em notas_kontroll_registos
 
   // Botão "Voltar" da barra de cima: o NotasApp pergunta primeiro a este ecrã; true = tratei eu.
   p.voltarRef.current = function () {
     if (saving) return true;
     setErro(''); setFErro('');
+    if (perguntaId) { setPerguntaId(null); setPerguntaErro(''); return true; }
     if (vista === 'freg') { setVista('tipo'); return true; }
     if (vista === 'ftipo') { setVista(origemFTipo); return true; }
     if (vista === 'tipo') { setTipoId(null); setVista('tipos'); return true; }
     return false;
   };
 
-  function abrirNovoTipo() { setOrigemFTipo('tipos'); setEditTipo(null); setFNome(''); setFIv('12'); setFErro(''); setErro(''); setVista('ftipo'); }
-  function abrirEditarTipo(t) { setOrigemFTipo(vista === 'tipo' ? 'tipo' : 'tipos'); setEditTipo(t.id); setFNome(t.nome); setFIv(String(t.intervalo_meses)); setFErro(''); setErro(''); setVista('ftipo'); }
+  function abrirNovoTipo() { setOrigemFTipo('tipos'); setEditTipo(null); setFNome(''); setFIv('12'); setFLinkTipo(''); setFErro(''); setErro(''); setVista('ftipo'); }
+  function abrirEditarTipo(t) { setOrigemFTipo(vista === 'tipo' ? 'tipo' : 'tipos'); setEditTipo(t.id); setFNome(t.nome); setFIv(String(t.intervalo_meses)); setFLinkTipo(t.drive_url || ''); setFErro(''); setErro(''); setVista('ftipo'); }
   function guardarTipo() {
     var v = ntKcValidaTipo(fNome, fIv);
+    var lk = colTipo ? ntKcLinkDrive(fLinkTipo) : { ok: true, valor: null, erro: null };
+    if (!v && !lk.ok) v = lk.erro;
     if (v) { setFErro(v); return; }
     setFErro('');
     var nome = fNome.trim(), iv = parseInt(String(fIv).trim(), 10);
     if (editTipo) {
       var ant = null; for (var j = 0; j < tipos.length; j++) { if (tipos[j].id === editTipo) { ant = tipos[j]; break; } }
-      if (ant && ant.nome === nome && Number(ant.intervalo_meses) === iv) { setVista(origemFTipo); return; } // nada mudou: não pede nada
+      if (ant && ant.nome === nome && Number(ant.intervalo_meses) === iv && (!colTipo || (ant.drive_url || null) === lk.valor)) { setVista(origemFTipo); return; } // nada mudou: não pede nada
       var idEd = editTipo;
-      gravar('guardar o controlo', db.from(NT_KC_TIPOS).update({ nome: nome, intervalo_meses: iv }).eq('id', idEd).select('id'), function () { setVista(origemFTipo); carregarRef.current(); });
+      var patch = { nome: nome, intervalo_meses: iv };
+      if (colTipo) patch.drive_url = lk.valor; // null = apaga o link
+      gravar('guardar o controlo', db.from(NT_KC_TIPOS).update(patch).eq('id', idEd).select('id'), function () { setVista(origemFTipo); carregarRef.current(); });
     } else {
       var linha = { id: ntNovoId(), dono: dono, nome: nome, intervalo_meses: iv };
+      if (colTipo && lk.valor) linha.drive_url = lk.valor;
       gravar('criar o controlo', db.from(NT_KC_TIPOS).insert(linha).select('id'), function () {
         setTipos(function (pv) { return pv.concat([Object.assign({ created_at: new Date().toISOString() }, linha)]); }); // já confirmado pela base
         setTipoId(linha.id); setVista('tipo'); carregarRef.current();
@@ -50490,23 +50533,43 @@ function NtKontrollen(p) {
     gravar('apagar o controlo', db.from(NT_KC_TIPOS).delete().eq('id', t.id).select('id'), function () { setTipoId(null); setVista('tipos'); carregarRef.current(); });
   }
 
-  function abrirNovoReg() { setEditReg(null); setFData(ntKcHoje()); setFHi(''); setFHf(''); setFAssunto(''); setFFeita(false); setFErro(''); setErro(''); setVista('freg'); }
-  function abrirEditarReg(r) { setEditReg(r.id); setFData(r.data || ''); setFHi(ntKcHora(r.hora_inicio)); setFHf(ntKcHora(r.hora_fim)); setFAssunto(r.assunto || ''); setFFeita(r.feita === true); setFErro(''); setErro(''); setVista('freg'); }
+  function abrirNovoReg() { setEditReg(null); setFData(ntKcHoje()); setFHi(''); setFHf(''); setFAssunto(''); setFFeita(false); setFLinkReg(''); setFErro(''); setErro(''); setPerguntaId(null); setVista('freg'); }
+  function abrirEditarReg(r) { setEditReg(r.id); setFData(r.data || ''); setFHi(ntKcHora(r.hora_inicio)); setFHf(ntKcHora(r.hora_fim)); setFAssunto(r.assunto || ''); setFFeita(r.feita === true); setFLinkReg(r.drive_url || ''); setFErro(''); setErro(''); setPerguntaId(null); setVista('freg'); }
   function guardarReg() {
     var v = ntKcValidaReg({ data: fData, hi: fHi, hf: fHf, assunto: fAssunto });
+    var lk = colReg ? ntKcLinkDrive(fLinkReg) : { ok: true, valor: null, erro: null };
+    if (!v && !lk.ok) v = lk.erro;
     if (v) { setFErro(v); return; }
     setFErro('');
     var campos = { data: fData, hora_inicio: fHi || null, hora_fim: fHf || null, assunto: fAssunto.trim(), feita: fFeita };
     if (editReg) {
       var idEd = editReg;
+      if (colReg) campos.drive_url = lk.valor; // null = apaga o link
       gravar('guardar a vez', db.from(NT_KC_REGS).update(Object.assign({}, campos, { updated_at: new Date().toISOString() })).eq('id', idEd).select('id'), function () { setVista('tipo'); carregarRef.current(); });
     } else {
       var agora = new Date().toISOString();
+      if (colReg && lk.valor) campos.drive_url = lk.valor;
       gravar('criar a vez', db.from(NT_KC_REGS).insert(Object.assign({ id: ntNovoId(), dono: dono, tipo_id: tipoId, created_at: agora, updated_at: agora }, campos)).select('id'), function () { setVista('tipo'); carregarRef.current(); });
     }
   }
   function marcarFeita(r, valor) {
     gravar(valor ? 'marcar como feita' : 'marcar como por fazer', db.from(NT_KC_REGS).update({ feita: valor, updated_at: new Date().toISOString() }).eq('id', r.id).select('id'), function () { carregarRef.current(); });
+  }
+  // Ao carregar em "Marcar como feita": se a coluna existe e a vez ainda não tem link, pergunta (opcional) pelo link da foto.
+  function pedirFeita(r) {
+    if (colReg && !ntKcLinkSeguro(r.drive_url)) { setErro(''); setPerguntaErro(''); setFLinkPergunta(''); setPerguntaId(r.id); return; }
+    marcarFeita(r, true);
+  }
+  // semLink = "Saltar": marca como feita sem link. Só fecha a pergunta depois de a base confirmar que gravou.
+  function concluirFeita(r, semLink) {
+    var campos = { feita: true, updated_at: new Date().toISOString() };
+    if (!semLink) {
+      var lk = ntKcLinkDrive(fLinkPergunta);
+      if (!lk.ok) { setPerguntaErro(lk.erro); return; }
+      if (lk.valor) campos.drive_url = lk.valor;
+    }
+    setPerguntaErro('');
+    gravar('marcar como feita', db.from(NT_KC_REGS).update(campos).eq('id', r.id).select('id'), function () { setPerguntaId(null); setFLinkPergunta(''); carregarRef.current(); });
   }
   function apagarReg(r) {
     if (typeof window.confirm === 'function' && !window.confirm('Apagar a vez de ' + ntKcDataFmt(r.data) + '? Não dá para desfazer.')) return;
@@ -50520,6 +50583,12 @@ function NtKontrollen(p) {
   var inp = { width: '100%', boxSizing: 'border-box', background: T.surface, color: T.text, border: '2px solid ' + T.text, borderRadius: 12, padding: '12px 13px', fontSize: 16, fontFamily: 'inherit', outline: 'none' };
   var rotulo = { fontSize: 13, fontWeight: 800, color: T.muted, margin: '14px 0 6px' };
   var linhaInfo = { fontSize: 14, fontWeight: 800, marginTop: 4 };
+  var estiloLink = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 44, boxSizing: 'border-box', padding: '8px 12px', borderRadius: 12, border: '1px solid ' + T.border, background: T.surface2, color: T.text, fontSize: 13, fontWeight: 800, textDecoration: 'none', whiteSpace: 'nowrap' };
+  // Ligação ao Drive: abre num separador novo; só existe se o link for válido (nunca um esquema perigoso).
+  function ligacaoDrive(url, aria, conteudo, estilo) {
+    var seguro = ntKcLinkSeguro(url);
+    return seguro ? h('a', { href: seguro, target: '_blank', rel: 'noopener noreferrer', 'aria-label': aria, title: aria, style: estilo }, conteudo) : null;
+  }
   var h = React.createElement;
   var ocupado = !!saving;
 
@@ -50546,11 +50615,13 @@ function NtKontrollen(p) {
       h(NtBtn, { onClick: abrirNovoTipo }, '+ Novo controlo'),
       h('div', { style: { marginTop: 16 } }, tipos.map(function (t) {
         var rs = ntKcResumo(t, regs);
-        return h('div', { key: t.id, style: cartao },
+        var iconeTipo = ligacaoDrive(t.drive_url, 'Abrir a pasta no Drive', '📎', { position: 'absolute', top: 10, right: 40, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, textDecoration: 'none', borderRadius: 8, border: '1px solid ' + T.border, background: T.surface2 });
+        return h('div', { key: t.id, style: iconeTipo ? Object.assign({ position: 'relative' }, cartao) : cartao },
+          iconeTipo,
           h('button', { type: 'button', 'aria-label': 'Abrir controlo ' + t.nome, onClick: function () { setTipoId(t.id); setVista('tipo'); },
             style: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', color: T.text, border: 'none', padding: 0, margin: 0, cursor: 'pointer', font: 'inherit' } },
             h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
-              h('div', { style: { flex: 1, minWidth: 0, fontSize: 20, fontWeight: 900, lineHeight: 1.2, overflowWrap: 'anywhere' } }, t.nome),
+              h('div', { style: { flex: 1, minWidth: 0, fontSize: 20, fontWeight: 900, lineHeight: 1.2, overflowWrap: 'anywhere', paddingRight: iconeTipo ? 36 : 0 } }, t.nome),
               h('span', { style: { color: NT_ACENTO, fontSize: 28, fontWeight: 900 } }, '›')),
             resumoLinhas(rs, Number(t.intervalo_meses))),
           h('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
@@ -50565,7 +50636,9 @@ function NtKontrollen(p) {
     var lista = regs.filter(function (r) { return r.tipo_id === tipo.id; }).sort(ntKcPorDataDesc);
     return h('div', null,
       h('div', { style: cartao },
-        h('div', { style: { fontSize: 22, fontWeight: 900, lineHeight: 1.2, overflowWrap: 'anywhere' } }, tipo.nome),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } },
+          h('div', { style: { flex: 1, minWidth: 0, fontSize: 22, fontWeight: 900, lineHeight: 1.2, overflowWrap: 'anywhere' } }, tipo.nome),
+          ligacaoDrive(tipo.drive_url, 'Abrir a pasta no Drive', '📎', { flex: '0 0 auto', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, textDecoration: 'none', borderRadius: 8, border: '1px solid ' + T.border, background: T.surface2 })),
         resumoLinhas(rs, Number(tipo.intervalo_meses)),
         h('div', { style: { display: 'flex', gap: 8, marginTop: 12 } },
           h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { abrirEditarTipo(tipo); } }, 'Editar controlo'),
@@ -50583,10 +50656,39 @@ function NtKontrollen(p) {
               h('div', { style: { display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' } },
                 feita
                   ? h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { marcarFeita(r, false); } }, 'Marcar por fazer')
-                  : h(NtBtn, { small: true, flex: true, disabled: ocupado, onClick: function () { marcarFeita(r, true); } }, '✓ Marcar como feita'),
+                  : h(NtBtn, { small: true, flex: true, disabled: ocupado, onClick: function () { pedirFeita(r); } }, '✓ Marcar como feita'),
                 h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { abrirEditarReg(r); } }, 'Editar'),
-                h(NtBtn, { small: true, flex: true, kind: 'danger', disabled: ocupado, onClick: function () { apagarReg(r); } }, 'Apagar')));
+                ligacaoDrive(r.drive_url, 'Abrir a foto no Drive', '📎 Drive', estiloLink),
+                h(NtBtn, { small: true, flex: true, kind: 'danger', disabled: ocupado, onClick: function () { apagarReg(r); } }, 'Apagar')),
+              perguntaId === r.id ? renderPerguntaLink(r) : null);
           })));
+  }
+
+  // Pergunta opcional ao marcar como feita: "Colar o link da foto?" com Saltar num toque. Só fecha depois de gravar.
+  function renderPerguntaLink(r) {
+    return h('div', { 'data-pergunta-link': '1', style: { marginTop: 12, paddingTop: 12, borderTop: '1px solid ' + T.border } },
+      h('div', { style: { fontSize: 14, fontWeight: 800, marginBottom: 6 } }, 'Colar o link da foto?'),
+      h('input', { type: 'text', inputMode: 'url', value: fLinkPergunta, autoComplete: 'off', autoCapitalize: 'off', maxLength: NT_KC_MAX_LINK + 50, placeholder: 'https://drive.google.com/...', 'aria-label': 'Link da foto no Drive', disabled: ocupado,
+        onChange: function (e) { setFLinkPergunta(e.target.value); setPerguntaErro(''); }, style: inp }),
+      perguntaErro ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 8 } }, perguntaErro) : null,
+      erro ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 8, overflowWrap: 'anywhere' } }, erro) : null,
+      h('div', { style: { display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' } },
+        h(NtBtn, { small: true, flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { concluirFeita(r, true); } }, 'Saltar'),
+        h(NtBtn, { small: true, flex: true, disabled: ocupado, onClick: function () { concluirFeita(r, false); } }, ocupado ? 'A guardar…' : 'Guardar e marcar feita')),
+      h('button', { type: 'button', disabled: ocupado, onClick: function () { setPerguntaId(null); setPerguntaErro(''); setErro(''); },
+        style: { marginTop: 8, background: 'none', border: 'none', color: T.muted, fontSize: 12, fontWeight: 800, cursor: 'pointer', padding: '6px 0' } }, 'Cancelar (não marcar como feita)'));
+  }
+
+  // Campo do link do Drive nos formulários: só aparece se a coluna existir. Esvaziar o campo apaga o link.
+  function campoLink(rotuloTxt, aria, valor, setValor) {
+    return [
+      h('div', { key: 'r', style: rotulo }, rotuloTxt + ' (opcional)'),
+      h('div', { key: 'i', style: { display: 'flex', gap: 8, alignItems: 'stretch' } },
+        h('input', { type: 'text', inputMode: 'url', value: valor, autoComplete: 'off', autoCapitalize: 'off', maxLength: NT_KC_MAX_LINK + 50, placeholder: 'https://drive.google.com/...', 'aria-label': aria, disabled: ocupado,
+          onChange: function (e) { setValor(e.target.value); }, style: Object.assign({}, inp, { flex: 1, minWidth: 0 }) }),
+        valor ? h('button', { type: 'button', 'aria-label': 'Remover link', disabled: ocupado, onClick: function () { setValor(''); }, style: Object.assign({}, estiloLink, { flex: '0 0 auto' }) }, '✕') : null),
+      h('div', { key: 'a', style: { fontSize: 12, fontWeight: 700, color: T.muted, marginTop: 4 } }, 'Só links do Google Drive, Docs ou Fotos. Deixa vazio para não ter link.')
+    ];
   }
 
   function renderFormTipo() {
@@ -50601,6 +50703,7 @@ function NtKontrollen(p) {
         h(NtChip, { ativo: String(fIv).trim() === '12', disabled: ocupado, onClick: function () { setFIv('12'); } }, '12 meses')),
       h('input', { type: 'number', inputMode: 'numeric', min: 1, max: NT_KC_MAX_MESES, step: 1, value: fIv, autoComplete: 'off', 'aria-label': 'Intervalo em meses', disabled: ocupado,
         onChange: function (e) { setFIv(e.target.value); }, style: inp }),
+      colTipo ? campoLink('Pasta no Drive', 'Pasta no Drive (link)', fLinkTipo, setFLinkTipo) : null,
       fErro ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 10 } }, fErro) : null,
       h('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
         h(NtBtn, { flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { p.voltarRef.current(); } }, 'Cancelar'),
@@ -50626,6 +50729,7 @@ function NtKontrollen(p) {
       h('div', { style: { display: 'flex', gap: 6 } },
         h(NtChip, { grow: true, ativo: !fFeita, disabled: ocupado, onClick: function () { setFFeita(false); } }, 'Por fazer'),
         h(NtChip, { grow: true, ativo: fFeita, disabled: ocupado, onClick: function () { setFFeita(true); } }, 'Feita ✓')),
+      colReg ? campoLink('Foto no Drive', 'Foto no Drive (link)', fLinkReg, setFLinkReg) : null,
       fErro ? h('div', { role: 'alert', style: { color: T.red, fontSize: 13, fontWeight: 800, marginTop: 10 } }, fErro) : null,
       h('div', { style: { display: 'flex', gap: 8, marginTop: 16 } },
         h(NtBtn, { flex: true, kind: 'ghost', disabled: ocupado, onClick: function () { p.voltarRef.current(); } }, 'Cancelar'),
