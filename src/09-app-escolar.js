@@ -675,6 +675,143 @@ function escolarEmojiValido(s) {
   var v = (s == null ? '' : String(s)).trim();
   return v.length > 0 && v.length <= 8 && !/[A-Za-z0-9]/.test(v);
 }
+// ── Datas flexíveis de TPC/Teste ──
+// Guardadas em escolar_tpc.data como texto: dia exato AAAA-MM-DD, só mês
+// AAAA-MM, só ano AAAA, ou '' (sem data). Só o dia exato vai para o
+// calendário da Família (family_events.event_date precisa de um dia).
+var ESC_MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function escolarPrec(s) {
+  var v = String(s == null ? '' : s);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'dia';
+  if (/^\d{4}-\d{2}$/.test(v)) return 'mes';
+  if (/^\d{4}$/.test(v)) return 'ano';
+  return 'sem';
+}
+function escolarDataValida(prec, v) {
+  v = String(v == null ? '' : v);
+  if (prec === 'sem') return v === '';
+  if (prec === 'dia') {
+    if (escolarPrec(v) !== 'dia') return false;
+    var d = new Date(v + 'T00:00:00Z');
+    return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  }
+  if (prec === 'mes') {
+    if (escolarPrec(v) !== 'mes') return false;
+    var m = parseInt(v.slice(5, 7), 10);
+    return m >= 1 && m <= 12 && parseInt(v.slice(0, 4), 10) >= 2000;
+  }
+  if (prec === 'ano') {
+    if (escolarPrec(v) !== 'ano') return false;
+    var a = parseInt(v, 10);
+    return a >= 2000 && a <= 2100;
+  }
+  return false;
+}
+function escolarFmtData(s) {
+  var v = String(s == null ? '' : s);
+  var pr = escolarPrec(v);
+  if (pr === 'mes') return ESC_MESES_PT[parseInt(v.slice(5, 7), 10) - 1] + ' ' + v.slice(0, 4);
+  if (pr === 'sem') return v === '' ? 'Sem data' : v;
+  return v;
+}
+// Chave de ordenação: dia exato primeiro, depois o mês, depois o ano
+// (dentro do mesmo período), e "sem data" no fim.
+function escolarSortKey(s) {
+  var v = String(s == null ? '' : s);
+  var pr = escolarPrec(v);
+  if (pr === 'dia') return v;
+  if (pr === 'mes') return v + '-99';
+  if (pr === 'ano') return v + '-99-99';
+  return '9999-99-99';
+}
+// "Já passou" só quando o período inteiro acabou (mês/ano em curso não conta).
+function escolarJaPassou(s, hojeISO) {
+  var v = String(s == null ? '' : s);
+  var pr = escolarPrec(v);
+  if (pr === 'dia') return v < hojeISO;
+  if (pr === 'mes') return v < hojeISO.slice(0, 7);
+  if (pr === 'ano') return v < hojeISO.slice(0, 4);
+  return false;
+}
+// Seletor Dia / Mês / Ano / Sem data + o campo certo. Ao nível do módulo
+// (não dentro de EscolarApp) para os campos não perderem o foco a escrever.
+var EscolarDataFlex = function EscolarDataFlex(_ref) {
+  var prec = _ref.prec,
+    setPrec = _ref.setPrec,
+    value = _ref.value,
+    setValue = _ref.setValue,
+    idBase = _ref.idBase;
+  var converter = function converter(v, p) {
+    v = String(v || '');
+    if (p === 'sem') return '';
+    if (p === 'dia') return escolarPrec(v) === 'dia' ? v : '';
+    if (p === 'mes') return v.length >= 7 ? v.slice(0, 7) : '';
+    return v.length >= 4 ? v.slice(0, 4) : '';
+  };
+  var opcoes = [['dia', 'Dia'], ['mes', 'Mês'], ['ano', 'Ano'], ['sem', 'Sem data']];
+  var inputStyle = {
+    width: '100%',
+    background: E.surface2,
+    border: "1px solid ".concat(E.border),
+    borderRadius: 9,
+    padding: '9px 11px',
+    color: E.text,
+    fontSize: 16,
+    outline: 'none',
+    marginBottom: 12,
+    boxSizing: 'border-box'
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: 6, marginBottom: 8 }
+  }, opcoes.map(function (o) {
+    var ativo = prec === o[0];
+    return /*#__PURE__*/React.createElement("button", {
+      key: o[0],
+      type: "button",
+      onClick: function onClick() {
+        setPrec(o[0]);
+        setValue(converter(value, o[0]));
+      },
+      style: {
+        flex: 1,
+        background: ativo ? "".concat(E.purple, "18") : E.surface2,
+        border: "1px solid ".concat(ativo ? E.purple : E.border),
+        borderRadius: 8,
+        padding: '7px 4px',
+        color: ativo ? E.purple : E.muted,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: 'pointer'
+      }
+    }, o[1]);
+  })), prec === 'dia' && /*#__PURE__*/React.createElement("input", {
+    type: "date",
+    value: value || '',
+    onChange: function onChange(e) { setValue(e.target.value); },
+    id: idBase,
+    autoComplete: "off",
+    style: inputStyle
+  }), prec === 'mes' && /*#__PURE__*/React.createElement("input", {
+    type: "month",
+    value: value || '',
+    onChange: function onChange(e) { setValue(e.target.value); },
+    id: idBase,
+    autoComplete: "off",
+    style: inputStyle
+  }), prec === 'ano' && /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    maxLength: 4,
+    placeholder: "Ex: 2027",
+    value: value || '',
+    onChange: function onChange(e) { setValue(e.target.value.replace(/[^0-9]/g, '').slice(0, 4)); },
+    id: idBase,
+    autoComplete: "off",
+    style: inputStyle
+  }), prec === 'sem' && /*#__PURE__*/React.createElement("p", {
+    style: { color: E.muted, fontSize: 11, marginBottom: 12 }
+  }, "Fica sem data, no fim da lista."));
+};
 function EscolarApp(_ref31) {
   var onBack = _ref31.onBack,
     _ref31$sharedDias = _ref31.sharedDias,
@@ -778,6 +915,10 @@ function EscolarApp(_ref31) {
     _useState172 = _slicedToArray(_useState171, 2),
     novaTPC = _useState172[0],
     setNovaTPC = _useState172[1];
+  var _useStateNovaTpcPrec = (0, _react.useState)('dia'),
+    _useStateNovaTpcPrec2 = _slicedToArray(_useStateNovaTpcPrec, 2),
+    novaTpcPrec = _useStateNovaTpcPrec2[0],
+    setNovaTpcPrec = _useStateNovaTpcPrec2[1];
   var _useStateShowAddEvento = (0, _react.useState)(false),
     _useStateShowAddEvento2 = _slicedToArray(_useStateShowAddEvento, 2),
     showAddEvento = _useStateShowAddEvento2[0],
@@ -831,6 +972,10 @@ function EscolarApp(_ref31) {
     _useStateEditTpcData2 = _slicedToArray(_useStateEditTpcData, 2),
     editTpcData = _useStateEditTpcData2[0],
     setEditTpcData = _useStateEditTpcData2[1];
+  var _useStateEditTpcPrec = (0, _react.useState)('dia'),
+    _useStateEditTpcPrec2 = _slicedToArray(_useStateEditTpcPrec, 2),
+    editTpcPrec = _useStateEditTpcPrec2[0],
+    setEditTpcPrec = _useStateEditTpcPrec2[1];
   var _useStateNotaInputs = (0, _react.useState)({}),
     _useStateNotaInputs2 = _slicedToArray(_useStateNotaInputs, 2),
     notaInputs = _useStateNotaInputs2[0],
@@ -940,7 +1085,8 @@ function EscolarApp(_ref31) {
   };
   var fmtDataEscolar = function fmtDataEscolar(iso) {
     var p = String(iso || '').split('-');
-    return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : (iso || '');
+    if (p.length === 3) return p[2] + '.' + p[1] + '.' + p[0];
+    return iso ? escolarFmtData(iso) : 'sem data';
   };
   // Aviso A: push imediato só para o Patricio quando um teste é criado,
   // editado ou apagado. Nunca bloqueia a gravação — é sempre o último
@@ -989,6 +1135,11 @@ function EscolarApp(_ref31) {
     var disc = aluno.disciplinas.find(function (d) { return d.id === t.discId; });
     var nomeDisc = (disc && disc.nome) || 'Escola';
     var pushTitle = '📚 Novo teste: ' + aluno.nome + ' — ' + nomeDisc + ' — ' + fmtDataEscolar(t.data);
+    // Sem dia exato não há evento no calendário da Família: só o aviso.
+    if (escolarPrec(t.data) !== 'dia') {
+      sendEscolarPushToPatricio(pushTitle, t.titulo || 'Novo teste registado');
+      return;
+    }
     window.supabaseClient.from('family_events').select('id').eq('source', 'escolar').eq('source_id', t.id).then(function (selRes) {
       if (selRes && selRes.error) {
         console.error('[escolar→familia] falha ao verificar teste existente:', selRes.error);
@@ -1016,6 +1167,11 @@ function EscolarApp(_ref31) {
   // linha não existir (ex.: teste criado antes desta sincronização), cria-a.
   var atualizarOuCriarEventoTeste = function atualizarOuCriarEventoTeste(t, nomeDisc) {
     if (!window.supabaseClient) return;
+    // Passou a mês/ano/sem data: o evento antigo (se existir) sai do calendário.
+    if (escolarPrec(t.data) !== 'dia') {
+      apagarEventoTeste(t.id);
+      return;
+    }
     var novaLinha = montarLinhaTesteFamilia(t, nomeDisc);
     window.supabaseClient.from('family_events').update({
       title: novaLinha.title,
@@ -5595,28 +5751,16 @@ function EscolarApp(_ref31) {
       textTransform: 'uppercase',
       marginBottom: 4
     }
-  }, "Para quando"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
+  }, "Para quando"), /*#__PURE__*/React.createElement(EscolarDataFlex, {
+    prec: novaTpcPrec,
+    setPrec: setNovaTpcPrec,
     value: novaTPC.data || '',
-    onChange: function onChange(e) {
-      var val = e.target.value;
+    setValue: function setValue(val) {
       setNovaTPC(function (prev) {
         return _objectSpread(_objectSpread({}, prev), {}, { data: val });
       });
     },
-    id: "novatpc-data",
-    style: {
-      width: '100%',
-      background: E.surface2,
-      border: "1px solid ".concat(E.border),
-      borderRadius: 9,
-      padding: '9px 11px',
-      color: E.text,
-      fontSize: 16,
-      outline: 'none',
-      marginBottom: 12,
-      boxSizing: 'border-box'
-    }
+    idBase: "novatpc-data"
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -5642,7 +5786,14 @@ function EscolarApp(_ref31) {
       var _aluno$disciplinas$;
       var titulo = (novaTPC.titulo || '').trim();
       var data = novaTPC.data || '';
-      if (!titulo || !data) return;
+      if (!titulo) {
+        addEscolarToast('⚠️ Falta a descrição');
+        return;
+      }
+      if (!escolarDataValida(novaTpcPrec, data)) {
+        addEscolarToast('⚠️ Data incompleta: escolhe o dia, o mês ou o ano (ou "Sem data")');
+        return;
+      }
       var novoId = Date.now();
       var tpcRow = _objectSpread(_objectSpread({}, novaTPC), {}, {
         titulo: titulo,
@@ -5655,7 +5806,13 @@ function EscolarApp(_ref31) {
           }, tpcRow)])
         });
       }, 'tpc');
-      if (tpcRow.tipo === 'teste' && window.supabaseClient) {
+      if (tpcRow.tipo === 'teste' && window.supabaseClient && escolarPrec(data) !== 'dia') {
+        // Sem dia exato: não há evento na Família, só o aviso ao Patricio.
+        var discSd = aluno.disciplinas.find(function (d) {
+          return d.id === tpcRow.discId;
+        });
+        sendEscolarPushToPatricio('📚 Novo teste: ' + aluno.nome + ' — ' + ((discSd && discSd.nome) || 'Escola') + ' — ' + fmtDataEscolar(data), titulo || 'Novo teste registado');
+      } else if (tpcRow.tipo === 'teste' && window.supabaseClient) {
         var disc = aluno.disciplinas.find(function (d) {
           return d.id === tpcRow.discId;
         });
@@ -5694,6 +5851,7 @@ function EscolarApp(_ref31) {
         feito: false,
         tipo: 'tpc'
       });
+      setNovaTpcPrec('dia');
       setShowAddTPC(false);
     },
     style: {
@@ -5710,10 +5868,10 @@ function EscolarApp(_ref31) {
   }, "\u2713 Guardar"))), aluno.tpc.filter(function (t) {
     return !t.feito;
   }).sort(function (a, b) {
-    return (a.data || '').localeCompare(b.data || '');
+    return escolarSortKey(a.data).localeCompare(escolarSortKey(b.data));
   }).map(function (t) {
     var d = getDisc(t.discId);
-    var overdue = t.data && t.data < '2026-06-15';
+    var overdue = escolarPrec(t.data) === 'dia' && t.data < '2026-06-15';
     var isEdTpc = editTpcId === t.id;
     return /*#__PURE__*/React.createElement(ECard, {
       key: t.id,
@@ -5748,7 +5906,7 @@ function EscolarApp(_ref31) {
         fontSize: 11,
         marginTop: 1
       }
-    }, d.nome, t.data ? " \xB7 \uD83D\uDCC5 ".concat(t.data) : ''), overdue && /*#__PURE__*/React.createElement("p", {
+    }, d.nome, " \xB7 \uD83D\uDCC5 ".concat(escolarFmtData(t.data))), overdue && /*#__PURE__*/React.createElement("p", {
       style: {
         color: E.red,
         fontSize: 10,
@@ -5807,6 +5965,7 @@ function EscolarApp(_ref31) {
       onClick: function onClick() {
         setEditTpcTitulo(isEdTpc ? '' : t.titulo);
         setEditTpcData(isEdTpc ? '' : t.data);
+        setEditTpcPrec(escolarPrec(t.data) === 'sem' ? (t.data ? 'sem' : 'sem') : escolarPrec(t.data));
         return setEditTpcId(isEdTpc ? null : t.id);
       },
       style: {
@@ -5966,31 +6125,22 @@ function EscolarApp(_ref31) {
         textTransform: 'uppercase',
         marginBottom: 4
       }
-    }, "Para quando"), /*#__PURE__*/React.createElement("input", {
-      type: "date",
+    }, "Para quando"), /*#__PURE__*/React.createElement(EscolarDataFlex, {
+      prec: editTpcPrec,
+      setPrec: setEditTpcPrec,
       value: editTpcData || '',
-      onChange: function onChange(e) {
-        setEditTpcData(e.target.value);
-      },
-      id: "tpc-data-".concat(t.id),
-      style: {
-        width: '100%',
-        background: E.surface2,
-        border: "1px solid ".concat(E.border),
-        borderRadius: 9,
-        padding: '8px 11px',
-        color: E.text,
-        fontSize: 13,
-        outline: 'none',
-        marginBottom: 10,
-        boxSizing: 'border-box'
-      }
+      setValue: setEditTpcData,
+      idBase: "tpc-data-".concat(t.id)
     }), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         var _document$getElementBT, _document$getElementBT2, _document$getElementBT3;
         var discId = parseInt(((_document$getElementBT = document.getElementById("tpc-disc-".concat(t.id))) === null || _document$getElementBT === void 0 ? void 0 : _document$getElementBT.value) || t.discId);
         var titulo = editTpcTitulo || t.titulo;
-        var data = editTpcData || t.data;
+        var data = editTpcData || '';
+        if (!escolarDataValida(editTpcPrec, data)) {
+          addEscolarToast('⚠️ Data incompleta: escolhe o dia, o mês ou o ano (ou "Sem data")');
+          return;
+        }
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.map(function (x) {
@@ -6046,7 +6196,7 @@ function EscolarApp(_ref31) {
   }, "\u2705 Conclu\xEDdos"), aluno.tpc.filter(function (t) {
     return t.feito;
   }).sort(function (a, b) {
-    return (a.data || '').localeCompare(b.data || '');
+    return escolarSortKey(a.data).localeCompare(escolarSortKey(b.data));
   }).map(function (t) {
     var d = getDisc(t.discId);
     return /*#__PURE__*/React.createElement(ECard, {
@@ -6117,7 +6267,7 @@ function EscolarApp(_ref31) {
     var testesImportantes = aluno.tpc.filter(function (t) {
       return t.tipo === 'teste';
     }).sort(function (a, b) {
-      return (a.data || '').localeCompare(b.data || '');
+      return escolarSortKey(a.data).localeCompare(escolarSortKey(b.data));
     });
     if (testesImportantes.length === 0) {
       return /*#__PURE__*/React.createElement(ECard, {
@@ -6137,7 +6287,7 @@ function EscolarApp(_ref31) {
     var proximosTestes = [];
     var passadosTestes = [];
     testesImportantes.forEach(function (t) {
-      if (t.data && t.data < hojeImportante) passadosTestes.push(t);else proximosTestes.push(t);
+      if (escolarJaPassou(t.data, hojeImportante)) passadosTestes.push(t);else proximosTestes.push(t);
     });
     // As notas n\u00E3o ficam ligadas a um teste espec\u00EDfico (al.notas \u00E9 s\u00F3 por
     // disciplina + semestre, sem id de teste nem data) \u2014 por isso o aviso
@@ -6149,7 +6299,7 @@ function EscolarApp(_ref31) {
     }).length;
     var renderTesteImportante = function renderTesteImportante(t) {
       var d = getDisc(t.discId);
-      var overdue = t.data && t.data < '2026-06-15' && !t.feito;
+      var overdue = escolarPrec(t.data) === 'dia' && t.data < '2026-06-15' && !t.feito;
       return /*#__PURE__*/React.createElement(ECard, {
         key: t.id,
         style: {
@@ -6172,7 +6322,7 @@ function EscolarApp(_ref31) {
         style: { fontWeight: 700, fontSize: 14, color: E.text }
       }, t.titulo || 'Teste'), /*#__PURE__*/React.createElement("p", {
         style: { color: E.muted, fontSize: 11, marginTop: 1 }
-      }, d.emoji, " ", d.nome, t.data ? " \xB7 \uD83D\uDCC5 ".concat(t.data) : ''), overdue && /*#__PURE__*/React.createElement("p", {
+      }, d.emoji, " ", d.nome, " \xB7 \uD83D\uDCC5 ".concat(escolarFmtData(t.data))), overdue && /*#__PURE__*/React.createElement("p", {
         style: { color: E.red, fontSize: 10, fontWeight: 700, marginTop: 2 }
       }, "\u26A0 J\xE1 passou")), !t.feito && /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
