@@ -5420,11 +5420,16 @@ function EscolarApp(_ref31) {
     }
   }, tpcPendentes, " pendente(s) \xB7 ", aluno.tpc.filter(function (t) {
     return t.feito;
-  }).length, " feito(s)"), /*#__PURE__*/React.createElement("button", {
+  }).length, " feito(s)"), /*#__PURE__*/React.createElement("div", {
+    style: { display: 'flex', gap: 8 }
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: function onClick() {
-      return setShowAddTPC(function (v) {
-        return !v;
+      // Abre já com o tipo certo; se já está aberto nesse tipo, fecha.
+      if (showAddTPC && novaTPC.tipo === 'teste') { setShowAddTPC(false); return; }
+      setNovaTPC(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, { tipo: 'teste' });
       });
+      setShowAddTPC(true);
     },
     style: {
       background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
@@ -5436,7 +5441,26 @@ function EscolarApp(_ref31) {
       fontWeight: 800,
       cursor: 'pointer'
     }
-  }, "\uFF0B TPC")), showAddTPC && /*#__PURE__*/React.createElement(ECard, {
+  }, "\uFF0B Teste"), /*#__PURE__*/React.createElement("button", {
+    onClick: function onClick() {
+      // Abre já com o tipo certo; se já está aberto nesse tipo, fecha.
+      if (showAddTPC && novaTPC.tipo === 'tpc') { setShowAddTPC(false); return; }
+      setNovaTPC(function (p) {
+        return _objectSpread(_objectSpread({}, p), {}, { tipo: 'tpc' });
+      });
+      setShowAddTPC(true);
+    },
+    style: {
+      background: "linear-gradient(135deg,".concat(E.purple, ",").concat(E.purpleL, ")"),
+      border: 'none',
+      borderRadius: 10,
+      padding: '6px 14px',
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: 'pointer'
+    }
+  }, "\uFF0B TPC"))), showAddTPC && /*#__PURE__*/React.createElement(ECard, {
     style: {
       padding: '14px',
       marginBottom: 12,
