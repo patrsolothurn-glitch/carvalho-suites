@@ -256,6 +256,54 @@ function HwFld(props) {
   );
 }
 
+// ── Sugestões de descrição ──
+// Junta as descrições já usadas (lista atual + faturas arquivadas), sem repetir
+// (ignora maiúsculas/espaços), das mais recentes para as mais antigas.
+// Só lê dados — não grava nem altera nada.
+function hwDescricoes(atuais, archive, campo) {
+  var itens = [];
+  (archive || []).forEach(function (a) {
+    (a && a[campo] || []).forEach(function (x) { itens.push(x); });
+  });
+  (atuais || []).forEach(function (x) { itens.push(x); });
+  itens.sort(function (a, b) {
+    var da = (a && a.date) || '', db = (b && b.date) || '';
+    return da < db ? 1 : da > db ? -1 : 0;
+  });
+  var vistos = {}, out = [];
+  itens.forEach(function (x) {
+    var d = String((x && x.description) || '').trim();
+    if (!d) return;
+    var k = d.toLowerCase();
+    if (vistos[k]) return;
+    vistos[k] = true;
+    out.push(d);
+  });
+  return out;
+}
+function hwFiltraSug(lista, texto) {
+  var t = String(texto || '').trim().toLowerCase();
+  return lista.filter(function (d) {
+    var dl = d.toLowerCase();
+    return dl !== t && (!t || dl.indexOf(t) !== -1);
+  }).slice(0, 6);
+}
+function HwSug(props) {
+  var sug = hwFiltraSug(props.lista || [], props.value);
+  if (!sug.length) return null;
+  return React.createElement('div', { style: { marginTop: -4, marginBottom: 12 } },
+    React.createElement('div', { style: { fontSize: 11, color: '#64748b', marginBottom: 6 } }, 'Já usadas — toca para repetir'),
+    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+      sug.map(function (d) {
+        return React.createElement('button', {
+          key: d, type: 'button', onClick: function () { props.onPick(d); },
+          style: { background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 16, padding: '6px 12px', fontSize: 13, cursor: 'pointer', maxWidth: '100%', textAlign: 'left' }
+        }, d);
+      })
+    )
+  );
+}
+
 // ── Hdr ──
 function HwHdr(props) {
   var title = props.title, back = props.back, btn = props.btn;
@@ -543,8 +591,8 @@ var HauswartApp = function(props) {
     // Content
     React.createElement('div', { style: S.content },
       tab === 'dash' && React.createElement(HwDash, { works: works, mats: mats, pauschale: pauschale, total: total, totalWork: totalWork, totalMats: totalMats, setTab: setTab, S: S, cfg: cfg }),
-      tab === 'work' && React.createElement(HwWorkTab, { works: works, cfg: cfg, updW: updW, S: S }),
-      tab === 'mats' && React.createElement(HwMatsTab, { mats: mats, updM: updM, S: S }),
+      tab === 'work' && React.createElement(HwWorkTab, { works: works, archive: archive, cfg: cfg, updW: updW, S: S }),
+      tab === 'mats' && React.createElement(HwMatsTab, { mats: mats, archive: archive, updM: updM, S: S }),
       tab === 'invoice' && React.createElement(HwInvoiceTab, { works: works, mats: mats, cfg: cfg, total: total, totalWork: totalWork, totalMats: totalMats, pauschale: pauschale, beschreibung: beschreibung, referenz: referenz, invLabel: invLabel, updC: updC, onPrint: function() {
         if (!cfg.invoiceDate) { window.alert('Preenche primeiro a Data de envio (Rechnungsdatum) nas Definições.'); return; }
         var faltam = hwCamposEmFalta(cfg);
@@ -618,6 +666,7 @@ function HwDash(props) {
 // ── WORK TAB ──
 function HwWorkTab(props) {
   var works = props.works, cfg = props.cfg, updW = props.updW, S = props.S;
+  var sugLista = hwDescricoes(works, props.archive, 'works');
   var _useStateV = React.useState('list');
   var view = _useStateV[0], setView = _useStateV[1];
   var _useStateE = React.useState(null);
@@ -644,6 +693,7 @@ function HwWorkTab(props) {
       React.createElement(HwHdr, { title: editing ? 'Arbeit bearbeiten' : 'Neue Arbeit', back: function() { setView('list'); } }),
       React.createElement(HwDatePick, { label: 'Datum', value: f.date, onChange: function(v) { upd('date', v); } }),
       React.createElement(HwFld, { label: 'Beschreibung', value: f.description, onChange: function(v) { upd('description', v); }, placeholder: 'z.B. Treppenhaus reinigen...' }),
+      React.createElement(HwSug, { lista: sugLista, value: f.description, onPick: function(d) { upd('description', d); } }),
       React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } },
         React.createElement(HwFld, { label: 'Stunden', type: 'text', inputMode: 'decimal', value: f.hours, onChange: function(v) { upd('hours', v.replace(/[^0-9.,-]/g, '')); } }),
         React.createElement(HwFld, { label: 'CHF/Std.', type: 'text', inputMode: 'decimal', value: f.rate, onChange: function(v) { upd('rate', v.replace(/[^0-9.,-]/g, '')); } })
@@ -685,6 +735,7 @@ function HwWorkTab(props) {
 // ── MATS TAB ──
 function HwMatsTab(props) {
   var mats = props.mats, updM = props.updM, S = props.S;
+  var sugLista = hwDescricoes(mats, props.archive, 'mats');
   var _useStateV = React.useState('list');
   var view = _useStateV[0], setView = _useStateV[1];
   var _useStateE = React.useState(null);
@@ -710,6 +761,7 @@ function HwMatsTab(props) {
       React.createElement(HwHdr, { title: editing ? 'Material bearbeiten' : 'Neues Material', back: function() { setView('list'); } }),
       React.createElement(HwDatePick, { label: 'Datum', value: f.date, onChange: function(v) { upd('date', v); } }),
       React.createElement(HwFld, { label: 'Beschreibung', value: f.description, onChange: function(v) { upd('description', v); }, placeholder: 'z.B. Reinigungsmittel 5L...' }),
+      React.createElement(HwSug, { lista: sugLista, value: f.description, onPick: function(d) { upd('description', d); } }),
       React.createElement(HwFld, { label: 'Preis (CHF)', type: 'text', inputMode: 'decimal', value: f.price, onChange: function(v) { upd('price', v.replace(/[^0-9.,-]/g, '')); }, placeholder: '0.00' }),
       React.createElement('button', { onClick: onSave, style: S.btn }, editing ? '✓ Speichern' : '+ Hinzufügen')
     );
