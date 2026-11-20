@@ -5788,7 +5788,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), novaTPC.tipo === 'teste' && /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, "Vai aparecer automaticamente na Patricio Work"), /*#__PURE__*/React.createElement("p", {
+  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
