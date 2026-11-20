@@ -1242,8 +1242,8 @@ function EscolarApp(_ref31) {
       source: 'escolar',
       source_id: t.id,
       created_by: nomeAluno,
-      // TPC feito fica no calendário, riscado (mesmo estado do "feito" da Família).
-      arquivado: !ehTeste && !!t.feito
+      // Feito (TPC ou teste) fica no calendário, riscado e a azul (mesmo estado "feito" da Família).
+      arquivado: !!t.feito
     };
   };
   var eventoEscolarDeveExistir = function eventoEscolarDeveExistir(t) {
@@ -5816,7 +5816,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + (novaTPC.tipo === 'teste' ? '' : ' (fica riscado quando marcares Feito)') : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
+  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + ' (fica riscado quando marcares Feito)' : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
@@ -6011,6 +6011,7 @@ function EscolarApp(_ref31) {
         padding: '12px 14px',
         display: 'flex',
         alignItems: 'center',
+        flexWrap: 'wrap',
         gap: 10
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -6019,7 +6020,8 @@ function EscolarApp(_ref31) {
       }
     }, d.emoji), /*#__PURE__*/React.createElement("div", {
       style: {
-        flex: 1
+        flex: '1 1 150px',
+        minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("p", {
       style: {
@@ -6040,7 +6042,10 @@ function EscolarApp(_ref31) {
         fontWeight: 700,
         marginTop: 2
       }
-    }, "\u26A0 Em atraso!")), /*#__PURE__*/React.createElement("button", {
+    }, "\u26A0 Em atraso!")), /*#__PURE__*/React.createElement("div", {
+      // Botões juntos: no telemóvel passam para uma 2.ª linha, alinhados à direita.
+      style: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }
+    }, /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         // Um toque muda TPC <-> Teste. Mesma lógica dos botões do ✏️.
         var passaATeste = t.tipo !== 'teste';
@@ -6057,6 +6062,7 @@ function EscolarApp(_ref31) {
       title: t.tipo === 'teste' ? 'Tocar para mudar para TPC' : 'Tocar para mudar para Teste',
       style: {
         flexShrink: 0,
+        whiteSpace: 'nowrap',
         background: t.tipo === 'teste' ? "".concat(E.orange, "30") : "".concat(E.purple, "22"),
         border: "1px solid ".concat(t.tipo === 'teste' ? E.orange : E.purple),
         borderRadius: 6,
@@ -6087,6 +6093,7 @@ function EscolarApp(_ref31) {
         color: E.green,
         fontSize: 12,
         fontWeight: 700,
+        whiteSpace: 'nowrap',
         cursor: 'pointer'
       }
     }, "Feito \u2713"), /*#__PURE__*/React.createElement("button", {
@@ -6137,7 +6144,7 @@ function EscolarApp(_ref31) {
         fontSize: 12,
         cursor: 'pointer'
       }
-    }, "\uD83D\uDDD1")), isEdTpc && /*#__PURE__*/React.createElement("div", {
+    }, "\uD83D\uDDD1"))), isEdTpc && /*#__PURE__*/React.createElement("div", {
       style: {
         borderTop: "1px solid ".concat(E.border),
         padding: '10px 14px'
@@ -6454,7 +6461,7 @@ function EscolarApp(_ref31) {
         style: { color: E.red, fontSize: 10, fontWeight: 700, marginTop: 2 }
       }, "\u26A0 J\xE1 passou")), !t.feito && /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
-          return setAluno(function (al) {
+          setAluno(function (al) {
             return _objectSpread(_objectSpread({}, al), {}, {
               tpc: al.tpc.map(function (x) {
                 return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, {
@@ -6463,6 +6470,7 @@ function EscolarApp(_ref31) {
               })
             });
           }, 'tpc');
+          sincEventoEscolar(_objectSpread(_objectSpread({}, t), {}, { feito: true }));
         },
         style: {
           background: "".concat(E.green, "22"),
