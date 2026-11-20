@@ -354,7 +354,8 @@ function FamiliaApp(_ref19) {
           arquivado: !!row.arquivado,
           participantes: row.participant_ids && row.participant_ids.length > 0 ? row.participant_ids : [row.member_id || 'todos'],
           categoria: row.categoria || (row.source === 'agenda_pro' ? 'trabalho' : 'familia'),
-          color: (CATEGORIAS[row.categoria] || CATEGORIAS.familia).color,
+          // Eventos da Vida Escolar trazem a cor própria (teste laranja, TPC roxo).
+          color: (row.source === 'escolar' && /^#[0-9A-Fa-f]{6}$/.test(row.color || '')) ? row.color : (CATEGORIAS[row.categoria] || CATEGORIAS.familia).color,
           hora: row.event_time || '',
           nota: row.description || '',
           lembrete: row.reminder_minutes || null,
