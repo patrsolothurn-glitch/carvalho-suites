@@ -4,7 +4,7 @@
   NÃO EDITAR ESTE FICHEIRO DIRETAMENTE — as alterações seriam perdidas
   no próximo build. Edita os ficheiros em src/, depois corre:
     node build.js
-  Gerado em: 2026-11-20T10:33:39.864Z
+  Gerado em: 2026-11-20T10:39:57.488Z
 -->
 <html lang="pt">
 <head>
@@ -52,7 +52,7 @@
       text-align:center;padding:24px;font-family:system-ui,sans-serif;
     }
   </style>
-  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-487";</script>
+  <script>window.CARVALHO_FRIENDLY_VERSION = "Carvalho-488";</script>
 </head>
 <body>
   <div id="__cs_rotate_guard">
@@ -15995,65 +15995,122 @@ function escolarEmojiValido(s) {
   return v.length > 0 && v.length <= 8 && !/[A-Za-z0-9]/.test(v);
 }
 // ── Datas flexíveis de TPC/Teste ──
-// Guardadas em escolar_tpc.data como texto: dia exato AAAA-MM-DD, só mês
-// AAAA-MM, só ano AAAA, ou '' (sem data). Só o dia exato vai para o
-// calendário da Família (family_events.event_date precisa de um dia).
+// Guardadas em escolar_tpc.data (texto): dia exato AAAA-MM-DD, semana ISO
+// AAAA-Wss (a "KW" suíça), mês AAAA-MM, semestre AAAA-S1 / AAAA-S2 (AAAA = ano
+// em que começa o ano letivo: S1 = ago–jan, S2 = fev–jul), ano AAAA (só para
+// valores antigos), ou '' (sem data). Só o dia exato vai para o calendário
+// da Família (family_events.event_date precisa de um dia).
 var ESC_MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+var ESC_MESES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function escolarISO(d) {
+  return d.toISOString().slice(0, 10);
+}
+// Segunda-feira da semana ISO w do ano y (a semana 1 é a que tem o dia 4 de janeiro).
+function escolarMondayOfIsoWeek(y, w) {
+  var jan4 = new Date(Date.UTC(y, 0, 4));
+  var dow = jan4.getUTCDay() || 7;
+  return new Date(Date.UTC(y, 0, 4 - (dow - 1) + (w - 1) * 7));
+}
+function escolarIsoWeekOf(d) {
+  var t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  var dow = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dow); // quinta-feira da semana decide o ano
+  var y = t.getUTCFullYear();
+  var w = Math.ceil(((t - new Date(Date.UTC(y, 0, 1))) / 86400000 + 1) / 7);
+  return { y: y, w: w };
+}
+function escolarWeekKey(y, w) {
+  return y + '-W' + (w < 10 ? '0' : '') + w;
+}
 function escolarPrec(s) {
   var v = String(s == null ? '' : s);
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'dia';
+  if (/^\d{4}-W\d{2}$/.test(v)) return 'semana';
   if (/^\d{4}-\d{2}$/.test(v)) return 'mes';
+  if (/^\d{4}-S[12]$/.test(v)) return 'semestre';
   if (/^\d{4}$/.test(v)) return 'ano';
   return 'sem';
 }
 function escolarDataValida(prec, v) {
   v = String(v == null ? '' : v);
   if (prec === 'sem') return v === '';
+  if (escolarPrec(v) !== prec) return false;
+  var y = parseInt(v.slice(0, 4), 10);
+  if (y < 2000 || y > 2100) return false;
   if (prec === 'dia') {
-    if (escolarPrec(v) !== 'dia') return false;
     var d = new Date(v + 'T00:00:00Z');
     return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
   }
   if (prec === 'mes') {
-    if (escolarPrec(v) !== 'mes') return false;
     var m = parseInt(v.slice(5, 7), 10);
-    return m >= 1 && m <= 12 && parseInt(v.slice(0, 4), 10) >= 2000;
+    return m >= 1 && m <= 12;
   }
-  if (prec === 'ano') {
-    if (escolarPrec(v) !== 'ano') return false;
-    var a = parseInt(v, 10);
-    return a >= 2000 && a <= 2100;
+  if (prec === 'semana') {
+    var w = parseInt(v.slice(6, 8), 10);
+    if (w < 1 || w > 53) return false;
+    var iw = escolarIsoWeekOf(escolarMondayOfIsoWeek(y, w));
+    return iw.y === y && iw.w === w;
   }
-  return false;
+  return true; // semestre e ano: o formato já chega
 }
 function escolarFmtData(s) {
   var v = String(s == null ? '' : s);
   var pr = escolarPrec(v);
   if (pr === 'mes') return ESC_MESES_PT[parseInt(v.slice(5, 7), 10) - 1] + ' ' + v.slice(0, 4);
+  if (pr === 'semana') {
+    var seg = escolarMondayOfIsoWeek(parseInt(v.slice(0, 4), 10), parseInt(v.slice(6, 8), 10));
+    var dom = new Date(seg.getTime() + 6 * 86400000);
+    var intervalo = seg.getUTCMonth() === dom.getUTCMonth()
+      ? seg.getUTCDate() + '–' + dom.getUTCDate() + ' ' + ESC_MESES_CURTO[dom.getUTCMonth()]
+      : seg.getUTCDate() + ' ' + ESC_MESES_CURTO[seg.getUTCMonth()] + ' – ' + dom.getUTCDate() + ' ' + ESC_MESES_CURTO[dom.getUTCMonth()];
+    return 'KW ' + parseInt(v.slice(6, 8), 10) + ' · ' + intervalo + ' ' + dom.getUTCFullYear();
+  }
+  if (pr === 'semestre') {
+    var ano = parseInt(v.slice(0, 4), 10);
+    return (v.slice(6) === '1' ? '1.º' : '2.º') + ' semestre ' + ano + '/' + String(ano + 1).slice(2);
+  }
   if (pr === 'sem') return v === '' ? 'Sem data' : v;
   return v;
 }
-// Chave de ordenação: dia exato primeiro, depois o mês, depois o ano
-// (dentro do mesmo período), e "sem data" no fim.
-function escolarSortKey(s) {
+// Último dia do período (AAAA-MM-DD) ou '' se não houver data.
+function escolarFim(s) {
   var v = String(s == null ? '' : s);
   var pr = escolarPrec(v);
   if (pr === 'dia') return v;
-  if (pr === 'mes') return v + '-99';
-  if (pr === 'ano') return v + '-99-99';
-  return '9999-99-99';
+  if (pr === 'semana') return escolarISO(new Date(escolarMondayOfIsoWeek(parseInt(v.slice(0, 4), 10), parseInt(v.slice(6, 8), 10)).getTime() + 6 * 86400000));
+  if (pr === 'mes') return escolarISO(new Date(Date.UTC(parseInt(v.slice(0, 4), 10), parseInt(v.slice(5, 7), 10), 0)));
+  if (pr === 'semestre') return (parseInt(v.slice(0, 4), 10) + 1) + (v.slice(6) === '1' ? '-01-31' : '-07-31');
+  if (pr === 'ano') return v + '-12-31';
+  return '';
 }
-// "Já passou" só quando o período inteiro acabou (mês/ano em curso não conta).
+// Ordenação pelo fim do período: dia exato, depois semana, mês, semestre e
+// ano que acabam nesse dia; "sem data" no fim.
+function escolarSortKey(s) {
+  var fim = escolarFim(s);
+  if (!fim) return '9999-99-99~9';
+  var sufixo = { dia: '', semana: '~1', mes: '~2', semestre: '~3', ano: '~4' }[escolarPrec(s)] || '';
+  return fim + sufixo;
+}
+// "Já passou" só quando o período inteiro acabou.
 function escolarJaPassou(s, hojeISO) {
+  var fim = escolarFim(s);
+  return !!fim && fim < hojeISO;
+}
+// Semestre da escola (1 = ago–jan, 2 = fev–jul) a que a data pertence; null se não der para saber.
+function escolarSemestreNum(s) {
   var v = String(s == null ? '' : s);
   var pr = escolarPrec(v);
-  if (pr === 'dia') return v < hojeISO;
-  if (pr === 'mes') return v < hojeISO.slice(0, 7);
-  if (pr === 'ano') return v < hojeISO.slice(0, 4);
-  return false;
+  if (pr === 'semestre') return v.slice(6) === '1' ? 1 : 2;
+  var rep = '';
+  if (pr === 'dia') rep = v;
+  else if (pr === 'mes') rep = v + '-15';
+  else if (pr === 'semana') rep = escolarISO(new Date(escolarMondayOfIsoWeek(parseInt(v.slice(0, 4), 10), parseInt(v.slice(6, 8), 10)).getTime() + 3 * 86400000));
+  if (!rep) return null;
+  var m = parseInt(rep.slice(5, 7), 10);
+  return m >= 8 || m === 1 ? 1 : 2;
 }
-// Seletor Dia / Mês / Ano / Sem data + o campo certo. Ao nível do módulo
-// (não dentro de EscolarApp) para os campos não perderem o foco a escrever.
+// Seletor Dia / Semana / Mês / Semestre / Sem data + o campo certo. Ao nível do
+// módulo (não dentro de EscolarApp) para os campos não perderem o foco a escrever.
 var EscolarDataFlex = function EscolarDataFlex(_ref) {
   var prec = _ref.prec,
     setPrec = _ref.setPrec,
@@ -16063,11 +16120,27 @@ var EscolarDataFlex = function EscolarDataFlex(_ref) {
   var converter = function converter(v, p) {
     v = String(v || '');
     if (p === 'sem') return '';
-    if (p === 'dia') return escolarPrec(v) === 'dia' ? v : '';
-    if (p === 'mes') return v.length >= 7 ? v.slice(0, 7) : '';
-    return v.length >= 4 ? v.slice(0, 4) : '';
+    var pr = escolarPrec(v);
+    if (p === 'dia') return pr === 'dia' ? v : '';
+    var r = '';
+    if (pr === 'dia') r = v;
+    else if (pr === 'mes' && p !== 'semana') r = v + '-15';
+    else if (pr === 'semana') r = escolarISO(new Date(escolarMondayOfIsoWeek(parseInt(v.slice(0, 4), 10), parseInt(v.slice(6, 8), 10)).getTime() + 3 * 86400000));
+    if (!r) return '';
+    var y = parseInt(r.slice(0, 4), 10),
+      m = parseInt(r.slice(5, 7), 10);
+    if (p === 'mes') return r.slice(0, 7);
+    if (p === 'ano') return r.slice(0, 4);
+    if (p === 'semana') {
+      var iw = escolarIsoWeekOf(new Date(r + 'T00:00:00Z'));
+      return escolarWeekKey(iw.y, iw.w);
+    }
+    if (p === 'semestre') return m >= 8 ? y + '-S1' : m === 1 ? y - 1 + '-S1' : y - 1 + '-S2';
+    return '';
   };
-  var opcoes = [['dia', 'Dia'], ['mes', 'Mês'], ['ano', 'Ano'], ['sem', 'Sem data']];
+  var opcoes = [['dia', 'Dia'], ['semana', 'Semana'], ['mes', 'Mês'], ['semestre', 'Semestre']];
+  if (prec === 'ano') opcoes.push(['ano', 'Ano']); // só para valores antigos
+  opcoes.push(['sem', 'Sem data']);
   var inputStyle = {
     width: '100%',
     background: E.surface2,
@@ -16080,8 +16153,48 @@ var EscolarDataFlex = function EscolarDataFlex(_ref) {
     marginBottom: 12,
     boxSizing: 'border-box'
   };
+  var agora = new Date();
+  var hoje = new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
+  // Lista de semanas: da semana passada até ~10 meses; mantém o valor atual se estiver fora.
+  var semanas = [];
+  if (prec === 'semana') {
+    var seg0 = escolarMondayOfIsoWeek(escolarIsoWeekOf(hoje).y, escolarIsoWeekOf(hoje).w);
+    for (var i = -1; i < 44; i++) {
+      var iw0 = escolarIsoWeekOf(new Date(seg0.getTime() + i * 7 * 86400000));
+      semanas.push(escolarWeekKey(iw0.y, iw0.w));
+    }
+    if (value && semanas.indexOf(value) === -1) semanas.unshift(value);
+  }
+  // Lista de semestres: o atual e os 5 seguintes.
+  var semestres = [];
+  if (prec === 'semestre') {
+    var mh = hoje.getUTCMonth() + 1,
+      yh = hoje.getUTCFullYear();
+    var ya = mh >= 8 ? yh : yh - 1,
+      sa = mh >= 8 || mh === 1 ? 1 : 2;
+    if (mh === 1) ya = yh - 1;
+    for (var k = 0; k < 6; k++) {
+      semestres.push(ya + '-S' + sa);
+      if (sa === 1) sa = 2;
+      else {
+        sa = 1;
+        ya += 1;
+      }
+    }
+    if (value && semestres.indexOf(value) === -1) semestres.unshift(value);
+  }
+  var listaSelect = function listaSelect(lista, placeholder) {
+    return /*#__PURE__*/React.createElement("select", {
+      value: value || '',
+      onChange: function onChange(e) { setValue(e.target.value); },
+      id: idBase,
+      style: inputStyle
+    }, /*#__PURE__*/React.createElement("option", { value: "" }, placeholder), lista.map(function (v) {
+      return /*#__PURE__*/React.createElement("option", { key: v, value: v }, escolarFmtData(v));
+    }));
+  };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: { display: 'flex', gap: 6, marginBottom: 8 }
+    style: { display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }
   }, opcoes.map(function (o) {
     var ativo = prec === o[0];
     return /*#__PURE__*/React.createElement("button", {
@@ -16092,11 +16205,11 @@ var EscolarDataFlex = function EscolarDataFlex(_ref) {
         setValue(converter(value, o[0]));
       },
       style: {
-        flex: 1,
+        flex: '1 1 auto',
         background: ativo ? "".concat(E.purple, "18") : E.surface2,
         border: "1px solid ".concat(ativo ? E.purple : E.border),
         borderRadius: 8,
-        padding: '7px 4px',
+        padding: '7px 8px',
         color: ativo ? E.purple : E.muted,
         fontSize: 11,
         fontWeight: 700,
@@ -16110,14 +16223,14 @@ var EscolarDataFlex = function EscolarDataFlex(_ref) {
     id: idBase,
     autoComplete: "off",
     style: inputStyle
-  }), prec === 'mes' && /*#__PURE__*/React.createElement("input", {
+  }), prec === 'semana' && listaSelect(semanas, 'Escolhe a semana (KW)…'), prec === 'mes' && /*#__PURE__*/React.createElement("input", {
     type: "month",
     value: value || '',
     onChange: function onChange(e) { setValue(e.target.value); },
     id: idBase,
     autoComplete: "off",
     style: inputStyle
-  }), prec === 'ano' && /*#__PURE__*/React.createElement("input", {
+  }), prec === 'semestre' && listaSelect(semestres, 'Escolhe o semestre…'), prec === 'ano' && /*#__PURE__*/React.createElement("input", {
     type: "text",
     inputMode: "numeric",
     maxLength: 4,
@@ -21118,7 +21231,7 @@ function EscolarApp(_ref31) {
         return;
       }
       if (!escolarDataValida(novaTpcPrec, data)) {
-        addEscolarToast('⚠️ Data incompleta: escolhe o dia, o mês ou o ano (ou "Sem data")');
+        addEscolarToast('⚠️ Data incompleta: escolhe o dia, a semana, o mês ou o semestre (ou "Sem data")');
         return;
       }
       var novoId = Date.now();
@@ -21465,7 +21578,7 @@ function EscolarApp(_ref31) {
         var titulo = editTpcTitulo || t.titulo;
         var data = editTpcData || '';
         if (!escolarDataValida(editTpcPrec, data)) {
-          addEscolarToast('⚠️ Data incompleta: escolhe o dia, o mês ou o ano (ou "Sem data")');
+          addEscolarToast('⚠️ Data incompleta: escolhe o dia, a semana, o mês ou o semestre (ou "Sem data")');
           return;
         }
         setAluno(function (al) {
@@ -21704,16 +21817,19 @@ function EscolarApp(_ref31) {
         onClick: function onClick() {
           var v = parseFloat(String(notaInputs[t.id] || '').replace(',', '.'));
           if (!v && v !== 0) return;
+          // A nota fica no semestre do próprio teste (ago–jan = 1, fev–jul = 2);
+          // sem data utilizável, usa o semestre que está aberto no ecrã.
+          var semNota = escolarSemestreNum(t.data) || semestre;
           setAluno(function (al) {
             var _al$notas$t$discId;
             return _objectSpread(_objectSpread({}, al), {}, {
-              notas: _objectSpread(_objectSpread({}, al.notas), {}, _defineProperty({}, t.discId, _objectSpread(_objectSpread({}, al.notas[t.discId] || {}), {}, _defineProperty({}, semestre, [].concat(_toConsumableArray(((_al$notas$t$discId = al.notas[t.discId]) === null || _al$notas$t$discId === void 0 ? void 0 : _al$notas$t$discId[semestre]) || []), [v])))))
+              notas: _objectSpread(_objectSpread({}, al.notas), {}, _defineProperty({}, t.discId, _objectSpread(_objectSpread({}, al.notas[t.discId] || {}), {}, _defineProperty({}, semNota, [].concat(_toConsumableArray(((_al$notas$t$discId = al.notas[t.discId]) === null || _al$notas$t$discId === void 0 ? void 0 : _al$notas$t$discId[semNota]) || []), [v])))))
             });
           }, 'notas');
           setNotaInputs(function (prev) {
             return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, t.id, ''));
           });
-          addEscolarToast('\uD83D\uDCCA Nota '.concat(v, ' guardada em ').concat(d.nome));
+          addEscolarToast('\uD83D\uDCCA Nota '.concat(v, ' guardada em ').concat(d.nome, ' (').concat(semNota, '.º semestre)'));
         },
         style: {
           background: "".concat(E.purple, "22"),
