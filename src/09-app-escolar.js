@@ -1242,8 +1242,8 @@ function EscolarApp(_ref31) {
       source: 'escolar',
       source_id: t.id,
       created_by: nomeAluno,
-      // TPC feito fica no calendário, riscado (mesmo estado do "feito" da Família).
-      arquivado: !ehTeste && !!t.feito
+      // Feito (TPC ou teste) fica no calendário, riscado e a azul (mesmo estado "feito" da Família).
+      arquivado: !!t.feito
     };
   };
   var eventoEscolarDeveExistir = function eventoEscolarDeveExistir(t) {
@@ -5816,7 +5816,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + (novaTPC.tipo === 'teste' ? '' : ' (fica riscado quando marcares Feito)') : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
+  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + ' (fica riscado quando marcares Feito)' : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
@@ -6461,7 +6461,7 @@ function EscolarApp(_ref31) {
         style: { color: E.red, fontSize: 10, fontWeight: 700, marginTop: 2 }
       }, "\u26A0 J\xE1 passou")), !t.feito && /*#__PURE__*/React.createElement("button", {
         onClick: function onClick() {
-          return setAluno(function (al) {
+          setAluno(function (al) {
             return _objectSpread(_objectSpread({}, al), {}, {
               tpc: al.tpc.map(function (x) {
                 return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, {
@@ -6470,6 +6470,7 @@ function EscolarApp(_ref31) {
               })
             });
           }, 'tpc');
+          sincEventoEscolar(_objectSpread(_objectSpread({}, t), {}, { feito: true }));
         },
         style: {
           background: "".concat(E.green, "22"),
