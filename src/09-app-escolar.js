@@ -6369,13 +6369,39 @@ function EscolarApp(_ref31) {
       }
     }, d.nome)), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        return setAluno(function (al) {
+        setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { feito: false }) : x;
+            })
+          });
+        }, 'tpc');
+        sincEventoEscolar(_objectSpread(_objectSpread({}, t), {}, { feito: false }));
+        addEscolarToast('\u21A9 Desfeito: ' + (t.titulo || 'Teste'));
+      },
+      title: "Desfazer (ainda n\xE3o foi feito)",
+      style: {
+        background: 'none',
+        border: "1px solid ".concat(E.border),
+        borderRadius: 8,
+        padding: '6px 9px',
+        color: E.muted,
+        fontSize: 12,
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        cursor: 'pointer'
+      }
+    }, "\u21A9 Desfazer"), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.filter(function (x) {
               return x.id !== t.id;
             })
           });
         }, 'tpc');
+        // Apagar um item concluído também o tira do calendário da Família.
+        apagarEventoTeste(t.id);
       },
       style: {
         background: 'none',
@@ -6483,8 +6509,32 @@ function EscolarApp(_ref31) {
           cursor: 'pointer'
         }
       }, "Feito \u2713"), t.feito && /*#__PURE__*/React.createElement("div", {
-        style: { display: 'flex', gap: 6, alignItems: 'center' }
-      }, /*#__PURE__*/React.createElement("input", {
+        style: { display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }
+      }, /*#__PURE__*/React.createElement("button", {
+        onClick: function onClick() {
+          setAluno(function (al) {
+            return _objectSpread(_objectSpread({}, al), {}, {
+              tpc: al.tpc.map(function (x) {
+                return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { feito: false }) : x;
+              })
+            });
+          }, 'tpc');
+          sincEventoEscolar(_objectSpread(_objectSpread({}, t), {}, { feito: false }));
+          addEscolarToast('\u21A9 Desfeito: ' + (t.titulo || 'Teste'));
+        },
+        title: "Desfazer (ainda n\xE3o foi feito)",
+        style: {
+          background: 'none',
+          border: "1px solid ".concat(E.border),
+          borderRadius: 8,
+          padding: '6px 9px',
+          color: E.muted,
+          fontSize: 12,
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+          cursor: 'pointer'
+        }
+      }, "\u21A9 Desfazer"), /*#__PURE__*/React.createElement("input", {
         type: "text",
         inputMode: "decimal",
         value: notaInputs[t.id] || '',
