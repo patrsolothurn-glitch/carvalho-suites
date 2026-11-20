@@ -5757,6 +5757,32 @@ function EscolarApp(_ref31) {
       }
     }, "\u26A0 Em atraso!")), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        // Um toque muda TPC <-> Teste. Mesma lógica dos botões do ✏️.
+        var passaATeste = t.tipo !== 'teste';
+        setAluno(function (al) {
+          return _objectSpread(_objectSpread({}, al), {}, {
+            tpc: al.tpc.map(function (x) {
+              return x.id === t.id ? _objectSpread(_objectSpread({}, x), {}, { tipo: passaATeste ? 'teste' : 'tpc' }) : x;
+            })
+          });
+        }, 'tpc');
+        if (passaATeste) criarEventoTesteSeNaoExistir(t);else apagarEventoTeste(t.id);
+        addEscolarToast(passaATeste ? '\uD83D\uDCDA Passou a Teste: ' + t.titulo : '\uD83D\uDCDD Passou a TPC: ' + t.titulo);
+      },
+      title: t.tipo === 'teste' ? 'Tocar para mudar para TPC' : 'Tocar para mudar para Teste',
+      style: {
+        flexShrink: 0,
+        background: t.tipo === 'teste' ? "".concat(E.purple, "30") : E.surface2,
+        border: "1px solid ".concat(t.tipo === 'teste' ? E.purple : E.border),
+        borderRadius: 6,
+        padding: '4px 9px',
+        color: t.tipo === 'teste' ? E.purpleL : E.muted,
+        fontSize: 11,
+        fontWeight: 800,
+        cursor: 'pointer'
+      }
+    }, t.tipo === 'teste' ? '\uD83D\uDCDA Teste' : '\uD83D\uDCDD TPC'), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
         return setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
             tpc: al.tpc.map(function (x) {
