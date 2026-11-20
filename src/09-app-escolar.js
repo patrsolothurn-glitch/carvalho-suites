@@ -6367,7 +6367,7 @@ function EscolarApp(_ref31) {
         color: E.muted,
         fontSize: 11
       }
-    }, d.nome)), /*#__PURE__*/React.createElement("button", {
+    }, (t.tipo === 'teste' ? '\uD83D\uDCDA Teste' : '\uD83D\uDCDD TPC') + ' \xB7 ' + d.nome + ' \xB7 \uD83D\uDCC5 ' + escolarFmtData(t.data))), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
         setAluno(function (al) {
           return _objectSpread(_objectSpread({}, al), {}, {
