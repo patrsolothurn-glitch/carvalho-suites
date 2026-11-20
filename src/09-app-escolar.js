@@ -5813,9 +5813,9 @@ function EscolarApp(_ref31) {
       opacity: novaTPC.tipo === 'teste' ? 1 : 0.7,
       cursor: 'pointer'
     }
-  }, "\uD83D\uDCDA Teste/Exame")), novaTPC.tipo === 'teste' && /*#__PURE__*/React.createElement("p", {
+  }, "\uD83D\uDCDA Teste/Exame")), /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
+  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + (novaTPC.tipo === 'teste' ? '' : ' (sai quando marcares Feito)') : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
