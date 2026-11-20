@@ -1345,7 +1345,7 @@ function FamiliaApp(_ref19) {
       var _endDay = _sortedDays[_sortedDays.length - 1];
       var _todayMidS = new Date(); _todayMidS.setHours(0, 0, 0, 0);
       var _endDateS = new Date(weekStart.getTime() + _endDay * 86400000);
-      var _isDoneSpan = !!g.ev.arquivado && _endDateS < _todayMidS;
+      var _isDoneSpan = !!g.ev.arquivado && (_endDateS < _todayMidS || g.ev.source === 'escolar');
       return /*#__PURE__*/React.createElement("div", {
         key: si,
         style: { display: 'grid', gridTemplateColumns: '52px repeat(7, 1fr)', height: 22, marginBottom: si < _spans.length - 1 ? 2 : 0 }
@@ -1493,7 +1493,7 @@ function FamiliaApp(_ref19) {
         }, s.tipo === 'ferias' ? '🏖' : s.tipo === 'feriado' ? '🎌' : '✅', " ", s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre'));
       }), mEvs.map(function (ev, ei) {
         var _todayMid = new Date(); _todayMid.setHours(0,0,0,0);
-        var isDone = !!ev.arquivado && date <= _todayMid;
+        var isDone = !!ev.arquivado && (date <= _todayMid || ev.source === 'escolar');
         return /*#__PURE__*/React.createElement("div", {
           key: ei,
           style: {
@@ -1688,14 +1688,14 @@ function FamiliaApp(_ref19) {
     var allColors = [].concat(_toConsumableArray(ev.map(function (e) {
       var _dObj = new Date(dStr + 'T00:00:00');
       var _todayM = new Date(); _todayM.setHours(0,0,0,0);
-      return (e.arquivado && _dObj < _todayM) ? '#2563EB' : e.color;
+      return (e.arquivado && (_dObj < _todayM || e.source === 'escolar')) ? '#2563EB' : e.color;
     })), _toConsumableArray(sh.map(function () {
       return F.purple;
     }))).slice(0, 3);
     var allEvsForCell = [].concat(_toConsumableArray(ev.map(function (e) {
       var _dObj = new Date(dStr + 'T00:00:00');
       var _todayM = new Date(); _todayM.setHours(0,0,0,0);
-      var isDoneCell = e.arquivado && _dObj < _todayM;
+      var isDoneCell = e.arquivado && (_dObj < _todayM || e.source === 'escolar');
       return { t: e.t, hora: e.hora, color: isDoneCell ? '#2563EB' : e.color, done: isDoneCell };
     })), _toConsumableArray(sh.map(function (s) {
       return { t: s.tipo === 'ferias' ? 'Férias' : s.tipo === 'feriado' ? 'Feriado' : 'Livre', hora: '', color: F.purple, done: false };
@@ -1842,7 +1842,7 @@ function FamiliaApp(_ref19) {
     var isEditing = editEvKey === evKey;
     var selDateObj = new Date(selDateStr + 'T00:00:00');
     var todayMidnightD = new Date(); todayMidnightD.setHours(0,0,0,0);
-    var isDoneDay = !!ev.arquivado && selDateObj <= todayMidnightD;
+    var isDoneDay = !!ev.arquivado && (selDateObj <= todayMidnightD || ev.source === 'escolar');
     return /*#__PURE__*/React.createElement(FCard, {
       key: ev.id || i,
       style: {

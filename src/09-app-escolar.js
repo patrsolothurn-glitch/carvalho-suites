@@ -1241,13 +1241,13 @@ function EscolarApp(_ref31) {
       member_id: null,
       source: 'escolar',
       source_id: t.id,
-      created_by: nomeAluno
+      created_by: nomeAluno,
+      // TPC feito fica no calendário, riscado (mesmo estado do "feito" da Família).
+      arquivado: !ehTeste && !!t.feito
     };
   };
   var eventoEscolarDeveExistir = function eventoEscolarDeveExistir(t) {
-    if (escolarPrec(t.data) !== 'dia') return false;
-    if (t.tipo !== 'teste' && t.feito) return false;
-    return true;
+    return escolarPrec(t.data) === 'dia';
   };
   // Cria/atualiza/remove o evento da Família conforme o estado atual do item.
   var sincEventoEscolar = function sincEventoEscolar(t) {
@@ -1264,7 +1264,8 @@ function EscolarApp(_ref31) {
       event_date: linha.event_date,
       emoji: linha.emoji,
       color: linha.color,
-      description: linha.description
+      description: linha.description,
+      arquivado: linha.arquivado
     }).eq('source', 'escolar').eq('source_id', t.id).select('id').then(function (updRes) {
       if (updRes && updRes.error) {
         console.error('[escolar→familia] falha ao atualizar evento:', updRes.error);
@@ -2512,7 +2513,7 @@ function EscolarApp(_ref31) {
             return t.tipo === 'teste' || t.data >= hojeRec;
           });
           if (elegiveis.length > 0) {
-            window.supabaseClient.from('family_events').select('id, source_id, color').eq('source', 'escolar').in('source_id', elegiveis.map(function (r) { return r.id; })).then(function (evRes) {
+            window.supabaseClient.from('family_events').select('id, source_id, color, arquivado').eq('source', 'escolar').in('source_id', elegiveis.map(function (r) { return r.id; })).then(function (evRes) {
               if (evRes && evRes.error) {
                 console.error('[escolar→familia] reconciliação: falha ao ler eventos:', evRes.error);
                 return;
@@ -2522,15 +2523,15 @@ function EscolarApp(_ref31) {
               elegiveis.forEach(function (r) {
                 var disc = (discRes.data || []).find(function (d) { return d.id === r.disc_id && d.aluno === r.aluno; });
                 var nomeAluno = (alunosData[r.aluno] && alunosData[r.aluno].nome) || r.aluno;
-                var t = { id: r.id, tipo: r.tipo === 'teste' ? 'teste' : 'tpc', data: r.data, titulo: r.titulo || '' };
+                var t = { id: r.id, tipo: r.tipo === 'teste' ? 'teste' : 'tpc', data: r.data, titulo: r.titulo || '', feito: !!r.feito };
                 var linha = montarLinhaEventoEscolar(t, (disc && disc.nome) || 'Escola', nomeAluno, r.aluno);
                 var ex = porId[r.id];
                 if (!ex) {
                   window.supabaseClient.from('family_events').insert(linha).then(function (insRes) {
                     if (insRes && insRes.error) console.error('[escolar→familia] reconciliação: falha ao criar evento:', insRes.error);
                   }).catch(function (err) { console.error('[escolar→familia] reconciliação: falha ao criar evento:', err); });
-                } else if (ex.color !== linha.color) {
-                  window.supabaseClient.from('family_events').update({ title: linha.title, emoji: linha.emoji, color: linha.color, description: linha.description }).eq('id', ex.id).then(function (updRes) {
+                } else if (ex.color !== linha.color || !!ex.arquivado !== linha.arquivado) {
+                  window.supabaseClient.from('family_events').update({ title: linha.title, emoji: linha.emoji, color: linha.color, description: linha.description, arquivado: linha.arquivado }).eq('id', ex.id).then(function (updRes) {
                     if (updRes && updRes.error) console.error('[escolar→familia] reconciliação: falha ao atualizar cor:', updRes.error);
                   }).catch(function (err) { console.error('[escolar→familia] reconciliação: falha ao atualizar cor:', err); });
                 }
@@ -5815,7 +5816,7 @@ function EscolarApp(_ref31) {
     }
   }, "\uD83D\uDCDA Teste/Exame")), /*#__PURE__*/React.createElement("p", {
     style: { fontSize: 10, color: E.muted, marginBottom: 10 }
-  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + (novaTPC.tipo === 'teste' ? '' : ' (sai quando marcares Feito)') : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
+  }, novaTpcPrec === 'dia' ? "Vai aparecer no calend\xE1rio da Fam\xEDlia Carvalho" + (novaTPC.tipo === 'teste' ? '' : ' (fica riscado quando marcares Feito)') : "Sem dia exato n\xE3o aparece no calend\xE1rio da Fam\xEDlia (fica s\xF3 na Vida Escolar)"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: E.muted,
       fontSize: 10,
